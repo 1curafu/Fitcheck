@@ -1,0 +1,16 @@
+import type { MetadataRoute } from "next";
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    name: "Fitcheck",
+    short_name: "Fitcheck",
+    description: "Your AI stylist. Daily looks from the clothes you already own.",
+    start_url: "/",
+    display: "standalone",
+    background_color: "#0E0E10",
+    theme_color: "#0E0E10",
+    icons: [
+      { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
+    ],
+  };
+}

@@ -1,0 +1,117 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ── Fitcheck brand tokens (names that don't collide with shadcn semantics) ── */
+@theme {
+  --font-serif: var(--font-libre-caslon), serif;
+  --font-sans: var(--font-hanken), system-ui, sans-serif;
+
+  /* canvas → elevated surfaces (warm near-black ramp) */
+  --color-canvas: #0e0e10;
+  --color-surface-1: #161517;
+  --color-surface-2: #19181b;
+  --color-surface-3: #201f22;
+
+  /* cream text ramp (foreground/muted-foreground live in the shadcn layer below) */
+  --color-foreground-strong: #f3eee3;
+  --color-muted-dim: #615c52;
+  --color-faint: #52504a;
+
+  /* rust / terracotta — our highlight. Named `brand` so it doesn't clash with
+     shadcn's `accent` (a hover surface). Use text-brand / bg-brand. */
+  --color-brand: #b86a47;
+  --color-brand-high: #d69873;
+  --color-brand-deep: #9a5236;
+
+  /* Style-DNA tonal swatches */
+  --color-dna-cream: #ede6d8;
+  --color-dna-navy: #2c3a4c;
+  --color-dna-camel: #b89a6a;
+  --color-dna-olive: #6e6f52;
+  --color-dna-rust: #b86a47;
+}
+
+/* ── shadcn semantic layer, themed to Fitcheck (the app is always dark) ── */
+:root {
+  --radius: 0.875rem;
+  --background: #0e0e10;
+  --foreground: #ede6d8;
+  --card: #161517;
+  --card-foreground: #ede6d8;
+  --popover: #19181b;
+  --popover-foreground: #ede6d8;
+  --primary: #b86a47;
+  --primary-foreground: #0e0e10;
+  --secondary: #19181b;
+  --secondary-foreground: #ede6d8;
+  --muted: #19181b;
+  --muted-foreground: #928c7f;
+  --accent: #201f22;
+  --accent-foreground: #ede6d8;
+  --destructive: #9a5236;
+  --border: rgba(237, 230, 216, 0.07);
+  --input: rgba(237, 230, 216, 0.12);
+  --ring: #b86a47;
+  --chart-1: #b86a47;
+  --chart-2: #b89a6a;
+  --chart-3: #6e6f52;
+  --chart-4: #2c3a4c;
+  --chart-5: #928c7f;
+  --sidebar: #161517;
+  --sidebar-foreground: #ede6d8;
+  --sidebar-primary: #b86a47;
+  --sidebar-primary-foreground: #0e0e10;
+  --sidebar-accent: #201f22;
+  --sidebar-accent-foreground: #ede6d8;
+  --sidebar-border: rgba(237, 230, 216, 0.07);
+  --sidebar-ring: #b86a47;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
