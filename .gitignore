@@ -36,3 +36,11 @@ yarn-error.log*
 
 # local tooling
 .claude/settings.local.json
+
+.CLAUDE
+
+.fitcheck-complete-spec.md
+
+/.vscode
+
+/.playwright-mcp
