@@ -28,11 +28,16 @@ docker ps
 
 ### 2. Start the local Supabase stack
 
-From the project root:
+From the project root. **Source `.env.local` first** — Google OAuth is enabled in `config.toml`, and the
+Supabase CLI reads the `SUPABASE_AUTH_EXTERNAL_GOOGLE_*` values from the environment (it does **not**
+auto-load `.env.local`):
 
 ```bash
+set -a; source .env.local; set +a   # loads Google OAuth client id + secret
 supabase start
 ```
+
+(If you skip the `source` line, the stack still starts but Google sign-in won't work — email magic-link will.)
 
 First run pulls the container images (a few minutes); later runs are fast. When it's up you'll see the
 local URLs and keys. Useful endpoints:
