@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { QUESTIONS } from "@/lib/onboarding/questions";
 import { saveStyleProfile } from "@/app/onboarding/actions";
+import { Chip } from "@/components/ui-fitcheck/chip";
+import { Kicker } from "@/components/ui-fitcheck/kicker";
 
 type Answers = Record<string, string[]>;
 
@@ -78,9 +80,7 @@ export function Quiz() {
         </span>
       </div>
 
-      <p className="mb-[10px] text-[11px] uppercase tracking-[0.22em] text-muted-dim">
-        {q.kicker}
-      </p>
+      <Kicker className="mb-[10px] block">{q.kicker}</Kicker>
       <h1 className="mb-1 font-serif text-3xl/[1.12] text-foreground">
         {q.title}
       </h1>
@@ -160,22 +160,16 @@ export function Quiz() {
 
       {q.kind === "chips" && (
         <div className="flex flex-wrap gap-[10px]">
-          {q.options.map((opt) => {
-            const on = selected.includes(opt.value);
-            return (
-              <button
-                key={opt.value}
-                onClick={() => toggle(opt.value)}
-                className={`rounded-full border px-[17px] py-3 text-sm font-medium transition-colors ${
-                  on
-                    ? "border-brand/50 bg-brand/15 text-brand-high"
-                    : "border-[--input] bg-surface-1 text-muted-foreground"
-                }`}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
+          {q.options.map((opt) => (
+            <Chip
+              key={opt.value}
+              variant="select"
+              active={selected.includes(opt.value)}
+              onClick={() => toggle(opt.value)}
+            >
+              {opt.label}
+            </Chip>
+          ))}
         </div>
       )}
 

@@ -1,7 +1,8 @@
 import { type NextRequest } from "next/server";
-import { updateSession } from "@/lib/supabase/middleware";
+import { updateSession } from "@/lib/supabase/proxy";
 
-export async function middleware(request: NextRequest) {
+// Next.js 16 "proxy" convention (formerly middleware.ts).
+export async function proxy(request: NextRequest) {
   return updateSession(request);
 }
 
