@@ -1,7 +1,12 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { signItemImages, displayPath } from "@/lib/storage/signed";
+import { Kicker } from "@/components/ui-fitcheck/kicker";
+import { MobileNav } from "@/components/shell/mobile-nav";
+import { ClosetGrid } from "@/components/closet/closet-grid";
 
-// Stub — plan 05 builds the real closet (masonry grid, filters, item detail).
 export default async function ClosetPage() {
   const supabase = await createClient();
   const {
@@ -9,42 +14,53 @@ export default async function ClosetPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("display_name, archetype, palette, fit, dress_codes, occasions, nogos, formality_min, formality_max")
-    .eq("id", user.id)
-    .single();
+  const { data: items } = await supabase
+    .from("items")
+    .select("*")
+    .eq("archived", false)
+    .order("created_at", { ascending: false });
+
+  const rows = items ?? [];
+  const signed = await signItemImages(rows.map(displayPath));
+  const grid = rows.map((i) => ({
+    ...i,
+    name: i.name ?? i.subcategory ?? i.category,
+    brand: i.brand,
+    imageUrl: signed.get(displayPath(i)) ?? "",
+  }));
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-4 px-8 text-center">
-      <p className="text-[11px] uppercase tracking-[0.22em] text-muted-dim">
-        The Closet
-      </p>
-      <h1 className="font-serif text-4xl text-foreground">Coming soon</h1>
-      {profile?.archetype ? (
-        <div className="max-w-[300px] space-y-1 text-sm text-muted-foreground">
-          <p>
-            Welcome{profile.display_name ? `, ${profile.display_name}` : ""}. Your
-            style profile is saved:
-          </p>
-          <p className="text-foreground">
-            {profile.archetype} · {profile.palette} · {profile.fit}
-          </p>
-          <p>Dress codes: {profile.dress_codes?.join(", ")}</p>
-          <p>Occasions: {profile.occasions?.join(", ")}</p>
-          {profile.nogos?.length ? <p>No-gos: {profile.nogos.join(", ")}</p> : null}
-          <p>
-            Formality band: {profile.formality_min}–{profile.formality_max}
-          </p>
-        </div>
-      ) : (
-        <p className="text-sm text-muted-foreground">Complete onboarding to begin.</p>
-      )}
-      <form action="/auth/signout" method="post">
-        <button className="mt-4 rounded-[12px] border border-[--input] px-5 py-3 text-sm text-foreground">
-          Sign out
-        </button>
-      </form>
-    </main>
+    <div className="flex min-h-dvh flex-1 flex-col">
+      <main className="flex flex-1 flex-col gap-5 py-8">
+        <header className="flex items-end justify-between px-6">
+          <div>
+            <Kicker>{grid.length} Pieces</Kicker>
+            <h1 className="font-serif text-3xl text-foreground">The Closet</h1>
+          </div>
+          <Link
+            href="/closet/upload"
+            aria-label="Add a piece"
+            className="grid size-11 place-items-center rounded-full bg-foreground text-canvas"
+          >
+            <Plus size={20} />
+          </Link>
+        </header>
+
+        {grid.length === 0 ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-4 px-8 text-center">
+            <p className="text-sm text-muted-foreground">Your closet is empty.</p>
+            <Link
+              href="/closet/upload"
+              className="rounded-[12px] bg-foreground px-6 py-3 text-sm font-semibold text-canvas"
+            >
+              Add your first piece
+            </Link>
+          </div>
+        ) : (
+          <ClosetGrid items={grid} />
+        )}
+      </main>
+      <MobileNav />
+    </div>
   );
 }
