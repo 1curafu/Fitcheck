@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { processImage, blobToBase64 } from "@/lib/images/process";
 import { uploadAndTag, confirmItem } from "@/app/closet/upload/actions";
@@ -32,6 +32,15 @@ export function CaptureFlow() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Free the object URL when it's replaced by a new capture or on unmount,
+  // so repeated captures don't leak blob URLs.
+  useEffect(() => {
+    const url = draft?.cutoutUrl;
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [draft?.cutoutUrl]);
 
   async function onFile(file: File) {
     setError(null);
