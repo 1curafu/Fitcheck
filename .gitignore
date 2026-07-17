@@ -33,6 +33,7 @@ yarn-error.log*
 
 /docs
 /styling
+CLAUDE.md
 DESIGN.md
 PRODUCT.md
 .impeccable/
