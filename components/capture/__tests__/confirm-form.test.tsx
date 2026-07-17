@@ -11,7 +11,7 @@ const draft: Draft = {
   brand: "",
   tags: {
     category: "Tops", subcategory: "Tee", colors: ["black"],
-    pattern: "Solid", material: "Cotton", formality: 2, seasons: ["Summer"],
+    pattern: "solid", material: "Cotton", formality: 2, seasons: ["Summer"],
   },
 };
 

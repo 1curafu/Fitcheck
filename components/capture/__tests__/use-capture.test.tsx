@@ -12,7 +12,7 @@ vi.mock("@/app/closet/upload/actions", () => ({
     cutoutPath: "u/item-1/cutout.png",
     tags: {
       category: "Tops", subcategory: "Tee", colors: ["black"],
-      pattern: "Solid", material: "Cotton", formality: 2, seasons: ["Summer"],
+      pattern: "solid", material: "Cotton", formality: 2, seasons: ["Summer"],
     },
   })),
   confirmItem: vi.fn(async () => undefined),
