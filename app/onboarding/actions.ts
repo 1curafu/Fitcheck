@@ -43,6 +43,6 @@ export async function saveStyleProfile(input: unknown) {
     .eq("id", user.id);
   if (error) throw error;
 
-  // The first-5-items capture (plan 04) will live at /onboarding/capture.
-  redirect("/closet");
+  // First-5-items capture (plan 04, Task 9).
+  redirect("/onboarding/capture");
 }
