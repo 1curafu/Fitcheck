@@ -13,6 +13,15 @@ test("accepts a well-formed tag object", () => {
   expect(ok.category).toBe("Tops");
 });
 
+test("accepts Fragrance and Accessories categories (generator needs the enum to exist)", () => {
+  const base = {
+    subcategory: "x", colors: ["amber"], pattern: "solid" as const,
+    material: "n/a", formality: 3, seasons: ["Autumn" as const],
+  };
+  expect(() => TagSchema.parse({ ...base, category: "Fragrance" })).not.toThrow();
+  expect(() => TagSchema.parse({ ...base, category: "Accessories" })).not.toThrow();
+});
+
 test("rejects an out-of-enum category", () => {
   expect(() =>
     TagSchema.parse({

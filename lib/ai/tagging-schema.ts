@@ -3,7 +3,7 @@ import { z } from "zod";
 // Categories + seasons match the prototype (Title case) so tags line up with
 // the closet filters and the generator.
 export const TagSchema = z.object({
-  category: z.enum(["Tops", "Bottoms", "Outerwear", "Shoes", "Accessories"]),
+  category: z.enum(["Tops", "Bottoms", "Outerwear", "Shoes", "Accessories", "Fragrance"]),
   subcategory: z.string().min(1),
   colors: z.array(z.string()).min(1).max(3),
   pattern: z.enum(["solid", "striped", "check", "print", "other"]),
@@ -24,7 +24,7 @@ const UNSUPPORTED_JSON_SCHEMA_KEYWORDS = new Set([
   "minItems", "maxItems", "uniqueItems",
 ]);
 
-function forStructuredOutput(node: unknown): unknown {
+export function forStructuredOutput(node: unknown): unknown {
   if (Array.isArray(node)) return node.map(forStructuredOutput);
   if (node && typeof node === "object") {
     const out: Record<string, unknown> = {};
