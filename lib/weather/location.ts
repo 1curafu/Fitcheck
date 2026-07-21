@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 // Location resolution — pure. No I/O, no clock.
 // We NEVER derive a city name from coordinates: Open-Meteo has no reverse endpoint
 // (D8), and third-party reverse geocoders would ship precise user coords off-stack.
@@ -57,3 +59,18 @@ export function resolveLocation(args: {
 
   return { ...DEFAULT_LOCATION };
 }
+
+/**
+ * What the client may persist. Plain Zod validation keywords are fine here —
+ * this schema is NEVER sent to Anthropic as a structured-output format, so the
+ * `forStructuredOutput()` stripping rule does not apply.
+ */
+export const LocationInputSchema = z.object({
+  lat: z.number().min(-90).max(90),
+  lon: z.number().min(-180).max(180),
+  label: z.string().min(1).max(80),
+  source: z.enum(["geo", "city"]),
+  timezone: z.string().min(1).max(64),
+});
+
+export type LocationInput = z.infer<typeof LocationInputSchema>;

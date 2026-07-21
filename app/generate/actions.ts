@@ -9,7 +9,12 @@ import { buildCandidates, type CandidateItem } from "@/lib/generator/candidates"
 import { rankTopN } from "@/lib/generator/rank";
 import { rerank } from "@/lib/generator/rerank";
 import { layoutForLook, staggerOrder } from "@/lib/generator/layout";
-import { resolveLocation, type LocationSource } from "@/lib/weather/location";
+import {
+  resolveLocation,
+  roundCoord,
+  LocationInputSchema,
+  type LocationSource,
+} from "@/lib/weather/location";
 import type {
   GenerateResult,
   Look,
@@ -127,4 +132,32 @@ export async function generate(input: {
   } catch (e) {
     return { status: "error", message: e instanceof Error ? e.message : "Generation failed" };
   }
+}
+
+/**
+ * The single write path for a user's location. `generate` stays read-only.
+ * Called by the client after a successful generate for a location the user
+ * actually supplied (geolocation or city search) — never for the profile or
+ * default fallback, where there is nothing new to write.
+ */
+export async function saveLocation(input: unknown): Promise<void> {
+  const d = LocationInputSchema.parse(input);
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await supabase
+    .from("profiles")
+    .update({
+      location_lat: roundCoord(d.lat),
+      location_lon: roundCoord(d.lon),
+      location_label: d.label,
+      location_source: d.source,
+      location_timezone: d.timezone,
+      location_updated_at: new Date().toISOString(),
+    })
+    .eq("id", user.id);
 }

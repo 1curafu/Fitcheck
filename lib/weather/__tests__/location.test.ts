@@ -1,4 +1,4 @@
-import { roundCoord, resolveLocation, DEFAULT_LOCATION } from "../location";
+import { roundCoord, resolveLocation, DEFAULT_LOCATION, LocationInputSchema } from "../location";
 
 test("roundCoord snaps to 2dp (~1.1km) so neighbours share one cached forecast URL", () => {
   expect(roundCoord(52.5187234)).toBe(52.52);
@@ -40,4 +40,24 @@ test("a stored location with no label is labelled Current location (we never rev
     profile: { location_lat: 48.14, location_lon: 11.58, location_label: null },
   });
   expect(r.label).toBe("Current location");
+});
+
+test("LocationInputSchema accepts a well-formed fix", () => {
+  const ok = LocationInputSchema.parse({
+    lat: 52.52, lon: 13.41, label: "Berlin", source: "city", timezone: "Europe/Berlin",
+  });
+  expect(ok.label).toBe("Berlin");
+});
+
+test("LocationInputSchema rejects out-of-range coordinates", () => {
+  const bad = { lon: 13.41, label: "Nowhere", source: "geo", timezone: "Europe/Berlin" };
+  expect(() => LocationInputSchema.parse({ ...bad, lat: 91 })).toThrow();
+  expect(() => LocationInputSchema.parse({ ...bad, lat: -91 })).toThrow();
+  expect(() => LocationInputSchema.parse({ lat: 52.52, ...bad, lon: 181 })).toThrow();
+});
+
+test("LocationInputSchema rejects an unknown source and an empty label", () => {
+  const base = { lat: 52.52, lon: 13.41, label: "Berlin", timezone: "Europe/Berlin" };
+  expect(() => LocationInputSchema.parse({ ...base, source: "profile" })).toThrow();
+  expect(() => LocationInputSchema.parse({ ...base, source: "geo", label: "" })).toThrow();
 });
