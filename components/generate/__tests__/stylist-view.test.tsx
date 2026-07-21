@@ -9,6 +9,7 @@ const weather: WeatherPayload = {
   condition: "Overcast",
   cityLabel: "Berlin",
   timezone: "Europe/Berlin",
+  locationOrigin: "default" as const,
   laterSentence: "Dry through the evening — no extra layer.",
   adviceClause: "no extra layer.",
   laterLabel: "Later",

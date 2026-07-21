@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { StylistView, type StylistStatus } from "./stylist-view";
 import { generate, saveLocation } from "@/app/generate/actions";
@@ -34,9 +34,27 @@ export function Stylist() {
   // all, at which point it disappears and city search is the only path.
   const [geoSupported, setGeoSupported] = useState(true);
 
-  // Silent refresh: querying permissions never prompts, so when the browser
-  // already holds a "granted" answer we re-read coords on load. That's what
-  // keeps a traveller's weather correct with no prompt and no tap.
+  // The silent refresh must never overwrite a location the user meant to keep.
+  // Two ways that can happen, both guarded here:
+  //   1. a RACE — the async permission→position chain resolving after the user
+  //      has already picked a city in this session;
+  //   2. a SAVED CITY — profiles.location_source === 'city' is a deliberate
+  //      choice (decision L2), so GPS must not silently replace it.
+  // The fix is parked in a ref until both gates are known, so geolocation still
+  // starts immediately rather than waiting on the first generate to return.
+  const userChoseRef = useRef(false);
+  const pendingGeoRef = useRef<Chosen | null>(null);
+  const geoAllowedRef = useRef<boolean | null>(null); // null = stored origin unknown yet
+
+  const applyPendingGeo = useCallback(() => {
+    if (userChoseRef.current) return; // gate 1
+    if (geoAllowedRef.current !== true) return; // gate 2
+    const fix = pendingGeoRef.current;
+    if (!fix) return;
+    pendingGeoRef.current = null;
+    setCity(fix);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     permissionState().then((state) => {
@@ -45,10 +63,12 @@ export function Stylist() {
         setGeoSupported(false);
         return;
       }
-      if (state !== "granted") return;
+      if (state !== "granted") return; // querying never prompts; reading would
       getCurrentPosition()
         .then((c) => {
-          if (!cancelled) setCity({ ...c, label: "Current location", source: "geo" });
+          if (cancelled) return;
+          pendingGeoRef.current = { ...c, label: "Current location", source: "geo" };
+          applyPendingGeo();
         })
         .catch(() => {
           /* silent path — never surface an error the user didn't ask for */
@@ -57,9 +77,12 @@ export function Stylist() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [applyPendingGeo]);
 
+  // An explicit tap always wins, including over a saved city.
   const useMyLocation = useCallback(() => {
+    userChoseRef.current = true;
+    pendingGeoRef.current = null;
     setLocating(true);
     setGeoError(null);
     getCurrentPosition()
@@ -75,6 +98,13 @@ export function Stylist() {
     setStatus("loading");
     generate({ occasion, formality, mustColors, city: city ?? undefined }).then((res) => {
       if (cancelled) return;
+      // The first result tells us the STORED provenance. A saved city blocks the
+      // silent refresh for good; anything else releases the parked GPS fix.
+      if (geoAllowedRef.current === null && res.status !== "error") {
+        geoAllowedRef.current = res.weather.locationOrigin !== "city";
+        applyPendingGeo();
+      }
+
       if (res.status === "ok") {
         setWeather(res.weather);
         setLooks(res.looks);
@@ -121,7 +151,11 @@ export function Stylist() {
         setMustColors(c);
         setRefineOpen(false);
       }}
-      onCityChange={(c) => setCity({ lat: c.lat, lon: c.lon, label: c.name, source: "city" })}
+      onCityChange={(c) => {
+        userChoseRef.current = true;
+        pendingGeoRef.current = null;
+        setCity({ lat: c.lat, lon: c.lon, label: c.name, source: "city" });
+      }}
       onCitySearch={(q) => {
         if (q.trim().length < 2) return;
         searchCities(q).then(setCities);

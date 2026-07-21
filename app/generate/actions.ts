@@ -43,7 +43,7 @@ export async function generate(input: {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("archetype, location_lat, location_lon, location_label")
+      .select("archetype, location_lat, location_lon, location_label, location_source")
       .eq("id", user.id)
       .single();
     const { data: itemsRaw } = await supabase
@@ -65,6 +65,7 @@ export async function generate(input: {
       condition: f.condition,
       cityLabel: loc.label,
       timezone: f.timezone,
+      locationOrigin: loc.origin,
       laterSentence: advice.sentence,
       adviceClause: advice.adviceClause,
       laterLabel: "Later",
@@ -130,6 +131,7 @@ export async function generate(input: {
 
     return { status: "ok", weather, looks };
   } catch (e) {
+    console.error("[generate] failed:", e);
     return { status: "error", message: e instanceof Error ? e.message : "Generation failed" };
   }
 }

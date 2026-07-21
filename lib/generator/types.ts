@@ -38,6 +38,9 @@ export type WeatherPayload = {
   condition: string;
   cityLabel: string;
   timezone: string; // IANA zone at the location, e.g. "Europe/Berlin" — from timezone=auto
+  // Where this location came from. "city" = a deliberate user choice; the client
+  // suppresses its silent GPS refresh so a saved city is never overwritten.
+  locationOrigin: "geo" | "city" | "profile" | "default";
   laterSentence: string; // full: "Rain from 21:00 — take a shell."
   adviceClause: string; // JUST the rust clause: "take a shell." — the UI binds the rust <b> to THIS
   laterLabel: string; // "LATER" (static caps label)

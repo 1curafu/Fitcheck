@@ -42,6 +42,34 @@ test("a stored location with no label is labelled Current location (we never rev
   expect(r.label).toBe("Current location");
 });
 
+test("a stored city is reported as origin 'city' — GPS must not silently override it", () => {
+  const r = resolveLocation({
+    profile: {
+      location_lat: 35.69, location_lon: 139.69,
+      location_label: "Tokyo", location_source: "city",
+    },
+  });
+  expect(r.origin).toBe("city");
+  expect(r.label).toBe("Tokyo");
+});
+
+test("a stored geo fix is reported as origin 'geo' — safe to silently refresh", () => {
+  const r = resolveLocation({
+    profile: {
+      location_lat: 47.24, location_lon: 8.92,
+      location_label: "Current location", location_source: "geo",
+    },
+  });
+  expect(r.origin).toBe("geo");
+});
+
+test("a legacy row with coords but no source is plain 'profile'", () => {
+  const r = resolveLocation({
+    profile: { location_lat: 47.24, location_lon: 8.92, location_label: null },
+  });
+  expect(r.origin).toBe("profile");
+});
+
 test("LocationInputSchema accepts a well-formed fix", () => {
   const ok = LocationInputSchema.parse({
     lat: 52.52, lon: 13.41, label: "Berlin", source: "city", timezone: "Europe/Berlin",

@@ -20,6 +20,8 @@ export type ProfileLocation = {
   location_lat: number | null;
   location_lon: number | null;
   location_label: string | null;
+  /** 'city' means the user deliberately picked it — GPS must not silently override it. */
+  location_source?: string | null;
 };
 
 export const DEFAULT_LOCATION: ResolvedLocation = {
@@ -49,11 +51,15 @@ export function resolveLocation(args: {
   }
 
   if (profile?.location_lat != null && profile.location_lon != null) {
+    // Surface the STORED provenance, not a flat "profile": the client uses
+    // origin === "city" to know a deliberate choice is in play and suppress the
+    // silent GPS refresh that would otherwise overwrite it.
+    const stored = profile.location_source;
     return {
       lat: profile.location_lat,
       lon: profile.location_lon,
       label: profile.location_label ?? "Current location",
-      origin: "profile",
+      origin: stored === "city" || stored === "geo" ? stored : "profile",
     };
   }
 
