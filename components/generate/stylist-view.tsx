@@ -26,6 +26,9 @@ export function StylistView(props: {
   onRefineApply: (r: { formality: number; mustColors: string[] }) => void;
   onCityChange: (c: City) => void;
   onCitySearch: (q: string) => void;
+  onUseMyLocation?: () => void; // absent when the browser has no geolocation API
+  locating: boolean;
+  geoError: string | null;
   onSelectLook: (i: number) => void;
   onRetry: () => void;
   onOpenItem: (itemId: string) => void;
@@ -44,6 +47,9 @@ export function StylistView(props: {
           cities={props.cities}
           onSearch={props.onCitySearch}
           onCityChange={props.onCityChange}
+          onUseMyLocation={props.onUseMyLocation}
+          locating={props.locating}
+          geoError={props.geoError}
         />
       ) : (
         <div className="h-10 animate-pulse rounded bg-surface-1" />

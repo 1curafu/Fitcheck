@@ -41,6 +41,8 @@ const base = {
   occasion: "everyday" as const,
   cities: [],
   refineOpen: false,
+  locating: false,
+  geoError: null,
   onOccasion: noop,
   onOpenRefine: noop,
   onCloseRefine: noop,
