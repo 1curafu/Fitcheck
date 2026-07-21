@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { signItemImages, displayPath } from "@/lib/storage/signed";
 import { fetchForecast } from "@/lib/weather/open-meteo";
 import { laterAdvice } from "@/lib/weather/advice";
-import { occasionBand, applyFormalityOverride } from "@/lib/generator/rules";
+import { personalBand, applyFormalityOverride } from "@/lib/generator/rules";
 import { buildCandidates, missingCategory, type CandidateItem } from "@/lib/generator/candidates";
 import { rankTopN } from "@/lib/generator/rank";
 import { rerank } from "@/lib/generator/rerank";
@@ -43,7 +43,9 @@ export async function generate(input: {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("archetype, location_lat, location_lon, location_label, location_source")
+      .select(
+        "archetype, formality_min, formality_max, location_lat, location_lon, location_label, location_source",
+      )
       .eq("id", user.id)
       .single();
     const { data: itemsRaw } = await supabase
@@ -80,7 +82,12 @@ export async function generate(input: {
       seasons: i.seasons ?? [],
       material: i.material,
     }));
-    const band = applyFormalityOverride(occasionBand(input.occasion), input.formality);
+    // Occasion gives the context; the user's onboarding dress codes narrow it;
+    // an explicit Refine formality overrides both.
+    const band = applyFormalityOverride(
+      personalBand(input.occasion, profile),
+      input.formality,
+    );
     const candidateArgs = {
       band,
       weather: { tempC: f.tempC, rain: f.hourly.some((h) => h.isNow && h.rain) },
