@@ -50,5 +50,7 @@ export type WeatherPayload = {
 
 export type GenerateResult =
   | { status: "ok"; weather: WeatherPayload; looks: Look[] }
-  | { status: "empty"; weather: WeatherPayload }
+  // `missing` names the required slot that blocked every combo, so the screen can
+  // say WHICH gap to fill instead of a generic "add more pieces".
+  | { status: "empty"; weather: WeatherPayload; missing: string | null }
   | { status: "error"; message: string };

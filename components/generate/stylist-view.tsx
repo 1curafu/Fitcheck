@@ -12,6 +12,24 @@ import type { City } from "@/lib/weather/geocode";
 
 export type StylistStatus = "loading" | "ok" | "empty" | "error";
 
+/**
+ * An empty result is almost never "add more pieces" — it's one specific gap for
+ * one specific occasion (e.g. no shoes formal enough for Evening). Naming the gap
+ * turns a dead end into a next step.
+ */
+function emptyCopy(missing: string | null | undefined, occasionLabel: string): string {
+  switch (missing) {
+    case "Shoes":
+      return `No shoes formal enough for ${occasionLabel} — add dressier footwear, or try another occasion.`;
+    case "Tops":
+      return `No tops that suit ${occasionLabel} — add one, or try another occasion.`;
+    case "Bottoms":
+      return `No bottoms that suit ${occasionLabel} — add a pair, or try another occasion.`;
+    default:
+      return "Add a few more pieces to unlock outfits";
+  }
+}
+
 export function StylistView(props: {
   status: StylistStatus;
   weather: WeatherPayload | null;
@@ -20,6 +38,8 @@ export function StylistView(props: {
   occasion: UiOccasion;
   cities: City[];
   refineOpen: boolean;
+  /** Required slot that blocked every combo, when status === "empty". */
+  missing?: string | null;
   onOccasion: (o: UiOccasion) => void;
   onOpenRefine: () => void;
   onCloseRefine: () => void;
@@ -76,8 +96,8 @@ export function StylistView(props: {
         {status === "empty" && (
           <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
             <p className="font-serif text-[20px] text-foreground">Nothing to style yet</p>
-            <p className="max-w-[28ch] text-sm text-muted-foreground">
-              Add a few more pieces to unlock outfits
+            <p data-testid="empty-copy" className="max-w-[30ch] text-sm text-muted-foreground">
+              {emptyCopy(props.missing, occLabel)}
             </p>
           </div>
         )}

@@ -61,10 +61,20 @@ test("loading (D10): skeleton shown, no outfit image", () => {
   expect(screen.queryAllByRole("img")).toHaveLength(0);
 });
 
-test("empty (D10): the exact copy", () => {
+test("empty (D10): generic copy when we can't name the gap", () => {
   render(<StylistView {...base} status="empty" />);
   expect(screen.getByText("Add a few more pieces to unlock outfits")).toBeInTheDocument();
 });
+
+test("empty: names the missing slot and the occasion instead of a generic nudge", () => {
+  render(<StylistView {...base} status="empty" missing="Shoes" occasion="evening" />);
+  const body = screen.getByTestId("empty-copy").textContent ?? "";
+  expect(body).toMatch(/shoes/i); // WHICH gap
+  expect(body).toMatch(/evening/i); // for WHICH occasion
+  // and it must not fall back to the vague nudge
+  expect(screen.queryByText("Add a few more pieces to unlock outfits")).toBeNull();
+});
+
 
 test("error (D10): the retry control re-invokes onRetry", async () => {
   const onRetry = vi.fn();

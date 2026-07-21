@@ -5,7 +5,7 @@ import { signItemImages, displayPath } from "@/lib/storage/signed";
 import { fetchForecast } from "@/lib/weather/open-meteo";
 import { laterAdvice } from "@/lib/weather/advice";
 import { occasionBand, applyFormalityOverride } from "@/lib/generator/rules";
-import { buildCandidates, type CandidateItem } from "@/lib/generator/candidates";
+import { buildCandidates, missingCategory, type CandidateItem } from "@/lib/generator/candidates";
 import { rankTopN } from "@/lib/generator/rank";
 import { rerank } from "@/lib/generator/rerank";
 import { layoutForLook, staggerOrder } from "@/lib/generator/layout";
@@ -81,15 +81,18 @@ export async function generate(input: {
       material: i.material,
     }));
     const band = applyFormalityOverride(occasionBand(input.occasion), input.formality);
-    const combos = buildCandidates(candItems, {
+    const candidateArgs = {
       band,
       weather: { tempC: f.tempC, rain: f.hourly.some((h) => h.isNow && h.rain) },
       season: currentSeason(now),
       excludeItemIds: [],
       mustColors: input.mustColors,
       maxAccessories: 1,
-    });
-    if (combos.length === 0) return { status: "empty", weather };
+    };
+    const combos = buildCandidates(candItems, candidateArgs);
+    if (combos.length === 0) {
+      return { status: "empty", weather, missing: missingCategory(candItems, candidateArgs) };
+    }
 
     const aesthetic = profile?.archetype ? [profile.archetype] : [];
     const top = rankTopN(combos, { aesthetic, band }, 20);
