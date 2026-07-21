@@ -13,11 +13,17 @@ export function WeatherStrip({
   cities = [],
   onSearch,
   onCityChange,
+  onUseMyLocation,
+  locating = false,
+  geoError = null,
 }: {
   weather: WeatherPayload;
   cities?: City[];
   onSearch?: (q: string) => void;
   onCityChange?: (c: City) => void;
+  onUseMyLocation?: () => void;
+  locating?: boolean;
+  geoError?: string | null;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showHourly, setShowHourly] = useState(false);
@@ -48,8 +54,32 @@ export function WeatherStrip({
         <span className="text-[11px] text-muted-dim">feels {weather.feelsLikeC}°</span>
       </div>
 
+      {(locating || geoError) && (
+        <p role="status" className="mt-1 text-[11.5px] text-muted-foreground">
+          {locating ? "Locating…" : geoError}
+        </p>
+      )}
+
       {menuOpen && (
         <ul role="listbox" aria-label="Choose a city" className={cn("absolute z-20 mt-2 w-full rounded-[12px] border bg-surface-3 p-1.5", HAIR2)}>
+          {onUseMyLocation && (
+            <li>
+              <button
+                type="button"
+                onClick={() => {
+                  onUseMyLocation();
+                  setMenuOpen(false);
+                }}
+                className="flex min-h-11 w-full items-center gap-2 rounded-[8px] px-3 text-left text-[13px] text-foreground hover:bg-foreground/5"
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+                  <circle cx="12" cy="12" r="3.2" />
+                  <path d="M12 2v3.2M12 18.8V22M22 12h-3.2M5.2 12H2" strokeLinecap="round" />
+                </svg>
+                Use my location
+              </button>
+            </li>
+          )}
           <li className="p-1">
             <input
               aria-label="Search a city"

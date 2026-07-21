@@ -42,6 +42,45 @@ test("Later toggles the hourly strip (4 cells), marking now + rain", async () =>
   expect(hourly.querySelector('[data-rain="true"]')).toHaveClass("text-brand-high");
 });
 
+test("the city menu offers 'Use my location' above the search input", async () => {
+  const onUseMyLocation = vi.fn();
+  render(<WeatherStrip weather={weather} onUseMyLocation={onUseMyLocation} />);
+  await userEvent.click(screen.getByRole("button", { name: "Berlin" }));
+
+  const listbox = screen.getByRole("listbox");
+  await userEvent.click(within(listbox).getByRole("button", { name: /use my location/i }));
+
+  expect(onUseMyLocation).toHaveBeenCalledTimes(1);
+  // the menu closes on tap, exactly as picking a city does
+  expect(screen.queryByRole("listbox")).toBeNull();
+});
+
+test("while locating, the strip shows a status line (not a blocked UI)", () => {
+  render(<WeatherStrip weather={weather} locating onUseMyLocation={vi.fn()} />);
+  expect(screen.getByRole("status")).toHaveTextContent(/locating/i);
+  // weather stays rendered throughout — location never blocks the looks
+  expect(screen.getByText("14°")).toBeInTheDocument();
+});
+
+test("a geolocation failure renders in the strip and points at the search fallback", () => {
+  render(
+    <WeatherStrip
+      weather={weather}
+      geoError="Location access is off — search for a city instead."
+      onUseMyLocation={vi.fn()}
+    />,
+  );
+  const status = screen.getByRole("status");
+  expect(status).toHaveTextContent(/search for a city instead/i);
+  expect(status).toHaveClass("text-muted-foreground"); // D2 contrast floor
+});
+
+test("no onUseMyLocation handler → no row (server-rendered / unsupported browser)", async () => {
+  render(<WeatherStrip weather={weather} />);
+  await userEvent.click(screen.getByRole("button", { name: "Berlin" }));
+  expect(within(screen.getByRole("listbox")).queryByRole("button", { name: /use my location/i })).toBeNull();
+});
+
 test("city menu opens, selecting a city calls onCityChange and closes", async () => {
   const onCityChange = vi.fn();
   render(
