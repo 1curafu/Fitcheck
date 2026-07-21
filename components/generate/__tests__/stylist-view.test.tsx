@@ -8,6 +8,7 @@ const weather: WeatherPayload = {
   feelsLikeC: 12,
   condition: "Overcast",
   cityLabel: "Berlin",
+  timezone: "Europe/Berlin",
   laterSentence: "Dry through the evening — no extra layer.",
   adviceClause: "no extra layer.",
   laterLabel: "Later",

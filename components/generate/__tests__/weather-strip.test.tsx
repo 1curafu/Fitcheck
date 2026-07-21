@@ -8,6 +8,7 @@ const weather: WeatherPayload = {
   feelsLikeC: 12,
   condition: "Overcast",
   cityLabel: "Berlin",
+  timezone: "Europe/Berlin",
   laterSentence: "Rain from 21:00 — take a shell.",
   adviceClause: "take a shell.",
   laterLabel: "Later",

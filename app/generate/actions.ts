@@ -9,6 +9,7 @@ import { buildCandidates, type CandidateItem } from "@/lib/generator/candidates"
 import { rankTopN } from "@/lib/generator/rank";
 import { rerank } from "@/lib/generator/rerank";
 import { layoutForLook, staggerOrder } from "@/lib/generator/layout";
+import { resolveLocation, type LocationSource } from "@/lib/weather/location";
 import type {
   GenerateResult,
   Look,
@@ -16,8 +17,6 @@ import type {
   UiOccasion,
   WeatherPayload,
 } from "@/lib/generator/types";
-
-const DEFAULT_LOCATION = { lat: 52.52, lon: 13.41, label: "Berlin" };
 
 function currentSeason(d: Date): string {
   const m = d.getMonth();
@@ -28,7 +27,7 @@ export async function generate(input: {
   occasion: UiOccasion;
   formality: number | null;
   mustColors: string[];
-  city?: { lat: number; lon: number; label: string };
+  city?: { lat: number; lon: number; label: string; source: LocationSource };
 }): Promise<GenerateResult> {
   try {
     const supabase = await createClient();
@@ -50,24 +49,17 @@ export async function generate(input: {
     const items = itemsRaw ?? [];
     const byId = new Map(items.map((i) => [i.id, i]));
 
-    const loc =
-      input.city ??
-      (profile?.location_lat != null
-        ? {
-            lat: profile.location_lat,
-            lon: profile.location_lon as number,
-            label: profile.location_label ?? "Current location",
-          }
-        : DEFAULT_LOCATION);
+    const loc = resolveLocation({ input: input.city, profile });
 
     const now = new Date();
-    const f = await fetchForecast(loc.lat, loc.lon, now.toISOString().slice(0, 16));
+    const f = await fetchForecast(loc.lat, loc.lon);
     const advice = laterAdvice(f.hourly);
     const weather: WeatherPayload = {
       tempC: f.tempC,
       feelsLikeC: f.feelsLikeC,
       condition: f.condition,
       cityLabel: loc.label,
+      timezone: f.timezone,
       laterSentence: advice.sentence,
       adviceClause: advice.adviceClause,
       laterLabel: "Later",

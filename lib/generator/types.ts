@@ -37,6 +37,7 @@ export type WeatherPayload = {
   feelsLikeC: number;
   condition: string;
   cityLabel: string;
+  timezone: string; // IANA zone at the location, e.g. "Europe/Berlin" — from timezone=auto
   laterSentence: string; // full: "Rain from 21:00 — take a shell."
   adviceClause: string; // JUST the rust clause: "take a shell." — the UI binds the rust <b> to THIS
   laterLabel: string; // "LATER" (static caps label)

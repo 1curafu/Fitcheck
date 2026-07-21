@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { StylistView, type StylistStatus } from "./stylist-view";
 import { generate } from "@/app/generate/actions";
 import { searchCities, type City } from "@/lib/weather/geocode";
+import type { LocationSource } from "@/lib/weather/location";
 import type { Look, UiOccasion, WeatherPayload } from "@/lib/generator/types";
 
-type Chosen = { lat: number; lon: number; label: string };
+type Chosen = { lat: number; lon: number; label: string; source: LocationSource };
 
 export function Stylist() {
   const router = useRouter();
@@ -64,7 +65,7 @@ export function Stylist() {
         setMustColors(c);
         setRefineOpen(false);
       }}
-      onCityChange={(c) => setCity({ lat: c.lat, lon: c.lon, label: c.name })}
+      onCityChange={(c) => setCity({ lat: c.lat, lon: c.lon, label: c.name, source: "city" })}
       onCitySearch={(q) => {
         if (q.trim().length < 2) return;
         searchCities(q).then(setCities);
