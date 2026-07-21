@@ -1,9 +1,16 @@
 import type { HourCell } from "@/lib/generator/types";
+import { roundCoord } from "@/lib/weather/location";
 
 export const RAIN_CODES = new Set([51, 53, 55, 61, 63, 65, 80, 81, 82, 95, 96, 99]);
 
 type Raw = {
-  current: { temperature_2m: number; apparent_temperature: number; weather_code: number };
+  timezone: string;
+  current: {
+    time: string;
+    temperature_2m: number;
+    apparent_temperature: number;
+    weather_code: number;
+  };
   hourly: {
     time: string[];
     temperature_2m: number[];
@@ -24,11 +31,15 @@ function hhmm(iso: string): string {
   return (iso.split("T")[1] ?? "").slice(0, 5);
 }
 
-/** nowIso is INJECTED (pure) — do not call new Date() here. */
+/**
+ * Pure — never calls the clock. `nowIso` defaults to `raw.current.time`, which is
+ * local time AT THE LOCATION (because we send timezone=auto) and therefore on the
+ * same clock as `raw.hourly.time`. Callers may still inject a now for tests.
+ */
 export function mapForecast(
   raw: Raw,
-  nowIso: string,
-): { tempC: number; feelsLikeC: number; condition: string; hourly: HourCell[] } {
+  nowIso: string = raw.current.time,
+): { tempC: number; feelsLikeC: number; condition: string; timezone: string; hourly: HourCell[] } {
   const times = raw.hourly.time;
   let nowIdx = times.findIndex((t) => t >= nowIso); // first hour at/after now
   if (nowIdx < 0) nowIdx = 0;
@@ -48,15 +59,22 @@ export function mapForecast(
     tempC: Math.round(raw.current.temperature_2m),
     feelsLikeC: Math.round(raw.current.apparent_temperature),
     condition: conditionFor(raw.current.weather_code),
+    timezone: raw.timezone,
     hourly,
   };
 }
 
-export async function fetchForecast(lat: number, lon: number, nowIso: string) {
+export async function fetchForecast(lat: number, lon: number, nowIso?: string) {
+  // Round at the boundary: every caller gets a cache-friendly URL, and raw GPS
+  // precision never reaches Open-Meteo. timezone=auto makes both `current.time`
+  // and `hourly.time` local to the coords (otherwise they come back as GMT).
+  const la = roundCoord(lat);
+  const lo = roundCoord(lon);
   const url =
-    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+    `https://api.open-meteo.com/v1/forecast?latitude=${la}&longitude=${lo}` +
     `&current=temperature_2m,apparent_temperature,weather_code` +
-    `&hourly=temperature_2m,weather_code,precipitation_probability&forecast_hours=24`;
+    `&hourly=temperature_2m,weather_code,precipitation_probability` +
+    `&forecast_hours=24&timezone=auto`;
   const res = await fetch(url, { next: { revalidate: 1800 } });
   return mapForecast(await res.json(), nowIso);
 }
