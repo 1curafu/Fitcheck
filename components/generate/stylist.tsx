@@ -28,6 +28,7 @@ export function Stylist() {
   const [selectedLook, setSelectedLook] = useState(0);
   const [cities, setCities] = useState<City[]>([]);
   const [refineOpen, setRefineOpen] = useState(false);
+  const [missing, setMissing] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
   // Optimistic: the row shows until we learn the browser has no geolocation at
@@ -113,6 +114,7 @@ export function Stylist() {
       } else if (res.status === "empty") {
         setWeather(res.weather);
         setLooks([]);
+        setMissing(res.missing);
         setStatus("empty");
       } else {
         setStatus("error");
@@ -141,6 +143,7 @@ export function Stylist() {
       occasion={occasion}
       cities={cities}
       refineOpen={refineOpen}
+      missing={missing}
       locating={locating}
       geoError={geoError}
       onOccasion={setOccasion}
