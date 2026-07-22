@@ -52,5 +52,5 @@ test("Refine: formality single-select, palette multi-select, apply carries the i
   await userEvent.click(screen.getByRole("button", { name: "camel" }));
   await userEvent.click(screen.getByRole("button", { name: "navy" }));
   await userEvent.click(screen.getByRole("button", { name: "Show 3 looks" }));
-  expect(onApply).toHaveBeenCalledWith({ formality: 4, mustColors: ["camel", "navy"] });
+  expect(onApply).toHaveBeenCalledWith({ formality: 4, lean: ["camel", "navy"] });
 });

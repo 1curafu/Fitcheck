@@ -3,6 +3,13 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
+/**
+ * Each swatch is a colour FAMILY, and every `id` here must be a key of
+ * `COLOR_FAMILIES` in `lib/generator/color.ts` — that is what turns a swatch
+ * into the set of tag words Haiku actually writes ("charcoal", "khaki", …).
+ * Matching these ids against item colours literally is what made the picker
+ * return nothing.
+ */
 const PALETTE = [
   { id: "neutral", hex: "#8C8578" },
   { id: "camel", hex: "#C6A374" },
@@ -19,7 +26,7 @@ export function RefineSheet({
 }: {
   open: boolean;
   occasionLabel: string;
-  onApply: (r: { formality: number; mustColors: string[] }) => void;
+  onApply: (r: { formality: number; lean: string[] }) => void;
   onClose: () => void;
 }) {
   const [formality, setFormality] = useState(3);
@@ -86,7 +93,7 @@ export function RefineSheet({
 
         <button
           type="button"
-          onClick={() => onApply({ formality, mustColors: colors })}
+          onClick={() => onApply({ formality, lean: colors })}
           className="mt-[18px] w-full rounded-[12px] bg-foreground py-3.5 text-sm font-semibold text-canvas"
         >
           Show 3 looks
