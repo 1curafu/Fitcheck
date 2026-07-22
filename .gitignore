@@ -47,3 +47,9 @@ design_handoff_stylist_generator/
 /.vscode
 
 /.playwright-mcp
+
+# Finder/iCloud sync duplicates ("stylist 2.tsx"). These are stale copies of
+# tracked files, and because tsc still typechecks them a drifted copy fails
+# `npm run build` with errors in a file nobody edited.
+* 2.*
+* [0-9].*

@@ -19,8 +19,19 @@ export function ItemCard({
       <Surface className="overflow-hidden">
         <div style={{ height }} className="bg-surface-2">
           {imageUrl ? (
+            // Not next/image on purpose: `imageUrl` is a short-lived signed
+            // Supabase URL, and the optimizer caches by URL — a rotating
+            // signature means a paid transformation on nearly every view for an
+            // image already compressed at upload. Lazy + async decode are the
+            // parts of next/image worth having here, and they cost nothing.
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={imageUrl} alt={name} className="size-full object-contain p-5" />
+            <img
+              src={imageUrl}
+              alt={name}
+              loading="lazy"
+              decoding="async"
+              className="size-full object-contain p-5"
+            />
           ) : null}
         </div>
         <div className="px-3 pb-3 pt-2">
