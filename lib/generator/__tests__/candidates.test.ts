@@ -14,7 +14,6 @@ const base = {
   weather: { tempC: 18, rain: false },
   season: "spring",
   excludeItemIds: [] as string[],
-  mustColors: [] as string[],
   maxAccessories: 1,
 };
 
@@ -53,11 +52,12 @@ test("accessories are optional and capped (D12): offered both with and without, 
   expect(cands.some((c) => !c.some((i) => i.category === "Accessories"))).toBe(true);
   for (const c of cands) expect(c.filter((i) => i.category === "Accessories").length).toBeLessThanOrEqual(1);
 });
-test("a must-include colour filters out candidates lacking it (D9 palette intent)", () => {
-  const cands = buildCandidates(items, { ...base, mustColors: ["brown"] });
-  expect(cands.length).toBeGreaterThan(0);
-  for (const c of cands) expect(c.some((i) => i.colors.includes("brown"))).toBe(true);
-});
+// Colour is no longer an input to candidate building at all — `CandidateArgs`
+// has no colour field, so the compiler now guarantees what a test used to. A
+// Refine pick is a PREFERENCE applied by ranking; see score.test.ts, "an
+// unmatched lean still scores above zero". Filtering here made an unavailable
+// colour a silent dead-end: pick "dark" with no black in the closet and the
+// screen went empty with nothing to explain it.
 test("excludes recently-worn items", () => {
   expect(
     buildCandidates(items, { ...base, excludeItemIds: ["t1"] })

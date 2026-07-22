@@ -19,7 +19,7 @@ export function Stylist() {
   const [status, setStatus] = useState<StylistStatus>("loading");
   const [occasion, setOccasion] = useState<UiOccasion>("everyday");
   const [formality, setFormality] = useState<number | null>(null);
-  const [mustColors, setMustColors] = useState<string[]>([]);
+  const [lean, setLean] = useState<string[]>([]);
   const [city, setCity] = useState<Chosen | null>(null);
   const [nonce, setNonce] = useState(0);
 
@@ -97,7 +97,7 @@ export function Stylist() {
   useEffect(() => {
     let cancelled = false;
     setStatus("loading");
-    generate({ occasion, formality, mustColors, city: city ?? undefined }).then((res) => {
+    generate({ occasion, formality, lean, city: city ?? undefined }).then((res) => {
       if (cancelled) return;
       // The first result tells us the STORED provenance. A saved city blocks the
       // silent refresh for good; anything else releases the parked GPS fix.
@@ -132,7 +132,7 @@ export function Stylist() {
     return () => {
       cancelled = true;
     };
-  }, [occasion, formality, mustColors, city, nonce]);
+  }, [occasion, formality, lean, city, nonce]);
 
   return (
     <StylistView
@@ -149,9 +149,9 @@ export function Stylist() {
       onOccasion={setOccasion}
       onOpenRefine={() => setRefineOpen(true)}
       onCloseRefine={() => setRefineOpen(false)}
-      onRefineApply={({ formality: f, mustColors: c }) => {
+      onRefineApply={({ formality: f, lean: c }) => {
         setFormality(f);
-        setMustColors(c);
+        setLean(c);
         setRefineOpen(false);
       }}
       onCityChange={(c) => {
