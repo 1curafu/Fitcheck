@@ -1,7 +1,7 @@
 "use client";
 
 import { WeatherStrip } from "./weather-strip";
-import { OccasionRow } from "./occasion-row";
+import { OccasionRow, RefineButton } from "./occasion-row";
 import { RefineSheet } from "./refine-sheet";
 import { IndexTabs } from "./index-tabs";
 import { FlatLay } from "./flat-lay";
@@ -59,7 +59,10 @@ export function StylistView(props: {
 
   return (
     <main className="relative flex flex-1 flex-col overflow-hidden px-[22px] pt-[46px]">
-      <h1 className="mb-[10px] font-serif text-[24px] text-foreground">Today&apos;s Looks</h1>
+      <div className="mb-[10px] flex items-center justify-between gap-3">
+        <h1 className="font-serif text-[24px] text-foreground">Today&apos;s Looks</h1>
+        <RefineButton onRefine={props.onOpenRefine} />
+      </div>
 
       {weather ? (
         <WeatherStrip
@@ -76,7 +79,7 @@ export function StylistView(props: {
       )}
 
       <div className="mt-[11px]">
-        <OccasionRow occasion={occasion} onOccasion={props.onOccasion} onRefine={props.onOpenRefine} />
+        <OccasionRow occasion={occasion} onOccasion={props.onOccasion} />
       </div>
 
       {looks.length > 0 && (
