@@ -14,7 +14,6 @@ export type CandidateArgs = {
   weather: Weather;
   season: string;
   excludeItemIds: string[];
-  mustColors: string[];
   maxAccessories: number;
 };
 
@@ -97,9 +96,8 @@ export function buildCandidates(items: CandidateItem[], a: CandidateArgs): Candi
         }
       }
 
-  const filtered = a.mustColors.length
-    ? combos.filter((c) => a.mustColors.every((mc) => c.some((i) => i.colors.includes(mc))))
-    : combos;
-
-  return filtered.slice(0, CAP);
+  // Colour is deliberately NOT filtered here. The Refine palette is a lean, and
+  // leans are expressed by ranking (`scoreCombo`'s lean term), not by exclusion —
+  // the same soft-preference model outerwear moved to above.
+  return combos.slice(0, CAP);
 }

@@ -43,7 +43,7 @@ export function StylistView(props: {
   onOccasion: (o: UiOccasion) => void;
   onOpenRefine: () => void;
   onCloseRefine: () => void;
-  onRefineApply: (r: { formality: number; mustColors: string[] }) => void;
+  onRefineApply: (r: { formality: number; lean: string[] }) => void;
   onCityChange: (c: City) => void;
   onCitySearch: (q: string) => void;
   onUseMyLocation?: () => void; // absent when the browser has no geolocation API

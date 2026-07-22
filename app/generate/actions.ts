@@ -31,7 +31,8 @@ function currentSeason(d: Date): string {
 export async function generate(input: {
   occasion: UiOccasion;
   formality: number | null;
-  mustColors: string[];
+  /** Refine "Lean into" colour families (`COLOR_FAMILIES` keys). A preference, not a filter. */
+  lean: string[];
   city?: { lat: number; lon: number; label: string; source: LocationSource };
 }): Promise<GenerateResult> {
   try {
@@ -93,7 +94,6 @@ export async function generate(input: {
       weather: { tempC: f.tempC, rain: f.hourly.some((h) => h.isNow && h.rain) },
       season: currentSeason(now),
       excludeItemIds: [],
-      mustColors: input.mustColors,
       maxAccessories: 1,
     };
     const combos = buildCandidates(candItems, candidateArgs);
@@ -102,7 +102,10 @@ export async function generate(input: {
     }
 
     const aesthetic = profile?.archetype ? [profile.archetype] : [];
-    const top = rankTopN(combos, { aesthetic, band }, 20);
+    // The Refine colour pick lands here, in ranking — not in candidate building.
+    // It reorders the shortlist toward the requested families and is dropped
+    // silently when the closet cannot honour it.
+    const top = rankTopN(combos, { aesthetic, band, lean: input.lean }, 20);
 
     const { picks } = await rerank({
       combos: top.map((t) =>

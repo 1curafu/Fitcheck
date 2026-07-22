@@ -23,3 +23,36 @@ test("combo score is 0..1", () => {
   expect(scoreCombo(good, ctx)).toBeLessThanOrEqual(1);
   expect(scoreCombo(clashing, ctx)).toBeGreaterThanOrEqual(0);
 });
+
+// --- Refine "Lean into" ----------------------------------------------------
+// Colour preference is SCORED, not filtered. Filtering made an unlucky pick a
+// silent dead-end; ranking means the wish is honoured when the closet can and
+// quietly ignored when it can't — the same soft-preference model as outerwear.
+
+const olive = [
+  { category: "top", colors: ["olive"], formality: 3, style_tags: [] },
+  { category: "bottom", colors: ["cream"], formality: 3, style_tags: [] },
+  { category: "shoes", colors: ["brown"], formality: 3, style_tags: [] },
+];
+const noOlive = [
+  { category: "top", colors: ["navy"], formality: 3, style_tags: [] },
+  { category: "bottom", colors: ["cream"], formality: 3, style_tags: [] },
+  { category: "shoes", colors: ["brown"], formality: 3, style_tags: [] },
+];
+
+test("a combo carrying the requested family outranks one that doesn't", () => {
+  const leaning = { ...ctx, lean: ["olive"] };
+  expect(scoreCombo(olive, leaning)).toBeGreaterThan(scoreCombo(noOlive, leaning));
+});
+test("an unmatched lean still scores above zero — it never eliminates a combo", () => {
+  expect(scoreCombo(noOlive, { ...ctx, lean: ["olive"] })).toBeGreaterThan(0);
+});
+test("the lean matches by family, not by literal tag word", () => {
+  const khaki = [{ category: "top", colors: ["khaki"], formality: 3, style_tags: [] }];
+  const rust = [{ category: "top", colors: ["rust"], formality: 3, style_tags: [] }];
+  const leaning = { ...ctx, lean: ["olive"] };
+  expect(scoreCombo(khaki, leaning)).toBeGreaterThan(scoreCombo(rust, leaning));
+});
+test("no lean leaves scoring exactly as it was", () => {
+  expect(scoreCombo(good, { ...ctx, lean: [] })).toBe(scoreCombo(good, ctx));
+});
