@@ -13,6 +13,8 @@ import { localDateFor } from "@/lib/outfits/local-date";
 import { loadDailyLooks, saveDailyLooks } from "@/lib/outfits/daily";
 import { reassembleLooks } from "@/lib/outfits/reassemble";
 import { assertCanGenerate } from "@/lib/outfits/quota";
+import { predictOccasion, defaultReason } from "@/lib/outfits/predict-occasion";
+import { recordOverride } from "@/lib/outfits/overrides";
 import {
   resolveLocation,
   roundCoord,
@@ -214,4 +216,55 @@ export async function saveLocation(input: unknown): Promise<void> {
       location_updated_at: new Date().toISOString(),
     })
     .eq("id", user.id);
+}
+
+/**
+ * The seed for the morning. Cheap on purpose — one profile read, date math, NO
+ * AI and NO weather — so the client can pick the right occasion before the first
+ * generate without adding latency.
+ */
+export async function predictDefaultOccasion(): Promise<{ occasion: UiOccasion; reason: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { occasion: "everyday", reason: defaultReason("everyday") };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("occasions, location_timezone")
+    .eq("id", user.id)
+    .single();
+
+  const tz = profile?.location_timezone ?? "UTC";
+  const occasion = predictOccasion(new Date(), tz, profile?.occasions ?? []);
+  return { occasion, reason: defaultReason(occasion) };
+}
+
+/**
+ * Record that the user chose an occasion other than the predicted default.
+ * Fire-and-forget: the caller does not await the outcome, and a failure here
+ * must never affect the looks. Guards `chosen === predicted` so a no-op tap is
+ * not logged as an override.
+ */
+export async function logOccasionOverride(input: {
+  predicted: UiOccasion;
+  chosen: UiOccasion;
+}): Promise<void> {
+  if (input.chosen === input.predicted) return;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("location_timezone")
+    .eq("id", user.id)
+    .single();
+
+  const today = localDateFor(new Date(), profile?.location_timezone ?? "UTC");
+  await recordOverride(user.id, today, input.predicted, input.chosen);
 }
