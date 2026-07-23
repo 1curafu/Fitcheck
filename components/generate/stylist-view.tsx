@@ -54,6 +54,8 @@ export function StylistView(props: {
   onOpenItem: (itemId: string) => void;
   /** Decision 5: the ONLY way to spend an AI call on a day already answered. */
   onRegenerate: () => void;
+  /** The legible "why" for the predicted default occasion (empty until seeded). */
+  reason?: string;
 }) {
   const { status, weather, looks, selectedLook, occasion } = props;
   const look = looks[selectedLook];
@@ -61,6 +63,11 @@ export function StylistView(props: {
 
   return (
     <main className="relative flex flex-1 flex-col overflow-hidden px-[22px] pt-[46px]">
+      {/* The legible "why" — a quiet kicker above the title that makes the smart
+          default read as intentional. Uses the documented label step. */}
+      {props.reason && (
+        <p className="mb-1 text-[11px] uppercase tracking-[0.22em] text-muted-dim">{props.reason}</p>
+      )}
       <div className="mb-[10px] flex items-center justify-between gap-3">
         <h1 className="font-serif text-[24px] text-foreground">Today&apos;s Looks</h1>
         <RefineButton onRefine={props.onOpenRefine} />
