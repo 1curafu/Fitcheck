@@ -34,12 +34,12 @@ export function useCapture(options?: { onSaved?: () => void }) {
     setError(null);
     setPhase("removing");
     try {
-      const { original, cutout } = await processImage(file);
+      const { original, cutout, cutoutMediaType } = await processImage(file);
       const [originalB64, cutoutB64] = await Promise.all([
         blobToBase64(original),
         blobToBase64(cutout),
       ]);
-      const res = await uploadAndTag({ originalB64, cutoutB64, mediaType: "image/png" });
+      const res = await uploadAndTag({ originalB64, cutoutB64, mediaType: cutoutMediaType });
       setDraft({
         imagePath: res.imagePath,
         cutoutPath: res.cutoutPath,

@@ -5,13 +5,14 @@ import { createClient } from "@/lib/supabase/server";
 import { tagItem } from "@/lib/ai/tag-item";
 import { TagSchema } from "@/lib/ai/tagging-schema";
 import { tagsToItemRow } from "@/lib/ai/parse-tags";
+import { cutoutFilename, type CutoutMediaType } from "@/lib/images/encode";
 
 // Upload both blobs to Storage, then return a DRAFT tag set for the confirm
 // screen. No DB insert yet — the user confirms first.
 export async function uploadAndTag(form: {
   originalB64: string;
   cutoutB64: string;
-  mediaType: "image/png" | "image/jpeg";
+  mediaType: CutoutMediaType;
 }) {
   const supabase = await createClient();
   const {
@@ -27,15 +28,18 @@ export async function uploadAndTag(form: {
   await supabase.storage.from("wardrobe").upload(`${base}/original.jpg`, orig, {
     contentType: "image/jpeg",
   });
-  await supabase.storage.from("wardrobe").upload(`${base}/cutout.png`, cut, {
-    contentType: "image/png",
+  // The stored extension and content type follow the format actually produced,
+  // so WebP and legacy PNG cutouts coexist without a migration.
+  const cutoutName = cutoutFilename(form.mediaType);
+  await supabase.storage.from("wardrobe").upload(`${base}/${cutoutName}`, cut, {
+    contentType: form.mediaType,
   });
 
   const tags = await tagItem(form.cutoutB64, form.mediaType);
   return {
     itemId,
     imagePath: `${base}/original.jpg`,
-    cutoutPath: `${base}/cutout.png`,
+    cutoutPath: `${base}/${cutoutName}`,
     tags,
   };
 }
