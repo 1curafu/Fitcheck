@@ -52,6 +52,7 @@ const base = {
   onCitySearch: noop,
   onSelectLook: noop,
   onRetry: noop,
+  onRegenerate: noop,
   onOpenItem: noop,
 };
 
@@ -86,4 +87,13 @@ test("error (D10): the retry control re-invokes onRetry", async () => {
 test("ok (D3): the active look's index name and its byline name are the same single string", () => {
   render(<StylistView {...base} status="ok" looks={[look]} />);
   expect(screen.getAllByText("The Camel").length).toBeGreaterThanOrEqual(2); // index tab + why byline
+});
+
+// The daily drop (Decision 5): a new set of looks is an explicit choice the
+// user makes, never a side effect of browsing between occasions.
+test("Regenerate is offered as an explicit action", async () => {
+  const onRegenerate = vi.fn();
+  render(<StylistView {...base} status="ok" looks={[look]} onRegenerate={onRegenerate} />);
+  await userEvent.click(screen.getByRole("button", { name: /regenerate/i }));
+  expect(onRegenerate).toHaveBeenCalledTimes(1);
 });

@@ -52,6 +52,8 @@ export function StylistView(props: {
   onSelectLook: (i: number) => void;
   onRetry: () => void;
   onOpenItem: (itemId: string) => void;
+  /** Decision 5: the ONLY way to spend an AI call on a day already answered. */
+  onRegenerate: () => void;
 }) {
   const { status, weather, looks, selectedLook, occasion } = props;
   const look = looks[selectedLook];
@@ -123,6 +125,16 @@ export function StylistView(props: {
             <FlatLay look={look} />
             <WhyQuote name={look.name} why={look.why} />
             <Credits pieces={look.pieces} onOpenItem={props.onOpenItem} />
+            {/* Below the look, not in the header: the header was already
+                rebalanced once to fit Refine at 390px. A quiet action here is
+                also where the thought "not these" actually occurs. */}
+            <button
+              type="button"
+              onClick={props.onRegenerate}
+              className="mt-4 min-h-11 w-full text-[11px] font-medium uppercase tracking-[0.22em] text-muted-dim"
+            >
+              Regenerate today&apos;s looks
+            </button>
           </>
         )}
       </div>
