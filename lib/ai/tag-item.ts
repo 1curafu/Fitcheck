@@ -33,7 +33,7 @@ Return ONLY the structured tags.`;
 
 export async function tagItem(
   cutoutBase64: string,
-  mediaType: "image/png" | "image/jpeg",
+  mediaType: "image/png" | "image/jpeg" | "image/webp",
 ) {
   const res = await client.messages.create({
     model: "claude-haiku-4-5",
