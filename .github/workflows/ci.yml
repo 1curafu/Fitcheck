@@ -1,0 +1,40 @@
+name: CI
+
+# Runs on every PR into main and on pushes to main. The `main` ruleset requires
+# this to pass before a PR can merge. Deliberately does NOT run `npm run lint`:
+# main currently has 5 pre-existing eslint errors, so a lint gate would block
+# every merge until those are cleaned up (their own task). Add lint here once
+# `npm run lint` is green on main.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# A newer push to the same branch cancels the older in-flight run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests
+        run: npm run test:run
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Production build
+        run: npm run build
