@@ -7,7 +7,7 @@ import { generate, saveLocation } from "@/app/generate/actions";
 import { searchCities, type City } from "@/lib/weather/geocode";
 import { getCurrentPosition, permissionState, GeoError } from "@/lib/weather/geolocate";
 import type { LocationSource } from "@/lib/weather/location";
-import type { Look, UiOccasion, WeatherPayload } from "@/lib/generator/types";
+import type { GenerateResult, Look, UiOccasion, WeatherPayload } from "@/lib/generator/types";
 
 type Chosen = { lat: number; lon: number; label: string; source: LocationSource };
 
@@ -94,11 +94,8 @@ export function Stylist() {
       .finally(() => setLocating(false));
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    setStatus("loading");
-    generate({ occasion, formality, lean, city: city ?? undefined }).then((res) => {
-      if (cancelled) return;
+  const applyResult = useCallback(
+    (res: GenerateResult) => {
       // The first result tells us the STORED provenance. A saved city blocks the
       // silent refresh for good; anything else releases the parked GPS fix.
       if (geoAllowedRef.current === null && res.status !== "error") {
@@ -128,11 +125,37 @@ export function Stylist() {
           /* non-fatal — never disturb the looks */
         });
       }
+    },
+    [city, applyPendingGeo],
+  );
+
+  // Reads today's stored set (Decision 5). Switching occasion runs this again,
+  // but the action answers from the database — no AI call, no spend.
+  useEffect(() => {
+    let cancelled = false;
+    setStatus("loading");
+    generate({ occasion, formality, lean, city: city ?? undefined }).then((res) => {
+      if (cancelled) return;
+      applyResult(res);
     });
     return () => {
       cancelled = true;
     };
-  }, [occasion, formality, lean, city, nonce]);
+  }, [occasion, formality, lean, city, nonce, applyResult]);
+
+  /**
+   * The only path that spends an AI call on a day already answered.
+   *
+   * Deliberately a direct call rather than an effect dependency: a flag routed
+   * through the effect can still be in flight when the user switches occasion,
+   * and would then regenerate that occasion too.
+   */
+  const regenerate = useCallback(() => {
+    setStatus("loading");
+    generate({ occasion, formality, lean, city: city ?? undefined, regenerate: true }).then(
+      applyResult,
+    );
+  }, [occasion, formality, lean, city, applyResult]);
 
   return (
     <StylistView
@@ -166,6 +189,7 @@ export function Stylist() {
       onUseMyLocation={geoSupported ? useMyLocation : undefined}
       onSelectLook={setSelectedLook}
       onRetry={() => setNonce((n) => n + 1)}
+      onRegenerate={regenerate}
       onOpenItem={(id) => router.push(`/closet/${id}`)}
     />
   );

@@ -9,6 +9,10 @@ import { buildCandidates, missingCategory, type CandidateItem } from "@/lib/gene
 import { rankTopN } from "@/lib/generator/rank";
 import { rerank } from "@/lib/generator/rerank";
 import { layoutForLook, staggerOrder } from "@/lib/generator/layout";
+import { localDateFor } from "@/lib/outfits/local-date";
+import { loadDailyLooks, saveDailyLooks } from "@/lib/outfits/daily";
+import { reassembleLooks } from "@/lib/outfits/reassemble";
+import { assertCanGenerate } from "@/lib/outfits/quota";
 import {
   resolveLocation,
   roundCoord,
@@ -33,6 +37,8 @@ export async function generate(input: {
   formality: number | null;
   /** Refine "Lean into" colour families (`COLOR_FAMILIES` keys). A preference, not a filter. */
   lean: string[];
+  /** Explicit user action only — the one way to spend an AI call on a day already answered. */
+  regenerate?: boolean;
   city?: { lat: number; lon: number; label: string; source: LocationSource };
 }): Promise<GenerateResult> {
   try {
@@ -74,6 +80,35 @@ export async function generate(input: {
       laterLabel: "Later",
       hourly: f.hourly,
     };
+
+    const today = localDateFor(now, f.timezone);
+
+    // The daily drop (Decision 5): today's looks are generated once and then
+    // read back. Only an explicit regenerate spends an AI call on a day the
+    // stylist has already answered.
+    if (!input.regenerate) {
+      const stored = await loadDailyLooks(user.id, input.occasion, today);
+      if (stored?.length) {
+        const paths = Array.from(
+          new Set(
+            stored
+              .flatMap((s) => s.pieces.map((p) => byId.get(p.itemId)))
+              .filter((it): it is NonNullable<typeof it> => Boolean(it))
+              .map((it) => displayPath(it)),
+          ),
+        );
+        const signed = await signItemImages(paths);
+        const looks = reassembleLooks(stored, byId, signed, (id) => {
+          const it = byId.get(id);
+          return it ? displayPath(it) : undefined;
+        });
+        // null = the closet changed under the stored set; fall through and
+        // regenerate rather than showing an outfit with a hole in it.
+        if (looks) return { status: "ok", weather, looks };
+      }
+    }
+
+    await assertCanGenerate(user.id);
 
     const candItems: CandidateItem[] = items.map((i) => ({
       id: i.id,
@@ -141,6 +176,10 @@ export async function generate(input: {
       }));
       return { name: p.name, why: p.why, pieces, anchorIndex: staggerOrder(slots)[0] };
     });
+
+    // Fire-and-forget would be simpler, but a failed write means the user pays
+    // for another AI call on their next tap — worth awaiting.
+    await saveDailyLooks(user.id, input.occasion, today, weather, looks);
 
     return { status: "ok", weather, looks };
   } catch (e) {
