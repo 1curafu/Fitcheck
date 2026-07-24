@@ -28,6 +28,7 @@ function slotId(items: Keyed[], category: string): string | undefined {
 export function diversify<T extends { items: Keyed[]; score: number }>(
   ranked: T[],
   n: number,
+  minimum = 3,
 ): T[] {
   const usedTops = new Set<string>();
   const usedBottoms = new Set<string>();
@@ -56,8 +57,16 @@ export function diversify<T extends { items: Keyed[]; score: number }>(
     if (bottom !== undefined) usedBottoms.add(bottom);
   }
 
+  // Backfill ONLY to the floor, never to `n`.
+  //
+  // A 10-top / 6-bottom closet yields 6 genuinely distinct combos, so padding a
+  // 20-slot shortlist would hand the re-ranker 14 repeats it is free to choose —
+  // reintroducing the duplicate looks this function exists to prevent. A short,
+  // clean shortlist is better than a long, padded one; the floor exists only so
+  // a wardrobe too small for three distinct looks still gets three looks.
+  const floor = Math.min(minimum, n); // asking for 2 must never return 3
   for (const r of rest) {
-    if (picked.length >= n) break;
+    if (picked.length >= floor) break;
     picked.push(r);
   }
   return picked;

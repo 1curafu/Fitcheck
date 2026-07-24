@@ -68,8 +68,20 @@ test("returns at most n", () => {
   expect(diversify(ranked, 2)).toHaveLength(2);
 });
 
-test("asking for more than exists returns everything, without padding", () => {
-  expect(diversify(ranked, 99)).toHaveLength(ranked.length);
+test("a large shortlist is NOT padded with repeats to fill it", () => {
+  // The fixture has only three combos with a distinct top+bottom (a, d, e).
+  // Padding the remaining 96 slots with repeats would hand the re-ranker
+  // duplicates it is free to pick — reintroducing the exact bug this prevents.
+  // A short clean shortlist beats a long padded one.
+  const out = diversify(ranked, 99);
+  expect(out).toHaveLength(3);
+  const tops = out.map((r) => r.items.find((i) => i.category === "Tops")!.id);
+  expect(new Set(tops).size).toBe(3);
+});
+
+test("the floor never exceeds the requested size", () => {
+  // minimum defaults to 3; asking for 2 must still return 2.
+  expect(diversify(ranked, 2)).toHaveLength(2);
 });
 
 test("an empty ranking returns empty rather than throwing", () => {
