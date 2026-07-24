@@ -61,6 +61,44 @@ export const RerankSchema = z.object({
 });
 export type RerankResult = z.infer<typeof RerankSchema>;
 
+/**
+ * The variety instruction.
+ *
+ * "Pick the best 3" alone produces three versions of one outfit: the model is
+ * optimising a single notion of "best", and the candidates handed to it are
+ * ranked, so the top of the list is naturally near-identical. Asking for the
+ * best 3 without asking for three DIFFERENT ones gets exactly what it asks for.
+ */
+export const RERANK_VARIETY_RULE =
+  "The three must be genuinely different outfits, not variations of one: no two may share the same top, and no two may share the same bottom. If the candidates cannot give you three that differ, prefer variety over a marginally higher-scoring repeat.";
+
+type Pick = { combo_index: number; name: string; why: string };
+
+/**
+ * Drop picks that reuse a combo the model already chose.
+ *
+ * The schema checks the array LENGTH, never that the indices differ, so a model
+ * returning [4, 4, 7] rendered the same outfit twice. Repair rather than reject
+ * — the same stance as `clampName` above: a duplicated index should cost the
+ * user one look, not the whole generation.
+ *
+ * Returning fewer than three is fine and deliberate: the daily drop already
+ * tolerates a variable count (`saveDailyLooks` is delete-then-insert for exactly
+ * this reason), and two real looks beat three where two are the same.
+ */
+export function dedupePicks(picks: Pick[], comboCount?: number): Pick[] {
+  const seen = new Set<number>();
+  return picks.filter((p) => {
+    // An index outside the shortlist used to fall back to the FIRST combo, so
+    // two bad indices rendered the same outfit twice — duplicates that survive
+    // de-duplication because the indices themselves differ. Drop them instead.
+    if (comboCount != null && (p.combo_index < 0 || p.combo_index >= comboCount)) return false;
+    if (seen.has(p.combo_index)) return false;
+    seen.add(p.combo_index);
+    return true;
+  });
+}
+
 export async function rerank(args: {
   combos: DescItem[][];
   aesthetic: string[];
@@ -74,7 +112,9 @@ export async function rerank(args: {
 Here are candidate outfits (already filtered and scored), one per line:
 ${describeCombos(args.combos)}
 
-Pick the best 3. For each return: its combo_index; a short evocative NAME (≤4 words and at most ${NAME_MAX} characters, e.g. "The Off-Duty Camel"); and ONE warm, specific sentence ("why") that references the colours/pieces (e.g. "the camel knit warms the grey trousers and picks up the loafers"). Return exactly 3 picks.`;
+Pick the best 3. ${RERANK_VARIETY_RULE}
+
+For each return: its combo_index; a short evocative NAME (≤4 words and at most ${NAME_MAX} characters, e.g. "The Off-Duty Camel"); and ONE warm, specific sentence ("why") that references the colours/pieces (e.g. "the camel knit warms the grey trousers and picks up the loafers"). Return exactly 3 picks, each with a DIFFERENT combo_index.`;
 
   const client = new Anthropic(); // lazy: keeps this module importable in tests without a key
   const res = await client.messages.create({
@@ -84,5 +124,8 @@ Pick the best 3. For each return: its combo_index; a short evocative NAME (≤4 
     messages: [{ role: "user", content: prompt }],
   });
   const text = res.content.find((b) => b.type === "text")?.text ?? "{}";
-  return RerankSchema.parse(JSON.parse(text));
+  const parsed = RerankSchema.parse(JSON.parse(text));
+  // The prompt asks for distinct picks; this guarantees it. A model that repeats
+  // an index costs the user one look, not a duplicated outfit on the screen.
+  return { ...parsed, picks: dedupePicks(parsed.picks, args.combos.length) };
 }

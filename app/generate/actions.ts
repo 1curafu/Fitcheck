@@ -162,8 +162,12 @@ export async function generate(input: {
     );
     const signed = await signItemImages(paths);
 
+    // `rerank` already dropped picks that repeat a combo or point outside the
+    // shortlist, so every index here resolves. It previously fell back to
+    // `top[0]` for an unknown index, which turned a bad index into a duplicate
+    // of the first look rather than into one fewer look.
     const looks: Look[] = picks.map((p) => {
-      const combo = top[p.combo_index]?.items ?? top[0].items;
+      const combo = top[p.combo_index].items;
       const dbItems = combo.map((ci) => byId.get(ci.id)!);
       const slots = layoutForLook(dbItems.map((d) => ({ category: d.category })));
       const pieces: LookPiece[] = dbItems.map((d, idx) => ({
