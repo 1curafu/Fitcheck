@@ -7,6 +7,7 @@ import { laterAdvice } from "@/lib/weather/advice";
 import { personalBand, applyFormalityOverride } from "@/lib/generator/rules";
 import { buildCandidates, missingCategory, type CandidateItem } from "@/lib/generator/candidates";
 import { rankTopN } from "@/lib/generator/rank";
+import { diversify } from "@/lib/generator/diversity";
 import { rerank } from "@/lib/generator/rerank";
 import { layoutForLook, staggerOrder } from "@/lib/generator/layout";
 import { localDateFor } from "@/lib/outfits/local-date";
@@ -142,7 +143,14 @@ export async function generate(input: {
     // The Refine colour pick lands here, in ranking — not in candidate building.
     // It reorders the shortlist toward the requested families and is dropped
     // silently when the closet cannot honour it.
-    const top = rankTopN(combos, { aesthetic, band, lean: input.lean }, 20);
+    //
+    // Rank everything, then spread the shortlist across the wardrobe before the
+    // re-ranker sees it. Taking the top 20 by score alone clusters — a neutral
+    // top harmonises with everything, so it occupies most of the list, and "the
+    // best 3" of a clustered list is three versions of one outfit. Diversifying
+    // the INPUT makes the model's three distinct by construction.
+    const ranked = rankTopN(combos, { aesthetic, band, lean: input.lean }, combos.length);
+    const top = diversify(ranked, 20);
 
     const { picks } = await rerank({
       combos: top.map((t) =>
