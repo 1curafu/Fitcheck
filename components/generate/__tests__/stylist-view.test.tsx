@@ -54,6 +54,7 @@ const base = {
   onRetry: noop,
   onRegenerate: noop,
   onOpenItem: noop,
+  reason: "",
 };
 
 test("loading (D10): skeleton shown, no outfit image", () => {
@@ -96,4 +97,10 @@ test("Regenerate is offered as an explicit action", async () => {
   render(<StylistView {...base} status="ok" looks={[look]} onRegenerate={onRegenerate} />);
   await userEvent.click(screen.getByRole("button", { name: /regenerate/i }));
   expect(onRegenerate).toHaveBeenCalledTimes(1);
+});
+
+// The smart-default "why" (legible intelligence): a quiet label above the looks.
+test("the predicted occasion's reason is shown above the looks", () => {
+  render(<StylistView {...base} status="ok" looks={[look]} reason="Styled for your work day" />);
+  expect(screen.getByText("Styled for your work day")).toBeInTheDocument();
 });

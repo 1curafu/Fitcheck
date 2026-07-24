@@ -3,7 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { StylistView, type StylistStatus } from "./stylist-view";
-import { generate, saveLocation } from "@/app/generate/actions";
+import {
+  generate,
+  saveLocation,
+  predictDefaultOccasion,
+  logOccasionOverride,
+} from "@/app/generate/actions";
+import { defaultReason } from "@/lib/outfits/predict-occasion";
 import { searchCities, type City } from "@/lib/weather/geocode";
 import { getCurrentPosition, permissionState, GeoError } from "@/lib/weather/geolocate";
 import type { LocationSource } from "@/lib/weather/location";
@@ -22,6 +28,9 @@ export function Stylist() {
   const [lean, setLean] = useState<string[]>([]);
   const [city, setCity] = useState<Chosen | null>(null);
   const [nonce, setNonce] = useState(0);
+  const [reason, setReason] = useState<string>("");
+  const [seeded, setSeeded] = useState(false);
+  const predictedRef = useRef<UiOccasion>("everyday");
 
   const [weather, setWeather] = useState<WeatherPayload | null>(null);
   const [looks, setLooks] = useState<Look[]>([]);
@@ -131,7 +140,32 @@ export function Stylist() {
 
   // Reads today's stored set (Decision 5). Switching occasion runs this again,
   // but the action answers from the database — no AI call, no spend.
+  // The morning seed: predict the occasion BEFORE the first generate, so the
+  // generate effect reads the right stored set and runs ONCE. Predicting is
+  // cheap (no AI/weather). The generate effect is gated on `seeded` below, so
+  // it never fires for the placeholder "everyday" and then again for the
+  // prediction — that would spend two AI calls on a fresh day.
   useEffect(() => {
+    let cancelled = false;
+    predictDefaultOccasion()
+      .then(({ occasion: predicted, reason: why }) => {
+        if (cancelled) return;
+        predictedRef.current = predicted;
+        setReason(why);
+        setOccasion(predicted);
+      })
+      .finally(() => {
+        // Release the gate even if prediction fails — looks still load against
+        // the "everyday" fallback.
+        if (!cancelled) setSeeded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!seeded) return; // wait for the prediction, so generate runs once
     let cancelled = false;
     setStatus("loading");
     generate({ occasion, formality, lean, city: city ?? undefined }).then((res) => {
@@ -141,7 +175,7 @@ export function Stylist() {
     return () => {
       cancelled = true;
     };
-  }, [occasion, formality, lean, city, nonce, applyResult]);
+  }, [seeded, occasion, formality, lean, city, nonce, applyResult]);
 
   /**
    * The only path that spends an AI call on a day already answered.
@@ -169,7 +203,16 @@ export function Stylist() {
       missing={missing}
       locating={locating}
       geoError={geoError}
-      onOccasion={setOccasion}
+      reason={reason}
+      onOccasion={(o) => {
+        setOccasion(o);
+        setReason(defaultReason(o));
+        // A tap that departs from the prediction is the flywheel signal for the
+        // future learner. Fire-and-forget — it must never disturb the looks.
+        if (o !== predictedRef.current) {
+          logOccasionOverride({ predicted: predictedRef.current, chosen: o }).catch(() => {});
+        }
+      }}
       onOpenRefine={() => setRefineOpen(true)}
       onCloseRefine={() => setRefineOpen(false)}
       onRefineApply={({ formality: f, lean: c }) => {
