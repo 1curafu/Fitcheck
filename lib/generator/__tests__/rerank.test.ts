@@ -1,3 +1,4 @@
+import { dedupePicks, RERANK_VARIETY_RULE } from "../rerank";
 import { describeCombos, RerankSchema, rerankJsonSchema, NAME_MAX } from "../rerank";
 
 test("describes each combo as one indexed line with subcategory + colours", () => {
@@ -67,4 +68,59 @@ test("rerankJsonSchema POSITIVELY describes the shape AND is free of validation 
   expect(item.name).toBeDefined();
   expect(item.why).toBeDefined();
   expect(JSON.stringify(js)).not.toMatch(/minItems|maxItems|minLength|maxLength|minimum|maximum/);
+});
+
+// --- the three looks must actually be three looks ---------------------------
+// The prompt asks the model to "pick the best 3" and the schema only checks the
+// ARRAY length — nothing ever checked the three combo_index values differ. A
+// model optimising for "best" with no variety constraint returns near-identical
+// picks, and a repeated index renders the same outfit twice.
+
+test("distinct picks pass through untouched", () => {
+  const picks = [pick(0), pick(1), pick(2)];
+  expect(dedupePicks(picks).map((p) => p.combo_index)).toEqual([0, 1, 2]);
+});
+
+test("a repeated combo_index is dropped rather than rendered twice", () => {
+  const picks = [pick(4), pick(4), pick(7)];
+  expect(dedupePicks(picks).map((p) => p.combo_index)).toEqual([4, 7]);
+});
+
+test("the first occurrence wins, so the model's best pick survives", () => {
+  const first = { combo_index: 3, name: "Keep me", why: "w" };
+  const dup = { combo_index: 3, name: "Drop me", why: "w" };
+  expect(dedupePicks([first, dup, pick(9)])[0].name).toBe("Keep me");
+});
+
+test("three identical picks collapse to one — one real look beats three fake ones", () => {
+  expect(dedupePicks([pick(1), pick(1), pick(1)])).toHaveLength(1);
+});
+
+test("an empty pick set does not throw", () => {
+  expect(dedupePicks([])).toEqual([]);
+});
+
+test("the prompt tells the model the looks must differ", () => {
+  // Without this the model has no reason to vary the garments at all.
+  expect(RERANK_VARIETY_RULE).toMatch(/different/i);
+  expect(RERANK_VARIETY_RULE).toMatch(/top/i);
+});
+
+test("a pick pointing outside the shortlist is dropped, not aimed at the first combo", () => {
+  // actions.ts fell back to `top[0]` for an unknown index, so two bad indices
+  // produced two copies of the same outfit — duplicates that survive dedupe
+  // because the INDICES differ.
+  expect(dedupePicks([pick(0), pick(99), pick(2)], 20).map((p) => p.combo_index)).toEqual([0, 2]);
+});
+
+test("a negative index is dropped too", () => {
+  expect(dedupePicks([pick(-1), pick(0)], 20).map((p) => p.combo_index)).toEqual([0]);
+});
+
+test("the last valid index is inclusive", () => {
+  expect(dedupePicks([pick(19)], 20).map((p) => p.combo_index)).toEqual([19]);
+});
+
+test("with no count given, indices are not range-checked", () => {
+  expect(dedupePicks([pick(99)]).map((p) => p.combo_index)).toEqual([99]);
 });

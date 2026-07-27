@@ -49,7 +49,7 @@ export function Stylist() {
   //   1. a RACE — the async permission→position chain resolving after the user
   //      has already picked a city in this session;
   //   2. a SAVED CITY — profiles.location_source === 'city' is a deliberate
-  //      choice (decision L2), so GPS must not silently replace it.
+  //      choice, so GPS must not silently replace it.
   // The fix is parked in a ref until both gates are known, so geolocation still
   // starts immediately rather than waiting on the first generate to return.
   const userChoseRef = useRef(false);
@@ -138,7 +138,7 @@ export function Stylist() {
     [city, applyPendingGeo],
   );
 
-  // Reads today's stored set (Decision 5). Switching occasion runs this again,
+  // Reads today's stored set. Switching occasion runs this again,
   // but the action answers from the database — no AI call, no spend.
   // The morning seed: predict the occasion BEFORE the first generate, so the
   // generate effect reads the right stored set and runs ONCE. Predicting is
