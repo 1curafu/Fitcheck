@@ -11,6 +11,13 @@ export type Ctx = {
   band: [number, number];
   /** Refine "Lean into" colour families. Empty = no preference. */
   lean?: string[];
+  /**
+   * Item ids from the set a regenerate is replacing. A SOFT preference applied
+   * in `rankTopN`, never a filter: pieces sink in the ranking but are never
+   * removed from the closet, so a small wardrobe still returns its one good
+   * outfit instead of an empty screen.
+   */
+  recentlyShown?: string[];
 };
 
 /**
