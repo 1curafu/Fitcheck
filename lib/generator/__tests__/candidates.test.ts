@@ -122,3 +122,34 @@ test("missingCategory ignores outerwear — it never blocks, so it is never the 
     missingCategory(sneakerCloset, { ...summer, band: [1.5, 3], weather: { tempC: 5, rain: false } }),
   ).toBeNull();
 });
+
+// --- Season is a preference, not a gate ------------------------------------
+// The fixture above is tagged "spring" throughout, so asking for winter used to
+// return NOTHING — which is exactly the dead end this guards against. Note the
+// Title-case argument: production seasons are Title case, fixtures are lower.
+
+test("a closet with nothing tagged for this season still produces outfits", () => {
+  const c = buildCandidates(items, { ...base, season: "Winter" });
+  expect(c.length).toBeGreaterThan(0);
+});
+
+test("season never empties a required slot, so it can never be the missing category", () => {
+  expect(missingCategory(items, { ...base, season: "Winter" })).toBeNull();
+  expect(eligibility(items, { ...base, season: "Winter" }).Bottoms).toBeGreaterThan(0);
+});
+
+test("in-season pieces are offered before off-season ones, so the cap keeps the good ones", () => {
+  const mixed = [
+    { id: "t-off", category: "Tops", colors: ["cream"], formality: 3, seasons: ["summer"], material: "linen" },
+    { id: "t-on", category: "Tops", colors: ["cream"], formality: 3, seasons: ["winter"], material: "wool" },
+    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["winter"], material: "wool" },
+    { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["winter"], material: "leather" },
+  ];
+  const first = buildCandidates(mixed, { ...base, season: "winter", maxAccessories: 0 })[0];
+  expect(first.some((i) => i.id === "t-on")).toBe(true);
+});
+
+test("rain still excludes suede even when the suede shoe is the in-season one", () => {
+  const c = buildCandidates(items, { ...base, weather: { tempC: 16, rain: true } });
+  expect(c.flat().some((i) => i.id === "s2")).toBe(false);
+});

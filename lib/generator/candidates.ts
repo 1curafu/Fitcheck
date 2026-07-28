@@ -1,4 +1,5 @@
 import { weatherRules, type Weather } from "./rules";
+import { inSeason } from "./season";
 
 export type CandidateItem = {
   id: string;
@@ -41,7 +42,12 @@ function isEligible(i: CandidateItem, a: CandidateArgs, excludeMaterials: string
   if (i.category === "Fragrance") return false; // D11: fragrances are never slotted
   if (a.excludeItemIds.includes(i.id)) return false;
   if (i.material && excludeMaterials.includes(i.material.toLowerCase())) return false;
-  if (i.seasons.length && !i.seasons.includes(a.season)) return false;
+  // Season is deliberately NOT filtered here — see ./season.ts. It orders the
+  // lists below and weights the score instead. Filtering ran against every
+  // required slot, so one narrowly-tagged category zeroed the whole result:
+  // measured on a wearable 10-top/4-bottom/4-shoe closet whose trousers merely
+  // lacked a Winter tag, the same wardrobe gave 40 combos in summer and 0 in
+  // winter.
   const f = i.formality ?? 3;
   return f >= lo - floorTolerance(i.category) && f <= hi + 0.5;
 }
@@ -74,7 +80,18 @@ export function buildCandidates(items: CandidateItem[], a: CandidateArgs): Candi
 
   const eligible = items.filter((i) => isEligible(i, a, excludeMaterials));
 
-  const byCat = (c: string) => eligible.filter((i) => i.category === c);
+  // Season ORDERS, it does not exclude. This matters because the CAP below
+  // truncates the combo list: with a large off-season closet, the good combos
+  // could otherwise fall past the cap and never reach scoring at all. The
+  // breadth-first walk indexes outerwear and accessories modulo their list
+  // length, so ordering in-season-first also means the earliest passes reach
+  // the seasonally right coat and accessory.
+  const bySeasonFirst = (list: CandidateItem[]) =>
+    [...list].sort(
+      (x, y) => Number(inSeason(y.seasons, a.season)) - Number(inSeason(x.seasons, a.season)),
+    );
+
+  const byCat = (c: string) => bySeasonFirst(eligible.filter((i) => i.category === c));
   const tops = byCat("Tops");
   const bottoms = byCat("Bottoms");
   const shoes = byCat("Shoes");
