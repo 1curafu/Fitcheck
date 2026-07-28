@@ -89,27 +89,37 @@ export async function generate(input: {
     // The daily drop (Decision 5): today's looks are generated once and then
     // read back. Only an explicit regenerate spends an AI call on a day the
     // stylist has already answered.
-    if (!input.regenerate) {
-      const stored = await loadDailyLooks(user.id, input.occasion, today);
-      if (stored?.length) {
-        const paths = Array.from(
-          new Set(
-            stored
-              .flatMap((s) => s.pieces.map((p) => byId.get(p.itemId)))
-              .filter((it): it is NonNullable<typeof it> => Boolean(it))
-              .map((it) => displayPath(it)),
-          ),
-        );
-        const signed = await signItemImages(paths);
-        const looks = reassembleLooks(stored, byId, signed, (id) => {
-          const it = byId.get(id);
-          return it ? displayPath(it) : undefined;
-        });
-        // null = the closet changed under the stored set; fall through and
-        // regenerate rather than showing an outfit with a hole in it.
-        if (looks) return { status: "ok", weather, looks };
-      }
+    //
+    // The stored set is read on BOTH paths. On a normal load it IS the answer;
+    // on a regenerate it is the recency signal — the pieces the user just
+    // rejected, which ranking will sink without ever filtering them out.
+    const stored = await loadDailyLooks(user.id, input.occasion, today);
+
+    if (!input.regenerate && stored?.length) {
+      const paths = Array.from(
+        new Set(
+          stored
+            .flatMap((s) => s.pieces.map((p) => byId.get(p.itemId)))
+            .filter((it): it is NonNullable<typeof it> => Boolean(it))
+            .map((it) => displayPath(it)),
+        ),
+      );
+      const signed = await signItemImages(paths);
+      const looks = reassembleLooks(stored, byId, signed, (id) => {
+        const it = byId.get(id);
+        return it ? displayPath(it) : undefined;
+      });
+      // null = the closet changed under the stored set; fall through and
+      // regenerate rather than showing an outfit with a hole in it.
+      if (looks) return { status: "ok", weather, looks };
     }
+
+    // Only a deliberate regenerate carries the signal. A fall-through from a
+    // stale stored set is the app fixing itself, not the user asking for
+    // something else — penalising those pieces would be arbitrary.
+    const recentlyShown = input.regenerate
+      ? Array.from(new Set(stored?.flatMap((s) => s.pieces.map((p) => p.itemId)) ?? []))
+      : [];
 
     await assertCanGenerate(user.id);
 
@@ -149,7 +159,11 @@ export async function generate(input: {
     // top harmonises with everything, so it occupies most of the list, and "the
     // best 3" of a clustered list is three versions of one outfit. Diversifying
     // the INPUT makes the model's three distinct by construction.
-    const ranked = rankTopN(combos, { aesthetic, band, lean: input.lean }, combos.length);
+    const ranked = rankTopN(
+      combos,
+      { aesthetic, band, lean: input.lean, recentlyShown },
+      combos.length,
+    );
     const top = diversify(ranked, 20);
 
     const { picks } = await rerank({
