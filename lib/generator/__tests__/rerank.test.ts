@@ -1,4 +1,4 @@
-import { dedupePicks, RERANK_VARIETY_RULE } from "../rerank";
+import { dedupePicks, finalisePicks, RERANK_VARIETY_RULE } from "../rerank";
 import { describeCombos, RerankSchema, rerankJsonSchema, NAME_MAX } from "../rerank";
 
 test("describes each combo as one indexed line with subcategory + colours", () => {
@@ -20,9 +20,36 @@ test("schema ACCEPTS exactly 3 valid picks with index + name + why", () => {
   expect(ok.picks).toHaveLength(3);
   expect(ok.picks[0].name).toBe("Look 0");
 });
-test("schema REJECTS the wrong pick count (pins 'exactly 3')", () => {
-  expect(() => RerankSchema.parse({ picks: [pick(0)] })).toThrow();
-  expect(() => RerankSchema.parse({ picks: [pick(0), pick(1), pick(2), pick(3)] })).toThrow();
+// A closet too small for three looks must still get its looks. `.length(3)`
+// was never enforced ON the model — forStructuredOutput strips minItems/maxItems
+// (they 400 the API), so it existed only as a post-hoc throw, and a closet with
+// one viable combo failed the WHOLE generation as "Couldn't reach the stylist".
+// Measured on a 3-item closet: the screen showed the error state, not the look.
+// Same stance as clampName above — repair, don't reject.
+
+test("a closet with only one viable look does not fail the generation", () => {
+  const out = RerankSchema.parse({ picks: [pick(0)] });
+  expect(out.picks).toHaveLength(1);
+});
+
+test("two looks are accepted too", () => {
+  expect(RerankSchema.parse({ picks: [pick(0), pick(1)] }).picks).toHaveLength(2);
+});
+
+test("zero picks is still an error — there is nothing to show", () => {
+  expect(() => RerankSchema.parse({ picks: [] })).toThrow();
+});
+
+test("more than three picks are capped rather than thrown away wholesale", () => {
+  expect(finalisePicks([pick(0), pick(1), pick(2), pick(3)]).map((p) => p.combo_index)).toEqual([
+    0, 1, 2,
+  ]);
+});
+
+test("finalisePicks still drops duplicates and out-of-range indices", () => {
+  expect(finalisePicks([pick(0), pick(0), pick(99), pick(1)], 20).map((p) => p.combo_index)).toEqual(
+    [0, 1],
+  );
 });
 test("schema REJECTS a pick missing a name entirely", () => {
   expect(() => RerankSchema.parse({ picks: [{ combo_index: 0, why: "x" }, pick(1), pick(2)] })).toThrow();
