@@ -67,9 +67,25 @@ export function applyFormalityOverride(
   return [Math.max(1, f - 1), Math.min(5, f + 1)];
 }
 
+/**
+ * Materials that make a properly hot day unpleasant. This is the MEASURED
+ * replacement for the season tag's incidental thermal protection: season used to
+ * be a hard filter, so a wool sweater tagged {Autumn,Winter} could never reach a
+ * July outfit. Season is now a preference (see ./season.ts), so the guard moved
+ * here — to the temperature we already fetch, which is a real reading of the day
+ * rather than a label derived from the calendar month.
+ */
+const HOT_MATERIALS = ["wool", "cashmere", "fleece", "shearling", "tweed", "corduroy", "down"];
+
+/** Strictly above 25: 24° is pleasant, 26° is hot. */
+const HOT_C = 25;
+
 export function weatherRules(w: Weather) {
   return {
     needsOuterwear: w.tempC < 15,
-    excludeMaterials: w.rain ? ["suede", "canvas"] : [],
+    excludeMaterials: [
+      ...(w.rain ? ["suede", "canvas"] : []),
+      ...(w.tempC > HOT_C ? HOT_MATERIALS : []),
+    ],
   };
 }

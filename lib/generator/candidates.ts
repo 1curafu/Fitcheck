@@ -37,11 +37,19 @@ function floorTolerance(category: string): number {
   return category === "Shoes" ? 1 : 0.5;
 }
 
+function materialExcluded(material: string | null, excludeMaterials: string[]): boolean {
+  if (!material) return false;
+  const m = material.toLowerCase();
+  // Substring, not equality: the tagger writes free text, so "merino wool" and
+  // "suede leather" are real values that an exact match silently let through.
+  return excludeMaterials.some((x) => m.includes(x));
+}
+
 function isEligible(i: CandidateItem, a: CandidateArgs, excludeMaterials: string[]): boolean {
   const [lo, hi] = a.band;
   if (i.category === "Fragrance") return false; // D11: fragrances are never slotted
   if (a.excludeItemIds.includes(i.id)) return false;
-  if (i.material && excludeMaterials.includes(i.material.toLowerCase())) return false;
+  if (materialExcluded(i.material, excludeMaterials)) return false;
   // Season is deliberately NOT filtered here — see ./season.ts. It orders the
   // lists below and weights the score instead. Filtering ran against every
   // required slot, so one narrowly-tagged category zeroed the whole result:
@@ -52,16 +60,56 @@ function isEligible(i: CandidateItem, a: CandidateArgs, excludeMaterials: string
   return f >= lo - floorTolerance(i.category) && f <= hi + 0.5;
 }
 
+function bySeasonFirst(list: CandidateItem[], season: string | undefined): CandidateItem[] {
+  return [...list].sort(
+    (x, y) => Number(inSeason(y.seasons, season)) - Number(inSeason(x.seasons, season)),
+  );
+}
+
+function isRequired(c: string): c is RequiredCategory {
+  return (REQUIRED_CATEGORIES as readonly string[]).includes(c);
+}
+
+/**
+ * The eligible items of every category, in-season first.
+ *
+ * Two soft rules live here, and `eligibility`, `missingCategory` and
+ * `buildCandidates` all read from this one function so they can never disagree
+ * about what the closet can do:
+ *
+ * 1. Season ORDERS, never excludes. The CAP in `buildCandidates` truncates the
+ *    combo list, so in-season pieces must come first or a large off-season
+ *    closet could push the good combos past the cap.
+ * 2. Material RELIEF: a weather exclusion may narrow a REQUIRED slot but must
+ *    never empty it. A closet whose only shoes are suede should get its suede
+ *    shoes on a wet day, not an empty screen blaming "Shoes". Relief is scoped
+ *    to weather exclusions — a formality gap is a real wardrobe gap and is still
+ *    reported.
+ */
+export function eligibleByCategory(
+  items: CandidateItem[],
+  a: CandidateArgs,
+): Record<string, CandidateItem[]> {
+  const { excludeMaterials } = weatherRules(a.weather);
+  const cats = new Set<string>(items.map((i) => i.category));
+  for (const c of REQUIRED_CATEGORIES) cats.add(c);
+  cats.add("Outerwear");
+
+  const out: Record<string, CandidateItem[]> = {};
+  for (const c of cats) {
+    const inCat = items.filter((i) => i.category === c);
+    let list = inCat.filter((i) => isEligible(i, a, excludeMaterials));
+    if (!list.length && isRequired(c)) list = inCat.filter((i) => isEligible(i, a, []));
+    out[c] = bySeasonFirst(list, a.season);
+  }
+  return out;
+}
+
 /** Per-category counts of what survived filtering — lets an empty result explain itself. */
 export function eligibility(items: CandidateItem[], a: CandidateArgs): Record<string, number> {
-  const { excludeMaterials } = weatherRules(a.weather);
+  const by = eligibleByCategory(items, a);
   const counts: Record<string, number> = {};
-  for (const i of items) {
-    if (!isEligible(i, a, excludeMaterials)) continue;
-    counts[i.category] = (counts[i.category] ?? 0) + 1;
-  }
-  for (const c of REQUIRED_CATEGORIES) counts[c] ??= 0;
-  counts.Outerwear ??= 0;
+  for (const c of Object.keys(by)) counts[c] = by[c].length;
   return counts;
 }
 
@@ -76,27 +124,20 @@ export function missingCategory(items: CandidateItem[], a: CandidateArgs): Requi
 }
 
 export function buildCandidates(items: CandidateItem[], a: CandidateArgs): CandidateItem[][] {
-  const { needsOuterwear, excludeMaterials } = weatherRules(a.weather);
+  const { needsOuterwear } = weatherRules(a.weather);
 
-  const eligible = items.filter((i) => isEligible(i, a, excludeMaterials));
-
-  // Season ORDERS, it does not exclude. This matters because the CAP below
-  // truncates the combo list: with a large off-season closet, the good combos
-  // could otherwise fall past the cap and never reach scoring at all. The
-  // breadth-first walk indexes outerwear and accessories modulo their list
-  // length, so ordering in-season-first also means the earliest passes reach
-  // the seasonally right coat and accessory.
-  const bySeasonFirst = (list: CandidateItem[]) =>
-    [...list].sort(
-      (x, y) => Number(inSeason(y.seasons, a.season)) - Number(inSeason(x.seasons, a.season)),
-    );
-
-  const byCat = (c: string) => bySeasonFirst(eligible.filter((i) => i.category === c));
-  const tops = byCat("Tops");
-  const bottoms = byCat("Bottoms");
-  const shoes = byCat("Shoes");
-  const outer = byCat("Outerwear");
-  const accessories = byCat("Accessories");
+  // Season ordering and material relief both live in `eligibleByCategory`, so
+  // this function, `eligibility` and `missingCategory` can never disagree about
+  // what the closet can do. Ordering in-season-first matters because the CAP
+  // below truncates the combo list, and the breadth-first walk indexes outerwear
+  // and accessories modulo their list length — so the earliest passes reach the
+  // seasonally right coat and accessory.
+  const by = eligibleByCategory(items, a);
+  const tops = by.Tops ?? [];
+  const bottoms = by.Bottoms ?? [];
+  const shoes = by.Shoes ?? [];
+  const outer = by.Outerwear ?? [];
+  const accessories = by.Accessories ?? [];
 
   // A combo needs all three required slots; without one there is nothing to build.
   if (!tops.length || !bottoms.length || !shoes.length) return [];

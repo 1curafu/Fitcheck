@@ -153,3 +153,58 @@ test("rain still excludes suede even when the suede shoe is the in-season one", 
   const c = buildCandidates(items, { ...base, weather: { tempC: 16, rain: true } });
   expect(c.flat().some((i) => i.id === "s2")).toBe(false);
 });
+
+// --- a weather exclusion may narrow a required slot, never empty it ---------
+// Same principle as season above, applied to materials. This also fixes a
+// pre-existing dead end: a closet whose only shoes were suede returned zero
+// outfits in the rain, with the empty screen blaming "Shoes".
+
+const suedeOnly = [
+  { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["Spring"], material: "cotton" },
+  { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Spring"], material: "cotton" },
+  { id: "s1", category: "Shoes", colors: ["tan"], formality: 3, seasons: ["Spring"], material: "suede" },
+];
+
+test("rain with suede-only shoes still dresses you — the exclusion cannot empty a slot", () => {
+  const wet = { ...base, season: "Spring", weather: { tempC: 16, rain: true } };
+  const c = buildCandidates(suedeOnly, wet);
+  expect(c.length).toBeGreaterThan(0);
+  expect(c.flat().some((i) => i.id === "s1")).toBe(true);
+  expect(missingCategory(suedeOnly, wet)).toBeNull();
+});
+
+test("relief applies only when the slot is empty — a dry alternative still wins", () => {
+  const withAlternative = [
+    ...suedeOnly,
+    { id: "s2", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["Spring"], material: "leather" },
+  ];
+  const wet = { ...base, season: "Spring", weather: { tempC: 16, rain: true } };
+  expect(buildCandidates(withAlternative, wet).flat().some((i) => i.id === "s1")).toBe(false);
+});
+
+test("heat with wool-only bottoms still dresses you", () => {
+  const woolOnly = [
+    { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["Summer"], material: "linen" },
+    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "merino wool" },
+    { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["Summer"], material: "leather" },
+  ];
+  const hot = { ...base, season: "Summer", weather: { tempC: 30, rain: false } };
+  expect(buildCandidates(woolOnly, hot).length).toBeGreaterThan(0);
+});
+
+test("materials match by substring, so 'merino wool' is excluded when there is an alternative", () => {
+  const hotCloset = [
+    { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["Summer"], material: "linen" },
+    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "merino wool" },
+    { id: "b2", category: "Bottoms", colors: ["stone"], formality: 3, seasons: ["Summer"], material: "cotton" },
+    { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["Summer"], material: "leather" },
+  ];
+  const hot = { ...base, season: "Summer", weather: { tempC: 30, rain: false } };
+  expect(buildCandidates(hotCloset, hot).flat().some((i) => i.id === "b1")).toBe(false);
+});
+
+test("relief does NOT rescue a formality gap — only weather exclusions are relieved", () => {
+  // sneakerCloset's f=2 shoe genuinely cannot reach Evening; that is a real
+  // wardrobe gap the empty screen should still name.
+  expect(missingCategory(sneakerCloset, { ...summer, band: [3.5, 5] })).toBe("Shoes");
+});

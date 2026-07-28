@@ -94,3 +94,23 @@ test("rain excludes suede + canvas", () => {
   );
   expect(weatherRules({ tempC: 16, rain: false }).excludeMaterials).toEqual([]);
 });
+
+test("real heat excludes warm materials — the measured version of the old season filter", () => {
+  const hot = weatherRules({ tempC: 30, rain: false }).excludeMaterials;
+  expect(hot).toEqual(expect.arrayContaining(["wool", "fleece", "cashmere"]));
+});
+
+test("a pleasant day excludes nothing — the threshold is properly hot, not merely warm", () => {
+  expect(weatherRules({ tempC: 24, rain: false }).excludeMaterials).toEqual([]);
+  expect(weatherRules({ tempC: 25, rain: false }).excludeMaterials).toEqual([]);
+});
+
+test("a hot rainy day excludes both sets", () => {
+  const both = weatherRules({ tempC: 30, rain: true }).excludeMaterials;
+  expect(both).toEqual(expect.arrayContaining(["suede", "canvas", "wool"]));
+});
+
+test("cold days are unaffected by the heat rule", () => {
+  expect(weatherRules({ tempC: 5, rain: false }).excludeMaterials).toEqual([]);
+  expect(weatherRules({ tempC: 5, rain: false }).needsOuterwear).toBe(true);
+});
