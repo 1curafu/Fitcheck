@@ -182,25 +182,40 @@ test("relief applies only when the slot is empty — a dry alternative still win
   expect(buildCandidates(withAlternative, wet).flat().some((i) => i.id === "s1")).toBe(false);
 });
 
-test("heat with wool-only bottoms still dresses you", () => {
-  const woolOnly = [
+test("heat with fleece-only bottoms still dresses you", () => {
+  const fleeceOnly = [
     { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["Summer"], material: "linen" },
-    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "merino wool" },
+    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "polar fleece" },
     { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["Summer"], material: "leather" },
   ];
   const hot = { ...base, season: "Summer", weather: { tempC: 30, rain: false } };
-  expect(buildCandidates(woolOnly, hot).length).toBeGreaterThan(0);
+  expect(buildCandidates(fleeceOnly, hot).length).toBeGreaterThan(0);
 });
 
-test("materials match by substring, so 'merino wool' is excluded when there is an alternative", () => {
+test("materials match by substring, so 'polar fleece' is excluded when there is an alternative", () => {
   const hotCloset = [
     { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["Summer"], material: "linen" },
-    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "merino wool" },
+    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "polar fleece" },
     { id: "b2", category: "Bottoms", colors: ["stone"], formality: 3, seasons: ["Summer"], material: "cotton" },
     { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["Summer"], material: "leather" },
   ];
   const hot = { ...base, season: "Summer", weather: { tempC: 30, rain: false } };
   expect(buildCandidates(hotCloset, hot).flat().some((i) => i.id === "b1")).toBe(false);
+});
+
+test("a wool trouser survives real heat — fibre alone never decides", () => {
+  // The counterpart to the rules-level guard: weight and weave decide whether
+  // wool suits 30°C, and `material` records neither. A summer-weight wool
+  // trouser must reach a hot-day outfit; seasonFit demotes it if it is tagged
+  // for winter, but nothing here eliminates it.
+  const hotCloset = [
+    { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["Summer"], material: "linen" },
+    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "tropical wool" },
+    { id: "b2", category: "Bottoms", colors: ["stone"], formality: 3, seasons: ["Summer"], material: "cotton" },
+    { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["Summer"], material: "leather" },
+  ];
+  const hot = { ...base, season: "Summer", weather: { tempC: 32, rain: false } };
+  expect(buildCandidates(hotCloset, hot).flat().some((i) => i.id === "b1")).toBe(true);
 });
 
 test("relief does NOT rescue a formality gap — only weather exclusions are relieved", () => {

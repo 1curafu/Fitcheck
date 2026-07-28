@@ -68,14 +68,35 @@ export function applyFormalityOverride(
 }
 
 /**
- * Materials that make a properly hot day unpleasant. This is the MEASURED
- * replacement for the season tag's incidental thermal protection: season used to
- * be a hard filter, so a wool sweater tagged {Autumn,Winter} could never reach a
- * July outfit. Season is now a preference (see ./season.ts), so the guard moved
- * here — to the temperature we already fetch, which is a real reading of the day
- * rather than a label derived from the calendar month.
+ * Fabrics that are wrong in real heat NO MATTER HOW THEY ARE MADE.
+ *
+ * This is the measured replacement for the season tag's incidental thermal
+ * protection: season used to be a hard filter, so a sweater tagged
+ * {Autumn,Winter} could never reach a July outfit. Season is now a preference
+ * (see ./season.ts), so the guard moved to the temperature we already fetch.
+ *
+ * The list is deliberately SHORT, and notably does not contain wool.
+ * Whether a wool garment suits 30°C is decided by its weight and weave, not its
+ * fibre: tropical, fresco and high-twist wools are summer suiting, and merino is
+ * used *for* heat because it wicks and breathes. `items.material` is a bare
+ * fibre name today, so a "wool" rule cannot tell a summer-weight trouser from a
+ * melton coat — it would exclude exactly the smart-casual work wear this app is
+ * built around. Everything left here is insulation or a coarse heavy weave,
+ * where no construction makes it summer-appropriate.
+ *
+ * Wool, merino and cashmere are not unprotected: an off-season piece still takes
+ * the `seasonFit` penalty in scoring, so it ranks below linen in July. Demoted
+ * on evidence rather than eliminated on a guess — the same argument this module
+ * makes about season itself.
+ *
+ * The real fix is data, not a longer list. `item-data-completeness` (queue #3)
+ * adds an `items.texture` column — Flat / Fine knit / Chunky knit / Brushed /
+ * Fleece-back — and constrains `material` to a vocabulary that separates "Wool"
+ * from "Merino wool". `item-signals-in-generator` (queue #12) then feeds
+ * material × texture into SCORING. Warmth belongs there, as a weighted signal,
+ * not here as a veto.
  */
-const HOT_MATERIALS = ["wool", "cashmere", "fleece", "shearling", "tweed", "corduroy", "down"];
+const HOT_MATERIALS = ["fleece", "shearling", "down", "quilted", "puffer", "tweed"];
 
 /** Strictly above 25: 24° is pleasant, 26° is hot. */
 const HOT_C = 25;
