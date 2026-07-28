@@ -8,6 +8,7 @@ import { personalBand, applyFormalityOverride } from "@/lib/generator/rules";
 import { buildCandidates, missingCategory, type CandidateItem } from "@/lib/generator/candidates";
 import { rankTopN } from "@/lib/generator/rank";
 import { diversify } from "@/lib/generator/diversity";
+import { currentSeason } from "@/lib/generator/season";
 import { rerank } from "@/lib/generator/rerank";
 import { layoutForLook, staggerOrder } from "@/lib/generator/layout";
 import { localDateFor } from "@/lib/outfits/local-date";
@@ -29,11 +30,6 @@ import type {
   UiOccasion,
   WeatherPayload,
 } from "@/lib/generator/types";
-
-function currentSeason(d: Date): string {
-  const m = d.getMonth();
-  return m < 2 || m === 11 ? "Winter" : m < 5 ? "Spring" : m < 8 ? "Summer" : "Autumn";
-}
 
 export async function generate(input: {
   occasion: UiOccasion;
@@ -159,9 +155,12 @@ export async function generate(input: {
     // top harmonises with everything, so it occupies most of the list, and "the
     // best 3" of a clustered list is three versions of one outfit. Diversifying
     // the INPUT makes the model's three distinct by construction.
+    // Season rides along as a ranking preference — in-season combos float to the
+    // top of the shortlist the re-ranker sees, but an off-season one is still
+    // offered rather than the screen going empty.
     const ranked = rankTopN(
       combos,
-      { aesthetic, band, lean: input.lean, recentlyShown },
+      { aesthetic, band, lean: input.lean, recentlyShown, season: candidateArgs.season },
       combos.length,
     );
     const top = diversify(ranked, 20);
