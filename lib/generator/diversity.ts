@@ -5,69 +5,54 @@ function slotId(items: Keyed[], category: string): string | undefined {
 }
 
 /**
- * Spread the shortlist across the wardrobe before the re-ranker sees it.
+ * Order and size the shortlist handed to the re-ranker.
  *
  * Ranking alone clusters: a neutral top harmonises with everything, so combos
- * containing it occupy most of the top of the list. Hand that to the model and
- * it returns three variations of one outfit — not because it ignored the
- * instruction, but because that is what "the best 3" of a clustered list is.
+ * containing it occupy most of the top of the list. Hand the model that raw and
+ * it returns three variations of one outfit.
  *
- * Constraining the INPUT is stronger than asking the model for variety in the
- * prompt: whichever three it picks from a diversified shortlist are distinct by
- * construction, with no compliance required.
+ * So the shortlist is TIERED rather than filtered. Combos whose top and bottom
+ * are both unused come first, then those with one unused slot, then the rest —
+ * score-descending inside each tier. The model still sees maximally-distinct
+ * options at the head of the list, so "the best 3" are naturally distinct, but
+ * the tail is no longer thrown away.
  *
- * Greedy and score-ordered: walk the ranking, take a combo whose top and bottom
- * are both still unused, then backfill from the remainder. The best-scoring
- * combo is always kept and always first — diversity reorders what comes after
- * it, it never overrides the winner.
- *
- * Backfill matters: with two eligible tops, three distinct looks are impossible,
- * and repeating a garment is better than returning fewer candidates and starving
- * the re-ranker.
+ * Why the tail matters: an earlier version returned ONLY the fully-distinct
+ * combos (floor 3). On a real 21-item closet that handed the re-ranker 6
+ * candidates in summer and 3 in winter, out of 48 and 21 valid ones — so
+ * Regenerate could not return anything different, and shoe variation was
+ * unreachable in every season. Three looks sharing trousers but differing in
+ * top and shoes are three different looks; only a repeated COMBINATION is a
+ * duplicate, and buildCandidates never emits one.
  */
 export function diversify<T extends { items: Keyed[]; score: number }>(
   ranked: T[],
   n: number,
-  minimum = 3,
 ): T[] {
   const usedTops = new Set<string>();
   const usedBottoms = new Set<string>();
-  const picked: T[] = [];
-  const rest: T[] = [];
+  const tier1: T[] = [];
+  const tier2: T[] = [];
+  const tier3: T[] = [];
 
   for (const r of ranked) {
-    if (picked.length >= n) {
-      rest.push(r);
-      continue;
-    }
     const top = slotId(r.items, "Tops");
     const bottom = slotId(r.items, "Bottoms");
-    // A missing slot cannot collide — an accessory-only or shoes-only combo is
-    // not "sharing" a top with anything.
-    const fresh =
-      (top === undefined || !usedTops.has(top)) &&
-      (bottom === undefined || !usedBottoms.has(bottom));
+    // A missing slot cannot collide — a shoes-only combo is not "sharing" a
+    // top with anything, so it counts as fresh.
+    const freshTop = top === undefined || !usedTops.has(top);
+    const freshBottom = bottom === undefined || !usedBottoms.has(bottom);
 
-    if (!fresh) {
-      rest.push(r);
-      continue;
+    if (freshTop && freshBottom) {
+      tier1.push(r);
+      if (top !== undefined) usedTops.add(top);
+      if (bottom !== undefined) usedBottoms.add(bottom);
+    } else if (freshTop || freshBottom) {
+      tier2.push(r);
+    } else {
+      tier3.push(r);
     }
-    picked.push(r);
-    if (top !== undefined) usedTops.add(top);
-    if (bottom !== undefined) usedBottoms.add(bottom);
   }
 
-  // Backfill ONLY to the floor, never to `n`.
-  //
-  // A 10-top / 6-bottom closet yields 6 genuinely distinct combos, so padding a
-  // 20-slot shortlist would hand the re-ranker 14 repeats it is free to choose —
-  // reintroducing the duplicate looks this function exists to prevent. A short,
-  // clean shortlist is better than a long, padded one; the floor exists only so
-  // a wardrobe too small for three distinct looks still gets three looks.
-  const floor = Math.min(minimum, n); // asking for 2 must never return 3
-  for (const r of rest) {
-    if (picked.length >= floor) break;
-    picked.push(r);
-  }
-  return picked;
+  return [...tier1, ...tier2, ...tier3].slice(0, n);
 }

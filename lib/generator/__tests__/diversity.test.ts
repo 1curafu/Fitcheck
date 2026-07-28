@@ -68,19 +68,22 @@ test("returns at most n", () => {
   expect(diversify(ranked, 2)).toHaveLength(2);
 });
 
-test("a large shortlist is NOT padded with repeats to fill it", () => {
-  // The fixture has only three combos with a distinct top+bottom (a, d, e).
-  // Padding the remaining 96 slots with repeats would hand the re-ranker
-  // duplicates it is free to pick — reintroducing the exact bug this prevents.
-  // A short clean shortlist beats a long padded one.
+test("a large shortlist is filled to n, not truncated to the distinct few", () => {
+  // The fixture has 5 combos; only 3 have a distinct top+bottom (a, d, e).
+  // Truncating to those 3 threw away b and c — which are different LOOKS
+  // (different bottom, and in a real closet different shoes), not duplicates.
+  // buildCandidates never emits the same combination twice, so there is
+  // nothing here for the re-ranker to pick twice.
+  expect(diversify(ranked, 99)).toHaveLength(5);
+});
+
+test("the most-distinct combos come first, so the model's best-3 stay distinct", () => {
   const out = diversify(ranked, 99);
-  expect(out).toHaveLength(3);
-  const tops = out.map((r) => r.items.find((i) => i.category === "Tops")!.id);
+  const tops = out.slice(0, 3).map((r) => r.items.find((i) => i.category === "Tops")!.id);
   expect(new Set(tops).size).toBe(3);
 });
 
-test("the floor never exceeds the requested size", () => {
-  // minimum defaults to 3; asking for 2 must still return 2.
+test("never returns more than n even when more candidates exist", () => {
   expect(diversify(ranked, 2)).toHaveLength(2);
 });
 
