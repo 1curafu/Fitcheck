@@ -56,3 +56,53 @@ test("the lean matches by family, not by literal tag word", () => {
 test("no lean leaves scoring exactly as it was", () => {
   expect(scoreCombo(good, { ...ctx, lean: [] })).toBe(scoreCombo(good, ctx));
 });
+
+// --- Season ----------------------------------------------------------------
+// Season is SCORED, not filtered — the same soft-preference model as outerwear
+// and the colour lean. Filtering on it made a narrowly-tagged category a silent
+// dead-end: measured on a wearable 10-top/4-bottom/4-shoe closet whose trousers
+// simply lacked a Winter tag, the same wardrobe gave 40 combos in summer and 0
+// in winter.
+
+const winterReady = [
+  { category: "top", colors: ["cream"], formality: 3, style_tags: [], seasons: ["Winter"] },
+  { category: "bottom", colors: ["navy"], formality: 3, style_tags: [], seasons: ["Winter"] },
+  { category: "shoes", colors: ["brown"], formality: 3, style_tags: [], seasons: ["Winter"] },
+];
+const summerOnly = [
+  { category: "top", colors: ["cream"], formality: 3, style_tags: [], seasons: ["Summer"] },
+  { category: "bottom", colors: ["navy"], formality: 3, style_tags: [], seasons: ["Summer"] },
+  { category: "shoes", colors: ["brown"], formality: 3, style_tags: [], seasons: ["Summer"] },
+];
+
+test("an in-season combo outranks an otherwise identical off-season one", () => {
+  const winter = { ...ctx, season: "Winter" };
+  expect(scoreCombo(winterReady, winter)).toBeGreaterThan(scoreCombo(summerOnly, winter));
+});
+
+test("a fully off-season combo still scores above zero — season never eliminates", () => {
+  expect(scoreCombo(summerOnly, { ...ctx, season: "Winter" })).toBeGreaterThan(0);
+});
+
+test("a partly in-season combo lands between the two", () => {
+  const mixed = [winterReady[0], winterReady[1], summerOnly[2]];
+  const winter = { ...ctx, season: "Winter" };
+  expect(scoreCombo(mixed, winter)).toBeGreaterThan(scoreCombo(summerOnly, winter));
+  expect(scoreCombo(mixed, winter)).toBeLessThan(scoreCombo(winterReady, winter));
+});
+
+test("untagged items are not penalised by the season term", () => {
+  const untagged = winterReady.map((i) => ({ ...i, seasons: [] }));
+  const winter = { ...ctx, season: "Winter" };
+  expect(scoreCombo(untagged, winter)).toBe(scoreCombo(winterReady, winter));
+});
+
+test("no season in the context leaves scoring exactly as it was", () => {
+  expect(scoreCombo(good, { ...ctx, season: undefined })).toBe(scoreCombo(good, ctx));
+});
+
+test("season and lean can both apply without pushing the score out of 0..1", () => {
+  const both = { ...ctx, season: "Winter", lean: ["olive"] };
+  expect(scoreCombo(winterReady, both)).toBeLessThanOrEqual(1);
+  expect(scoreCombo(winterReady, both)).toBeGreaterThanOrEqual(0);
+});

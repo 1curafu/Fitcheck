@@ -94,3 +94,35 @@ test("rain excludes suede + canvas", () => {
   );
   expect(weatherRules({ tempC: 16, rain: false }).excludeMaterials).toEqual([]);
 });
+
+test("real heat excludes insulation — the measured version of the old season filter", () => {
+  const hot = weatherRules({ tempC: 30, rain: false }).excludeMaterials;
+  expect(hot).toEqual(expect.arrayContaining(["fleece", "down", "shearling", "tweed"]));
+});
+
+test("heat does NOT exclude wool — weight and weave decide that, and we store neither", () => {
+  // Tropical, fresco and high-twist wools are summer suiting, and merino is worn
+  // *for* heat because it wicks. `items.material` holds a bare fibre name, so a
+  // "wool" rule cannot tell a summer-weight trouser from a melton coat — it
+  // would bin the smart-casual work wear this app exists to style. Off-season
+  // wool is handled softly by the seasonFit term instead.
+  const hot = weatherRules({ tempC: 34, rain: false }).excludeMaterials;
+  expect(hot).not.toContain("wool");
+  expect(hot).not.toContain("merino wool");
+  expect(hot).not.toContain("cashmere");
+});
+
+test("a pleasant day excludes nothing — the threshold is properly hot, not merely warm", () => {
+  expect(weatherRules({ tempC: 24, rain: false }).excludeMaterials).toEqual([]);
+  expect(weatherRules({ tempC: 25, rain: false }).excludeMaterials).toEqual([]);
+});
+
+test("a hot rainy day excludes both sets", () => {
+  const both = weatherRules({ tempC: 30, rain: true }).excludeMaterials;
+  expect(both).toEqual(expect.arrayContaining(["suede", "canvas", "fleece"]));
+});
+
+test("cold days are unaffected by the heat rule", () => {
+  expect(weatherRules({ tempC: 5, rain: false }).excludeMaterials).toEqual([]);
+  expect(weatherRules({ tempC: 5, rain: false }).needsOuterwear).toBe(true);
+});

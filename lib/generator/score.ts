@@ -1,10 +1,12 @@
 import { colorHarmonyScore, leanScore } from "./color";
+import { seasonFit } from "./season";
 
 export type ScoreItem = {
   category: string;
   colors: string[];
   formality: number | null;
   style_tags?: string[];
+  seasons?: string[];
 };
 export type Ctx = {
   aesthetic: string[];
@@ -18,6 +20,8 @@ export type Ctx = {
    * outfit instead of an empty screen.
    */
   recentlyShown?: string[];
+  /** The current season ("Winter"). Absent = no season preference at all. */
+  season?: string;
 };
 
 /**
@@ -27,6 +31,14 @@ export type Ctx = {
  * preference, never an eliminator.
  */
 const LEAN_WEIGHT = 0.3;
+
+/**
+ * The same bargain for season. Slightly lower than the lean because a lean is an
+ * explicit request the user just made, while season is inferred from the month.
+ * Both together cap at 0.5, so coherence and colour harmony always keep half the
+ * score — an off-season combo that actually works still beats an in-season mess.
+ */
+const SEASON_WEIGHT = 0.2;
 
 /** 1.0 = identical formality; falls off with spread. */
 export function formalityCoherence(formalities: number[]): number {
@@ -44,7 +56,12 @@ export function scoreCombo(items: ScoreItem[], ctx: Ctx): number {
   const dna = items.length ? dnaHits / items.length : 0;
   const base = 0.45 * harmony + 0.35 * coherence + 0.2 * dna;
 
-  // With no lean the weight is 0, so scoring is byte-identical to before.
-  const w = ctx.lean?.length ? LEAN_WEIGHT : 0;
-  return Math.min(1, base * (1 - w) + w * leanScore(colors, ctx.lean ?? []));
+  // Each preference claims its weight only when it applies, so with neither one
+  // set the score is byte-identical to what it was before either landed.
+  const wl = ctx.lean?.length ? LEAN_WEIGHT : 0;
+  const ws = ctx.season ? SEASON_WEIGHT : 0;
+  return Math.min(
+    1,
+    base * (1 - wl - ws) + wl * leanScore(colors, ctx.lean ?? []) + ws * seasonFit(items, ctx.season),
+  );
 }

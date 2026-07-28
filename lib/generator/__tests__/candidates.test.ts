@@ -122,3 +122,104 @@ test("missingCategory ignores outerwear — it never blocks, so it is never the 
     missingCategory(sneakerCloset, { ...summer, band: [1.5, 3], weather: { tempC: 5, rain: false } }),
   ).toBeNull();
 });
+
+// --- Season is a preference, not a gate ------------------------------------
+// The fixture above is tagged "spring" throughout, so asking for winter used to
+// return NOTHING — which is exactly the dead end this guards against. Note the
+// Title-case argument: production seasons are Title case, fixtures are lower.
+
+test("a closet with nothing tagged for this season still produces outfits", () => {
+  const c = buildCandidates(items, { ...base, season: "Winter" });
+  expect(c.length).toBeGreaterThan(0);
+});
+
+test("season never empties a required slot, so it can never be the missing category", () => {
+  expect(missingCategory(items, { ...base, season: "Winter" })).toBeNull();
+  expect(eligibility(items, { ...base, season: "Winter" }).Bottoms).toBeGreaterThan(0);
+});
+
+test("in-season pieces are offered before off-season ones, so the cap keeps the good ones", () => {
+  const mixed = [
+    { id: "t-off", category: "Tops", colors: ["cream"], formality: 3, seasons: ["summer"], material: "linen" },
+    { id: "t-on", category: "Tops", colors: ["cream"], formality: 3, seasons: ["winter"], material: "wool" },
+    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["winter"], material: "wool" },
+    { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["winter"], material: "leather" },
+  ];
+  const first = buildCandidates(mixed, { ...base, season: "winter", maxAccessories: 0 })[0];
+  expect(first.some((i) => i.id === "t-on")).toBe(true);
+});
+
+test("rain still excludes suede even when the suede shoe is the in-season one", () => {
+  const c = buildCandidates(items, { ...base, weather: { tempC: 16, rain: true } });
+  expect(c.flat().some((i) => i.id === "s2")).toBe(false);
+});
+
+// --- a weather exclusion may narrow a required slot, never empty it ---------
+// Same principle as season above, applied to materials. This also fixes a
+// pre-existing dead end: a closet whose only shoes were suede returned zero
+// outfits in the rain, with the empty screen blaming "Shoes".
+
+const suedeOnly = [
+  { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["Spring"], material: "cotton" },
+  { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Spring"], material: "cotton" },
+  { id: "s1", category: "Shoes", colors: ["tan"], formality: 3, seasons: ["Spring"], material: "suede" },
+];
+
+test("rain with suede-only shoes still dresses you — the exclusion cannot empty a slot", () => {
+  const wet = { ...base, season: "Spring", weather: { tempC: 16, rain: true } };
+  const c = buildCandidates(suedeOnly, wet);
+  expect(c.length).toBeGreaterThan(0);
+  expect(c.flat().some((i) => i.id === "s1")).toBe(true);
+  expect(missingCategory(suedeOnly, wet)).toBeNull();
+});
+
+test("relief applies only when the slot is empty — a dry alternative still wins", () => {
+  const withAlternative = [
+    ...suedeOnly,
+    { id: "s2", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["Spring"], material: "leather" },
+  ];
+  const wet = { ...base, season: "Spring", weather: { tempC: 16, rain: true } };
+  expect(buildCandidates(withAlternative, wet).flat().some((i) => i.id === "s1")).toBe(false);
+});
+
+test("heat with fleece-only bottoms still dresses you", () => {
+  const fleeceOnly = [
+    { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["Summer"], material: "linen" },
+    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "polar fleece" },
+    { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["Summer"], material: "leather" },
+  ];
+  const hot = { ...base, season: "Summer", weather: { tempC: 30, rain: false } };
+  expect(buildCandidates(fleeceOnly, hot).length).toBeGreaterThan(0);
+});
+
+test("materials match by substring, so 'polar fleece' is excluded when there is an alternative", () => {
+  const hotCloset = [
+    { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["Summer"], material: "linen" },
+    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "polar fleece" },
+    { id: "b2", category: "Bottoms", colors: ["stone"], formality: 3, seasons: ["Summer"], material: "cotton" },
+    { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["Summer"], material: "leather" },
+  ];
+  const hot = { ...base, season: "Summer", weather: { tempC: 30, rain: false } };
+  expect(buildCandidates(hotCloset, hot).flat().some((i) => i.id === "b1")).toBe(false);
+});
+
+test("a wool trouser survives real heat — fibre alone never decides", () => {
+  // The counterpart to the rules-level guard: weight and weave decide whether
+  // wool suits 30°C, and `material` records neither. A summer-weight wool
+  // trouser must reach a hot-day outfit; seasonFit demotes it if it is tagged
+  // for winter, but nothing here eliminates it.
+  const hotCloset = [
+    { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["Summer"], material: "linen" },
+    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "tropical wool" },
+    { id: "b2", category: "Bottoms", colors: ["stone"], formality: 3, seasons: ["Summer"], material: "cotton" },
+    { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["Summer"], material: "leather" },
+  ];
+  const hot = { ...base, season: "Summer", weather: { tempC: 32, rain: false } };
+  expect(buildCandidates(hotCloset, hot).flat().some((i) => i.id === "b1")).toBe(true);
+});
+
+test("relief does NOT rescue a formality gap — only weather exclusions are relieved", () => {
+  // sneakerCloset's f=2 shoe genuinely cannot reach Evening; that is a real
+  // wardrobe gap the empty screen should still name.
+  expect(missingCategory(sneakerCloset, { ...summer, band: [3.5, 5] })).toBe("Shoes");
+});
