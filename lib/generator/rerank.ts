@@ -55,9 +55,21 @@ export const rerankJsonSchema = forStructuredOutput(
   z.toJSONSchema(z.object({ picks: z.array(PickShape).length(3) })),
 ) as Record<string, unknown>;
 
+/** The most looks a daily drop ever shows. */
+export const MAX_PICKS = 3;
+
 // The PARSE shape — same fields, plus the name repair.
+//
+// `.min(1)`, NOT `.length(3)`. The count is never enforced ON the model —
+// `forStructuredOutput` strips minItems/maxItems because the API 400s on them —
+// so an exact-3 rule existed only as a post-hoc throw, and a closet with fewer
+// than three viable combos failed the ENTIRE generation as "Couldn't reach the
+// stylist". That is a lie: the stylist answered, with everything the wardrobe
+// could give. It bites hardest right after onboarding's "capture your first
+// five", which is the magic moment. Repair, don't reject — the same stance as
+// `clampName`. An empty array is still an error; there is nothing to show.
 export const RerankSchema = z.object({
-  picks: z.array(PickShape.extend({ name: z.string().min(1).transform(clampName) })).length(3),
+  picks: z.array(PickShape.extend({ name: z.string().min(1).transform(clampName) })).min(1),
 });
 export type RerankResult = z.infer<typeof RerankSchema>;
 
@@ -99,6 +111,15 @@ export function dedupePicks(picks: Pick[], comboCount?: number): Pick[] {
   });
 }
 
+/**
+ * Everything that stands between the model's answer and the screen: drop
+ * repeats and out-of-range indices, then cap at MAX_PICKS. The cap lives here
+ * rather than in the schema so an over-eager model costs the user nothing.
+ */
+export function finalisePicks(picks: Pick[], comboCount?: number): Pick[] {
+  return dedupePicks(picks, comboCount).slice(0, MAX_PICKS);
+}
+
 export async function rerank(args: {
   combos: DescItem[][];
   aesthetic: string[];
@@ -127,5 +148,5 @@ For each return: its combo_index; a short evocative NAME (≤4 words and at most
   const parsed = RerankSchema.parse(JSON.parse(text));
   // The prompt asks for distinct picks; this guarantees it. A model that repeats
   // an index costs the user one look, not a duplicated outfit on the screen.
-  return { ...parsed, picks: dedupePicks(parsed.picks, args.combos.length) };
+  return { ...parsed, picks: finalisePicks(parsed.picks, args.combos.length) };
 }
