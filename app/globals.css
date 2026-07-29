@@ -19,6 +19,27 @@
   --color-muted-dim: #615c52;
   --color-faint: #52504a;
 
+  /* The middle of the cream ramp. The design's full ramp is eight steps:
+     f3eee3 · ede6d8 · d9d2c4 · cfc8ba · b6ab94 · 928c7f · 615c52 · 52504a
+     `value` is the right-hand side of every label/value pair — tag rows, item
+     names in list rows, material and colour readouts (13 uses in the design).
+     Without it a value is either --foreground (too loud) or --muted-foreground
+     (indistinguishable from the label beside it). */
+  --color-value: #cfc8ba;
+  --color-value-dim: #b6ab94;
+
+  /* Hairline elevation. Every raised surface in the design carries
+     `inset 0 0 0 1px rgba(237,230,216,α)` with α chosen by elevation — seven
+     distinct weights. We exposed two (--border .07, --input .12), so a panel
+     that should sit at .05 rendered heavier and the hierarchy flattened. */
+  --hairline-1: rgba(237, 230, 216, 0.03);
+  --hairline-2: rgba(237, 230, 216, 0.05);
+  --hairline-3: rgba(237, 230, 216, 0.06);
+  --hairline-4: rgba(237, 230, 216, 0.07);
+  --hairline-5: rgba(237, 230, 216, 0.08);
+  --hairline-6: rgba(237, 230, 216, 0.1);
+  --hairline-7: rgba(237, 230, 216, 0.12);
+
   /* rust / terracotta — our highlight. Named `brand` so it doesn't clash with
      shadcn's `accent` (a hover surface). Use text-brand / bg-brand. */
   --color-brand: #b86a47;
