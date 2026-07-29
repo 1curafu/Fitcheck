@@ -7,13 +7,11 @@ import { Chip } from "@/components/ui-fitcheck/chip";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import type { Tags } from "@/lib/ai/tagging-schema";
 
-const CATEGORIES: Tags["category"][] = ["Tops", "Bottoms", "Outerwear", "Shoes", "Accessories"];
-const SEASONS: Tags["seasons"][number][] = ["Spring", "Summer", "Autumn", "Winter"];
-const FORMALITY_LABEL = ["", "Very casual", "Casual", "Smart casual", "Business", "Formal"];
-const MATERIALS = [
-  "Cotton", "Wool", "Linen", "Denim", "Leather", "Suede", "Cashmere", "Silk",
-  "Polyester", "Nylon", "Stainless steel", "Gold", "Silver", "Canvas",
-];
+import { CATEGORIES, SEASONS, FORMALITY_LABEL, MATERIALS } from "@/lib/closet/vocab";
+
+// See the note in confirm-form.tsx — CATEGORIES carries Fragrance because it is
+// derived from TagSchema; the picker offers the wearable families.
+const PICKABLE = CATEGORIES.filter((c) => c !== "Fragrance");
 
 export type DetailItem = {
   id: string;
@@ -58,7 +56,9 @@ export function ItemDetail({
           name: name || null,
           brand: brand || null,
           category,
-          material: material || "Unknown",
+          // "Unknown" is not in the vocabulary — it was fabricated here and
+          // would now fail validation. "Other" is the real escape hatch.
+          material: material || "Other",
           formality,
           seasons: seasons.length ? seasons : ["Spring"],
         });
@@ -121,7 +121,7 @@ export function ItemDetail({
       <div>
         <Kicker className="mb-2 block">Category</Kicker>
         <div className="flex flex-wrap gap-2">
-          {CATEGORIES.map((c) => (
+          {PICKABLE.map((c) => (
             <Chip key={c} variant="select" active={category === c} onClick={() => setCategory(c)}>
               {c}
             </Chip>
@@ -131,18 +131,20 @@ export function ItemDetail({
 
       <div>
         <Kicker className="mb-2 block">Material</Kicker>
-        <input
-          list="material-suggestions"
-          value={material}
-          onChange={(e) => setMaterial(e.target.value)}
-          placeholder="e.g. Stainless steel, Wool, Leather"
-          className="w-full rounded-[12px] border border-[--input] bg-surface-1 px-4 py-3 text-sm text-foreground outline-none focus:border-brand"
-        />
-        <datalist id="material-suggestions">
+        {/* A chip row, not free text: `material` is a constrained enum now, so
+            anything typed outside the vocabulary fails validation on save. */}
+        <div className="flex flex-wrap gap-2">
           {MATERIALS.map((m) => (
-            <option key={m} value={m} />
+            <Chip
+              key={m}
+              variant="select"
+              active={material === m}
+              onClick={() => setMaterial(m)}
+            >
+              {m}
+            </Chip>
           ))}
-        </datalist>
+        </div>
       </div>
 
       <div>

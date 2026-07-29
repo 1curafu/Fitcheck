@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import {
   CATEGORIES,
   SEASONS,
@@ -59,4 +60,14 @@ test("every colour has a hex a swatch can render", () => {
   expect(colorHex("navy")).toBeDefined();
   expect(colorHex("NAVY")).toBe(colorHex("navy")); // case-insensitive
   expect(colorHex("not-a-colour")).toBeUndefined();
+});
+
+test("the closet vocabulary lives ONLY in vocab.ts", () => {
+  // Guards the drift BUGS.md #14 recorded: MATERIALS/CATEGORIES/SEASONS were
+  // copy-pasted into both edit screens and neither copy matched the tagger, so
+  // the AI could write a material the user could not choose back.
+  for (const f of ["components/capture/confirm-form.tsx", "components/closet/item-detail.tsx"]) {
+    const src = readFileSync(f, "utf8");
+    expect(src, f).not.toMatch(/const\s+(MATERIALS|CATEGORIES|SEASONS|FORMALITY_LABEL)\s*[:=]/);
+  }
 });
