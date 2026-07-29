@@ -7,7 +7,15 @@ import { Chip } from "@/components/ui-fitcheck/chip";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import type { Tags } from "@/lib/ai/tagging-schema";
 
-import { CATEGORIES, SEASONS, FORMALITY_LABEL, MATERIALS } from "@/lib/closet/vocab";
+import { ColorPicker } from "./color-picker";
+import {
+  CATEGORIES,
+  SEASONS,
+  FORMALITY_LABEL,
+  MATERIALS,
+  TEXTURES,
+  PATTERNS,
+} from "@/lib/closet/vocab";
 
 // See the note in confirm-form.tsx — CATEGORIES carries Fragrance because it is
 // derived from TagSchema; the picker offers the wearable families.
@@ -21,6 +29,9 @@ export type DetailItem = {
   subcategory: string | null;
   colors: string[];
   material: string | null;
+  texture: string | null;
+  pattern: string | null;
+  price: number | null;
   formality: number | null;
   seasons: string[];
 };
@@ -41,6 +52,11 @@ export function ItemDetail({
   const [category, setCategory] = useState<Tags["category"]>(item.category);
   const [formality, setFormality] = useState(item.formality ?? 3);
   const [seasons, setSeasons] = useState<string[]>(item.seasons);
+  const [colors, setColors] = useState<string[]>(item.colors);
+  const [texture, setTexture] = useState(item.texture ?? "Flat");
+  const [pattern, setPattern] = useState(item.pattern ?? "solid");
+  const [subcategory, setSubcategory] = useState(item.subcategory ?? "");
+  const [price, setPrice] = useState(item.price?.toString() ?? "");
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -59,6 +75,13 @@ export function ItemDetail({
           // "Unknown" is not in the vocabulary — it was fabricated here and
           // would now fail validation. "Other" is the real escape hatch.
           material: material || "Other",
+          subcategory: subcategory || null,
+          colors,
+          texture,
+          pattern,
+          // An empty box means "not recorded", not zero — cost-per-wear must
+          // not divide by a price the user never gave.
+          price: price.trim() === "" ? null : Number(price),
           formality,
           seasons: seasons.length ? seasons : ["Spring"],
         });
@@ -172,9 +195,54 @@ export function ItemDetail({
         </div>
       </div>
 
-      {item.colors.length > 0 && (
-        <p className="text-xs text-muted-dim">Colours: {item.colors.join(" · ")}</p>
-      )}
+      <div>
+        <Kicker className="mb-2 block">Subcategory</Kicker>
+        <input
+          aria-label="Subcategory"
+          value={subcategory}
+          onChange={(e) => setSubcategory(e.target.value)}
+          className="w-full rounded-[12px] border border-[--input] bg-surface-1 px-4 py-3 text-sm text-foreground outline-none focus:border-brand"
+        />
+      </div>
+
+      <div>
+        <Kicker className="mb-2 block">Colour</Kicker>
+        <ColorPicker value={colors} onChange={setColors} />
+      </div>
+
+      <div>
+        <Kicker className="mb-2 block">Texture</Kicker>
+        <div className="flex flex-wrap gap-2">
+          {TEXTURES.map((t) => (
+            <Chip key={t} variant="select" active={texture === t} onClick={() => setTexture(t)}>
+              {t}
+            </Chip>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <Kicker className="mb-2 block">Pattern</Kicker>
+        <div className="flex flex-wrap gap-2">
+          {PATTERNS.map((p) => (
+            <Chip key={p} variant="select" active={pattern === p} onClick={() => setPattern(p)}>
+              {p}
+            </Chip>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <Kicker className="mb-2 block">Price paid</Kicker>
+        <input
+          aria-label="Price paid"
+          inputMode="decimal"
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+          placeholder="Optional — enables cost per wear"
+          className="w-full rounded-[12px] border border-[--input] bg-surface-1 px-4 py-3 text-sm text-foreground outline-none focus:border-brand"
+        />
+      </div>
       {error && <p className="text-sm text-brand">{error}</p>}
 
       <div className="flex-1" />

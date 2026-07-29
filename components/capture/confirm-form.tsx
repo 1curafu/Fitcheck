@@ -5,7 +5,15 @@ import { Kicker } from "@/components/ui-fitcheck/kicker";
 import type { Draft } from "./use-capture";
 import type { Tags } from "@/lib/ai/tagging-schema";
 
-import { CATEGORIES, SEASONS, FORMALITY_LABEL, MATERIALS } from "@/lib/closet/vocab";
+import { ColorPicker } from "@/components/closet/color-picker";
+import {
+  CATEGORIES,
+  SEASONS,
+  FORMALITY_LABEL,
+  MATERIALS,
+  TEXTURES,
+  PATTERNS,
+} from "@/lib/closet/vocab";
 
 // CATEGORIES is derived from TagSchema, so it includes Fragrance. A fragrance
 // is never captured through this flow (and D11 keeps it out of outfits), so the
@@ -49,6 +57,58 @@ export function ConfirmForm({
         placeholder="Brand (optional)"
         className="-mt-2 rounded-[12px] border border-[--input] bg-surface-1 px-4 py-3 text-sm text-foreground outline-none focus:border-brand"
       />
+
+      <div>
+        <Kicker className="mb-1 block text-brand">AI detected</Kicker>
+        <p className="font-serif text-2xl text-foreground">{draft.tags.subcategory}</p>
+      </div>
+
+      <div>
+        <Kicker className="mb-2 block">Subcategory</Kicker>
+        <input
+          aria-label="Subcategory"
+          value={draft.tags.subcategory}
+          onChange={(e) => onTags({ subcategory: e.target.value })}
+          className="w-full rounded-[12px] border border-[--input] bg-surface-1 px-4 py-3 text-sm text-foreground outline-none focus:border-brand"
+        />
+      </div>
+
+      <div>
+        <Kicker className="mb-2 block">Colour</Kicker>
+        <ColorPicker value={draft.tags.colors} onChange={(colors) => onTags({ colors })} />
+      </div>
+
+      <div>
+        <Kicker className="mb-2 block">Texture</Kicker>
+        <div className="flex flex-wrap gap-2">
+          {TEXTURES.map((t) => (
+            <Chip
+              key={t}
+              variant="select"
+              active={draft.tags.texture === t}
+              onClick={() => onTags({ texture: t })}
+            >
+              {t}
+            </Chip>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <Kicker className="mb-2 block">Pattern</Kicker>
+        <div className="flex flex-wrap gap-2">
+          {PATTERNS.map((p) => (
+            <Chip
+              key={p}
+              variant="select"
+              active={draft.tags.pattern === p}
+              onClick={() => onTags({ pattern: p })}
+            >
+              {p}
+            </Chip>
+          ))}
+        </div>
+      </div>
 
       <div>
         <Kicker className="mb-2 block">Category</Kicker>
