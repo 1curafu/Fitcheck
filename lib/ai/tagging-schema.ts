@@ -1,5 +1,76 @@
 import { z } from "zod";
 
+// MATERIALS and TEXTURES are defined HERE rather than imported from
+// lib/closet/vocab.ts: vocab derives CATEGORIES/SEASONS from this schema, so
+// importing back would be a cycle. `vocab.ts` re-exports these two, and remains
+// the module every UI surface reads from.
+
+/**
+ * What the garment is made of.
+ *
+ * `Merino wool` is listed separately from `Wool` on purpose: they behave
+ * differently in heat, and one undifferentiated "wool" is exactly the
+ * conflation that makes warmth rules wrong. Warmth is decided by fibre AND
+ * construction — see TEXTURES.
+ */
+export const MATERIALS = [
+  "Cotton",
+  "Wool",
+  "Merino wool",
+  "Cashmere",
+  "Linen",
+  "Silk",
+  "Denim",
+  "Leather",
+  "Suede",
+  "Faux leather",
+  "Canvas",
+  "Corduroy",
+  "Tweed",
+  "Fleece",
+  "Shearling",
+  "Down",
+  "Polyester",
+  "Acrylic",
+  "Nylon",
+  "Viscose",
+  "Modal",
+  "Lyocell",
+  "Stainless steel",
+  "Gold",
+  "Silver",
+  "Rubber",
+  "Other",
+] as const;
+
+/**
+ * How the fabric is built — knit structure and surface finish. A separate
+ * dimension from material: a ribbed merino knit and a flat merino shirt share a
+ * material and read completely differently, in both warmth and formality.
+ *
+ * `Other` is the escape hatch, and the one value deliberately shared with
+ * MATERIALS. Without it a required `z.enum` forces the model to mislabel rather
+ * than admit it cannot tell from a photo.
+ */
+export const TEXTURES = [
+  "Flat",
+  "Ribbed",
+  "Cable knit",
+  "Waffle",
+  "Chunky knit",
+  "Fine knit",
+  "Brushed",
+  "Fleece-back",
+  "Twill",
+  "Herringbone",
+  "Quilted",
+  "Pile",
+  "Open knit",
+  "Terry",
+  "Seersucker",
+  "Other",
+] as const;
+
 // Categories + seasons match the prototype (Title case) so tags line up with
 // the closet filters and the generator.
 export const TagSchema = z.object({
@@ -7,7 +78,8 @@ export const TagSchema = z.object({
   subcategory: z.string().min(1),
   colors: z.array(z.string()).min(1).max(3),
   pattern: z.enum(["solid", "striped", "check", "print", "other"]),
-  material: z.string().min(1),
+  material: z.enum(MATERIALS),
+  texture: z.enum(TEXTURES),
   formality: z.number().int().min(1).max(5),
   seasons: z.array(z.enum(["Spring", "Summer", "Autumn", "Winter"])).min(1),
 });

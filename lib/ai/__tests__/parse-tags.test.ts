@@ -5,7 +5,8 @@ const valid = JSON.stringify({
   subcategory: "chinos",
   colors: ["beige"],
   pattern: "solid",
-  material: "cotton",
+  material: "Cotton",
+  texture: "Twill",
   formality: 3,
   seasons: ["Spring"],
 });
@@ -31,6 +32,8 @@ test("tagsToItemRow merges tags with ids + urls", () => {
     cutout_url: "b.png",
     category: "Bottoms",
     colors: ["beige"],
+    material: "Cotton",
+    texture: "Twill",
     formality: 3,
   });
 });

@@ -5,15 +5,22 @@ import { useRouter } from "next/navigation";
 import { updateItem, archiveItem } from "@/app/closet/[itemId]/actions";
 import { Chip } from "@/components/ui-fitcheck/chip";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
+import { Select } from "@/components/ui-fitcheck/select";
 import type { Tags } from "@/lib/ai/tagging-schema";
 
-const CATEGORIES: Tags["category"][] = ["Tops", "Bottoms", "Outerwear", "Shoes", "Accessories"];
-const SEASONS: Tags["seasons"][number][] = ["Spring", "Summer", "Autumn", "Winter"];
-const FORMALITY_LABEL = ["", "Very casual", "Casual", "Smart casual", "Business", "Formal"];
-const MATERIALS = [
-  "Cotton", "Wool", "Linen", "Denim", "Leather", "Suede", "Cashmere", "Silk",
-  "Polyester", "Nylon", "Stainless steel", "Gold", "Silver", "Canvas",
-];
+import { ColorPicker } from "./color-picker";
+import {
+  CATEGORIES,
+  SEASONS,
+  FORMALITY_LABEL,
+  MATERIALS,
+  TEXTURES,
+  PATTERNS,
+} from "@/lib/closet/vocab";
+
+// See the note in confirm-form.tsx — CATEGORIES carries Fragrance because it is
+// derived from TagSchema; the picker offers the wearable families.
+const PICKABLE = CATEGORIES.filter((c) => c !== "Fragrance");
 
 export type DetailItem = {
   id: string;
@@ -23,6 +30,9 @@ export type DetailItem = {
   subcategory: string | null;
   colors: string[];
   material: string | null;
+  texture: string | null;
+  pattern: string | null;
+  price: number | null;
   formality: number | null;
   seasons: string[];
 };
@@ -43,6 +53,11 @@ export function ItemDetail({
   const [category, setCategory] = useState<Tags["category"]>(item.category);
   const [formality, setFormality] = useState(item.formality ?? 3);
   const [seasons, setSeasons] = useState<string[]>(item.seasons);
+  const [colors, setColors] = useState<string[]>(item.colors);
+  const [texture, setTexture] = useState(item.texture ?? "Flat");
+  const [pattern, setPattern] = useState(item.pattern ?? "solid");
+  const [subcategory, setSubcategory] = useState(item.subcategory ?? "");
+  const [price, setPrice] = useState(item.price?.toString() ?? "");
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -58,7 +73,16 @@ export function ItemDetail({
           name: name || null,
           brand: brand || null,
           category,
-          material: material || "Unknown",
+          // "Unknown" is not in the vocabulary — it was fabricated here and
+          // would now fail validation. "Other" is the real escape hatch.
+          material: material || "Other",
+          subcategory: subcategory || null,
+          colors,
+          texture,
+          pattern,
+          // An empty box means "not recorded", not zero — cost-per-wear must
+          // not divide by a price the user never gave.
+          price: price.trim() === "" ? null : Number(price),
           formality,
           seasons: seasons.length ? seasons : ["Spring"],
         });
@@ -91,10 +115,22 @@ export function ItemDetail({
         ‹
       </button>
 
-      <div className="grid aspect-[1.3] place-items-center rounded-[18px] bg-surface-1 shadow-[inset_0_0_0_1px_rgba(237,230,216,0.07)]">
+      {/* `.surface-stage` is the design's cutout stage (Fitcheck.dc.html:595 /
+          :530) — a radial gradient lit from above, not a flat fill.
+          The image is ABSOLUTELY positioned, not a grid item: as a grid
+          item its `min-height:auto` forced the row past the 1.3 aspect ratio,
+          and `max-h-full` could not save it because a percentage against an
+          auto-sized row is indefinite and resolves to `none` — so a 970x1280
+          cutout spilled over the fields below. Absolute + inset-0 gives
+          object-contain a definite box to fit inside. */}
+      <div className="relative aspect-[1.3] overflow-hidden rounded-[18px] surface-stage">
         {imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={imageUrl} alt={name} className="size-full object-contain p-6" />
+          <img
+            src={imageUrl}
+            alt={name}
+            className="absolute inset-0 size-full object-contain p-6"
+          />
         ) : null}
       </div>
 
@@ -121,7 +157,7 @@ export function ItemDetail({
       <div>
         <Kicker className="mb-2 block">Category</Kicker>
         <div className="flex flex-wrap gap-2">
-          {CATEGORIES.map((c) => (
+          {PICKABLE.map((c) => (
             <Chip key={c} variant="select" active={category === c} onClick={() => setCategory(c)}>
               {c}
             </Chip>
@@ -131,18 +167,19 @@ export function ItemDetail({
 
       <div>
         <Kicker className="mb-2 block">Material</Kicker>
-        <input
-          list="material-suggestions"
+        {/* A select, not free text and not chips: `material` is a constrained
+            enum, and 27 chips ran to eight rows on a phone. */}
+        <Select
+          aria-label="Material"
           value={material}
           onChange={(e) => setMaterial(e.target.value)}
-          placeholder="e.g. Stainless steel, Wool, Leather"
-          className="w-full rounded-[12px] border border-[--input] bg-surface-1 px-4 py-3 text-sm text-foreground outline-none focus:border-brand"
-        />
-        <datalist id="material-suggestions">
+        >
           {MATERIALS.map((m) => (
-            <option key={m} value={m} />
+            <option key={m} value={m}>
+              {m}
+            </option>
           ))}
-        </datalist>
+        </Select>
       </div>
 
       <div>
@@ -170,9 +207,62 @@ export function ItemDetail({
         </div>
       </div>
 
-      {item.colors.length > 0 && (
-        <p className="text-xs text-muted-dim">Colours: {item.colors.join(" · ")}</p>
-      )}
+      <div>
+        <Kicker className="mb-2 block">Subcategory</Kicker>
+        <input
+          aria-label="Subcategory"
+          value={subcategory}
+          onChange={(e) => setSubcategory(e.target.value)}
+          className="w-full rounded-[12px] border border-[--input] bg-surface-1 px-4 py-3 text-sm text-foreground outline-none focus:border-brand"
+        />
+      </div>
+
+      <div>
+        <Kicker className="mb-2 block">Colour</Kicker>
+        <ColorPicker value={colors} onChange={setColors} />
+      </div>
+
+      <div>
+        <Kicker className="mb-2 block">Texture</Kicker>
+        <Select
+          aria-label="Texture"
+          value={texture}
+          onChange={(e) => setTexture(e.target.value)}
+        >
+          {TEXTURES.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </Select>
+      </div>
+
+      <div>
+        <Kicker className="mb-2 block">Pattern</Kicker>
+        <Select
+          aria-label="Pattern"
+          value={pattern}
+          onChange={(e) => setPattern(e.target.value)}
+        >
+          {PATTERNS.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </Select>
+      </div>
+
+      <div>
+        <Kicker className="mb-2 block">Price paid</Kicker>
+        <input
+          aria-label="Price paid"
+          inputMode="decimal"
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+          placeholder="Optional — enables cost per wear"
+          className="w-full rounded-[12px] border border-[--input] bg-surface-1 px-4 py-3 text-sm text-foreground outline-none focus:border-brand"
+        />
+      </div>
       {error && <p className="text-sm text-brand">{error}</p>}
 
       <div className="flex-1" />

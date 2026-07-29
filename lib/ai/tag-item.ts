@@ -21,9 +21,15 @@ subcategory — the specific type, in menswear vocabulary (e.g. "Oxford shirt", 
 colors — the 1-3 dominant colours, most-dominant first, common names (navy, charcoal, cream, \
 tan, olive, burgundy). Ignore small logos and hardware.
 pattern — one of: solid, striped, check, print, other.
-material — the main material visible from its texture: e.g. cotton, wool, linen, denim, \
-leather, suede, canvas, knit, metal. For shoes/accessories name the dominant material \
-(leather, suede, canvas, metal). If uncertain, give the most likely — never leave it blank.
+material — the main material, from this list ONLY: Cotton, Wool, Merino wool, Cashmere, Linen, \
+Silk, Denim, Leather, Suede, Faux leather, Canvas, Corduroy, Tweed, Fleece, Shearling, Down, \
+Polyester, Acrylic, Nylon, Viscose, Modal, Lyocell, Stainless steel, Gold, Silver, Rubber, Other. \
+For a blend, name the DOMINANT fibre. Pick the closest; use Other only if none fit.
+texture — how the fabric is BUILT, from this list ONLY: Flat, Ribbed, Cable knit, Waffle, \
+Chunky knit, Fine knit, Brushed, Fleece-back, Twill, Herringbone, Quilted, Pile, Open knit, Terry, \
+Seersucker, Other. This is separate from material: a ribbed merino knit and a flat merino shirt \
+share a material but wear very differently. Use Flat for smooth woven cloth with no visible \
+structure, and Other only if none fit.
 formality — 1 very casual (tees, sneakers, hoodies) up to 5 formal (suits, dress shoes, silk \
 ties). 3 is smart-casual: chinos, oxford shirts, loafers, clean minimal sneakers.
 seasons — every season the item genuinely suits (wool coat → Autumn, Winter; linen shirt → \

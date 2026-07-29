@@ -1,19 +1,9 @@
 "use server";
 
-import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { TagSchema } from "@/lib/ai/tagging-schema";
-
-const UpdateSchema = z.object({
-  name: z.string().nullable(),
-  brand: z.string().nullable(),
-  category: TagSchema.shape.category,
-  material: TagSchema.shape.material,
-  formality: TagSchema.shape.formality,
-  seasons: TagSchema.shape.seasons,
-});
+import { UpdateSchema } from "@/lib/closet/update-schema";
 
 export async function updateItem(itemId: string, input: unknown) {
   const data = UpdateSchema.parse(input);
@@ -25,7 +15,12 @@ export async function updateItem(itemId: string, input: unknown) {
       name: data.name,
       brand: data.brand,
       category: data.category,
+      subcategory: data.subcategory,
+      colors: data.colors,
+      pattern: data.pattern,
       material: data.material,
+      texture: data.texture,
+      price: data.price,
       formality: data.formality,
       seasons: data.seasons,
     })
