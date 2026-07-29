@@ -17,7 +17,10 @@ export function ItemCard({
   return (
     <Link href={`/closet/${id}`} className="mb-3 block break-inside-avoid">
       <Surface className="overflow-hidden">
-        <div style={{ height }} className="bg-surface-2">
+        {/* No fill of its own — the cutout floats on the card's gradient, as in
+            the design (Fitcheck.dc.html:181, where this div carries only the
+            image). A flat panel here covered most of that gradient. */}
+        <div style={{ height }}>
           {imageUrl ? (
             // Not next/image on purpose: `imageUrl` is a short-lived signed
             // Supabase URL, and the optimizer caches by URL — a rotating
@@ -40,7 +43,10 @@ export function ItemCard({
               {brand}
             </p>
           )}
-          <p className="font-serif text-[15px] text-foreground">{name}</p>
+          {/* --color-value (#cfc8ba), the middle of the cream ramp. The design
+              gives every label/value pair's VALUE this step; at --foreground it
+              read too loud against the brand kicker above it. */}
+          <p className="font-serif text-[15px] text-value">{name}</p>
         </div>
       </Surface>
     </Link>
