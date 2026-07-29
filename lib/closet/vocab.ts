@@ -1,4 +1,8 @@
-import { TagSchema } from "@/lib/ai/tagging-schema";
+import {
+  TagSchema,
+  MATERIALS as AI_MATERIALS,
+  TEXTURES as AI_TEXTURES,
+} from "@/lib/ai/tagging-schema";
 
 /**
  * The single source for every closet vocabulary.
@@ -23,71 +27,14 @@ export const FORMALITY_LABEL = [
 ] as const;
 
 /**
- * What the garment is made of.
- *
- * `Merino wool` is listed separately from `Wool` on purpose: they behave
- * differently in heat, and a single "wool" entry is exactly the conflation that
- * makes warmth rules wrong. Warmth is decided by fibre AND construction — see
- * TEXTURES below and `item-signals-in-generator` (queue #12).
+ * Materials and textures are DEFINED in `lib/ai/tagging-schema.ts` and
+ * re-exported here, not the other way round: this module derives CATEGORIES and
+ * SEASONS from `TagSchema`, so importing vocab from the schema would be a
+ * cycle. Every UI surface still reads them from here, so there is one import
+ * path for the whole closet vocabulary.
  */
-export const MATERIALS = [
-  "Cotton",
-  "Wool",
-  "Merino wool",
-  "Cashmere",
-  "Linen",
-  "Silk",
-  "Denim",
-  "Leather",
-  "Suede",
-  "Faux leather",
-  "Canvas",
-  "Corduroy",
-  "Tweed",
-  "Fleece",
-  "Shearling",
-  "Down",
-  "Polyester",
-  "Acrylic",
-  "Nylon",
-  "Viscose",
-  "Modal",
-  "Lyocell",
-  "Stainless steel",
-  "Gold",
-  "Silver",
-  "Rubber",
-  "Other",
-] as const;
-
-/**
- * How the fabric is built — knit structure and surface finish. This is a
- * SEPARATE dimension from material: a ribbed merino knit and a flat merino
- * shirt are the same material and read completely differently, both in warmth
- * and in formality. There was no field for it, so that information was lost.
- *
- * `Other` is the escape hatch. Without one, a required `z.enum` forces the
- * tagger to mislabel rather than admit it cannot tell from a photo — it is the
- * one value deliberately shared with MATERIALS.
- */
-export const TEXTURES = [
-  "Flat",
-  "Ribbed",
-  "Cable knit",
-  "Waffle",
-  "Chunky knit",
-  "Fine knit",
-  "Brushed",
-  "Fleece-back",
-  "Twill",
-  "Herringbone",
-  "Quilted",
-  "Pile",
-  "Open knit",
-  "Terry",
-  "Seersucker",
-  "Other",
-] as const;
+export const MATERIALS = AI_MATERIALS;
+export const TEXTURES = AI_TEXTURES;
 
 export const PATTERNS = ["solid", "striped", "check", "print", "other"] as const;
 

@@ -5,13 +5,13 @@ import { Kicker } from "@/components/ui-fitcheck/kicker";
 import type { Draft } from "./use-capture";
 import type { Tags } from "@/lib/ai/tagging-schema";
 
-const CATEGORIES: Tags["category"][] = ["Tops", "Bottoms", "Outerwear", "Shoes", "Accessories"];
-const SEASONS: Tags["seasons"][number][] = ["Spring", "Summer", "Autumn", "Winter"];
-const FORMALITY_LABEL = ["", "Very casual", "Casual", "Smart casual", "Business", "Formal"];
-const MATERIALS = [
-  "Cotton", "Wool", "Linen", "Denim", "Leather", "Suede", "Cashmere", "Silk",
-  "Polyester", "Nylon", "Stainless steel", "Gold", "Silver", "Canvas",
-];
+import { CATEGORIES, SEASONS, FORMALITY_LABEL, MATERIALS } from "@/lib/closet/vocab";
+
+// CATEGORIES is derived from TagSchema, so it includes Fragrance. A fragrance
+// is never captured through this flow (and D11 keeps it out of outfits), so the
+// picker offers the five wearable families — while the vocabulary itself stays
+// the single source.
+const PICKABLE = CATEGORIES.filter((c) => c !== "Fragrance");
 
 export function ConfirmForm({
   draft,
@@ -53,7 +53,7 @@ export function ConfirmForm({
       <div>
         <Kicker className="mb-2 block">Category</Kicker>
         <div className="flex flex-wrap gap-2">
-          {CATEGORIES.map((c) => (
+          {PICKABLE.map((c) => (
             <Chip
               key={c}
               variant="select"
@@ -68,18 +68,21 @@ export function ConfirmForm({
 
       <div>
         <Kicker className="mb-2 block">Material</Kicker>
-        <input
-          list="cap-materials"
-          value={draft.tags.material}
-          onChange={(e) => onTags({ material: e.target.value })}
-          placeholder="e.g. Stainless steel, Wool, Leather"
-          className="w-full rounded-[12px] border border-[--input] bg-surface-1 px-4 py-3 text-sm text-foreground outline-none focus:border-brand"
-        />
-        <datalist id="cap-materials">
+        {/* A chip row, not a free-text input: `material` is a constrained enum
+            now, so anything typed outside the vocabulary would fail
+            TagSchema.parse at save time — after the user had already typed it. */}
+        <div className="flex flex-wrap gap-2">
           {MATERIALS.map((m) => (
-            <option key={m} value={m} />
+            <Chip
+              key={m}
+              variant="select"
+              active={draft.tags.material === m}
+              onClick={() => onTags({ material: m })}
+            >
+              {m}
+            </Chip>
           ))}
-        </datalist>
+        </div>
       </div>
 
       <div>

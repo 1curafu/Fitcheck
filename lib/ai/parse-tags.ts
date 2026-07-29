@@ -26,6 +26,7 @@ export function tagsToItemRow(args: {
     colors: tags.colors,
     pattern: tags.pattern,
     material: tags.material,
+    texture: tags.texture,
     formality: tags.formality,
     seasons: tags.seasons,
   };
