@@ -1,0 +1,126 @@
+import { TagSchema } from "@/lib/ai/tagging-schema";
+
+/**
+ * The single source for every closet vocabulary.
+ *
+ * These lists were previously copy-pasted into confirm-form.tsx and
+ * item-detail.tsx, and neither copy matched what the tagger was told to emit —
+ * so the AI could write a material the edit screen could not offer back.
+ * Categories and seasons are DERIVED from TagSchema so drift is impossible;
+ * the rest are defined here and consumed by the schema.
+ */
+
+export const CATEGORIES = TagSchema.shape.category.options;
+export const SEASONS = TagSchema.shape.seasons.element.options;
+
+export const FORMALITY_LABEL = [
+  "",
+  "Very casual",
+  "Casual",
+  "Smart casual",
+  "Business",
+  "Formal",
+] as const;
+
+/**
+ * What the garment is made of.
+ *
+ * `Merino wool` is listed separately from `Wool` on purpose: they behave
+ * differently in heat, and a single "wool" entry is exactly the conflation that
+ * makes warmth rules wrong. Warmth is decided by fibre AND construction — see
+ * TEXTURES below and `item-signals-in-generator` (queue #12).
+ */
+export const MATERIALS = [
+  "Cotton",
+  "Wool",
+  "Merino wool",
+  "Cashmere",
+  "Linen",
+  "Silk",
+  "Denim",
+  "Leather",
+  "Suede",
+  "Faux leather",
+  "Canvas",
+  "Corduroy",
+  "Tweed",
+  "Fleece",
+  "Shearling",
+  "Down",
+  "Polyester",
+  "Acrylic",
+  "Nylon",
+  "Viscose",
+  "Modal",
+  "Lyocell",
+  "Stainless steel",
+  "Gold",
+  "Silver",
+  "Rubber",
+  "Other",
+] as const;
+
+/**
+ * How the fabric is built — knit structure and surface finish. This is a
+ * SEPARATE dimension from material: a ribbed merino knit and a flat merino
+ * shirt are the same material and read completely differently, both in warmth
+ * and in formality. There was no field for it, so that information was lost.
+ *
+ * `Other` is the escape hatch. Without one, a required `z.enum` forces the
+ * tagger to mislabel rather than admit it cannot tell from a photo — it is the
+ * one value deliberately shared with MATERIALS.
+ */
+export const TEXTURES = [
+  "Flat",
+  "Ribbed",
+  "Cable knit",
+  "Waffle",
+  "Chunky knit",
+  "Fine knit",
+  "Brushed",
+  "Fleece-back",
+  "Twill",
+  "Herringbone",
+  "Quilted",
+  "Pile",
+  "Open knit",
+  "Terry",
+  "Seersucker",
+  "Other",
+] as const;
+
+export const PATTERNS = ["solid", "striped", "check", "print", "other"] as const;
+
+/**
+ * The palette the swatch picker offers. Names match what the tagger emits and
+ * what `lib/generator/color.ts` groups into families — a colour the generator
+ * cannot place is a colour that silently scores nothing.
+ */
+export const COLORS = [
+  { name: "black", hex: "#141414" },
+  { name: "charcoal", hex: "#36353a" },
+  { name: "grey", hex: "#8a8a8f" },
+  { name: "white", hex: "#f4f1ea" },
+  { name: "cream", hex: "#ece3d2" },
+  { name: "stone", hex: "#cabfae" },
+  { name: "beige", hex: "#d5c4a8" },
+  { name: "camel", hex: "#b08d57" },
+  { name: "tan", hex: "#a9784f" },
+  { name: "brown", hex: "#6b4b32" },
+  { name: "rust", hex: "#b86a47" },
+  { name: "burgundy", hex: "#5e2733" },
+  { name: "olive", hex: "#5e7256" },
+  { name: "green", hex: "#3f6b4a" },
+  { name: "navy", hex: "#242f45" },
+  { name: "blue", hex: "#3d5a80" },
+  { name: "denim", hex: "#5a7896" },
+  { name: "pink", hex: "#d0a0a0" },
+  { name: "yellow", hex: "#d6b756" },
+  { name: "silver", hex: "#c0c0c8" },
+  { name: "gold", hex: "#c9a227" },
+] as const;
+
+export function colorHex(name: string): string | undefined {
+  const n = name.toLowerCase();
+  return COLORS.find((c) => c.name === n)?.hex;
+}
