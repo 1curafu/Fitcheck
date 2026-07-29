@@ -2,6 +2,7 @@
 
 import { Chip } from "@/components/ui-fitcheck/chip";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
+import { Select } from "@/components/ui-fitcheck/select";
 import type { Draft } from "./use-capture";
 import type { Tags } from "@/lib/ai/tagging-schema";
 
@@ -40,9 +41,17 @@ export function ConfirmForm({
 }) {
   return (
     <div className="flex flex-1 flex-col gap-5">
-      <div className="grid aspect-[1.3] place-items-center rounded-[18px] bg-surface-1 shadow-[inset_0_0_0_1px_rgba(237,230,216,0.07)]">
+      {/* `.surface-stage` is the design's cutout stage (Fitcheck.dc.html:595 /
+          :530) — a radial gradient lit from above, not a flat fill.
+          The image is ABSOLUTELY positioned, not a grid item: as a grid
+          item its `min-height:auto` forced the row past the 1.3 aspect ratio,
+          and `max-h-full` could not save it because a percentage against an
+          auto-sized row is indefinite and resolves to `none` — so a 970x1280
+          cutout spilled over the fields below. Absolute + inset-0 gives
+          object-contain a definite box to fit inside. */}
+      <div className="relative aspect-[1.3] overflow-hidden rounded-[18px] surface-stage">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={draft.cutoutUrl} alt="" className="size-full object-contain p-6" />
+        <img src={draft.cutoutUrl} alt="" className="absolute inset-0 size-full object-contain p-6" />
       </div>
 
       <input
@@ -80,34 +89,32 @@ export function ConfirmForm({
 
       <div>
         <Kicker className="mb-2 block">Texture</Kicker>
-        <div className="flex flex-wrap gap-2">
+        <Select
+          aria-label="Texture"
+          value={draft.tags.texture}
+          onChange={(e) => onTags({ texture: e.target.value as Tags["texture"] })}
+        >
           {TEXTURES.map((t) => (
-            <Chip
-              key={t}
-              variant="select"
-              active={draft.tags.texture === t}
-              onClick={() => onTags({ texture: t })}
-            >
+            <option key={t} value={t}>
               {t}
-            </Chip>
+            </option>
           ))}
-        </div>
+        </Select>
       </div>
 
       <div>
         <Kicker className="mb-2 block">Pattern</Kicker>
-        <div className="flex flex-wrap gap-2">
+        <Select
+          aria-label="Pattern"
+          value={draft.tags.pattern}
+          onChange={(e) => onTags({ pattern: e.target.value as Tags["pattern"] })}
+        >
           {PATTERNS.map((p) => (
-            <Chip
-              key={p}
-              variant="select"
-              active={draft.tags.pattern === p}
-              onClick={() => onTags({ pattern: p })}
-            >
+            <option key={p} value={p}>
               {p}
-            </Chip>
+            </option>
           ))}
-        </div>
+        </Select>
       </div>
 
       <div>
@@ -128,21 +135,20 @@ export function ConfirmForm({
 
       <div>
         <Kicker className="mb-2 block">Material</Kicker>
-        {/* A chip row, not a free-text input: `material` is a constrained enum
-            now, so anything typed outside the vocabulary would fail
-            TagSchema.parse at save time — after the user had already typed it. */}
-        <div className="flex flex-wrap gap-2">
+        {/* A select, not free text and not chips: `material` is a constrained
+            enum, so typed input would fail TagSchema.parse at save time — and
+            27 chips ran to eight rows on a phone. */}
+        <Select
+          aria-label="Material"
+          value={draft.tags.material}
+          onChange={(e) => onTags({ material: e.target.value as Tags["material"] })}
+        >
           {MATERIALS.map((m) => (
-            <Chip
-              key={m}
-              variant="select"
-              active={draft.tags.material === m}
-              onClick={() => onTags({ material: m })}
-            >
+            <option key={m} value={m}>
               {m}
-            </Chip>
+            </option>
           ))}
-        </div>
+        </Select>
       </div>
 
       <div>

@@ -61,7 +61,10 @@ test("the confirm screen exposes every AI tag for correction", () => {
 test("correcting a colour reaches the tag patch", async () => {
   const onTags = vi.fn();
   renderConfirm({ onTags });
-  await userEvent.click(screen.getByRole("button", { name: /navy/i }));
+  // The palette collapses once a colour is set (the fixture has one), so open
+  // it first — 21 swatches flat took three rows of a phone screen.
+  await userEvent.click(screen.getByRole("button", { name: /choose colours|hide colour palette/i }));
+  await userEvent.click(screen.getByRole("button", { name: "navy" }));
   expect(onTags).toHaveBeenCalledWith(
     expect.objectContaining({ colors: expect.arrayContaining(["navy"]) }),
   );
@@ -70,8 +73,17 @@ test("correcting a colour reaches the tag patch", async () => {
 test("correcting the texture reaches the tag patch", async () => {
   const onTags = vi.fn();
   renderConfirm({ onTags });
-  await userEvent.click(screen.getByRole("button", { name: "Cable knit" }));
+  // A select, not chips: MATERIALS (27) and TEXTURES (16) as chip rows filled
+  // most of a phone screen and pushed every other field out of reach.
+  await userEvent.selectOptions(screen.getByLabelText("Texture"), "Cable knit");
   expect(onTags).toHaveBeenCalledWith({ texture: "Cable knit" });
+});
+
+test("the long vocabularies are single-row selects, not chip walls", () => {
+  renderConfirm();
+  for (const label of ["Material", "Texture", "Pattern"]) {
+    expect(screen.getByLabelText(label).tagName).toBe("SELECT");
+  }
 });
 
 test("the AI-detected subcategory leads the screen, as the design specifies", () => {

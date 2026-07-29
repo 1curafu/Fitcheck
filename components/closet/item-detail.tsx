@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { updateItem, archiveItem } from "@/app/closet/[itemId]/actions";
 import { Chip } from "@/components/ui-fitcheck/chip";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
+import { Select } from "@/components/ui-fitcheck/select";
 import type { Tags } from "@/lib/ai/tagging-schema";
 
 import { ColorPicker } from "./color-picker";
@@ -114,10 +115,22 @@ export function ItemDetail({
         ‹
       </button>
 
-      <div className="grid aspect-[1.3] place-items-center rounded-[18px] bg-surface-1 shadow-[inset_0_0_0_1px_rgba(237,230,216,0.07)]">
+      {/* `.surface-stage` is the design's cutout stage (Fitcheck.dc.html:595 /
+          :530) — a radial gradient lit from above, not a flat fill.
+          The image is ABSOLUTELY positioned, not a grid item: as a grid
+          item its `min-height:auto` forced the row past the 1.3 aspect ratio,
+          and `max-h-full` could not save it because a percentage against an
+          auto-sized row is indefinite and resolves to `none` — so a 970x1280
+          cutout spilled over the fields below. Absolute + inset-0 gives
+          object-contain a definite box to fit inside. */}
+      <div className="relative aspect-[1.3] overflow-hidden rounded-[18px] surface-stage">
         {imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={imageUrl} alt={name} className="size-full object-contain p-6" />
+          <img
+            src={imageUrl}
+            alt={name}
+            className="absolute inset-0 size-full object-contain p-6"
+          />
         ) : null}
       </div>
 
@@ -154,20 +167,19 @@ export function ItemDetail({
 
       <div>
         <Kicker className="mb-2 block">Material</Kicker>
-        {/* A chip row, not free text: `material` is a constrained enum now, so
-            anything typed outside the vocabulary fails validation on save. */}
-        <div className="flex flex-wrap gap-2">
+        {/* A select, not free text and not chips: `material` is a constrained
+            enum, and 27 chips ran to eight rows on a phone. */}
+        <Select
+          aria-label="Material"
+          value={material}
+          onChange={(e) => setMaterial(e.target.value)}
+        >
           {MATERIALS.map((m) => (
-            <Chip
-              key={m}
-              variant="select"
-              active={material === m}
-              onClick={() => setMaterial(m)}
-            >
+            <option key={m} value={m}>
               {m}
-            </Chip>
+            </option>
           ))}
-        </div>
+        </Select>
       </div>
 
       <div>
@@ -212,24 +224,32 @@ export function ItemDetail({
 
       <div>
         <Kicker className="mb-2 block">Texture</Kicker>
-        <div className="flex flex-wrap gap-2">
+        <Select
+          aria-label="Texture"
+          value={texture}
+          onChange={(e) => setTexture(e.target.value)}
+        >
           {TEXTURES.map((t) => (
-            <Chip key={t} variant="select" active={texture === t} onClick={() => setTexture(t)}>
+            <option key={t} value={t}>
               {t}
-            </Chip>
+            </option>
           ))}
-        </div>
+        </Select>
       </div>
 
       <div>
         <Kicker className="mb-2 block">Pattern</Kicker>
-        <div className="flex flex-wrap gap-2">
+        <Select
+          aria-label="Pattern"
+          value={pattern}
+          onChange={(e) => setPattern(e.target.value)}
+        >
           {PATTERNS.map((p) => (
-            <Chip key={p} variant="select" active={pattern === p} onClick={() => setPattern(p)}>
+            <option key={p} value={p}>
               {p}
-            </Chip>
+            </option>
           ))}
-        </div>
+        </Select>
       </div>
 
       <div>
