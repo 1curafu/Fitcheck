@@ -11,8 +11,31 @@ test("renders all four tabs with correct hrefs", () => {
   expect(screen.getByRole("link", { name: /profile/i })).toHaveAttribute("href", "/profile");
 });
 
-test("marks the active tab with the brand colour", () => {
+// Design :1145 — `tabActive='#EDE6D8'` (--foreground) with weight 600,
+// `tabIdle='#5b5950'`. The active tab was rust, which is both off-design and a
+// second rust element on screens that already spend theirs (the capture FAB,
+// the "f" glyph in the why-quote). See DESIGN.md, the One Rust Rule.
+test("the active tab is the cream foreground at weight 600, not rust", () => {
   render(<MobileNav />);
-  expect(screen.getByRole("link", { name: /closet/i })).toHaveClass("text-brand");
-  expect(screen.getByRole("link", { name: /stylist/i })).not.toHaveClass("text-brand");
+  const active = screen.getByRole("link", { name: /closet/i });
+  expect(active).toHaveClass("text-foreground", "font-semibold");
+  expect(active).not.toHaveClass("text-brand");
+});
+
+test("inactive tabs recede", () => {
+  render(<MobileNav />);
+  const idle = screen.getByRole("link", { name: /stylist/i });
+  expect(idle).toHaveClass("text-muted-dim");
+  expect(idle).not.toHaveClass("text-foreground");
+});
+
+test("the nav is a floating pill, not a full-width bar", () => {
+  const { container } = render(<MobileNav />);
+  const nav = container.querySelector("nav")!;
+  // Design :825-826 — the outer element is a transparent gradient fade; the
+  // pill is the inner slab. A top border means we reverted to the flat bar.
+  expect(nav.className).not.toMatch(/border-t/);
+  const pill = nav.querySelector("div");
+  expect(pill?.className).toMatch(/rounded-\[22px\]/);
+  expect(pill?.className).toMatch(/backdrop-blur/);
 });
