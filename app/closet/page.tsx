@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Camera } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { signItemImages, displayPath } from "@/lib/storage/signed";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
@@ -37,13 +37,6 @@ export default async function ClosetPage() {
             <Kicker>{grid.length} Pieces</Kicker>
             <h1 className="font-serif text-3xl text-foreground">The Closet</h1>
           </div>
-          <Link
-            href="/closet/upload"
-            aria-label="Add a piece"
-            className="grid size-11 place-items-center rounded-full bg-foreground text-canvas"
-          >
-            <Plus size={20} />
-          </Link>
         </header>
 
         {grid.length === 0 ? (
@@ -60,6 +53,19 @@ export default async function ClosetPage() {
           <ClosetGrid items={grid} />
         )}
       </main>
+      {/* Design :192-194 — capture is the closet's primary action, so it gets
+          the most prominent element on the screen: a 60px rust circle floating
+          clear of the tab pill. It used to be the LEAST prominent thing here, a
+          small cream `+` in the header. The camera glyph also says *how* a piece
+          gets added. This is the screen's one rust element (DESIGN.md, the One
+          Rust Rule) — which is why the nav's active tab is cream, not rust. */}
+      <Link
+        href="/closet/upload"
+        aria-label="Add a piece"
+        className="fixed bottom-[108px] right-[22px] z-[85] grid size-[60px] place-items-center rounded-full bg-brand text-[#1a0f09] shadow-[0_12px_28px_rgba(184,106,71,0.35),inset_0_1px_0_rgba(255,255,255,0.18)]"
+      >
+        <Camera size={26} strokeWidth={1.8} />
+      </Link>
       <MobileNav />
     </div>
   );
