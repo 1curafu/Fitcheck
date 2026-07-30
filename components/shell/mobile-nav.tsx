@@ -20,13 +20,14 @@ export function MobileNav() {
     // Design :825-826 — a floating PILL, not a full-width bar. The outer
     // element is only a gradient fade to the canvas; the pill is the inner slab,
     // inset from the screen edges and lifted clear of the home indicator.
-    // The space below the pill is home-indicator clearance, not slack — it only
-    // reads as dead space in Safari, where the browser toolbar occupies that
-    // band instead. `env(safe-area-inset-bottom)` is 0 in the browser (so 26px
-    // holds) and 34px on an iPhone in standalone, where the indicator actually
-    // is; the layout already sets `viewportFit: "cover"`, which is what makes
-    // the variable available at all.
-    <nav className="sticky bottom-0 z-50 bg-gradient-to-t from-canvas from-72% to-transparent px-4 pb-[max(26px,env(safe-area-inset-bottom))] pt-[10px]">
+    // ADDITIVE, not `max(26px, …)`. The gap below the pill exists to clear the
+    // home indicator, which only exists in the installed PWA — a floor of 26px
+    // meant 26px of measured dead space in a browser tab, where the toolbar
+    // already occupies that band and `env(safe-area-inset-bottom)` is 0.
+    // Now: 12px in the browser, 46px on an iPhone in standalone (34 + 12), so
+    // the pill sits just clear of the indicator either way. `viewportFit:
+    // "cover"` in app/layout.tsx is what makes the variable resolve at all.
+    <nav className="sticky bottom-0 z-50 bg-gradient-to-t from-canvas from-72% to-transparent px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-[10px]">
       <div className="flex items-center justify-around rounded-[22px] bg-[rgba(24,23,26,0.82)] px-2 py-[11px] shadow-[inset_0_0_0_1px_var(--hairline-5),0_10px_30px_rgba(0,0,0,0.4)] backdrop-blur-[18px] backdrop-saturate-150">
         {TABS.map(({ href, label, Icon }) => {
           const active = pathname.startsWith(href);

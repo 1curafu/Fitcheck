@@ -11,7 +11,7 @@ export default async function Welcome() {
   if (user) redirect("/onboarding");
 
   return (
-    <main className="flex flex-1 flex-col justify-between px-7 pb-10 pt-20">
+    <main className="screen-top flex flex-1 flex-col justify-between px-7 pb-10">
       <div className="flex flex-1 flex-col items-center justify-center text-center">
         <p className="mb-[22px] text-[13px] uppercase tracking-[0.34em] text-brand">
           Your AI Stylist

@@ -106,7 +106,7 @@ export function ItemDetail({
   }
 
   return (
-    <main className="flex flex-1 flex-col gap-5 px-6 pb-7 pt-12">
+    <main className="screen-top flex flex-1 flex-col gap-5 px-6 pb-7">
       <button
         onClick={() => router.back()}
         className="self-start text-2xl leading-none text-muted-foreground"

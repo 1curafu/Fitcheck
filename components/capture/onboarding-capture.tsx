@@ -17,7 +17,7 @@ export function OnboardingCapture({ initialCount = 0 }: { initialCount?: number 
 
   if (cap.phase === "confirm" && cap.draft) {
     return (
-      <main className="flex flex-1 flex-col px-6 pb-7 pt-12">
+      <main className="screen-top flex flex-1 flex-col px-6 pb-7">
         <ConfirmForm
           draft={cap.draft}
           saving={cap.saving}
@@ -32,7 +32,7 @@ export function OnboardingCapture({ initialCount = 0 }: { initialCount?: number 
   }
 
   return (
-    <main className="flex flex-1 flex-col px-6 pb-7 pt-[30px]">
+    <main className="screen-top flex flex-1 flex-col px-6 pb-7">
       <Kicker className="mb-[10px] block">Almost there</Kicker>
       <h1 className="mb-[6px] font-serif text-3xl/[1.12] text-foreground">
         Capture your first five.
