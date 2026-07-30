@@ -101,6 +101,28 @@ test("Regenerate is offered as an explicit action", async () => {
   expect(onRegenerate).toHaveBeenCalledTimes(1);
 });
 
+// Until now a look on the stylist screen had nowhere to go — loadDailyLooks
+// never even selected the outfit id, so the detail screen was unreachable.
+test("a look links to its own detail screen", () => {
+  render(<StylistView {...base} status="ok" looks={[look]} />);
+  expect(screen.getByRole("link", { name: /view this look/i })).toHaveAttribute(
+    "href",
+    "/outfits/o1",
+  );
+});
+
+// Wearing a look pins it: it stays in the day's set instead of vanishing, so the
+// screen has to say why it looks different from the others.
+test("a look already worn today is badged as worn", () => {
+  render(<StylistView {...base} status="ok" looks={[{ ...look, worn: true }]} />);
+  expect(screen.getByText(/worn today/i)).toBeInTheDocument();
+});
+
+test("an unworn look carries no badge", () => {
+  render(<StylistView {...base} status="ok" looks={[look]} />);
+  expect(screen.queryByText(/worn today/i)).toBeNull();
+});
+
 // The smart-default "why" (legible intelligence): a quiet label above the looks.
 test("the predicted occasion's reason is shown above the looks", () => {
   render(<StylistView {...base} status="ok" looks={[look]} reason="Styled for your work day" />);

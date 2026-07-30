@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { WeatherStrip } from "./weather-strip";
 import { OccasionRow, RefineButton } from "./occasion-row";
 import { RefineSheet } from "./refine-sheet";
@@ -129,7 +131,23 @@ export function StylistView(props: {
 
         {status === "ok" && look && (
           <>
-            <FlatLay look={look} />
+            {/* The whole flat-lay is the target — it is the biggest thing on the
+                screen and the one the thumb is already near. */}
+            <Link
+              href={`/outfits/${look.id}`}
+              aria-label="View this look"
+              className="relative flex flex-1 flex-col"
+            >
+              <FlatLay look={look} />
+              {/* A worn look is pinned into the day's set rather than removed,
+                  so it has to be legible as already-worn. Quiet by design: the
+                  screen's one rust accent belongs to the why. */}
+              {look.worn && (
+                <span className="absolute right-3 top-3 rounded-full bg-[rgba(20,19,22,0.78)] px-[10px] py-[5px] shadow-[inset_0_0_0_1px_var(--hairline-5)] backdrop-blur-[10px]">
+                  <Kicker className="text-value">Worn today</Kicker>
+                </span>
+              )}
+            </Link>
             <WhyQuote name={look.name} why={look.why} />
             <Credits pieces={look.pieces} onOpenItem={props.onOpenItem} />
             {/* Below the look, not in the header: the header was already
