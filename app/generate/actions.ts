@@ -26,6 +26,7 @@ import {
 import type {
   GenerateResult,
   Look,
+  LookDraft,
   LookPiece,
   UiOccasion,
   WeatherPayload,
@@ -61,6 +62,10 @@ export async function generate(input: {
       .eq("archived", false);
     const items = itemsRaw ?? [];
     const byId = new Map(items.map((i) => [i.id, i]));
+    const pathFor = (id: string) => {
+      const it = byId.get(id);
+      return it ? displayPath(it) : undefined;
+    };
 
     const loc = resolveLocation({ input: input.city, profile });
 
@@ -101,10 +106,7 @@ export async function generate(input: {
         ),
       );
       const signed = await signItemImages(paths);
-      const looks = reassembleLooks(stored, byId, signed, (id) => {
-        const it = byId.get(id);
-        return it ? displayPath(it) : undefined;
-      });
+      const looks = reassembleLooks(stored, byId, signed, pathFor);
       // null = the closet changed under the stored set; fall through and
       // regenerate rather than showing an outfit with a hole in it.
       if (looks) return { status: "ok", weather, looks };
@@ -178,8 +180,18 @@ export async function generate(input: {
       tempC: f.tempC,
     });
 
+    // A look the user has already worn today is PINNED: saveDailyLooks leaves it
+    // in place, so it has to survive in what we hand back to the screen too —
+    // otherwise the day's set silently loses it until the next page load.
+    const pinnedStored = (stored ?? []).filter((s) => s.worn);
+
     const paths = Array.from(
-      new Set(top.flatMap((t) => t.items.map((ci) => displayPath(byId.get(ci.id)!)))),
+      new Set([
+        ...top.flatMap((t) => t.items.map((ci) => displayPath(byId.get(ci.id)!))),
+        ...pinnedStored.flatMap((s) =>
+          s.pieces.map((p) => pathFor(p.itemId)).filter((p): p is string => Boolean(p)),
+        ),
+      ]),
     );
     const signed = await signItemImages(paths);
 
@@ -187,7 +199,7 @@ export async function generate(input: {
     // shortlist, so every index here resolves. It previously fell back to
     // `top[0]` for an unknown index, which turned a bad index into a duplicate
     // of the first look rather than into one fewer look.
-    const looks: Look[] = picks.map((p) => {
+    const drafts: LookDraft[] = picks.map((p) => {
       const combo = top[p.combo_index].items;
       const dbItems = combo.map((ci) => byId.get(ci.id)!);
       const slots = layoutForLook(dbItems.map((d) => ({ category: d.category })));
@@ -205,10 +217,16 @@ export async function generate(input: {
     });
 
     // Fire-and-forget would be simpler, but a failed write means the user pays
-    // for another AI call on their next tap — worth awaiting.
-    await saveDailyLooks(user.id, input.occasion, today, weather, looks);
+    // for another AI call on their next tap — worth awaiting. The insert also
+    // hands back the row ids, which are the detail screen's address.
+    const ids = await saveDailyLooks(user.id, input.occasion, today, weather, drafts);
+    const fresh: Look[] = drafts.map((d, i) => ({ ...d, id: ids[i] ?? "", worn: false }));
 
-    return { status: "ok", weather, looks };
+    // Pinned looks keep their place at the front — they hold the lower
+    // look_index values, which is the order the next load will read them back in.
+    const pinned = reassembleLooks(pinnedStored, byId, signed, pathFor) ?? [];
+
+    return { status: "ok", weather, looks: [...pinned, ...fresh] };
   } catch (e) {
     console.error("[generate] failed:", e);
     return { status: "error", message: e instanceof Error ? e.message : "Generation failed" };

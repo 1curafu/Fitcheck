@@ -3,9 +3,11 @@ import { reassembleLooks, type StoredLook, type ItemRow } from "../reassemble";
 const slot = { xPct: 10, yPct: 20, wPct: 30, hPct: 40, rotationDeg: -3, z: 2 };
 const stored: StoredLook[] = [
   {
+    id: "o1",
     lookName: "The Off-Duty Camel",
     why: "the camel knit warms the grey trousers",
     anchorIndex: 1,
+    worn: false,
     pieces: [
       { itemId: "t1", slot },
       { itemId: "b1", slot },
@@ -33,6 +35,17 @@ test("preserves the stored geometry and anchor exactly, so the flat-lay re-rende
   const looks = reassembleLooks(stored, items, signed, pathFor)!;
   expect(looks[0].pieces[0].slot).toEqual(slot);
   expect(looks[0].anchorIndex).toBe(1);
+});
+
+// The stored row's identity has to survive reassembly, or a look on the stylist
+// screen has nowhere to go — until now loadDailyLooks never even selected the id.
+test("carries the outfit id and its worn state through, so the look can be opened and badged", () => {
+  const looks = reassembleLooks(stored, items, signed, pathFor)!;
+  expect(looks[0].id).toBe("o1");
+  expect(looks[0].worn).toBe(false);
+
+  const worn = reassembleLooks([{ ...stored[0], worn: true }], items, signed, pathFor)!;
+  expect(worn[0].worn).toBe(true);
 });
 
 // A stored look is only as valid as the closet behind it. Rather than render a

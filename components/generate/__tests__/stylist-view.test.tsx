@@ -17,9 +17,11 @@ const weather: WeatherPayload = {
 };
 
 const look: Look = {
+  id: "o1",
   name: "The Camel",
   why: "the camel coat does the talking",
   anchorIndex: 0,
+  worn: false,
   pieces: [
     {
       itemId: "i1",
