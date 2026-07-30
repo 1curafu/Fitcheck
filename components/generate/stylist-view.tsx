@@ -131,13 +131,7 @@ export function StylistView(props: {
 
         {status === "ok" && look && (
           <>
-            {/* The whole flat-lay is the target — it is the biggest thing on the
-                screen and the one the thumb is already near. */}
-            <Link
-              href={`/outfits/${look.id}`}
-              aria-label="View this look"
-              className="relative flex flex-1 flex-col"
-            >
+            <div className="relative flex flex-1 flex-col">
               <FlatLay look={look} />
               {/* A worn look is pinned into the day's set rather than removed,
                   so it has to be legible as already-worn. Quiet by design: the
@@ -147,9 +141,20 @@ export function StylistView(props: {
                   <Kicker className="text-value">Worn today</Kicker>
                 </span>
               )}
-            </Link>
+            </div>
             <WhyQuote name={look.name} why={look.why} />
             <Credits pieces={look.pieces} onOpenItem={props.onOpenItem} />
+
+            {/* :312 — an explicit, named way into the look. Making the flat-lay
+                itself the target was tried and rejected: a whole-image link with
+                no visible affordance is not discoverable, and the flat-lay
+                already reads as a picture rather than a control. */}
+            <Link
+              href={`/outfits/${look.id}`}
+              className="mt-[18px] block rounded-[13px] bg-foreground p-4 text-center text-base font-semibold text-canvas"
+            >
+              See the full look
+            </Link>
             {/* Below the look, not in the header: the header was already
                 rebalanced once to fit Refine at 390px. A quiet action here is
                 also where the thought "not these" actually occurs. */}

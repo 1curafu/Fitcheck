@@ -103,9 +103,11 @@ test("Regenerate is offered as an explicit action", async () => {
 
 // Until now a look on the stylist screen had nowhere to go — loadDailyLooks
 // never even selected the outfit id, so the detail screen was unreachable.
-test("a look links to its own detail screen", () => {
+// A named control, not the flat-lay itself: a whole-image link with no visible
+// affordance was tried and is not discoverable (design :312 names the button).
+test("a look links to its own detail screen from a named control", () => {
   render(<StylistView {...base} status="ok" looks={[look]} />);
-  expect(screen.getByRole("link", { name: /view this look/i })).toHaveAttribute(
+  expect(screen.getByRole("link", { name: /see the full look/i })).toHaveAttribute(
     "href",
     "/outfits/o1",
   );

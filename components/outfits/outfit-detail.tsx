@@ -1,6 +1,7 @@
 "use client";
 
 import { useOptimistic, useTransition, type CSSProperties } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bookmark } from "lucide-react";
 import { toggleWear, toggleFavorite } from "@/app/outfits/[id]/actions";
@@ -102,8 +103,12 @@ export function OutfitDetail({
           <Kicker className="mb-3 block">In this look</Kicker>
           <div className="flex flex-col gap-[10px]">
             {pieces.map((p) => (
-              <div
+              // Every piece row is a way into that garment — this is the screen
+              // where the user is looking AT the clothes, so it is where "what
+              // is that, exactly?" gets asked.
+              <Link
                 key={p.id}
+                href={`/closet/${p.id}`}
                 className="flex items-center gap-[14px] rounded-[13px] bg-surface-1 px-[14px] py-[11px] shadow-[inset_0_0_0_1px_var(--hairline-2)]"
               >
                 <div className="relative size-[46px] shrink-0 rounded-[10px] bg-surface-3 p-[7px]">
@@ -120,7 +125,7 @@ export function OutfitDetail({
                 <div className="shrink-0 whitespace-nowrap text-[11px] text-muted-dim">
                   {p.category}
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>

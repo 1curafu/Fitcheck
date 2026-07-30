@@ -41,6 +41,16 @@ test("every piece is listed with its brand and category", () => {
   expect(screen.getByText("Tops")).toBeInTheDocument();
 });
 
+// This is the screen where the user is looking at the clothes, so it is where
+// "what is that, exactly?" gets asked — each row opens that garment.
+test("each piece row opens that item in the closet", () => {
+  render(<OutfitDetail outfit={outfit} pieces={pieces} worn={false} favorite={false} />);
+  expect(screen.getByRole("link", { name: /brushed oxford/i })).toHaveAttribute(
+    "href",
+    "/closet/i1",
+  );
+});
+
 test("the wear button states what it will do, and what it did", () => {
   const { rerender } = render(
     <OutfitDetail outfit={outfit} pieces={pieces} worn={false} favorite={false} />,
