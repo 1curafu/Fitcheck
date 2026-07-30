@@ -11,7 +11,10 @@ export default async function GeneratePage() {
   if (!user) redirect("/");
 
   return (
-    <div className="flex min-h-dvh flex-1 flex-col pb-[76px]">
+    // No bottom padding: the sticky nav occupies its own space in flow at the
+    // end of the page, so nothing sits under it. The old pb-[76px] was both
+    // unnecessary and 31px short of the nav's actual height.
+    <div className="flex min-h-dvh flex-1 flex-col">
       <Stylist />
       <MobileNav />
     </div>
