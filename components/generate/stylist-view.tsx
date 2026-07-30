@@ -63,7 +63,7 @@ export function StylistView(props: {
   const occLabel = occasion.charAt(0).toUpperCase() + occasion.slice(1);
 
   return (
-    <main className="relative flex flex-1 flex-col overflow-hidden px-[22px] pt-[46px]">
+    <main className="relative flex flex-1 flex-col overflow-hidden screen-top px-[22px]">
       {/* The legible "why" — a quiet kicker above the title that makes the smart
           default read as intentional. Uses the documented label step. */}
       {props.reason && (

@@ -1,7 +1,10 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { OutfitDetail } from "../outfit-detail";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ back: vi.fn() }) }));
+const back = vi.fn();
+const push = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ back, push }) }));
 // The Server Actions are the write path, exercised live rather than here — this
 // keeps the component test about what the screen SAYS.
 vi.mock("@/app/outfits/[id]/actions", () => ({
@@ -88,4 +91,29 @@ test("the flat-lay places each piece at its stored position", () => {
   const stage = screen.getByTestId("detail-stage");
   const img = stage.querySelector("img");
   expect(img).toHaveStyle({ left: "10%", top: "20%", width: "30%", height: "40%" });
+});
+
+// Reached by a shared link, a refresh, or a PWA cold start, this screen is the
+// FIRST history entry — `router.back()` alone is a dead control that silently
+// does nothing.
+test("back falls out to the stylist screen when there is no history to return to", async () => {
+  back.mockClear();
+  push.mockClear();
+  const spy = vi.spyOn(window.history, "length", "get").mockReturnValue(1);
+  render(<OutfitDetail outfit={outfit} pieces={pieces} worn={false} favorite={false} />);
+  await userEvent.click(screen.getByRole("button", { name: /back/i }));
+  expect(back).not.toHaveBeenCalled();
+  expect(push).toHaveBeenCalledWith("/generate");
+  spy.mockRestore();
+});
+
+test("back returns to where you came from when there is history", async () => {
+  back.mockClear();
+  push.mockClear();
+  const spy = vi.spyOn(window.history, "length", "get").mockReturnValue(3);
+  render(<OutfitDetail outfit={outfit} pieces={pieces} worn={false} favorite={false} />);
+  await userEvent.click(screen.getByRole("button", { name: /back/i }));
+  expect(back).toHaveBeenCalled();
+  expect(push).not.toHaveBeenCalled();
+  spy.mockRestore();
 });

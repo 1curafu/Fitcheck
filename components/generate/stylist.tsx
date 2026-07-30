@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { StylistView, type StylistStatus } from "./stylist-view";
 import {
   generate,
@@ -20,8 +19,50 @@ type Chosen = { lat: number; lon: number; label: string; source: LocationSource 
 const DENIED_COPY = "Location access is off — search for a city instead.";
 const FAILED_COPY = "Couldn't get your location — search for a city instead.";
 
+const OCCASIONS: UiOccasion[] = ["everyday", "work", "weekend", "evening"];
+
 export function Stylist() {
-  const router = useRouter();
+
+  /**
+   * Which occasion and which of the day's looks you were on lives in the URL,
+   * not in React state alone.
+   *
+   * This component unmounts the moment you open a look's detail screen, so
+   * anything held only in state is gone when you come back: picking look 02 and
+   * tapping "See the full look" used to return you to 01, and a manual switch to
+   * Weekend fell back to the predicted occasion.
+   *
+   * Writes go through `history.replaceState`, NOT `router.replace` — the latter
+   * refetches the route on every tab tap. Next supports this exact pattern for
+   * search params that should not re-render the server component.
+   *
+   * Reads come from `window.location.search`, NOT `useSearchParams()`: that hook
+   * reads the App Router's own idea of the URL and never observes a
+   * `history.replaceState`, so on the way back it still reported the params from
+   * before the write and the restore silently did nothing. The read happens in
+   * an effect rather than a state initialiser so server and client agree on the
+   * first render.
+   */
+  // Which look every incoming result should land on; null means 01.
+  //
+  // NOT consumed on first use. `generate` runs more than once per visit — the
+  // silent geolocation refresh sets `city`, which re-runs it — and a
+  // consume-once ref meant the second result quietly reset the selection to 01.
+  // Cleared only when the day's set actually changes underneath: a regenerate or
+  // an occasion switch.
+  const desiredLookRef = useRef<number | null>(null);
+  const urlOccasionRef = useRef<UiOccasion | null>(null);
+
+  const writeParams = useCallback((patch: Record<string, string | null>) => {
+    const next = new URLSearchParams(window.location.search);
+    for (const [k, v] of Object.entries(patch)) {
+      if (v === null) next.delete(k);
+      else next.set(k, v);
+    }
+    const qs = next.toString();
+    window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
+  }, []);
+
   const [status, setStatus] = useState<StylistStatus>("loading");
   const [occasion, setOccasion] = useState<UiOccasion>("everyday");
   const [formality, setFormality] = useState<number | null>(null);
@@ -115,7 +156,9 @@ export function Stylist() {
       if (res.status === "ok") {
         setWeather(res.weather);
         setLooks(res.looks);
-        setSelectedLook(0);
+        // Hold the look the user was on — clamped, because a regenerate may
+        // have returned fewer than the index refers to.
+        setSelectedLook(Math.min(desiredLookRef.current ?? 0, Math.max(res.looks.length - 1, 0)));
         setStatus("ok");
       } else if (res.status === "empty") {
         setWeather(res.weather);
@@ -147,12 +190,27 @@ export function Stylist() {
   // prediction — that would spend two AI calls on a fresh day.
   useEffect(() => {
     let cancelled = false;
+
+    // Synchronous, before the async prediction resolves — so the generate effect
+    // (gated on `seeded`) runs once, against the restored occasion.
+    const sp = new URLSearchParams(window.location.search);
+    const restoredOccasion = OCCASIONS.find((o) => o === sp.get("occasion")) ?? null;
+    urlOccasionRef.current = restoredOccasion;
+    desiredLookRef.current = Number(sp.get("look")) || null;
+    if (restoredOccasion) setOccasion(restoredOccasion);
+
     predictDefaultOccasion()
       .then(({ occasion: predicted, reason: why }) => {
         if (cancelled) return;
+        // predictedRef is set either way — it is the baseline every override is
+        // logged against, and a restored URL occasion is not a fresh override
+        // (the user already tapped it once, and it was logged then).
         predictedRef.current = predicted;
-        setReason(why);
-        setOccasion(predicted);
+        if (urlOccasionRef.current) setReason(defaultReason(urlOccasionRef.current));
+        else {
+          setReason(why);
+          setOccasion(predicted);
+        }
       })
       .finally(() => {
         // Release the gate even if prediction fails — looks still load against
@@ -185,11 +243,14 @@ export function Stylist() {
    * and would then regenerate that occasion too.
    */
   const regenerate = useCallback(() => {
+    // A fresh set starts at 01, and the remembered index may not even exist.
+    desiredLookRef.current = null;
+    writeParams({ look: null });
     setStatus("loading");
     generate({ occasion, formality, lean, city: city ?? undefined, regenerate: true }).then(
       applyResult,
     );
-  }, [occasion, formality, lean, city, applyResult]);
+  }, [occasion, formality, lean, city, applyResult, writeParams]);
 
   return (
     <StylistView
@@ -207,6 +268,9 @@ export function Stylist() {
       onOccasion={(o) => {
         setOccasion(o);
         setReason(defaultReason(o));
+        // A new occasion is a new set of looks — drop the remembered index.
+        desiredLookRef.current = null;
+        writeParams({ occasion: o, look: null });
         // A tap that departs from the prediction is the flywheel signal for the
         // future learner. Fire-and-forget — it must never disturb the looks.
         if (o !== predictedRef.current) {
@@ -230,7 +294,11 @@ export function Stylist() {
         searchCities(q).then(setCities);
       }}
       onUseMyLocation={geoSupported ? useMyLocation : undefined}
-      onSelectLook={setSelectedLook}
+      onSelectLook={(i) => {
+        desiredLookRef.current = i || null;
+        setSelectedLook(i);
+        writeParams({ look: i === 0 ? null : String(i) });
+      }}
       onRetry={() => setNonce((n) => n + 1)}
       onRegenerate={regenerate}
     />

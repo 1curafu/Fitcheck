@@ -46,11 +46,23 @@ export function OutfitDetail({
 
   return (
     <div className="flex min-h-dvh flex-1 flex-col">
+      {/* This screen opens with a full-bleed flat-lay, so it deliberately does
+          NOT use `.screen-top` — the stage runs to the top edge and only this
+          overlay control is inset. `top-[58px]` was a hard-coded status-bar
+          allowance: correct in the installed PWA, a 58px gap in a Safari tab
+          where the viewport already clears the clock. */}
       <button
         type="button"
-        onClick={() => router.back()}
+        onClick={() => {
+          // `router.back()` alone is a dead control whenever this screen is the
+          // first entry in the session — a shared link, a refresh, or a PWA cold
+          // start on /outfits/[id]. There is nothing to go back TO, so the tap
+          // silently does nothing. Fall back to the screen the look belongs to.
+          if (window.history.length > 1) router.back();
+          else router.push("/generate");
+        }}
         aria-label="Back"
-        className="absolute left-[18px] top-[58px] z-40 grid size-10 place-items-center rounded-full bg-[rgba(20,19,22,0.7)] text-xl text-foreground shadow-[inset_0_0_0_1px_var(--hairline-7)] backdrop-blur-[10px]"
+        className="absolute left-[18px] top-[calc(env(safe-area-inset-top)+18px)] z-40 grid size-10 place-items-center rounded-full bg-[rgba(20,19,22,0.7)] text-xl text-foreground shadow-[inset_0_0_0_1px_var(--hairline-7)] backdrop-blur-[10px]"
       >
         ‹
       </button>
@@ -60,7 +72,7 @@ export function OutfitDetail({
             screen laid out, so tapping a look does not rearrange it. */}
         <div
           data-testid="detail-stage"
-          className="relative h-[420px] [background:radial-gradient(120%_90%_at_50%_22%,#201f22_0%,#0E0E10_78%)]"
+          className="surface-stage relative h-[420px]"
         >
           {pieces.map((p) => {
             const s = p.slot;
@@ -131,7 +143,10 @@ export function OutfitDetail({
         </div>
       </div>
 
-      <div className="sticky bottom-0 z-30 flex gap-3 bg-gradient-to-t from-canvas from-60% to-transparent px-[22px] pb-[30px] pt-[14px]">
+      {/* Same additive inset as the bottom nav — `pb-[30px]` was a hard-coded
+          home-indicator allowance, which is 30px of dead space in a browser tab
+          where the toolbar already occupies that band. */}
+      <div className="sticky bottom-0 z-30 flex gap-3 bg-gradient-to-t from-canvas from-60% to-transparent px-[22px] pb-[calc(env(safe-area-inset-bottom)+14px)] pt-[14px]">
         <button
           type="button"
           aria-label="Favourite"

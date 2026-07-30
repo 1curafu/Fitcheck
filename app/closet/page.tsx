@@ -31,7 +31,7 @@ export default async function ClosetPage() {
 
   return (
     <div className="flex min-h-dvh flex-1 flex-col">
-      <main className="flex flex-1 flex-col gap-5 py-8">
+      <main className="screen-top flex flex-1 flex-col gap-5 pb-8">
         <header className="flex items-end justify-between px-6">
           <div>
             <Kicker>{grid.length} Pieces</Kicker>

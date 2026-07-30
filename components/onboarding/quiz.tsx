@@ -58,7 +58,7 @@ export function Quiz() {
   }
 
   return (
-    <main className="flex flex-1 flex-col px-6 pb-7 pt-14">
+    <main className="screen-top flex flex-1 flex-col px-6 pb-7">
       {/* progress */}
       <div className="mb-8 flex items-center gap-3">
         <button

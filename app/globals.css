@@ -138,6 +138,26 @@
 }
 
 @layer components {
+  /* Where a screen's content starts.
+   *
+   * `app/layout.tsx` sets viewportFit:"cover" + a black-translucent status bar,
+   * so in the INSTALLED PWA the web view runs edge to edge and content would sit
+   * underneath the clock. In a Safari tab the viewport already clears it and the
+   * inset is 0. Every screen used to hard-code its own allowance for this —
+   * pt-[46px] on the stylist, py-8 on the closet, pt-14 on the quiz, pt-20 on the
+   * landing page — which meant the browser stacked those constants on top of a
+   * viewport that had already reserved the space, leaving a large empty band.
+   *
+   * One number, in one place. Screens that open with a full-bleed image (the
+   * outfit detail's flat-lay stage) deliberately do NOT use this — they run to
+   * the top edge and inset their overlay controls instead.
+   *
+   * ⚠️ Do not put a `pt-*` utility on the same element: Tailwind v4 orders
+   * utilities AFTER components, so it would silently win. */
+  .screen-top {
+    padding-top: calc(env(safe-area-inset-top) + 22px);
+  }
+
   /* Verbatim from Fitcheck.dc.html — item cards (:181), outfit cards (:721). */
   .surface-card {
     background: linear-gradient(160deg, #1c1b1e, #161517);
