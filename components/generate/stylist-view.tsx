@@ -1,12 +1,14 @@
 "use client";
 
+import Link from "next/link";
+import { RotateCcw } from "lucide-react";
+import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { WeatherStrip } from "./weather-strip";
 import { OccasionRow, RefineButton } from "./occasion-row";
 import { RefineSheet } from "./refine-sheet";
 import { IndexTabs } from "./index-tabs";
 import { FlatLay } from "./flat-lay";
 import { WhyQuote } from "./why-quote";
-import { Credits } from "./credits";
 import type { Look, UiOccasion, WeatherPayload } from "@/lib/generator/types";
 import type { City } from "@/lib/weather/geocode";
 
@@ -51,7 +53,6 @@ export function StylistView(props: {
   geoError: string | null;
   onSelectLook: (i: number) => void;
   onRetry: () => void;
-  onOpenItem: (itemId: string) => void;
   /** Decision 5: the ONLY way to spend an AI call on a day already answered. */
   onRegenerate: () => void;
   /** The legible "why" for the predicted default occasion (empty until seeded). */
@@ -129,17 +130,48 @@ export function StylistView(props: {
 
         {status === "ok" && look && (
           <>
-            <FlatLay look={look} />
+            <div className="relative flex flex-1 flex-col">
+              <FlatLay look={look} />
+              {/* A worn look is pinned into the day's set rather than removed,
+                  so it has to be legible as already-worn. Quiet by design: the
+                  screen's one rust accent belongs to the why. */}
+              {look.worn && (
+                <span className="absolute right-3 top-3 rounded-full bg-[rgba(20,19,22,0.78)] px-[10px] py-[5px] shadow-[inset_0_0_0_1px_var(--hairline-5)] backdrop-blur-[10px]">
+                  <Kicker className="text-value">Worn today</Kicker>
+                </span>
+              )}
+            </div>
             <WhyQuote name={look.name} why={look.why} />
-            <Credits pieces={look.pieces} onOpenItem={props.onOpenItem} />
-            {/* Below the look, not in the header: the header was already
-                rebalanced once to fit Refine at 390px. A quiet action here is
-                also where the thought "not these" actually occurs. */}
+
+            {/* The magazine credit line used to sit here (brand · garment, each
+                opening its item). Removed 2026-07-30: the detail screen now
+                lists every piece with its brand, image and category, and each
+                row opens the same garment page — so the line was a second copy
+                of that list costing ~200px of the fold on a 390px phone. */}
+            {/* :312 — an explicit, named way into the look. Making the flat-lay
+                itself the target was tried and rejected: a whole-image link with
+                no visible affordance is not discoverable, and the flat-lay
+                already reads as a picture rather than a control. */}
+            <Link
+              href={`/outfits/${look.id}`}
+              className="mt-[18px] block rounded-[13px] bg-foreground p-4 text-center text-base font-semibold text-canvas"
+            >
+              See the full look
+            </Link>
+
+            {/* Regenerate keeps its WORDS. It was a bare uppercase line, which
+                read as a caption rather than a control; an icon-only button
+                beside the primary was tried next and rejected — nothing tells
+                you a ⟳ means "spend an AI call and replace today's looks".
+                So: a real button shell, but secondary — bounded, tonal, and
+                below the primary, because this is the one control on the screen
+                that costs money to press. */}
             <button
               type="button"
               onClick={props.onRegenerate}
-              className="mt-4 min-h-11 w-full text-[11px] font-medium uppercase tracking-[0.22em] text-muted-dim"
+              className="mt-[10px] flex w-full items-center justify-center gap-2 rounded-[13px] bg-surface-1 p-4 text-sm text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-7)]"
             >
+              <RotateCcw size={15} />
               Regenerate today&apos;s looks
             </button>
           </>

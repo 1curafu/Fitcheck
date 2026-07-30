@@ -2,10 +2,12 @@ import type { Look, LookPiece, Slot } from "@/lib/generator/types";
 
 export type StoredPiece = { itemId: string; slot: Slot };
 export type StoredLook = {
+  id: string;
   lookName: string;
   why: string;
   anchorIndex: number;
   pieces: StoredPiece[];
+  worn: boolean;
 };
 export type ItemRow = {
   id: string;
@@ -55,7 +57,14 @@ export function reassembleLooks(
         slot: p.slot,
       });
     }
-    looks.push({ name: s.lookName, why: s.why, pieces, anchorIndex: s.anchorIndex });
+    looks.push({
+      id: s.id,
+      name: s.lookName,
+      why: s.why,
+      pieces,
+      anchorIndex: s.anchorIndex,
+      worn: s.worn,
+    });
   }
 
   return looks;

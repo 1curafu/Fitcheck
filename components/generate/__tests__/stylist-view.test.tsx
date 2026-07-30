@@ -17,9 +17,11 @@ const weather: WeatherPayload = {
 };
 
 const look: Look = {
+  id: "o1",
   name: "The Camel",
   why: "the camel coat does the talking",
   anchorIndex: 0,
+  worn: false,
   pieces: [
     {
       itemId: "i1",
@@ -53,7 +55,6 @@ const base = {
   onSelectLook: noop,
   onRetry: noop,
   onRegenerate: noop,
-  onOpenItem: noop,
   reason: "",
 };
 
@@ -97,6 +98,30 @@ test("Regenerate is offered as an explicit action", async () => {
   render(<StylistView {...base} status="ok" looks={[look]} onRegenerate={onRegenerate} />);
   await userEvent.click(screen.getByRole("button", { name: /regenerate/i }));
   expect(onRegenerate).toHaveBeenCalledTimes(1);
+});
+
+// Until now a look on the stylist screen had nowhere to go — loadDailyLooks
+// never even selected the outfit id, so the detail screen was unreachable.
+// A named control, not the flat-lay itself: a whole-image link with no visible
+// affordance was tried and is not discoverable (design :312 names the button).
+test("a look links to its own detail screen from a named control", () => {
+  render(<StylistView {...base} status="ok" looks={[look]} />);
+  expect(screen.getByRole("link", { name: /see the full look/i })).toHaveAttribute(
+    "href",
+    "/outfits/o1",
+  );
+});
+
+// Wearing a look pins it: it stays in the day's set instead of vanishing, so the
+// screen has to say why it looks different from the others.
+test("a look already worn today is badged as worn", () => {
+  render(<StylistView {...base} status="ok" looks={[{ ...look, worn: true }]} />);
+  expect(screen.getByText(/worn today/i)).toBeInTheDocument();
+});
+
+test("an unworn look carries no badge", () => {
+  render(<StylistView {...base} status="ok" looks={[look]} />);
+  expect(screen.queryByText(/worn today/i)).toBeNull();
 });
 
 // The smart-default "why" (legible intelligence): a quiet label above the looks.

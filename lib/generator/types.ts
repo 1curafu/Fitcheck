@@ -24,13 +24,20 @@ export type LookPiece = {
 };
 
 export type Look = {
+  /** The `outfits` row this look was persisted as — the detail screen's address. */
+  id: string;
   name: string;
   why: string;
   pieces: LookPiece[];
   anchorIndex: number;
+  /** Logged as worn today. A worn look is pinned: a Regenerate leaves it alone. */
+  worn: boolean;
 };
 
-export type HourCell = { hh: string; tempC: number; rain: boolean; isNow: boolean };
+/** A look before it has been persisted — it has no row id and cannot be worn yet. */
+export type LookDraft = Omit<Look, "id" | "worn">;
+
+export type HourCell ={ hh: string; tempC: number; rain: boolean; isNow: boolean };
 
 export type WeatherPayload = {
   tempC: number;

@@ -15,9 +15,11 @@ const piece = (over: Partial<LookPiece>): LookPiece => ({
 });
 
 const look: Look = {
+  id: "o1",
   name: "The Camel",
   why: "why",
   anchorIndex: 3,
+  worn: false,
   pieces: [
     piece({ itemId: "a", cutoutUrl: "/a.png", slot: { xPct: 56, yPct: 10, wPct: 36, hPct: 34, rotationDeg: 4, z: 2 } }),
     piece({ itemId: "b", cutoutUrl: "/b.png", slot: { xPct: 58, yPct: 46, wPct: 34, hPct: 44, rotationDeg: -3, z: 2 } }),

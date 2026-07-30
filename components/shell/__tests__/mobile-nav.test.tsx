@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { MobileNav } from "../mobile-nav";
+import { MobileShell } from "../mobile-shell";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/closet" }));
 
@@ -38,4 +39,15 @@ test("the nav is a floating pill, not a full-width bar", () => {
   const pill = nav.querySelector("div");
   expect(pill?.className).toMatch(/rounded-\[22px\]/);
   expect(pill?.className).toMatch(/backdrop-blur/);
+});
+
+// The nav is sticky, but an ancestor with `overflow: hidden` is a scroll
+// container — a sticky descendant then sticks to THAT box instead of the
+// viewport, and the nav only appeared once you scrolled to the end of the page.
+// `overflow-x-clip` clips the 440px cap without creating a scroll container.
+test("the shell does not trap the sticky nav in a scroll container", () => {
+  const { container } = render(<MobileShell>content</MobileShell>);
+  const shell = container.firstElementChild as HTMLElement;
+  expect(shell.className).not.toMatch(/(?<!-x-)\boverflow-hidden\b/);
+  expect(shell.className).toContain("overflow-x-clip");
 });

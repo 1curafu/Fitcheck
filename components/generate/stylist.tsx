@@ -233,7 +233,6 @@ export function Stylist() {
       onSelectLook={setSelectedLook}
       onRetry={() => setNonce((n) => n + 1)}
       onRegenerate={regenerate}
-      onOpenItem={(id) => router.push(`/closet/${id}`)}
     />
   );
 }
