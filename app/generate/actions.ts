@@ -9,7 +9,7 @@ import { buildCandidates, missingCategory, type CandidateItem } from "@/lib/gene
 import { rankTopN } from "@/lib/generator/rank";
 import { diversify } from "@/lib/generator/diversity";
 import { currentSeason } from "@/lib/generator/season";
-import { rerank } from "@/lib/generator/rerank";
+import { rerank, MAX_PICKS } from "@/lib/generator/rerank";
 import { layoutForLook, staggerOrder } from "@/lib/generator/layout";
 import { localDateFor } from "@/lib/outfits/local-date";
 import { loadDailyLooks, saveDailyLooks } from "@/lib/outfits/daily";
@@ -167,7 +167,15 @@ export async function generate(input: {
     );
     const top = diversify(ranked, 20);
 
+    // A look the user has already worn today is PINNED: saveDailyLooks leaves it
+    // in place, so it has to survive in what we hand back to the screen too —
+    // otherwise the day's set silently loses it until the next page load. It
+    // also still COUNTS toward the day's three, so the stylist is asked for
+    // fewer fresh looks rather than the set growing a fourth tab.
+    const pinnedStored = (stored ?? []).filter((s) => s.worn);
+
     const { picks } = await rerank({
+      want: MAX_PICKS - pinnedStored.length,
       combos: top.map((t) =>
         t.items.map((ci) => {
           const it = byId.get(ci.id)!;
@@ -179,11 +187,6 @@ export async function generate(input: {
       weatherLabel: f.condition,
       tempC: f.tempC,
     });
-
-    // A look the user has already worn today is PINNED: saveDailyLooks leaves it
-    // in place, so it has to survive in what we hand back to the screen too —
-    // otherwise the day's set silently loses it until the next page load.
-    const pinnedStored = (stored ?? []).filter((s) => s.worn);
 
     const paths = Array.from(
       new Set([

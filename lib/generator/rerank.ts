@@ -116,8 +116,8 @@ export function dedupePicks(picks: Pick[], comboCount?: number): Pick[] {
  * repeats and out-of-range indices, then cap at MAX_PICKS. The cap lives here
  * rather than in the schema so an over-eager model costs the user nothing.
  */
-export function finalisePicks(picks: Pick[], comboCount?: number): Pick[] {
-  return dedupePicks(picks, comboCount).slice(0, MAX_PICKS);
+export function finalisePicks(picks: Pick[], comboCount?: number, want = MAX_PICKS): Pick[] {
+  return dedupePicks(picks, comboCount).slice(0, Math.max(1, want));
 }
 
 export async function rerank(args: {
@@ -126,16 +126,24 @@ export async function rerank(args: {
   occasion: string;
   weatherLabel: string;
   tempC: number;
+  /**
+   * How many looks to return. Defaults to the full daily set; a regenerate on a
+   * day where a look has already been WORN asks for fewer, because the worn one
+   * is pinned and still counts toward the day's three. "Today's Looks" is a set
+   * of three — the index tabs are 01/02/03 and a fourth does not fit at 390px.
+   */
+  want?: number;
 }): Promise<RerankResult> {
+  const want = Math.max(1, Math.min(args.want ?? MAX_PICKS, MAX_PICKS));
   const prompt = `You are a personal stylist. The user's aesthetic is ${
     args.aesthetic.join(", ") || "understated, modern menswear"
   }. Occasion: ${args.occasion}. Weather: ${args.weatherLabel}, ${args.tempC}°C.
 Here are candidate outfits (already filtered and scored), one per line:
 ${describeCombos(args.combos)}
 
-Pick the best 3. ${RERANK_VARIETY_RULE}
+Pick the best ${want}. ${RERANK_VARIETY_RULE}
 
-For each return: its combo_index; a short evocative NAME (≤4 words and at most ${NAME_MAX} characters, e.g. "The Off-Duty Camel"); and ONE warm, specific sentence ("why") that references the colours/pieces (e.g. "the camel knit warms the grey trousers and picks up the loafers"). Return exactly 3 picks, each with a DIFFERENT combo_index.`;
+For each return: its combo_index; a short evocative NAME (≤4 words and at most ${NAME_MAX} characters, e.g. "The Off-Duty Camel"); and ONE warm, specific sentence ("why") that references the colours/pieces (e.g. "the camel knit warms the grey trousers and picks up the loafers"). Return exactly ${want} pick${want === 1 ? "" : "s"}, each with a DIFFERENT combo_index.`;
 
   const client = new Anthropic(); // lazy: keeps this module importable in tests without a key
   const res = await client.messages.create({
@@ -148,5 +156,5 @@ For each return: its combo_index; a short evocative NAME (≤4 words and at most
   const parsed = RerankSchema.parse(JSON.parse(text));
   // The prompt asks for distinct picks; this guarantees it. A model that repeats
   // an index costs the user one look, not a duplicated outfit on the screen.
-  return { ...parsed, picks: finalisePicks(parsed.picks, args.combos.length) };
+  return { ...parsed, picks: finalisePicks(parsed.picks, args.combos.length, want) };
 }

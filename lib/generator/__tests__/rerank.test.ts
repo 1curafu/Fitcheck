@@ -151,3 +151,20 @@ test("the last valid index is inclusive", () => {
 test("with no count given, indices are not range-checked", () => {
   expect(dedupePicks([pick(99)]).map((p) => p.combo_index)).toEqual([99]);
 });
+
+// A worn look is pinned into the day's set, so it still counts toward the three.
+// Without this the set grew a fourth look on every wear-then-regenerate, and the
+// index tabs are 01/02/03 — a fourth does not fit at 390px.
+test("finalisePicks returns only as many looks as the day still has room for", () => {
+  expect(finalisePicks([pick(0), pick(1), pick(2)], 20, 2).map((p) => p.combo_index)).toEqual([
+    0, 1,
+  ]);
+  expect(finalisePicks([pick(0), pick(1), pick(2)], 20, 1).map((p) => p.combo_index)).toEqual([0]);
+});
+
+// Regenerate must always be worth pressing: even with a full set of worn looks
+// it returns something new rather than silently doing nothing.
+test("finalisePicks never returns an empty set, however many looks are pinned", () => {
+  expect(finalisePicks([pick(0), pick(1)], 20, 0)).toHaveLength(1);
+  expect(finalisePicks([pick(0), pick(1)], 20, -2)).toHaveLength(1);
+});
