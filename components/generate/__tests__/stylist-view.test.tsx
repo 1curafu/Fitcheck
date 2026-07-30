@@ -55,7 +55,6 @@ const base = {
   onSelectLook: noop,
   onRetry: noop,
   onRegenerate: noop,
-  onOpenItem: noop,
   reason: "",
 };
 
