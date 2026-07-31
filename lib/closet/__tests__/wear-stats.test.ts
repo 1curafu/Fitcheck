@@ -3,7 +3,7 @@ import { itemWearStats } from "../wear-stats";
 test("counts wears and divides the price across them", () => {
   const s = itemWearStats([{ worn_on: "2026-07-01" }, { worn_on: "2026-07-10" }], 100, "2026-07-24");
   expect(s.wears).toBe(2);
-  expect(s.costPerWear).toBe("£50.00");
+  expect(s.costPerWear).toBe("€50.00");
 });
 
 test("no price means no cost-per-wear rather than a fabricated zero", () => {

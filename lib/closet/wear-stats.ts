@@ -6,7 +6,14 @@
  * logged outfits contained it".
  */
 
-const GBP = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" });
+/**
+ * Euro, formatted for the English UI — "€50.00", not "50,00 €".
+ *
+ * `en-IE` is the euro locale whose conventions match the rest of the interface;
+ * the German content the spec plans will want `de-DE` here. One hard-coded
+ * currency beats a fake one until Settings owns the choice.
+ */
+const MONEY = new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" });
 
 /**
  * Whole calendar days between two `YYYY-MM-DD` keys.
@@ -33,7 +40,7 @@ export function itemWearStats(
   today: string,
 ): { wears: number; costPerWear: string | null; lastWorn: string } {
   const wears = logs.length;
-  const costPerWear = price != null && wears > 0 ? GBP.format(price / wears) : null;
+  const costPerWear = price != null && wears > 0 ? MONEY.format(price / wears) : null;
 
   if (!wears) return { wears, costPerWear, lastWorn: "Never" };
 
