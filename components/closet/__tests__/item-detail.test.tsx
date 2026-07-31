@@ -7,6 +7,8 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ back: vi.fn(), push: vi.fn(), refresh }),
 }));
 
+vi.mock("@/app/closet/[itemId]/style-actions", () => ({ styleWithItem: vi.fn() }));
+
 const updateItem = vi.fn().mockResolvedValue(undefined);
 vi.mock("@/app/closet/[itemId]/actions", () => ({
   updateItem: (...args: unknown[]) => updateItem(...args),

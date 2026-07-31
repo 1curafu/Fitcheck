@@ -42,6 +42,14 @@ test("brand, name and subcategory · colour lead the screen", () => {
   expect(screen.getByText(/oxford shirt · cream/i)).toBeInTheDocument();
 });
 
+// Many items are named after their own subcategory; echoing it under the title
+// reads as a rendering bug rather than as the design's name/description pairing.
+test("the subtitle does not repeat a name identical to the subcategory", () => {
+  renderView({ item: { ...item, name: "Oxford shirt" } });
+  expect(screen.getByRole("heading", { name: "Oxford shirt" })).toBeInTheDocument();
+  expect(screen.getByTestId("item-subtitle")).toHaveTextContent(/^cream$/);
+});
+
 test("the three wear tiles render", () => {
   renderView();
   expect(screen.getByText(/times worn/i)).toBeInTheDocument();

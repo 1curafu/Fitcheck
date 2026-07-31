@@ -69,13 +69,15 @@ export async function styleWithItem(itemId: string): Promise<StyleResult> {
       return { status: "empty", message: "Fragrance finishes a look rather than forming one." };
     }
 
-    const loc = resolveLocation({ profile });
     const now = new Date();
-    const f = await fetchForecast(loc.lat, loc.lon);
-    const today = localDateFor(now, f.timezone);
+    // The date key comes from the PROFILE timezone, not the forecast's, so the
+    // cache can be checked without a network call — the same zone `toggleWear`
+    // and `predictDefaultOccasion` use.
+    const today = localDateFor(now, profile?.location_timezone ?? "UTC");
 
-    // THE CACHE. Checked before the quota is touched — re-opening an answer you
-    // already have must never cost anything.
+    // THE CACHE. Checked before the quota is touched and before any I/O beyond
+    // this one indexed lookup — re-opening an answer you already have must never
+    // cost anything.
     const cached = await loadStyledLook(user.id, itemId, today);
     if (cached) return { status: "ok", outfitId: cached };
 
@@ -86,6 +88,8 @@ export async function styleWithItem(itemId: string): Promise<StyleResult> {
       throw e;
     }
 
+    const loc = resolveLocation({ profile });
+    const f = await fetchForecast(loc.lat, loc.lon);
     const advice = laterAdvice(f.hourly);
     const weather: WeatherPayload = {
       tempC: f.tempC,

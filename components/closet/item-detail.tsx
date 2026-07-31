@@ -6,6 +6,7 @@ import type { Tags } from "@/lib/ai/tagging-schema";
 
 import { ItemView, type GoesWithCard } from "./item-view";
 import { ItemEditSheet } from "./item-edit-sheet";
+import { StyleCta } from "./style-cta";
 
 export type DetailItem = {
   id: string;
@@ -36,14 +37,12 @@ export function ItemDetail({
   brandSuggestions,
   stats,
   goesWith,
-  styleCta,
 }: {
   item: DetailItem;
   imageUrl: string;
   brandSuggestions: string[];
   stats: { wears: number; costPerWear: string | null; lastWorn: string };
   goesWith: GoesWithCard[];
-  styleCta?: React.ReactNode;
 }) {
   const [editing, setEditing] = useState(false);
   const [, start] = useTransition();
@@ -64,7 +63,12 @@ export function ItemDetail({
         goesWith={goesWith}
         onEdit={() => setEditing(true)}
         onArchive={archive}
-        styleCta={styleCta}
+        // Built HERE, not passed down from the page. `page.tsx` is a Server
+        // Component, and a JSX element handed across the RSC boundary is
+        // serialised — React cannot give it positional identity and warns that
+        // every child in a list needs a key. Creating it inside this client
+        // component keeps ItemView presentational without that round trip.
+        styleCta={<StyleCta itemId={item.id} />}
       />
       {editing && (
         <ItemEditSheet

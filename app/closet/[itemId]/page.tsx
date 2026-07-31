@@ -6,7 +6,6 @@ import { itemWearStats } from "@/lib/closet/wear-stats";
 import { goesWith } from "@/lib/closet/goes-with";
 import { ItemDetail, type DetailItem } from "@/components/closet/item-detail";
 import type { GoesWithCard } from "@/components/closet/item-view";
-import { StyleCta } from "@/components/closet/style-cta";
 
 export default async function ItemPage({
   params,
@@ -28,18 +27,23 @@ export default async function ItemPage({
   const closet = closetRows ?? [];
 
   /**
-   * Wear history for ONE item.
+   * Wear history for ONE item, in two steps on purpose.
    *
    * A wear is logged against an OUTFIT, never an item, so an item's wear count
-   * is "how many logged outfits contained it": wear_logs → outfit_items. The
-   * `!inner` is what makes the embed a restriction rather than a nullable join —
-   * without it every wear log in the account comes back and every item claims
-   * the same wear count.
+   * is "how many logged outfits contained it". `wear_logs` and `outfit_items`
+   * are NOT directly related — both hang off `outfits` — so PostgREST cannot
+   * embed one in the other, and an `outfit_items!inner(...)` join silently
+   * returned zero rows for an item that had genuinely been worn. Two explicit
+   * queries are obviously correct where that embed was quietly wrong.
    */
-  const { data: logs } = await supabase
-    .from("wear_logs")
-    .select("worn_on, outfit_items!inner(item_id)")
-    .eq("outfit_items.item_id", itemId);
+  const { data: wornIn } = await supabase
+    .from("outfit_items")
+    .select("outfit_id")
+    .eq("item_id", itemId);
+  const outfitIds = (wornIn ?? []).map((r) => r.outfit_id);
+  const { data: logs } = outfitIds.length
+    ? await supabase.from("wear_logs").select("worn_on").in("outfit_id", outfitIds)
+    : { data: [] };
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -83,7 +87,6 @@ export default async function ItemPage({
       brandSuggestions={brandSuggestions}
       stats={stats}
       goesWith={goesWithCards}
-      styleCta={<StyleCta itemId={item.id} />}
     />
   );
 }

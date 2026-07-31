@@ -10,11 +10,19 @@ import type { DetailItem } from "./item-detail";
 export type GoesWithCard = { id: string; name: string; imageUrl: string };
 
 /** A stat tile. `value` is already formatted — this renders, it does not compute. */
-function Tile({ value, label, serifSize }: { value: string; label: string; serifSize: string }) {
+function Tile({ value, label }: { value: string; label: string }) {
   return (
-    <div className="flex-1 rounded-[13px] bg-surface-1 p-[14px] shadow-[inset_0_0_0_1px_var(--hairline-2)]">
-      <div className={`font-serif ${serifSize} leading-none text-foreground`}>{value}</div>
-      <div className="mt-[6px] text-[10px] uppercase tracking-[0.1em] text-muted-dim">{label}</div>
+    // The labels are BOTTOM-aligned (`mt-auto` in an equal-height flex row)
+    // rather than spaced by a fixed top margin, so they stay on one line however
+    // tall a value renders — "Yesterday" wraps on a narrow phone, "1" never does.
+    <div className="flex flex-1 flex-col rounded-[13px] bg-surface-1 p-[14px] shadow-[inset_0_0_0_1px_var(--hairline-2)]">
+      {/* ONE size across all three tiles. The design sets the two numeric tiles
+          at 26px and the phrase at 17px, but a row of tiles that disagree on
+          type size reads as three unrelated cards rather than one summary. */}
+      <div className="font-serif text-[15px] leading-none text-foreground">{value}</div>
+      <div className="mt-auto pt-[6px] text-[10px] uppercase tracking-[0.1em] text-muted-dim">
+        {label}
+      </div>
     </div>
   );
 }
@@ -59,7 +67,13 @@ export function ItemView({
 }) {
   const router = useRouter();
   const title = item.name ?? item.subcategory ?? item.category;
-  const subtitle = [item.subcategory, item.colors[0]].filter(Boolean).join(" · ");
+  // Plenty of items are named after their own subcategory ("Oxford shirt"), and
+  // the design's pairing (`Pale Blue Oxford` / `Oxford shirt · Pale blue`) only
+  // reads when the two differ. Repeating it verbatim under the title looks like
+  // a rendering bug.
+  const subtitle = [item.subcategory === title ? null : item.subcategory, item.colors[0]]
+    .filter(Boolean)
+    .join(" · ");
 
   const tags: [string, string | null][] = [
     ["Category", item.category],
@@ -111,16 +125,20 @@ export function ItemView({
         <div className="px-6 pt-[6px]">
           {item.brand && <Kicker>{item.brand}</Kicker>}
           <h1 className="mt-[6px] font-serif text-[30px]/[1.05] text-foreground">{title}</h1>
-          {subtitle && <p className="mt-[5px] text-sm text-muted-foreground">{subtitle}</p>}
+          {subtitle && (
+            <p data-testid="item-subtitle" className="mt-[5px] text-sm text-muted-foreground">
+              {subtitle}
+            </p>
+          )}
 
           <div className="mt-[22px] flex gap-[10px]">
-            <Tile value={String(stats.wears)} label="Times worn" serifSize="text-[26px]" />
+            <Tile value={String(stats.wears)} label="Times worn" />
             {/* Omitted rather than shown as £0.00 — an unpriced item has no
                 cost per wear, and printing one states something false. */}
             {stats.costPerWear && (
-              <Tile value={stats.costPerWear} label="Cost / wear" serifSize="text-[26px]" />
+              <Tile value={stats.costPerWear} label="Cost / wear" />
             )}
-            <Tile value={stats.lastWorn} label="Last worn" serifSize="text-[17px]" />
+            <Tile value={stats.lastWorn} label="Last worn" />
           </div>
 
           {/* The One Rust Rule's single spend on this screen. Always paired with
