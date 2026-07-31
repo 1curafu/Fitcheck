@@ -6,6 +6,7 @@ import { itemWearStats } from "@/lib/closet/wear-stats";
 import { goesWith } from "@/lib/closet/goes-with";
 import { ItemDetail, type DetailItem } from "@/components/closet/item-detail";
 import type { GoesWithCard } from "@/components/closet/item-view";
+import { StyleCta } from "@/components/closet/style-cta";
 
 export default async function ItemPage({
   params,
@@ -82,6 +83,7 @@ export default async function ItemPage({
       brandSuggestions={brandSuggestions}
       stats={stats}
       goesWith={goesWithCards}
+      styleCta={<StyleCta itemId={item.id} />}
     />
   );
 }

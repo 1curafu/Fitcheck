@@ -1,0 +1,205 @@
+"use server";
+
+import { createClient } from "@/lib/supabase/server";
+import { signItemImages, displayPath } from "@/lib/storage/signed";
+import { fetchForecast } from "@/lib/weather/open-meteo";
+import { laterAdvice } from "@/lib/weather/advice";
+import { personalBand } from "@/lib/generator/rules";
+import { buildCandidates, type CandidateItem } from "@/lib/generator/candidates";
+import { rankTopN } from "@/lib/generator/rank";
+import { currentSeason } from "@/lib/generator/season";
+import { rerank } from "@/lib/generator/rerank";
+import { layoutForLook, staggerOrder } from "@/lib/generator/layout";
+import { localDateFor } from "@/lib/outfits/local-date";
+import { assertCanGenerate, QuotaExceededError } from "@/lib/outfits/quota";
+import { predictOccasion } from "@/lib/outfits/predict-occasion";
+import { pinItem, styledLookName } from "@/lib/outfits/styled";
+import { loadStyledLook, saveStyledLook } from "@/lib/outfits/styled-store";
+import { resolveLocation } from "@/lib/weather/location";
+import type { LookDraft, LookPiece, WeatherPayload } from "@/lib/generator/types";
+
+export type StyleResult =
+  | { status: "ok"; outfitId: string }
+  | { status: "limited" }
+  | { status: "empty"; message: string }
+  | { status: "error"; message: string };
+
+/**
+ * "Style an outfit with this" (Fitcheck.dc.html:654).
+ *
+ * Pins the piece, runs the deterministic pipeline, spends ONE text call to name
+ * and explain the result, then persists it keyed by (user, item, local day) so a
+ * second tap the same day is a free read.
+ *
+ * This does not contradict Decision 5. That decision says never pay twice for a
+ * question already answered — which is why the daily drop caches. "What goes
+ * with this piece?" is a different question from "what should I wear today?",
+ * so it gets its own answer, cached the same way.
+ *
+ * The alternative readings were measured and rejected; see the plan
+ * `todo/2026-07-24-item-detail-rebuild.md`.
+ */
+export async function styleWithItem(itemId: string): Promise<StyleResult> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { status: "error", message: "Not signed in" };
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select(
+        "archetype, formality_min, formality_max, occasions, location_lat, location_lon, location_label, location_source, location_timezone",
+      )
+      .eq("id", user.id)
+      .single();
+
+    const { data: itemsRaw } = await supabase
+      .from("items")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("archived", false);
+    const items = itemsRaw ?? [];
+    const subject = items.find((i) => i.id === itemId);
+    if (!subject) return { status: "error", message: "Piece not found" };
+
+    // Fragrance occupies no slot in a look, so there is nothing to build around.
+    if (subject.category === "Fragrance") {
+      return { status: "empty", message: "Fragrance finishes a look rather than forming one." };
+    }
+
+    const loc = resolveLocation({ profile });
+    const now = new Date();
+    const f = await fetchForecast(loc.lat, loc.lon);
+    const today = localDateFor(now, f.timezone);
+
+    // THE CACHE. Checked before the quota is touched — re-opening an answer you
+    // already have must never cost anything.
+    const cached = await loadStyledLook(user.id, itemId, today);
+    if (cached) return { status: "ok", outfitId: cached };
+
+    try {
+      await assertCanGenerate(user.id);
+    } catch (e) {
+      if (e instanceof QuotaExceededError) return { status: "limited" };
+      throw e;
+    }
+
+    const advice = laterAdvice(f.hourly);
+    const weather: WeatherPayload = {
+      tempC: f.tempC,
+      feelsLikeC: f.feelsLikeC,
+      condition: f.condition,
+      cityLabel: loc.label,
+      timezone: f.timezone,
+      locationOrigin: loc.origin,
+      laterSentence: advice.sentence,
+      adviceClause: advice.adviceClause,
+      laterLabel: "Later",
+      hourly: f.hourly,
+    };
+
+    // The occasion the app already believes you are dressing for today — the CTA
+    // has no picker, and a look styled for the wrong context is worse than one
+    // that simply agrees with the rest of the day.
+    const occasion = predictOccasion(now, f.timezone, profile?.occasions ?? []);
+
+    /**
+     * Pinning, done BEFORE candidate building rather than after.
+     *
+     * Dropping every rival in the subject's own category means any combo using
+     * that category uses THIS piece. Filtering the built list instead would have
+     * to survive the 200-combo CAP, and a piece that never made the cut would
+     * silently produce "no looks" — the same class of bug as the coverage
+     * defect fixed in PR #14.
+     */
+    const pool = items.filter((i) => i.category !== subject.category || i.id === itemId);
+    const candItems: CandidateItem[] = pool.map((i) => ({
+      id: i.id,
+      colors: i.colors ?? [],
+      category: i.category,
+      formality: i.formality,
+      seasons: i.seasons ?? [],
+      material: i.material,
+    }));
+
+    const args = {
+      weather: { tempC: f.tempC, rain: f.hourly.some((h) => h.isNow && h.rain) },
+      season: currentSeason(now),
+      excludeItemIds: [],
+      maxAccessories: 1,
+    };
+    const aesthetic = profile?.archetype ? [profile.archetype] : [];
+
+    // Try the day's own formality band first, then the full scale. A piece
+    // dressier or more casual than today's context is still stylable — refusing
+    // would be the "hard filter empties a required slot" trap again.
+    let pinned: ReturnType<typeof rankTopN> = [];
+    for (const band of [personalBand(occasion, profile), [1, 5] as [number, number]]) {
+      const combos = buildCandidates(candItems, { ...args, band });
+      const ranked = rankTopN(
+        combos,
+        { aesthetic, band, lean: [], recentlyShown: [], season: args.season },
+        combos.length,
+      );
+      pinned = pinItem(ranked, itemId);
+      if (pinned.length) break;
+    }
+
+    if (!pinned.length) {
+      return {
+        status: "empty",
+        message: "Not enough other pieces to build a look around this one yet.",
+      };
+    }
+
+    const byId = new Map(items.map((i) => [i.id, i]));
+    const shortlist = pinned.slice(0, 20);
+
+    const { picks } = await rerank({
+      want: 1,
+      combos: shortlist.map((t) =>
+        t.items.map((ci) => {
+          const it = byId.get(ci.id)!;
+          return { category: it.category, subcategory: it.subcategory, colors: it.colors ?? [] };
+        }),
+      ),
+      aesthetic,
+      occasion,
+      weatherLabel: f.condition,
+      tempC: f.tempC,
+    });
+
+    const chosen = shortlist[picks[0]?.combo_index ?? 0] ?? shortlist[0];
+    const dbItems = chosen.items.map((ci) => byId.get(ci.id)!);
+    const paths = dbItems.map(displayPath);
+    const signed = await signItemImages(paths);
+    const slots = layoutForLook(dbItems.map((d) => ({ category: d.category })));
+    const pieces: LookPiece[] = dbItems.map((d, idx) => ({
+      itemId: d.id,
+      category: d.category,
+      subcategory: d.subcategory ?? null,
+      brand: d.brand ?? null,
+      name: d.name ?? null,
+      colors: d.colors ?? [],
+      cutoutUrl: signed.get(displayPath(d)) ?? "",
+      slot: slots[idx],
+    }));
+
+    const draft: LookDraft = {
+      name: picks[0]?.name || styledLookName(subject),
+      why: picks[0]?.why ?? "",
+      pieces,
+      anchorIndex: staggerOrder(slots)[0],
+    };
+
+    const outfitId = await saveStyledLook(user.id, itemId, occasion, today, weather, draft);
+    if (!outfitId) return { status: "error", message: "Couldn't save the look" };
+
+    return { status: "ok", outfitId };
+  } catch (e) {
+    console.error("[styleWithItem] failed:", e);
+    return { status: "error", message: e instanceof Error ? e.message : "Couldn't style this" };
+  }
+}

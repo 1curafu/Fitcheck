@@ -19,6 +19,10 @@ export async function loadDailyLooks(
     .eq("user_id", userId)
     .eq("occasion", occasion)
     .eq("generated_on", generatedOn)
+    // A "Style an outfit with this" look is dated and carries an occasion too,
+    // so it matches this filter — without the guard it shows up as an extra
+    // look in the day's set.
+    .is("styled_item_id", null)
     .order("look_index", { ascending: true });
 
   if (!data || data.length === 0) return null;
@@ -68,7 +72,8 @@ export async function saveDailyLooks(
     .select("id, look_index, wear_logs(worn_on)")
     .eq("user_id", userId)
     .eq("occasion", occasion)
-    .eq("generated_on", generatedOn);
+    .eq("generated_on", generatedOn)
+    .is("styled_item_id", null);
 
   // Any wear log pins the row — not just today's. The point is that nothing
   // referenced by wear_logs is ever deleted here.
@@ -79,7 +84,10 @@ export async function saveDailyLooks(
     .delete()
     .eq("user_id", userId)
     .eq("occasion", occasion)
-    .eq("generated_on", generatedOn);
+    .eq("generated_on", generatedOn)
+    // Never delete a styled look: it is a cached answer to a different
+    // question, and a regenerate has no business invalidating it.
+    .is("styled_item_id", null);
   if (pinned.length) del = del.not("id", "in", `(${pinned.map((r) => r.id).join(",")})`);
   await del;
 
