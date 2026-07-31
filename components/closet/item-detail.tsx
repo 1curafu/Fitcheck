@@ -1,26 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { updateItem, archiveItem } from "@/app/closet/[itemId]/actions";
-import { Chip } from "@/components/ui-fitcheck/chip";
-import { Kicker } from "@/components/ui-fitcheck/kicker";
-import { Select } from "@/components/ui-fitcheck/select";
+import { archiveItem } from "@/app/closet/[itemId]/actions";
 import type { Tags } from "@/lib/ai/tagging-schema";
 
-import { ColorPicker } from "./color-picker";
-import {
-  CATEGORIES,
-  SEASONS,
-  FORMALITY_LABEL,
-  MATERIALS,
-  TEXTURES,
-  PATTERNS,
-} from "@/lib/closet/vocab";
-
-// See the note in confirm-form.tsx — CATEGORIES carries Fragrance because it is
-// derived from TagSchema; the picker offers the wearable families.
-const PICKABLE = CATEGORIES.filter((c) => c !== "Fragrance");
+import { ItemView, type GoesWithCard } from "./item-view";
+import { ItemEditSheet } from "./item-edit-sheet";
+import { StyleCta } from "./style-cta";
 
 export type DetailItem = {
   id: string;
@@ -37,249 +23,60 @@ export type DetailItem = {
   seasons: string[];
 };
 
+/**
+ * The item detail shell.
+ *
+ * This file used to BE the tag form. The design's item detail is read-first —
+ * cutouts are the hero, the stat tiles answer "how do I actually wear this?",
+ * and editing sits behind `⋯`. So this component now owns only the switch
+ * between the two: `ItemView` reads, `ItemEditSheet` writes.
+ */
 export function ItemDetail({
   item,
   imageUrl,
   brandSuggestions,
+  stats,
+  goesWith,
 }: {
   item: DetailItem;
   imageUrl: string;
   brandSuggestions: string[];
+  stats: { wears: number; costPerWear: string | null; lastWorn: string };
+  goesWith: GoesWithCard[];
 }) {
-  const router = useRouter();
-  const [name, setName] = useState(item.name ?? "");
-  const [brand, setBrand] = useState(item.brand ?? "");
-  const [material, setMaterial] = useState(item.material ?? "");
-  const [category, setCategory] = useState<Tags["category"]>(item.category);
-  const [formality, setFormality] = useState(item.formality ?? 3);
-  const [seasons, setSeasons] = useState<string[]>(item.seasons);
-  const [colors, setColors] = useState<string[]>(item.colors);
-  const [texture, setTexture] = useState(item.texture ?? "Flat");
-  const [pattern, setPattern] = useState(item.pattern ?? "solid");
-  const [subcategory, setSubcategory] = useState(item.subcategory ?? "");
-  const [price, setPrice] = useState(item.price?.toString() ?? "");
-  const [pending, start] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [, start] = useTransition();
 
-  function toggleSeason(s: string) {
-    setSeasons((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]));
-  }
-
-  function save() {
-    setError(null);
-    start(async () => {
-      try {
-        await updateItem(item.id, {
-          name: name || null,
-          brand: brand || null,
-          category,
-          // "Unknown" is not in the vocabulary — it was fabricated here and
-          // would now fail validation. "Other" is the real escape hatch.
-          material: material || "Other",
-          subcategory: subcategory || null,
-          colors,
-          texture,
-          pattern,
-          // An empty box means "not recorded", not zero — cost-per-wear must
-          // not divide by a price the user never gave.
-          price: price.trim() === "" ? null : Number(price),
-          formality,
-          seasons: seasons.length ? seasons : ["Spring"],
-        });
-        router.push("/closet");
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Save failed");
-      }
-    });
-  }
-
-  function remove() {
+  function archive() {
     if (!confirm("Remove this piece from your closet?")) return;
-    setError(null);
     start(async () => {
-      try {
-        await archiveItem(item.id);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to remove");
-      }
+      await archiveItem(item.id);
     });
   }
 
   return (
-    <main className="screen-top flex flex-1 flex-col gap-5 px-6 pb-7">
-      <button
-        onClick={() => router.back()}
-        className="self-start text-2xl leading-none text-muted-foreground"
-        aria-label="Back"
-      >
-        ‹
-      </button>
-
-      {/* `.surface-stage` is the design's cutout stage (Fitcheck.dc.html:595 /
-          :530) — a radial gradient lit from above, not a flat fill.
-          The image is ABSOLUTELY positioned, not a grid item: as a grid
-          item its `min-height:auto` forced the row past the 1.3 aspect ratio,
-          and `max-h-full` could not save it because a percentage against an
-          auto-sized row is indefinite and resolves to `none` — so a 970x1280
-          cutout spilled over the fields below. Absolute + inset-0 gives
-          object-contain a definite box to fit inside. */}
-      <div className="relative aspect-[1.3] overflow-hidden rounded-[18px] surface-stage">
-        {imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={imageUrl}
-            alt={name}
-            className="absolute inset-0 size-full object-contain p-6"
-          />
-        ) : null}
-      </div>
-
-      <input
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="Name"
-        className="rounded-[12px] border border-[--input] bg-surface-1 px-4 py-3 font-serif text-lg text-foreground outline-none focus:border-brand"
+    <>
+      <ItemView
+        item={item}
+        imageUrl={imageUrl}
+        stats={stats}
+        goesWith={goesWith}
+        onEdit={() => setEditing(true)}
+        onArchive={archive}
+        // Built HERE, not passed down from the page. `page.tsx` is a Server
+        // Component, and a JSX element handed across the RSC boundary is
+        // serialised — React cannot give it positional identity and warns that
+        // every child in a list needs a key. Creating it inside this client
+        // component keeps ItemView presentational without that round trip.
+        styleCta={<StyleCta itemId={item.id} />}
       />
-
-      <input
-        list="brand-suggestions"
-        value={brand}
-        onChange={(e) => setBrand(e.target.value)}
-        placeholder="Brand (optional)"
-        className="-mt-2 rounded-[12px] border border-[--input] bg-surface-1 px-4 py-3 text-sm text-foreground outline-none focus:border-brand"
-      />
-      <datalist id="brand-suggestions">
-        {brandSuggestions.map((b) => (
-          <option key={b} value={b} />
-        ))}
-      </datalist>
-
-      <div>
-        <Kicker className="mb-2 block">Category</Kicker>
-        <div className="flex flex-wrap gap-2">
-          {PICKABLE.map((c) => (
-            <Chip key={c} variant="select" active={category === c} onClick={() => setCategory(c)}>
-              {c}
-            </Chip>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <Kicker className="mb-2 block">Material</Kicker>
-        {/* A select, not free text and not chips: `material` is a constrained
-            enum, and 27 chips ran to eight rows on a phone. */}
-        <Select
-          aria-label="Material"
-          value={material}
-          onChange={(e) => setMaterial(e.target.value)}
-        >
-          {MATERIALS.map((m) => (
-            <option key={m} value={m}>
-              {m}
-            </option>
-          ))}
-        </Select>
-      </div>
-
-      <div>
-        <Kicker className="mb-2 block">Formality · {FORMALITY_LABEL[formality]}</Kicker>
-        <div className="flex gap-2">
-          {[1, 2, 3, 4, 5].map((n) => (
-            <button
-              key={n}
-              onClick={() => setFormality(n)}
-              className={`h-2 flex-1 rounded-full ${n <= formality ? "bg-brand" : "bg-foreground/10"}`}
-              aria-label={`Formality ${n}`}
-            />
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <Kicker className="mb-2 block">Seasons</Kicker>
-        <div className="flex flex-wrap gap-2">
-          {SEASONS.map((s) => (
-            <Chip key={s} variant="select" active={seasons.includes(s)} onClick={() => toggleSeason(s)}>
-              {s}
-            </Chip>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <Kicker className="mb-2 block">Subcategory</Kicker>
-        <input
-          aria-label="Subcategory"
-          value={subcategory}
-          onChange={(e) => setSubcategory(e.target.value)}
-          className="w-full rounded-[12px] border border-[--input] bg-surface-1 px-4 py-3 text-sm text-foreground outline-none focus:border-brand"
+      {editing && (
+        <ItemEditSheet
+          item={item}
+          brandSuggestions={brandSuggestions}
+          onClose={() => setEditing(false)}
         />
-      </div>
-
-      <div>
-        <Kicker className="mb-2 block">Colour</Kicker>
-        <ColorPicker value={colors} onChange={setColors} />
-      </div>
-
-      <div>
-        <Kicker className="mb-2 block">Texture</Kicker>
-        <Select
-          aria-label="Texture"
-          value={texture}
-          onChange={(e) => setTexture(e.target.value)}
-        >
-          {TEXTURES.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </Select>
-      </div>
-
-      <div>
-        <Kicker className="mb-2 block">Pattern</Kicker>
-        <Select
-          aria-label="Pattern"
-          value={pattern}
-          onChange={(e) => setPattern(e.target.value)}
-        >
-          {PATTERNS.map((p) => (
-            <option key={p} value={p}>
-              {p}
-            </option>
-          ))}
-        </Select>
-      </div>
-
-      <div>
-        <Kicker className="mb-2 block">Price paid</Kicker>
-        <input
-          aria-label="Price paid"
-          inputMode="decimal"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          placeholder="Optional — enables cost per wear"
-          className="w-full rounded-[12px] border border-[--input] bg-surface-1 px-4 py-3 text-sm text-foreground outline-none focus:border-brand"
-        />
-      </div>
-      {error && <p className="text-sm text-brand">{error}</p>}
-
-      <div className="flex-1" />
-      <button
-        onClick={save}
-        disabled={pending}
-        className="rounded-[12px] bg-foreground py-[17px] text-center font-semibold text-canvas disabled:opacity-60"
-      >
-        {pending ? "Saving…" : "Save"}
-      </button>
-      <button
-        onClick={remove}
-        disabled={pending}
-        className="text-center text-sm text-brand-deep"
-      >
-        Remove from closet
-      </button>
-    </main>
+      )}
+    </>
   );
 }

@@ -1,7 +1,11 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { signItemImages, displayPath } from "@/lib/storage/signed";
+import { localDateFor } from "@/lib/outfits/local-date";
+import { itemWearStats } from "@/lib/closet/wear-stats";
+import { goesWith } from "@/lib/closet/goes-with";
 import { ItemDetail, type DetailItem } from "@/components/closet/item-detail";
+import type { GoesWithCard } from "@/components/closet/item-view";
 
 export default async function ItemPage({
   params,
@@ -15,30 +19,74 @@ export default async function ItemPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/");
 
-  const { data: item } = await supabase
-    .from("items")
-    .select("*")
-    .eq("id", itemId)
-    .single();
+  const { data: item } = await supabase.from("items").select("*").eq("id", itemId).single();
   if (!item) notFound();
 
-  const signed = await signItemImages([displayPath(item)]);
+  // The rest of the wardrobe — used for "Goes with" and the brand suggestions.
+  const { data: closetRows } = await supabase.from("items").select("*").eq("archived", false);
+  const closet = closetRows ?? [];
+
+  /**
+   * Wear history for ONE item, in two steps on purpose.
+   *
+   * A wear is logged against an OUTFIT, never an item, so an item's wear count
+   * is "how many logged outfits contained it". `wear_logs` and `outfit_items`
+   * are NOT directly related — both hang off `outfits` — so PostgREST cannot
+   * embed one in the other, and an `outfit_items!inner(...)` join silently
+   * returned zero rows for an item that had genuinely been worn. Two explicit
+   * queries are obviously correct where that embed was quietly wrong.
+   */
+  const { data: wornIn } = await supabase
+    .from("outfit_items")
+    .select("outfit_id")
+    .eq("item_id", itemId);
+  const outfitIds = (wornIn ?? []).map((r) => r.outfit_id);
+  const { data: logs } = outfitIds.length
+    ? await supabase.from("wear_logs").select("worn_on").in("outfit_id", outfitIds)
+    : { data: [] };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("location_timezone")
+    .eq("id", user.id)
+    .single();
+  const today = localDateFor(new Date(), profile?.location_timezone ?? "UTC");
+
+  const stats = itemWearStats(logs ?? [], item.price, today);
+
+  const pairIds = goesWith(
+    { id: item.id, category: item.category, colors: item.colors ?? [], formality: item.formality },
+    closet.map((i) => ({
+      id: i.id,
+      category: i.category,
+      colors: i.colors ?? [],
+      formality: i.formality,
+    })),
+  );
+  const byId = new Map(closet.map((i) => [i.id, i]));
+  const pairs = pairIds.flatMap((id) => {
+    const row = byId.get(id);
+    return row ? [row] : [];
+  });
+
+  const signed = await signItemImages([item, ...pairs].map(displayPath));
+
+  const goesWithCards: GoesWithCard[] = pairs.map((i) => ({
+    id: i.id,
+    name: i.name ?? i.subcategory ?? i.category,
+    imageUrl: signed.get(displayPath(i)) ?? "",
+  }));
 
   // Distinct brands already in the closet → autocomplete suggestions.
-  const { data: brandRows } = await supabase
-    .from("items")
-    .select("brand")
-    .eq("archived", false)
-    .not("brand", "is", null);
-  const brandSuggestions = [
-    ...new Set((brandRows ?? []).map((r) => r.brand).filter(Boolean) as string[]),
-  ];
+  const brandSuggestions = [...new Set(closet.map((i) => i.brand).filter(Boolean) as string[])];
 
   return (
     <ItemDetail
       item={item as DetailItem}
       imageUrl={signed.get(displayPath(item)) ?? ""}
       brandSuggestions={brandSuggestions}
+      stats={stats}
+      goesWith={goesWithCards}
     />
   );
 }
