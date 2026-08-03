@@ -86,6 +86,23 @@ test("goes-with pieces link to their own detail", () => {
   );
 });
 
+// A pair whose storage object cannot be signed arrives here as "" — the page
+// maps a missing signed URL to the empty string, exactly as it does for the
+// hero. React treats `<img src="">` as an error ("may cause the browser to
+// download the whole page again"), which Next's dev overlay throws up as a red
+// screen over a working closet. The tile is its own placeholder; render that.
+test("a pair with no signed image renders its tile without a broken img", () => {
+  const err = vi.spyOn(console, "error").mockImplementation(() => {});
+  const { container } = renderView({
+    goesWith: [{ id: "i2", name: "Camel Overshirt", imageUrl: "" }],
+  });
+  expect(container.querySelector('img[src=""]')).toBeNull();
+  expect(err).not.toHaveBeenCalled();
+  err.mockRestore();
+  // The suggestion itself still stands — only its picture is missing.
+  expect(screen.getByRole("link", { name: /camel overshirt/i })).toBeInTheDocument();
+});
+
 // An empty row is better than a fabricated one — a one-item closet has nothing
 // to suggest, and the heading alone would read as a loading failure.
 test("the goes-with section is absent when there is nothing to suggest", () => {
