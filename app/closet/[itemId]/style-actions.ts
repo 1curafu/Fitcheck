@@ -20,7 +20,10 @@ import type { LookDraft, LookPiece, WeatherPayload } from "@/lib/generator/types
 
 export type StyleResult =
   | { status: "ok"; outfitId: string }
-  | { status: "limited" }
+  // Carries the seam's own reason. Styling is a Pro capability rather than a
+  // daily allowance, so a message written here ("back tomorrow") would be
+  // actively false — tomorrow gives a free user no stylings either.
+  | { status: "limited"; message: string }
   | { status: "empty"; message: string }
   | { status: "error"; message: string };
 
@@ -88,7 +91,7 @@ export async function styleWithItem(itemId: string): Promise<StyleResult> {
     try {
       await assertCanGenerate(user.id, { kind: "styled", today });
     } catch (e) {
-      if (e instanceof QuotaExceededError) return { status: "limited" };
+      if (e instanceof QuotaExceededError) return { status: "limited", message: e.message };
       throw e;
     }
 

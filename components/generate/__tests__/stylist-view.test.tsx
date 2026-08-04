@@ -114,6 +114,55 @@ test("limited: the reason is rendered verbatim, not a generic message", () => {
   expect(screen.getByText(/building a look around a piece/i)).toBeInTheDocument();
 });
 
+// Pressing Regenerate must never COST you the looks you already had — being
+// refused more is not the same as losing what you have.
+test("limited: looks already on screen are kept", () => {
+  render(
+    <StylistView
+      {...base}
+      status="limited"
+      looks={[look]}
+      limitMessage="You've used today's redo for this occasion. Pro regenerates freely."
+    />,
+  );
+  expect(screen.getByText(look.why)).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /see the full look/i })).toBeInTheDocument();
+});
+
+// The control stays live and opens the Pro sheet. A caption in its place was
+// tried first: it read as a validation error rather than a feature you have not
+// bought, and left nothing to press, so nothing explained itself.
+test("limited: the regenerate control opens the upgrade sheet instead of regenerating", async () => {
+  const onRegenerate = vi.fn();
+  const onShowUpgrade = vi.fn();
+  render(
+    <StylistView
+      {...base}
+      status="limited"
+      looks={[look]}
+      limitMessage="Pro regenerates freely."
+      onRegenerate={onRegenerate}
+      onShowUpgrade={onShowUpgrade}
+    />,
+  );
+  await userEvent.click(screen.getByRole("button", { name: /regenerate/i }));
+  expect(onShowUpgrade).toHaveBeenCalled();
+  expect(onRegenerate).not.toHaveBeenCalled();
+});
+
+test("the upgrade sheet renders the seam's reason when open", () => {
+  render(
+    <StylistView
+      {...base}
+      status="limited"
+      looks={[look]}
+      upgradeOpen
+      limitMessage="You've used today's redo for this occasion. Pro regenerates freely."
+    />,
+  );
+  expect(screen.getByRole("dialog")).toHaveTextContent(/used today's redo/i);
+});
+
 test("ok (D3): the active look's index name and its byline name are the same single string", () => {
   render(<StylistView {...base} status="ok" looks={[look]} />);
   expect(screen.getAllByText("The Camel").length).toBeGreaterThanOrEqual(2); // index tab + why byline

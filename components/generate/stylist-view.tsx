@@ -6,6 +6,7 @@ import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { WeatherStrip } from "./weather-strip";
 import { OccasionRow, RefineButton } from "./occasion-row";
 import { RefineSheet } from "./refine-sheet";
+import { UpgradeSheet } from "@/components/billing/upgrade-sheet";
 import { IndexTabs } from "./index-tabs";
 import { FlatLay } from "./flat-lay";
 import { WhyQuote } from "./why-quote";
@@ -61,6 +62,10 @@ export function StylistView(props: {
   onRetry: () => void;
   /** Decision 5: the ONLY way to spend an AI call on a day already answered. */
   onRegenerate: () => void;
+  /** Opens the Pro sheet when the regenerate allowance is spent. */
+  onShowUpgrade?: () => void;
+  upgradeOpen?: boolean;
+  onCloseUpgrade?: () => void;
   /** The legible "why" for the predicted default occasion (empty until seeded). */
   reason?: string;
 }) {
@@ -121,11 +126,15 @@ export function StylistView(props: {
           </div>
         )}
 
-        {/* A meter that ran out is a WORKING app with a clear next step, so it
-            gets the empty state's calm shape rather than the error's apology
-            and retry button — "Try again" would be a lie here, and the rust
-            spend belongs to the upgrade, which is the one action on offer. */}
-        {status === "limited" && (
+        {/* Only when there is genuinely nothing to show — a limit hit before any
+            look exists for this occasion. If the user HAS looks, they keep them
+            and the message replaces the Regenerate control instead (below):
+            being told you cannot have more must never cost you what you already
+            had, which is exactly what pressing Regenerate would then have done.
+
+            The shape is the empty state's, not the error's — "Try again" would
+            be a lie, and the app is working correctly. */}
+        {status === "limited" && !look && (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 text-center">
             <p className="font-serif text-[20px] text-foreground">That&apos;s today&apos;s looks</p>
             <p data-testid="limit-copy" className="max-w-[32ch] text-sm text-muted-foreground">
@@ -147,7 +156,7 @@ export function StylistView(props: {
           </div>
         )}
 
-        {status === "ok" && look && (
+        {(status === "ok" || status === "limited") && look && (
           <>
             <div className="relative flex flex-1 flex-col">
               <FlatLay look={look} />
@@ -185,9 +194,14 @@ export function StylistView(props: {
                 So: a real button shell, but secondary — bounded, tonal, and
                 below the primary, because this is the one control on the screen
                 that costs money to press. */}
+            {/* The control stays LIVE when the allowance is gone, and tapping
+                it opens the same upgrade sheet the styled-look gate uses.
+                Replacing it with a caption was tried first and read as a
+                validation error rather than a feature you have not bought —
+                and it left nothing to press, so nothing explained itself. */}
             <button
               type="button"
-              onClick={props.onRegenerate}
+              onClick={status === "limited" ? props.onShowUpgrade : props.onRegenerate}
               className="mt-[10px] flex w-full items-center justify-center gap-2 rounded-[13px] bg-surface-1 p-4 text-sm text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-7)]"
             >
               <RotateCcw size={15} />
@@ -202,6 +216,13 @@ export function StylistView(props: {
         occasionLabel={occLabel}
         onApply={props.onRefineApply}
         onClose={props.onCloseRefine}
+      />
+
+      <UpgradeSheet
+        open={Boolean(props.upgradeOpen)}
+        title="Regenerate as often as you like"
+        body={props.limitMessage ?? ""}
+        onClose={props.onCloseUpgrade ?? (() => {})}
       />
     </main>
   );

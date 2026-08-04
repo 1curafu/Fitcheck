@@ -81,6 +81,7 @@ export function Stylist() {
   const [missing, setMissing] = useState<string | null>(null);
   // The seam's own words for which allowance ran out — never re-worded here.
   const [limitMessage, setLimitMessage] = useState<string>("");
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [locating, setLocating] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
   // Optimistic: the row shows until we learn the browser has no geolocation at
@@ -273,6 +274,9 @@ export function Stylist() {
       refineOpen={refineOpen}
       missing={missing}
       limitMessage={limitMessage}
+      upgradeOpen={upgradeOpen}
+      onShowUpgrade={() => setUpgradeOpen(true)}
+      onCloseUpgrade={() => setUpgradeOpen(false)}
       locating={locating}
       geoError={geoError}
       reason={reason}
