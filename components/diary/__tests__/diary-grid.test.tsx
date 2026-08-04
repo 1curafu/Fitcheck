@@ -47,6 +47,14 @@ test("the streak is shown with its unit", () => {
   expect(within(pill).getByText(/days/i)).toBeInTheDocument();
 });
 
+// The design's template hard-codes "days"; a first-day streak read "1 days".
+test("a one-day streak is singular", () => {
+  renderGrid({ streak: 1 });
+  const pill = screen.getByTestId("streak-pill");
+  expect(within(pill).getByText("day")).toBeInTheDocument();
+  expect(within(pill).queryByText("days")).not.toBeInTheDocument();
+});
+
 test("a zero streak is not rendered as a boast", () => {
   renderGrid({ streak: 0 });
   expect(screen.queryByTestId("streak-pill")).not.toBeInTheDocument();
