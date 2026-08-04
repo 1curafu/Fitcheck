@@ -177,12 +177,22 @@ export function ItemView({
                 {goesWith.map((g) => (
                   <Link key={g.id} href={`/closet/${g.id}`} className="w-[92px] shrink-0">
                     <div className="relative aspect-square rounded-[12px] bg-surface-2 shadow-[inset_0_0_0_1px_var(--hairline-2)]">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={g.imageUrl}
-                        alt=""
-                        className="absolute inset-0 size-full object-contain p-3"
-                      />
+                      {/* An unsignable storage object arrives as "", and React
+                          errors on `<img src="">` rather than just showing a
+                          gap — in dev that is a red overlay over a working
+                          closet. The tile IS the placeholder, so render it bare
+                          and let the name carry the suggestion. Same guard as
+                          the hero above and the closet card. */}
+                      {g.imageUrl && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={g.imageUrl}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          className="absolute inset-0 size-full object-contain p-3"
+                        />
+                      )}
                     </div>
                     <div className="mt-[6px] text-center text-[10.5px]/[1.2] text-muted-foreground">
                       {g.name}
