@@ -3,18 +3,27 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { styleWithItem } from "@/app/closet/[itemId]/style-actions";
+import { UpgradeSheet } from "@/components/billing/upgrade-sheet";
 
 /**
  * The one primary action on item detail (Fitcheck.dc.html:654).
  *
- * The outcome is a STATE, not an exception: "you have used today's stylings" and
- * "there is not enough else in your closet yet" are both real answers, and a
- * thrown error would render as a dead button with no explanation.
+ * The outcome is a STATE, not an exception: "this is a Pro feature" and "there
+ * is not enough else in your closet yet" are both real answers, and a thrown
+ * error would render as a dead button with no explanation.
+ *
+ * The button stays VISIBLE and enabled for free users on purpose. Nobody buys a
+ * feature they have never seen, and this screen — the canonical one — is where
+ * the want is felt. Tapping it explains the feature rather than doing nothing.
  */
 export function StyleCta({ itemId }: { itemId: string }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
+  // A Pro gate and "your closet is too thin for this yet" are different answers
+  // and get different weight: the first is a sheet that explains and sells, the
+  // second is a quiet line, because there is nothing to buy — you add a piece.
+  const [upgrade, setUpgrade] = useState<string | null>(null);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -24,10 +33,16 @@ export function StyleCta({ itemId }: { itemId: string }) {
         onClick={() =>
           start(async () => {
             setMessage(null);
+            setUpgrade(null);
             const res = await styleWithItem(itemId);
             if (res.status === "ok") router.push(`/outfits/${res.outfitId}`);
-            else if (res.status === "limited")
-              setMessage("That's today's stylings used — back tomorrow.");
+            // The reason is rendered verbatim, never re-worded here. It used to
+            // read "that's today's stylings used — back tomorrow", written when
+            // styling was assumed to share the daily generation allowance. It
+            // is a Pro capability, so tomorrow gives a free user no more of them
+            // — the old copy told people to wait for something that would never
+            // arrive.
+            else if (res.status === "limited") setUpgrade(res.message);
             else setMessage(res.message);
           })
         }
@@ -40,6 +55,13 @@ export function StyleCta({ itemId }: { itemId: string }) {
           {message}
         </p>
       )}
+
+      <UpgradeSheet
+        open={Boolean(upgrade)}
+        title="Style a look around any piece"
+        body={upgrade ?? ""}
+        onClose={() => setUpgrade(null)}
+      />
     </div>
   );
 }

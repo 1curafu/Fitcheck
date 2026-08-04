@@ -6,6 +6,7 @@ import { tagItem } from "@/lib/ai/tag-item";
 import { TagSchema } from "@/lib/ai/tagging-schema";
 import { tagsToItemRow } from "@/lib/ai/parse-tags";
 import { cutoutFilename, type CutoutMediaType } from "@/lib/images/encode";
+import { assertCanUpload } from "@/lib/billing/entitlements";
 
 // Upload both blobs to Storage, then return a DRAFT tag set for the confirm
 // screen. No DB insert yet — the user confirms first.
@@ -19,6 +20,17 @@ export async function uploadAndTag(form: {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
+
+  // Gated HERE, not at confirm: everything expensive about adding a piece —
+  // two storage writes and the Haiku tagging call — happens below, before the
+  // user ever reaches the confirm screen. A limit checked at confirm would
+  // have already paid for the item it refuses.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("location_timezone")
+    .eq("id", user.id)
+    .single();
+  await assertCanUpload(profile?.location_timezone ?? "UTC");
 
   const itemId = crypto.randomUUID();
   const base = `${user.id}/${itemId}`;

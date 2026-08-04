@@ -60,4 +60,8 @@ export type GenerateResult =
   // `missing` names the required slot that blocked every combo, so the screen can
   // say WHICH gap to fill instead of a generic "add more pieces".
   | { status: "empty"; weather: WeatherPayload; missing: string | null }
+  // Hitting the meter is a STATE, not a failure. It carries `weather` so the
+  // screen keeps its strip, and the reason verbatim so it can say what ran out
+  // and what Pro gives — never "something went wrong" for a working app.
+  | { status: "limited"; weather: WeatherPayload; message: string }
   | { status: "error"; message: string };

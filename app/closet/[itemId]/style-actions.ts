@@ -11,7 +11,7 @@ import { currentSeason } from "@/lib/generator/season";
 import { rerank } from "@/lib/generator/rerank";
 import { layoutForLook, staggerOrder } from "@/lib/generator/layout";
 import { localDateFor } from "@/lib/outfits/local-date";
-import { assertCanGenerate, QuotaExceededError } from "@/lib/outfits/quota";
+import { assertCanGenerate, noteGeneration, QuotaExceededError } from "@/lib/outfits/quota";
 import { predictOccasion } from "@/lib/outfits/predict-occasion";
 import { pinItem, styledLookName } from "@/lib/outfits/styled";
 import { loadStyledLook, saveStyledLook } from "@/lib/outfits/styled-store";
@@ -20,7 +20,10 @@ import type { LookDraft, LookPiece, WeatherPayload } from "@/lib/generator/types
 
 export type StyleResult =
   | { status: "ok"; outfitId: string }
-  | { status: "limited" }
+  // Carries the seam's own reason. Styling is a Pro capability rather than a
+  // daily allowance, so a message written here ("back tomorrow") would be
+  // actively false — tomorrow gives a free user no stylings either.
+  | { status: "limited"; message: string }
   | { status: "empty"; message: string }
   | { status: "error"; message: string };
 
@@ -81,10 +84,14 @@ export async function styleWithItem(itemId: string): Promise<StyleResult> {
     const cached = await loadStyledLook(user.id, itemId, today);
     if (cached) return { status: "ok", outfitId: cached };
 
+    // Checked before the forecast fetch below: a free user is turned away
+    // without us paying for I/O they will never see. The occasion is not needed
+    // here — a styled look is a flat capability (Pro #2), not a counted meter —
+    // and it is resolved a few lines down, in time for the ledger.
     try {
-      await assertCanGenerate(user.id);
+      await assertCanGenerate(user.id, { kind: "styled", today });
     } catch (e) {
-      if (e instanceof QuotaExceededError) return { status: "limited" };
+      if (e instanceof QuotaExceededError) return { status: "limited", message: e.message };
       throw e;
     }
 
@@ -200,6 +207,10 @@ export async function styleWithItem(itemId: string): Promise<StyleResult> {
 
     const outfitId = await saveStyledLook(user.id, itemId, occasion, today, weather, draft);
     if (!outfitId) return { status: "error", message: "Couldn't save the look" };
+
+    // After the model answered AND the write landed. The occasion is known by
+    // now, which is why recording is separate from the gate above.
+    await noteGeneration(user.id, { kind: "styled", occasion, today });
 
     return { status: "ok", outfitId };
   } catch (e) {

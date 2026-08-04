@@ -14,7 +14,12 @@ import { layoutForLook, staggerOrder } from "@/lib/generator/layout";
 import { localDateFor } from "@/lib/outfits/local-date";
 import { loadDailyLooks, saveDailyLooks } from "@/lib/outfits/daily";
 import { reassembleLooks } from "@/lib/outfits/reassemble";
-import { assertCanGenerate } from "@/lib/outfits/quota";
+import {
+  assertCanGenerate,
+  noteGeneration,
+  QuotaExceededError,
+  type GenerationRequest,
+} from "@/lib/outfits/quota";
 import { predictOccasion, defaultReason } from "@/lib/outfits/predict-occasion";
 import { recordOverride } from "@/lib/outfits/overrides";
 import {
@@ -119,7 +124,33 @@ export async function generate(input: {
       ? Array.from(new Set(stored?.flatMap((s) => s.pieces.map((p) => p.itemId)) ?? []))
       : [];
 
-    await assertCanGenerate(user.id);
+    /**
+     * A fall-through is a DROP, not a regenerate.
+     *
+     * Reaching here without `input.regenerate` means either the occasion has no
+     * looks today, or the stored set no longer reassembles because the closet
+     * changed under it. Both are the app answering for the first time or
+     * repairing its own bookkeeping — not the user asking again — and neither
+     * should be charged. Drops are free on every tier regardless, so the
+     * distinction only matters for what the ledger records.
+     */
+    const gen: GenerationRequest = {
+      kind: input.regenerate ? "regenerate" : "drop",
+      occasion: input.occasion,
+      today,
+    };
+    // Caught HERE rather than in the outer catch, for two reasons: `weather` is
+    // in scope so the screen keeps its strip instead of collapsing, and being
+    // limited is a STATE, not a failure — routing it through the error path
+    // would render "Couldn't reach the stylist" for a working app.
+    try {
+      await assertCanGenerate(user.id, gen);
+    } catch (e) {
+      if (e instanceof QuotaExceededError) {
+        return { status: "limited", weather, message: e.message };
+      }
+      throw e;
+    }
 
     const candItems: CandidateItem[] = items.map((i) => ({
       id: i.id,
@@ -224,6 +255,11 @@ export async function generate(input: {
     // hands back the row ids, which are the detail screen's address.
     const ids = await saveDailyLooks(user.id, input.occasion, today, weather, drafts);
     const fresh: Look[] = drafts.map((d, i) => ({ ...d, id: ids[i] ?? "", worn: false }));
+
+    // Recorded only now — after the model answered and the write succeeded. A
+    // generation that failed cost the user nothing, so metering it would be
+    // charging them for our error.
+    await noteGeneration(user.id, gen);
 
     // Pinned looks keep their place at the front — they hold the lower
     // look_index values, which is the order the next load will read them back in.

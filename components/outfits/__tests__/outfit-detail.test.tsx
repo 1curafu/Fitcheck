@@ -32,6 +32,27 @@ test("the look name is the headline and the occasion + weather is the kicker", (
   expect(screen.getByText(/work · 18° cloudy/i)).toBeInTheDocument();
 });
 
+// A piece the storage layer could not sign arrives as "" (the page maps a
+// missing signed URL to the empty string). React reports `<img src="">` as an
+// error, which the dev overlay throws up over an otherwise working screen —
+// the flat-lay and the piece row must both go one image lighter instead.
+test("a piece with no signed image renders no broken img in either place", () => {
+  const err = vi.spyOn(console, "error").mockImplementation(() => {});
+  const { container } = render(
+    <OutfitDetail
+      outfit={outfit}
+      pieces={[{ ...pieces[0], imageUrl: "" }, pieces[1]]}
+      worn={false}
+      favorite={false}
+    />,
+  );
+  expect(container.querySelector('img[src=""]')).toBeNull();
+  expect(err).not.toHaveBeenCalled();
+  err.mockRestore();
+  // The piece itself is still part of the look — only its picture is missing.
+  expect(screen.getByRole("link", { name: /brushed oxford/i })).toBeInTheDocument();
+});
+
 test("the stylist note is rendered as the italic why — the product's differentiator", () => {
   render(<OutfitDetail outfit={outfit} pieces={pieces} worn={false} favorite={false} />);
   expect(screen.getByText(/camel over grey/i)).toBeInTheDocument();
