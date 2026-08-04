@@ -79,6 +79,8 @@ export function Stylist() {
   const [cities, setCities] = useState<City[]>([]);
   const [refineOpen, setRefineOpen] = useState(false);
   const [missing, setMissing] = useState<string | null>(null);
+  // The seam's own words for which allowance ran out — never re-worded here.
+  const [limitMessage, setLimitMessage] = useState<string>("");
   const [locating, setLocating] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
   // Optimistic: the row shows until we learn the browser has no geolocation at
@@ -165,6 +167,14 @@ export function Stylist() {
         setLooks([]);
         setMissing(res.missing);
         setStatus("empty");
+      } else if (res.status === "limited") {
+        // Weather is kept so the strip stays put — being out of regenerates
+        // does not mean the app stopped knowing the forecast. Looks are NOT
+        // cleared for the same reason a limit is not an error: whatever the
+        // user was already looking at is still theirs to look at.
+        setWeather(res.weather);
+        setLimitMessage(res.message);
+        setStatus("limited");
       } else {
         setStatus("error");
       }
@@ -262,6 +272,7 @@ export function Stylist() {
       cities={cities}
       refineOpen={refineOpen}
       missing={missing}
+      limitMessage={limitMessage}
       locating={locating}
       geoError={geoError}
       reason={reason}

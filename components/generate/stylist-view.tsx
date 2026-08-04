@@ -12,7 +12,7 @@ import { WhyQuote } from "./why-quote";
 import type { Look, UiOccasion, WeatherPayload } from "@/lib/generator/types";
 import type { City } from "@/lib/weather/geocode";
 
-export type StylistStatus = "loading" | "ok" | "empty" | "error";
+export type StylistStatus = "loading" | "ok" | "empty" | "error" | "limited";
 
 /**
  * An empty result is almost never "add more pieces" — it's one specific gap for
@@ -42,6 +42,12 @@ export function StylistView(props: {
   refineOpen: boolean;
   /** Required slot that blocked every combo, when status === "empty". */
   missing?: string | null;
+  /**
+   * The reason the meter gave, when status === "limited". Rendered verbatim:
+   * the seam knows WHICH allowance ran out (a regenerate, a styled look), and
+   * a message hard-coded here would be wrong for the others.
+   */
+  limitMessage?: string;
   onOccasion: (o: UiOccasion) => void;
   onOpenRefine: () => void;
   onCloseRefine: () => void;
@@ -111,6 +117,19 @@ export function StylistView(props: {
             <p className="font-serif text-[20px] text-foreground">Nothing to style yet</p>
             <p data-testid="empty-copy" className="max-w-[30ch] text-sm text-muted-foreground">
               {emptyCopy(props.missing, occLabel)}
+            </p>
+          </div>
+        )}
+
+        {/* A meter that ran out is a WORKING app with a clear next step, so it
+            gets the empty state's calm shape rather than the error's apology
+            and retry button — "Try again" would be a lie here, and the rust
+            spend belongs to the upgrade, which is the one action on offer. */}
+        {status === "limited" && (
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 text-center">
+            <p className="font-serif text-[20px] text-foreground">That&apos;s today&apos;s looks</p>
+            <p data-testid="limit-copy" className="max-w-[32ch] text-sm text-muted-foreground">
+              {props.limitMessage}
             </p>
           </div>
         )}

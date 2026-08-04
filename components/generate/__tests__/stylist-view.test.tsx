@@ -86,6 +86,34 @@ test("error (D10): the retry control re-invokes onRetry", async () => {
   expect(onRetry).toHaveBeenCalled();
 });
 
+// "Limited" is a STATE, not an error. A user at their allowance has a working
+// app and a clear next step; rendering the error path would tell them the
+// product is broken and lose the upgrade moment entirely.
+test("limited: the meter explains itself instead of looking broken", () => {
+  render(
+    <StylistView
+      {...base}
+      status="limited"
+      limitMessage="You've used today's redo for this occasion. Pro regenerates freely."
+    />,
+  );
+  expect(screen.getByText(/used today's redo/i)).toBeInTheDocument();
+  expect(screen.queryByText(/couldn't reach the stylist/i)).not.toBeInTheDocument();
+});
+
+// The reason comes from the seam, which knows WHICH allowance ran out — a
+// hard-coded string here would be wrong for the styled-look gate.
+test("limited: the reason is rendered verbatim, not a generic message", () => {
+  render(
+    <StylistView
+      {...base}
+      status="limited"
+      limitMessage="Building a look around a piece is a Pro feature."
+    />,
+  );
+  expect(screen.getByText(/building a look around a piece/i)).toBeInTheDocument();
+});
+
 test("ok (D3): the active look's index name and its byline name are the same single string", () => {
   render(<StylistView {...base} status="ok" looks={[look]} />);
   expect(screen.getAllByText("The Camel").length).toBeGreaterThanOrEqual(2); // index tab + why byline
