@@ -74,23 +74,36 @@ export function OutfitDetail({
           data-testid="detail-stage"
           className="surface-stage relative h-[420px]"
         >
-          {pieces.map((p) => {
-            const s = p.slot;
-            const style: CSSProperties = {
-              position: "absolute",
-              left: `${s.xPct}%`,
-              top: `${s.yPct}%`,
-              width: `${s.wPct}%`,
-              height: `${s.hPct}%`,
-              zIndex: s.z,
-              transform: `rotate(${s.rotationDeg}deg)`,
-              filter: "drop-shadow(0 14px 18px rgba(0,0,0,.55))",
-            };
-            return (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img key={p.id} src={p.imageUrl} alt={p.name} className="object-contain" style={style} />
-            );
-          })}
+          {/* A piece the storage layer could not sign arrives as "" (the page
+              maps a missing signed URL to the empty string). React treats
+              `<img src="">` as an error rather than a gap, so the flat-lay
+              simply goes one piece lighter — the same guard the closet's hero,
+              card and goes-with row already carry. */}
+          {pieces
+            .filter((p) => p.imageUrl)
+            .map((p) => {
+              const s = p.slot;
+              const style: CSSProperties = {
+                position: "absolute",
+                left: `${s.xPct}%`,
+                top: `${s.yPct}%`,
+                width: `${s.wPct}%`,
+                height: `${s.hPct}%`,
+                zIndex: s.z,
+                transform: `rotate(${s.rotationDeg}deg)`,
+                filter: "drop-shadow(0 14px 18px rgba(0,0,0,.55))",
+              };
+              return (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={p.id}
+                  src={p.imageUrl}
+                  alt={p.name}
+                  className="object-contain"
+                  style={style}
+                />
+              );
+            })}
         </div>
 
         <div className="px-6 pt-2">
@@ -126,9 +139,19 @@ export function OutfitDetail({
                 <div className="relative size-[46px] shrink-0 rounded-[10px] bg-surface-3 p-[7px]">
                   {/* absolute inset-0 gives object-contain a definite box — an
                       <img> sized by its intrinsic dimensions has spilled a row
-                      on Safari before (see the closet grid). */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.imageUrl} alt="" className="absolute inset-0 size-full p-[7px] object-contain" />
+                      on Safari before (see the closet grid).
+                      Guarded on the URL: an unsignable piece would otherwise
+                      render `<img src="">`, which React reports as an error. */}
+                  {p.imageUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={p.imageUrl}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="absolute inset-0 size-full p-[7px] object-contain"
+                    />
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
                   {p.brand && <Kicker>{p.brand}</Kicker>}
