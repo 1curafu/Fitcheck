@@ -69,11 +69,28 @@ function DayCell({ cell }: { cell: Cell }) {
   const body = (
     <>
       {cell.log && <Thumbnail pieces={cell.log.pieces} />}
+      {/* Positioned inline, not by utility class, for the same reason the
+          cutouts are: the offsets must land whatever the CSS pipeline does.
+          A bare `absolute` with no resolved offset falls back to its static
+          position — which inside this centring flex box is the middle of the
+          cell, straight across the look.
+
+          `zIndex` is load-bearing too: the cutouts carry their own z (1-3), so
+          an unstacked number is painted OVER by them. The corner it sits in is
+          reserved by THUMB_SLOTS, so it never lands on a garment; the shadow
+          only insures it against a pale piece drifting under it. */}
       <span
-        className={
+        className={worn ? "text-[9px] text-foreground/70" : "text-[12px] text-muted-dim"}
+        style={
           worn
-            ? "absolute bottom-[3px] right-[5px] text-[9px] text-foreground/50"
-            : "text-[12px] text-muted-dim"
+            ? {
+                position: "absolute",
+                bottom: 4,
+                right: 5,
+                zIndex: 10,
+                textShadow: "0 1px 3px rgba(0,0,0,0.95)",
+              }
+            : undefined
         }
       >
         {cell.day}

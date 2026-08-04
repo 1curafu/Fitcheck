@@ -1,4 +1,4 @@
-import { thumbnailPieces, MAX_THUMB_PIECES } from "../thumbnail";
+import { thumbnailPieces, MAX_THUMB_PIECES, DAY_CORNER } from "../thumbnail";
 
 const p = (category: string, imageUrl = `${category}.webp`) => ({ category, imageUrl });
 
@@ -45,8 +45,27 @@ test("every piece carries in-bounds flat-lay geometry", () => {
   }
 });
 
-// Accessories and fragrance are the CORNER slot at 14% — three pixels wide in a
-// diary cell, and never what you remember an outfit by.
 test("a look of only accessories still yields a thumbnail", () => {
   expect(thumbnailPieces([p("Accessories"), p("Fragrance")]).length).toBeGreaterThan(0);
+});
+
+// The day number lives in the bottom-right corner. Stacking it above the
+// cutouts makes it legible but still puts 9px of text on a garment, so the
+// geometry keeps that corner empty instead.
+test("no piece intrudes on the corner the day number occupies", () => {
+  const full = thumbnailPieces([p("Outerwear"), p("Tops"), p("Bottoms"), p("Shoes")]);
+  expect(full.length).toBe(MAX_THUMB_PIECES);
+  for (const { slot } of full) {
+    const overlaps =
+      slot.xPct + slot.wPct > DAY_CORNER.xPct && slot.yPct + slot.hPct > DAY_CORNER.yPct;
+    expect(overlaps).toBe(false);
+  }
+});
+
+// Three cutouts in a 45px cell only read if they do not sit on top of each
+// other; each piece owns a distinct region.
+test("the three slots occupy distinct positions", () => {
+  const slots = thumbnailPieces([p("Tops"), p("Bottoms"), p("Shoes")]).map((x) => x.slot);
+  const keys = slots.map((s) => `${s.xPct},${s.yPct}`);
+  expect(new Set(keys).size).toBe(slots.length);
 });

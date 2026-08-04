@@ -1,5 +1,34 @@
-import { layoutForLook } from "@/lib/generator/layout";
+import type { Slot } from "@/lib/generator/types";
 import type { DiaryPiece } from "./month";
+
+/**
+ * The corner the day number owns, as percentages. Nothing may be laid into it.
+ *
+ * Reserving it in the geometry is the only reliable fix: stacking the number
+ * above the cutouts makes it legible but still lands it ON a garment, and at
+ * 9px over a busy cutout that reads as a smudge.
+ */
+export const DAY_CORNER = { xPct: 62, yPct: 72 };
+
+/**
+ * Thumbnail geometry, authored for the ~45×54px diary cell.
+ *
+ * This deliberately does NOT reuse `layoutForLook`. Those templates are drawn
+ * for a stage of 200px and up, where their generous negative space reads as
+ * composition — shrunk to a calendar cell it is simply an empty cell with three
+ * small things in one corner, and its SIDE slot runs to 90% height on the right,
+ * straight through where the day number has to sit.
+ *
+ * So the cell gets its own three-slot arrangement: upper body top-left, bottoms
+ * up the right, shoes bottom-left, and the bottom-right corner left empty.
+ */
+const THUMB_SLOTS = {
+  UPPER: { xPct: 4, yPct: 4, wPct: 56, hPct: 54, rotationDeg: -4, z: 3 },
+  BOTTOMS: { xPct: 54, yPct: 8, wPct: 44, hPct: 56, rotationDeg: 3, z: 2 },
+  SHOES: { xPct: 6, yPct: 62, wPct: 46, hPct: 32, rotationDeg: -3, z: 1 },
+} satisfies Record<string, Slot>;
+
+const SLOT_ORDER = [THUMB_SLOTS.UPPER, THUMB_SLOTS.BOTTOMS, THUMB_SLOTS.SHOES];
 
 /**
  * How many cutouts a diary cell shows.
@@ -20,10 +49,9 @@ const UPPER = ["Outerwear", "Tops"];
 /**
  * Choose and position the cutouts for one day's cell.
  *
- * Geometry comes from `layoutForLook`, the same deterministic templates the
- * full-size flat-lay uses, so a thumbnail is a scaled-down version of the look
- * the user tapped rather than a second, divergent layout system. The templates
- * are percentage-based, so they survive the shrink unchanged.
+ * Order is fixed — upper body, bottoms, shoes — so a sparse look fills the
+ * template from the top rather than leaving a hole where its missing piece
+ * would have gone.
  */
 export function thumbnailPieces(pieces: Candidate[]): DiaryPiece[] {
   // A piece the storage layer could not sign is dropped here rather than
@@ -43,6 +71,5 @@ export function thumbnailPieces(pieces: Candidate[]): DiaryPiece[] {
   }
 
   const capped = chosen.slice(0, MAX_THUMB_PIECES);
-  const slots = layoutForLook(capped);
-  return capped.map((p, i) => ({ imageUrl: p.imageUrl, slot: slots[i] }));
+  return capped.map((p, i) => ({ imageUrl: p.imageUrl, slot: SLOT_ORDER[i] }));
 }
