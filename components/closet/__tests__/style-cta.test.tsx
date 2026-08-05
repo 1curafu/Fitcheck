@@ -40,15 +40,27 @@ test("a limited result opens the upgrade sheet with the reason verbatim", async 
   expect(push).not.toHaveBeenCalled();
 });
 
-// A gate the user cannot dismiss is a trap, and the sheet is an explanation
-// rather than a checkout — there is nothing to complete.
+// A gate the user cannot dismiss is a trap. "Not now" must stay as reachable
+// as the upgrade path.
 test("the upgrade sheet can be dismissed", async () => {
   styleWithItem.mockResolvedValue({ status: "limited", message: "Pro feature." });
   render(<StyleCta itemId="i1" />);
   await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
   await screen.findByRole("dialog");
-  await userEvent.click(screen.getByRole("button", { name: /got it/i }));
+  await userEvent.click(screen.getByRole("button", { name: /not now/i }));
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+
+// A gate that ends in a shrug teaches nothing. The sheet carries the whole
+// pitch itself — same list the profile card opens — so there is nowhere to
+// navigate to and nothing to look up.
+test("the gate's sheet makes the full case, not just the refusal", async () => {
+  styleWithItem.mockResolvedValue({ status: "limited", message: "Pro feature." });
+  render(<StyleCta itemId="i1" />);
+  await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
+  const sheet = await screen.findByRole("dialog");
+  expect(sheet).toHaveTextContent(/gap analysis/i);
+  expect(sheet).toHaveTextContent(/€5\/mo/);
 });
 
 // "Your closet is too thin for this yet" has nothing to sell — you add a piece.
