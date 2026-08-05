@@ -1,31 +1,31 @@
 import Link from "next/link";
+import { Fingerprint, Bookmark, ChartColumn, Settings } from "lucide-react";
+import { ProCard } from "@/components/billing/pro-card";
 import type { Tier } from "@/lib/billing/tiers";
+
+/**
+ * Icons are named by a string id, not passed as elements.
+ *
+ * Handing JSX across the RSC boundary earns a React key warning — a serialised
+ * element has no positional identity — which is the trap `page.tsx` already hit
+ * once passing `<StyleCta/>` into `ItemDetail`. A string keeps the route's data
+ * serialisable and the mapping here, next to the markup that uses it.
+ */
+const ICONS = {
+  dna: Fingerprint,
+  saved: Bookmark,
+  stats: ChartColumn,
+  settings: Settings,
+} as const;
 
 export type HubLink = {
   href: string;
   label: string;
   desc: string;
+  icon: keyof typeof ICONS;
   /** False until the destination exists on `main`. */
   ready: boolean;
 };
-
-/**
- * What Pro unlocks, in the order MONETISATION.md §3 lists it.
- *
- * The design's card carries only the one-line pitch, which was enough when this
- * screen was the only place Pro was mentioned. It is now the destination for
- * every gate in the app, so someone arriving here has just been refused
- * something and needs to see what they would actually get.
- */
-const PRO_BENEFITS = [
-  "Unlimited rerolls, any occasion",
-  "Build a look around any piece",
-  "An unlimited closet",
-  "Packing mode for trips",
-  "Cost-per-wear analytics",
-  "Gap analysis — what to buy next",
-  "Unlimited saved outfits",
-];
 
 function StatCell({ value, label }: { value: string; label: string }) {
   return (
@@ -37,9 +37,15 @@ function StatCell({ value, label }: { value: string; label: string }) {
 }
 
 function LinkRow({ link }: { link: HubLink }) {
+  const Icon = ICONS[link.icon];
   const body = (
     <>
-      <div className="size-[38px] shrink-0 rounded-[10px] bg-[#201b18]" aria-hidden="true" />
+      <div
+        className="grid size-[38px] shrink-0 place-items-center rounded-[10px] bg-[#201b18] text-muted-foreground"
+        aria-hidden="true"
+      >
+        <Icon size={17} strokeWidth={1.6} />
+      </div>
       <div className="min-w-0 flex-1">
         <div className="text-[15px] text-foreground">{link.label}</div>
         <div className="mt-[2px] text-[12px] text-muted-foreground">{link.desc}</div>
@@ -96,8 +102,6 @@ export function ProfileHub({
   /** Sign-out, until Settings owns it. */
   children?: React.ReactNode;
 }) {
-  const isPro = tier === "pro";
-
   return (
     <div className="flex-1 overflow-y-auto px-[22px] pb-[120px] screen-top">
       <div className="flex items-center gap-[14px]">
@@ -150,48 +154,7 @@ export function ProfileHub({
         ))}
       </div>
 
-      {/* Inert by design: there is no checkout, and a button that goes nowhere
-          is worse than none. This card is the explanation, not the purchase. */}
-      <div
-        data-testid="pro-card"
-        className="mt-[13px] rounded-[16px] p-5 [background:linear-gradient(120deg,#b86a47,#9a5236)]"
-      >
-        <div className="font-serif text-[21px] italic text-[#1a0f09]">Fitcheck Pro</div>
-
-        {isPro ? (
-          <>
-            <p className="mt-[5px] text-[13px]/[1.4] text-[rgba(26,15,9,0.82)]">
-              Active — everything below is yours.
-            </p>
-            <ul className="mt-3 flex flex-col gap-[6px]">
-              {PRO_BENEFITS.map((b) => (
-                <li key={b} className="text-[13px]/[1.35] text-[rgba(26,15,9,0.82)]">
-                  {b}
-                </li>
-              ))}
-            </ul>
-          </>
-        ) : (
-          <>
-            {/* The design's pitch, verbatim — it names packing mode, which does
-                not exist yet. Deliberate while nothing can be bought; it must be
-                built before Pro is actually sold. */}
-            <p className="mt-[5px] max-w-[84%] text-[13px]/[1.4] text-[rgba(26,15,9,0.82)]">
-              Unlimited daily looks, packing mode &amp; cost-per-wear analytics.
-            </p>
-            <ul className="mt-3 flex flex-col gap-[6px]">
-              {PRO_BENEFITS.map((b) => (
-                <li key={b} className="text-[13px]/[1.35] text-[rgba(26,15,9,0.82)]">
-                  {b}
-                </li>
-              ))}
-            </ul>
-            <div className="mt-[13px] inline-block rounded-full bg-canvas px-[17px] py-[9px] text-[13px] font-semibold text-foreground">
-              Go Pro · €5/mo
-            </div>
-          </>
-        )}
-      </div>
+      <ProCard tier={tier} />
 
       {children && <div className="mt-[13px]">{children}</div>}
     </div>

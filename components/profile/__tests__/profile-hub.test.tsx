@@ -1,4 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ProfileHub } from "../profile-hub";
 
 const props = {
@@ -10,8 +11,20 @@ const props = {
   tier: "free" as const,
   stats: { pieces: 24, outfits: 9, streak: 3 },
   links: [
-    { href: "/style-dna", label: "Style DNA", desc: "Your archetype, shareable", ready: true },
-    { href: "/outfits", label: "Saved Outfits", desc: "Looks you kept", ready: false },
+    {
+      href: "/style-dna",
+      label: "Style DNA",
+      desc: "Your archetype, shareable",
+      icon: "dna" as const,
+      ready: true,
+    },
+    {
+      href: "/outfits",
+      label: "Saved Outfits",
+      desc: "Looks you kept",
+      icon: "saved" as const,
+      ready: false,
+    },
   ],
 };
 
@@ -59,46 +72,57 @@ test("an unbuilt destination is not a link — it says Soon", () => {
 });
 
 describe("the Pro card", () => {
-  // The price is EUR. The design says £5 and the plan said render it verbatim;
-  // that is superseded for the price only — every other price in the app renders
-  // in euro, and £5 beside a €3.00 cost-per-wear is a visible inconsistency.
-  test("states the price in euro, not the design's pounds", () => {
+  // A TEASER, not a brochure. The first version printed all seven benefits into
+  // the rust card and read as a wall of bullets; the card invites the tap and
+  // the sheet makes the case.
+  test("is a compact hook, not the full feature list", () => {
     render(<ProfileHub {...props} />);
-    const card = screen.getByTestId("pro-card");
-    expect(card).toHaveTextContent(/€5\/mo/);
-    expect(card).not.toHaveTextContent(/£/);
+    const card = screen.getByRole("button", { name: /fitcheck pro/i });
+    expect(card).toHaveTextContent(/whole wardrobe/i);
+    expect(card).not.toHaveTextContent(/gap analysis/i);
   });
 
-  test("keeps the design's pitch verbatim", () => {
+  // The mockup puts the price pill inside the banner (Fitcheck.dc.html:697).
+  test("carries the price pill, as the mockup does", () => {
     render(<ProfileHub {...props} />);
-    expect(screen.getByTestId("pro-card")).toHaveTextContent(
-      /unlimited daily looks, packing mode & cost-per-wear analytics/i,
+    expect(screen.getByRole("button", { name: /fitcheck pro/i })).toHaveTextContent(
+      /go pro · €5\/mo/i,
     );
   });
 
-  // This card is where every gate in the app now sends people, so the one-line
-  // pitch is not enough — someone who just hit a wall needs to see what they
-  // would actually get.
-  test("lists what Pro actually unlocks", () => {
+  test("tapping it opens the pitch with the price", async () => {
     render(<ProfileHub {...props} />);
-    const card = screen.getByTestId("pro-card");
-    expect(card).toHaveTextContent(/rerolls/i);
-    expect(card).toHaveTextContent(/closet/i);
-    expect(card).toHaveTextContent(/around any piece/i);
+    await userEvent.click(screen.getByRole("button", { name: /fitcheck pro/i }));
+    const sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent(/gap analysis/i);
+    expect(sheet).toHaveTextContent(/around any piece/i);
+    // The price is EUR. The design says £5 and the plan said render it verbatim;
+    // superseded for the price only — every other price in the app is euro.
+    expect(sheet).toHaveTextContent(/€5\/mo/);
+    expect(sheet).not.toHaveTextContent(/£/);
   });
 
-  test("is inert — billing does not exist yet", () => {
+  // Scoped to the sheet: the CARD's own accessible name contains "Go Pro ·
+  // €5/mo" because the mockup puts the price pill inside it, so an unscoped
+  // query matches the card and passes for the wrong reason.
+  test("the pitch is inert — billing does not exist yet", async () => {
     render(<ProfileHub {...props} />);
-    expect(screen.queryByRole("link", { name: /go pro/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /go pro/i })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /fitcheck pro/i }));
+    const sheet = await screen.findByRole("dialog");
+    expect(within(sheet).queryByRole("link", { name: /go pro/i })).not.toBeInTheDocument();
+    expect(within(sheet).queryByRole("button", { name: /go pro/i })).not.toBeInTheDocument();
   });
 
   // Selling Pro to someone who already pays is the clearest possible sign that
   // nothing is reading their tier.
-  test("a Pro subscriber is not sold the upgrade", () => {
+  test("a Pro subscriber is not sold the upgrade", async () => {
     render(<ProfileHub {...props} tier="pro" />);
-    const card = screen.getByTestId("pro-card");
-    expect(card).not.toHaveTextContent(/go pro/i);
+    const card = screen.getByRole("button", { name: /fitcheck pro/i });
     expect(card).toHaveTextContent(/active/i);
+    expect(card).not.toHaveTextContent(/go pro/i);
+    await userEvent.click(card);
+    const sheet = await screen.findByRole("dialog");
+    expect(sheet).not.toHaveTextContent(/€5\/mo/);
+    expect(sheet).toHaveTextContent(/gap analysis/i);
   });
 });

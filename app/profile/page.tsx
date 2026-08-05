@@ -14,10 +14,10 @@ import { entitlementsFor } from "@/lib/billing/tiers";
  * an unready row renders disabled with "Soon" rather than linking into nothing.
  */
 const LINKS: HubLink[] = [
-  { href: "/style-dna", label: "Style DNA", desc: "Your archetype, shareable", ready: false },
-  { href: "/outfits", label: "Saved Outfits", desc: "Looks you kept", ready: false },
-  { href: "/stats", label: "Wear Stats", desc: "What you actually wear", ready: false },
-  { href: "/settings", label: "Settings", desc: "Preferences and account", ready: false },
+  { href: "/style-dna", label: "Style DNA", desc: "Your archetype, shareable", icon: "dna", ready: false },
+  { href: "/outfits", label: "Saved Outfits", desc: "Looks you kept", icon: "saved", ready: false },
+  { href: "/stats", label: "Wear Stats", desc: "What you actually wear", icon: "stats", ready: false },
+  { href: "/settings", label: "Settings", desc: "Preferences and account", icon: "settings", ready: false },
 ];
 
 export default async function ProfilePage() {
