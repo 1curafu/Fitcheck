@@ -16,14 +16,15 @@ export { QuotaExceededError } from "@/lib/billing/errors";
 /**
  * What the GATE needs to know.
  *
- * `occasion` is optional because only a regenerate is counted, and only per
- * occasion. A styled look is a flat capability check, and the styled action
- * resolves its occasion only after this gate — deliberately, so a free user is
- * turned away before paying for a forecast fetch.
+ * The reroll allowance is a single daily pool across all occasions, so the gate
+ * needs only the date. `occasion` rides along for the ledger, and is optional
+ * because the styled action resolves its occasion only AFTER this gate —
+ * deliberately, so a free user is turned away before we pay for a forecast
+ * fetch they will never see.
  */
 export type GenerationCheckRequest = {
   kind: GenerationKind;
-  /** Required for `regenerate`; the allowance is per occasion. */
+  /** Recorded, not used by the check. */
   occasion?: string;
   /** The user's LOCAL date — never the server's. */
   today: string;
@@ -42,7 +43,7 @@ export type GenerationRequest = GenerationCheckRequest & { occasion: string };
  *
  * The three kinds are metered differently (docs/MONETISATION.md §2):
  *   drop       — always free, on every tier. The daily drop is never rationed.
- *   regenerate — free gets one per occasion per day.
+ *   regenerate — free gets three a day, pooled across every occasion.
  *   styled     — Pro only.
  */
 export async function assertCanGenerate(
@@ -51,13 +52,10 @@ export async function assertCanGenerate(
 ): Promise<void> {
   const e = await currentEntitlements();
 
-  // Only a regenerate needs the counter, and it is per-occasion — so drops and
-  // styled looks skip the query entirely rather than paying for an answer that
-  // cannot change the outcome.
+  // Only a reroll needs the counter, so drops and styled looks skip the query
+  // rather than paying for an answer that cannot change the outcome.
   const regeneratesUsed =
-    req.kind === "regenerate" && req.occasion
-      ? await regeneratesUsedToday(req.occasion, req.today)
-      : 0;
+    req.kind === "regenerate" ? await regeneratesUsedToday(req.today) : 0;
 
   const check = checkGeneration(e, { kind: req.kind, regeneratesUsed });
   if (!check.allowed) throw new QuotaExceededError(check.reason);

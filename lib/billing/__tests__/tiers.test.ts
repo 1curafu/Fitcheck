@@ -1,9 +1,9 @@
-import { entitlementsFor, checkGeneration, checkUploads, FREE, PRO } from "../tiers";
+import { entitlementsFor, checkGeneration, checkCloset, FREE, PRO } from "../tiers";
 
 describe("entitlementsFor", () => {
-  test("free regenerates once per occasion; pro is unlimited", () => {
-    expect(entitlementsFor("free").regeneratesPerOccasion).toBe(1);
-    expect(entitlementsFor("pro").regeneratesPerOccasion).toBeNull(); // null = unlimited
+  test("free rerolls three times a day; pro is unlimited", () => {
+    expect(entitlementsFor("free").regeneratesPerDay).toBe(3);
+    expect(entitlementsFor("pro").regeneratesPerDay).toBeNull(); // null = unlimited
   });
 
   test("styled looks, analytics, gap analysis and packing are Pro only", () => {
@@ -33,34 +33,40 @@ describe("entitlementsFor", () => {
   });
 });
 
-describe("checkUploads", () => {
-  test("free adds ten pieces a day; pro is unlimited", () => {
-    expect(entitlementsFor("free").uploadsPerDay).toBe(10);
-    expect(entitlementsFor("pro").uploadsPerDay).toBeNull();
+describe("checkCloset", () => {
+  test("a free closet holds fifty pieces; pro is unlimited", () => {
+    expect(entitlementsFor("free").closetItems).toBe(50);
+    expect(entitlementsFor("pro").closetItems).toBeNull();
   });
 
   test("the allowance counts down and then blocks", () => {
-    expect(checkUploads(FREE, 0)).toMatchObject({ allowed: true, remaining: 10 });
-    expect(checkUploads(FREE, 9)).toMatchObject({ allowed: true, remaining: 1 });
-    expect(checkUploads(FREE, 10)).toMatchObject({ allowed: false, remaining: 0 });
+    expect(checkCloset(FREE, 0)).toMatchObject({ allowed: true, remaining: 50 });
+    expect(checkCloset(FREE, 49)).toMatchObject({ allowed: true, remaining: 1 });
+    expect(checkCloset(FREE, 50)).toMatchObject({ allowed: false, remaining: 0 });
   });
 
   test("being over never reports a negative remaining", () => {
-    expect(checkUploads(FREE, 99).remaining).toBe(0);
+    expect(checkCloset(FREE, 999).remaining).toBe(0);
   });
 
   test("pro is never blocked", () => {
-    expect(checkUploads(PRO, 5000)).toMatchObject({ allowed: true, remaining: null });
+    expect(checkCloset(PRO, 5000)).toMatchObject({ allowed: true, remaining: null });
   });
 
-  // The cap is PER DAY, not a total — the closet is the moat and the generator
-  // measurably degrades on a small wardrobe, so nothing here may imply a ceiling
-  // on closet size.
-  test("a blocked upload says it is a daily limit, not a closet limit", () => {
-    const r = checkUploads(FREE, 10);
+  // Nothing in the product deletes an item, so a user at the cap needs to be
+  // told the way back under it — otherwise the wall is final.
+  test("a full closet names archiving as the way to make room", () => {
+    const r = checkCloset(FREE, 50);
     expect(r.allowed).toBe(false);
-    expect(r.reason).toMatch(/today|day/i);
-    expect(r.reason).not.toMatch(/closet is full|maximum items/i);
+    expect(r.reason).toMatch(/archive/i);
+    expect(r.reason).toMatch(/pro/i);
+  });
+
+  // 50 is chosen to sit clear of the range where combo coverage thins (PR #15
+  // measured 21 items at 21 combos in winter). A cap that starves the generator
+  // sells a worse stylist rather than fewer features.
+  test("the free cap is well above where the generator degrades", () => {
+    expect(FREE.closetItems).toBeGreaterThan(30);
   });
 });
 
@@ -82,23 +88,28 @@ describe("checkGeneration — drops", () => {
   });
 });
 
-describe("checkGeneration — regenerates", () => {
-  test("free gets one regenerate for an occasion, then is limited", () => {
+describe("checkGeneration — rerolls", () => {
+  // One pool for the whole day, not one per occasion. Most people care about a
+  // single occasion on a given day, so a per-occasion allowance rationed
+  // hardest exactly where attention goes and was generous where nobody looked.
+  test("free gets three rerolls a day, then is limited", () => {
     expect(checkGeneration(FREE, { kind: "regenerate", regeneratesUsed: 0 })).toMatchObject({
+      allowed: true,
+      remaining: 3,
+    });
+    expect(checkGeneration(FREE, { kind: "regenerate", regeneratesUsed: 2 })).toMatchObject({
       allowed: true,
       remaining: 1,
     });
-    expect(checkGeneration(FREE, { kind: "regenerate", regeneratesUsed: 1 })).toMatchObject({
+    expect(checkGeneration(FREE, { kind: "regenerate", regeneratesUsed: 3 })).toMatchObject({
       allowed: false,
       remaining: 0,
     });
   });
 
-  // The allowance is PER OCCASION, so regenerating Work must not spend Evening's.
-  // The caller supplies the count for the occasion being asked about; this asserts
-  // the function never reaches for a global total.
-  test("the allowance is counted per occasion, not globally", () => {
-    expect(checkGeneration(FREE, { kind: "regenerate", regeneratesUsed: 0 }).allowed).toBe(true);
+  // All three may be spent on one occasion — that is the point of pooling them.
+  test("the pool does not care which occasion spent it", () => {
+    expect(checkGeneration(FREE, { kind: "regenerate", regeneratesUsed: 2 }).allowed).toBe(true);
   });
 
   test("pro is never blocked and reports no finite remaining", () => {
@@ -112,8 +123,8 @@ describe("checkGeneration — regenerates", () => {
     expect(checkGeneration(FREE, { kind: "regenerate", regeneratesUsed: 99 }).remaining).toBe(0);
   });
 
-  test("a blocked regenerate carries a reason a screen can show the user", () => {
-    const r = checkGeneration(FREE, { kind: "regenerate", regeneratesUsed: 1 });
+  test("a blocked reroll carries a reason a screen can show the user", () => {
+    const r = checkGeneration(FREE, { kind: "regenerate", regeneratesUsed: 3 });
     expect(r.allowed).toBe(false);
     expect(typeof r.reason).toBe("string");
     expect(r.reason).toMatch(/pro/i);

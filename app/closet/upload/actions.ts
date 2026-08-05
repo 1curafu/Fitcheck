@@ -25,12 +25,7 @@ export async function uploadAndTag(form: {
   // two storage writes and the Haiku tagging call — happens below, before the
   // user ever reaches the confirm screen. A limit checked at confirm would
   // have already paid for the item it refuses.
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("location_timezone")
-    .eq("id", user.id)
-    .single();
-  await assertCanUpload(profile?.location_timezone ?? "UTC");
+  await assertCanUpload();
 
   const itemId = crypto.randomUUID();
   const base = `${user.id}/${itemId}`;

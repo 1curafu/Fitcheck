@@ -5,24 +5,35 @@ export type GenerationKind = "drop" | "regenerate" | "styled";
 
 export type Entitlements = {
   tier: Tier;
-  /** Per occasion, per day. null = unlimited. Drops themselves are never metered. */
-  regeneratesPerOccasion: number | null;
   /**
-   * New pieces per day. null = unlimited.
+   * Rerolls per DAY, across all occasions. null = unlimited.
    *
-   * A RATE, deliberately, not a closet cap. The closet is the switching cost,
-   * and the generator measurably degrades on a small wardrobe — PR #15 measured
-   * a 21-item closet at 21 combos in winter against 48 in summer — so a total
-   * cap would sell free users a worse stylist rather than fewer features.
-   * Metering the rate smooths cost and gives onboarding a real upgrade moment
-   * ("add your whole wardrobe tonight") while a committed free user still
-   * reaches 100 items in ten days.
+   * Global rather than per-occasion (user decision, 2026-08-05). Most people
+   * care about one occasion on a given day, so a per-occasion allowance is
+   * strictest exactly where attention goes and generous where nobody is
+   * looking: you could be refused a second Work reroll while holding an unused
+   * Evening one you never wanted.
    *
-   * ⚠️ Under review: a 50-item total cap for free may replace or accompany this
-   * (user, 2026-08-04). If it lands, add a separate `closetItems` field rather
-   * than overloading this one — they answer different questions.
+   * The usual objection to a global pool — that it can block an occasion you
+   * have not opened yet — does not apply here, because a drop is free on every
+   * tier. Tapping a new occasion is always a drop, so the pool only ever meters
+   * rerolls.
    */
-  uploadsPerDay: number | null;
+  regeneratesPerDay: number | null;
+  /**
+   * How many pieces a closet may hold. null = unlimited.
+   *
+   * Counts UNARCHIVED items only. Archiving is the user's way to make room —
+   * there is no delete path in the product, so counting archived pieces would
+   * strand a user at the cap with no way out. It also matches what the number
+   * claims: an archived piece is not in your closet.
+   *
+   * 50 is deliberately well clear of the ~20-30 range where combo coverage
+   * thins (PR #15 measured a 21-item closet at 21 combos in winter against 48
+   * in summer), so the free tier never experiences a starved stylist — it
+   * experiences a full one, with a ceiling.
+   */
+  closetItems: number | null;
   /** "Style an outfit with this" — Pro #2. */
   styledLooks: boolean;
   savedOutfits: number | null;
@@ -37,15 +48,15 @@ export type Entitlements = {
  * meter what costs us money, sell what compounds, and never gate the daily
  * drop, the share card, or the closet.
  *
- * The free ceiling is four occasions × (one drop + one regenerate) = 8
- * generations a day, about $0.72/month at $0.003 each and nearer $0.20 in
- * realistic use. **The ceiling is the point** — a free tier needs a worst case
- * you can survive, and this one does not grow with closet size.
+ * The free ceiling is four occasion drops plus three rerolls = 7 generations a
+ * day, about $0.63/month at $0.003 each and nearer $0.20 in realistic use.
+ * **The ceiling is the point** — a free tier needs a worst case you can
+ * survive, and this one cannot be raised by adding clothes.
  */
 export const FREE: Entitlements = {
   tier: "free",
-  regeneratesPerOccasion: 1,
-  uploadsPerDay: 10,
+  regeneratesPerDay: 3,
+  closetItems: 50,
   styledLooks: false,
   savedOutfits: 10,
   analytics: false,
@@ -55,8 +66,8 @@ export const FREE: Entitlements = {
 
 export const PRO: Entitlements = {
   tier: "pro",
-  regeneratesPerOccasion: null,
-  uploadsPerDay: null,
+  regeneratesPerDay: null,
+  closetItems: null,
   styledLooks: true,
   savedOutfits: null,
   analytics: true,
@@ -83,14 +94,13 @@ export type GenerationCheck = {
 /**
  * May this user spend a model request right now?
  *
- * `regeneratesUsed` is the count for the ONE occasion being asked about, on the
- * user's local today — never a global total. The allowance is per occasion so
- * that regenerating Work cannot exhaust Evening, and so a user is never blocked
- * on an occasion they have not yet looked at.
+ * `regeneratesUsed` is the user's total reroll count for their local today,
+ * across every occasion.
  *
  * A drop is never metered on any tier: MONETISATION §1 and Decision 4 both say
  * the daily drop is the product, and rationing it is how nobody discovers the
- * magic.
+ * magic. That is also what makes a global reroll pool safe — a user can always
+ * open any occasion, so the pool can never strand them.
  */
 export function checkGeneration(
   e: Entitlements,
@@ -108,33 +118,31 @@ export function checkGeneration(
         };
   }
 
-  if (e.regeneratesPerOccasion == null) return { allowed: true, remaining: null };
-  const remaining = Math.max(0, e.regeneratesPerOccasion - input.regeneratesUsed);
+  if (e.regeneratesPerDay == null) return { allowed: true, remaining: null };
+  const remaining = Math.max(0, e.regeneratesPerDay - input.regeneratesUsed);
   return remaining > 0
     ? { allowed: true, remaining }
     : {
         allowed: false,
         remaining: 0,
-        reason: "You've used today's redo for this occasion. Pro regenerates freely.",
+        reason: `That's your ${e.regeneratesPerDay} rerolls for today. Pro rerolls without limit.`,
       };
 }
 
 /**
- * May this user add another piece right now?
+ * May this user add another piece?
  *
- * The wording matters: this is a limit on how fast a wardrobe is added, never
- * on how large it may be. A message that reads like "your closet is full" would
- * tell users the opposite of the truth and discourage the very thing that makes
- * the product better for them.
+ * `held` is the number of UNARCHIVED pieces already in the closet — archiving
+ * is how a free user makes room, since nothing in the product deletes an item.
  */
-export function checkUploads(e: Entitlements, addedToday: number): GenerationCheck {
-  if (e.uploadsPerDay == null) return { allowed: true, remaining: null };
-  const remaining = Math.max(0, e.uploadsPerDay - addedToday);
+export function checkCloset(e: Entitlements, held: number): GenerationCheck {
+  if (e.closetItems == null) return { allowed: true, remaining: null };
+  const remaining = Math.max(0, e.closetItems - held);
   return remaining > 0
     ? { allowed: true, remaining }
     : {
         allowed: false,
         remaining: 0,
-        reason: `That's ${e.uploadsPerDay} pieces added today. More tomorrow, or add your whole wardrobe at once with Pro.`,
+        reason: `A free closet holds ${e.closetItems} pieces. Pro is unlimited — or archive something you no longer wear.`,
       };
 }

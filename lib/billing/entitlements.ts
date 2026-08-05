@@ -1,12 +1,11 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { localDateFor } from "@/lib/outfits/local-date";
 import {
   FREE,
   PRO,
   entitlementsFor,
   checkGeneration,
-  checkUploads,
+  checkCloset,
   type Entitlements,
   type Tier,
   type GenerationKind,
@@ -15,7 +14,7 @@ import {
 
 import { UploadLimitError } from "./errors";
 
-export { FREE, PRO, entitlementsFor, checkGeneration, checkUploads };
+export { FREE, PRO, entitlementsFor, checkGeneration, checkCloset };
 export { QuotaExceededError, UploadLimitError } from "./errors";
 export type { Entitlements, Tier, GenerationKind, GenerationCheck };
 
@@ -48,8 +47,8 @@ export async function currentEntitlements(): Promise<Entitlements> {
 }
 
 /**
- * How many times this user has already regenerated ONE occasion on their local
- * today.
+ * How many rerolls this user has spent on their local today, across every
+ * occasion — the allowance is a single daily pool.
  *
  * Reads the append-only `generation_events` ledger, never the `outfits` table.
  * `saveDailyLooks` is delete-then-insert, so a regenerate REPLACES the day's
@@ -57,12 +56,11 @@ export async function currentEntitlements(): Promise<Entitlements> {
  * afterwards a first drop is indistinguishable from a fifth. The ledger exists
  * precisely because that count is unrecoverable from the outfits themselves.
  */
-export async function regeneratesUsedToday(occasion: string, today: string): Promise<number> {
+export async function regeneratesUsedToday(today: string): Promise<number> {
   const supabase = await createClient();
   const { count } = await supabase
     .from("generation_events")
     .select("id", { count: "exact", head: true })
-    .eq("occasion", occasion)
     .eq("generated_on", today)
     .eq("kind", "regenerate");
   return count ?? 0;
@@ -73,41 +71,25 @@ export async function regeneratesUsedToday(occasion: string, today: string): Pro
  *
  * Called from `uploadAndTag` rather than `confirmItem` because that is where
  * the cost actually lands — two storage writes and a Haiku call happen before
- * the user ever sees the confirm screen.
+ * the user ever sees the confirm screen. A check at confirm would already have
+ * paid for the item it refuses.
  *
- * Counting: candidate rows are narrowed to the last 48 hours in SQL, then
- * filtered through `localDateFor`. Comparing the user's local day against a
- * `timestamptz` otherwise needs timezone arithmetic with DST edges; a two-day
- * window is at most a couple of dozen rows for one user, and it reuses the
- * date function the whole product is already keyed on rather than inventing a
- * second, subtly different one.
+ * Counts UNARCHIVED pieces only. Nothing in the product deletes an item, so if
+ * archived pieces counted, a user at the cap would have no way back under it;
+ * archiving is the intended way to make room, and an archived piece is not in
+ * your closet by any reading of the word.
  */
-export async function assertCanUpload(timeZone: string): Promise<void> {
+export async function assertCanUpload(): Promise<void> {
   const e = await currentEntitlements();
-  if (e.uploadsPerDay == null) return;
+  if (e.closetItems == null) return;
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
-
-  const now = new Date();
-  const since = new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString();
-  const { data } = await supabase
+  const { count } = await supabase
     .from("items")
-    .select("created_at")
-    .eq("user_id", user.id)
-    .gte("created_at", since);
+    .select("id", { count: "exact", head: true })
+    .eq("archived", false);
 
-  const today = localDateFor(now, timeZone);
-  // Archived pieces still count — the upload already cost the storage write and
-  // the tagging call, and archiving to reset the meter would be a free retry.
-  const addedToday = (data ?? []).filter(
-    (r) => r.created_at && localDateFor(new Date(r.created_at), timeZone) === today,
-  ).length;
-
-  const check = checkUploads(e, addedToday);
+  const check = checkCloset(e, count ?? 0);
   if (!check.allowed) throw new UploadLimitError(check.reason);
 }
 
