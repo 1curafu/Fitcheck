@@ -39,13 +39,16 @@ export function UpgradeSheet({
         type="button"
         aria-label="Close"
         onClick={onClose}
-        className="fixed inset-0 z-40 bg-[rgba(6,6,8,0.5)] backdrop-blur-[1.5px]"
+        // Above the bottom nav, which is also z-50 (`mobile-nav.tsx`). At equal
+        // z-index DOM order decides, and the nav renders after the page content
+        // — so it painted straight over this sheet's primary button.
+        className="fixed inset-0 z-[60] bg-[rgba(6,6,8,0.5)] backdrop-blur-[1.5px]"
       />
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[440px] rounded-t-[22px] border-t border-[rgba(237,230,216,0.12)] bg-surface-2 px-[22px] pb-[calc(env(safe-area-inset-bottom)+20px)] pt-3.5"
+        className="fixed inset-x-0 bottom-0 z-[70] mx-auto max-w-[440px] rounded-t-[22px] border-t border-[rgba(237,230,216,0.12)] bg-surface-2 px-[22px] pb-[calc(env(safe-area-inset-bottom)+20px)] pt-3.5"
       >
         <div className="mx-auto mb-4 h-1 w-[34px] rounded-full bg-faint" />
 
