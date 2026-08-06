@@ -88,7 +88,6 @@ export function ProfileHub({
   tier,
   stats,
   links,
-  children,
 }: {
   name: string;
   handle: string;
@@ -99,8 +98,6 @@ export function ProfileHub({
   /** `outfits` is looks WORN, not looks generated — see the route. */
   stats: { pieces: number; outfits: number; streak: number };
   links: HubLink[];
-  /** Sign-out, until Settings owns it. */
-  children?: React.ReactNode;
 }) {
   return (
     <div className="flex-1 overflow-y-auto px-[22px] pb-[120px] screen-top">
@@ -155,8 +152,6 @@ export function ProfileHub({
       </div>
 
       <ProCard tier={tier} />
-
-      {children && <div className="mt-[13px]">{children}</div>}
     </div>
   );
 }

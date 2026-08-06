@@ -17,7 +17,7 @@ const LINKS: HubLink[] = [
   { href: "/style-dna", label: "Style DNA", desc: "Your archetype, shareable", icon: "dna", ready: false },
   { href: "/outfits", label: "Saved Outfits", desc: "Looks you kept", icon: "saved", ready: false },
   { href: "/stats", label: "Wear Stats", desc: "What you actually wear", icon: "stats", ready: false },
-  { href: "/settings", label: "Settings", desc: "Preferences and account", icon: "settings", ready: false },
+  { href: "/settings", label: "Settings", desc: "Preferences and account", icon: "settings", ready: true },
 ];
 
 export default async function ProfilePage() {
@@ -64,16 +64,7 @@ export default async function ProfilePage() {
           streak: currentStreak(wornDates, today),
         }}
         links={LINKS}
-      >
-        {/* The design moves sign-out to Settings. Until that route exists this
-            is the only way out of the app, and removing it would be a
-            regression — it moves when Settings ships, not before. */}
-        <form action="/auth/signout" method="post">
-          <button className="w-full rounded-[14px] bg-surface-1 py-4 text-[15px] text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-2)]">
-            Sign out
-          </button>
-        </form>
-      </ProfileHub>
+      />
       <MobileNav />
     </div>
   );
