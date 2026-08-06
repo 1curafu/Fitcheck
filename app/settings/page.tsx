@@ -5,7 +5,7 @@ import { initials } from "@/lib/profile/identity";
 import { readPreferences } from "@/lib/profile/preferences";
 import { resolveLocation } from "@/lib/weather/location";
 import { SettingsView } from "@/components/settings/settings-view";
-import { updatePreferences } from "./actions";
+import { updatePreferences, setLocation } from "./actions";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -35,6 +35,7 @@ export default async function SettingsPage() {
         locationLabel={location.label}
         preferences={readPreferences(profile?.preferences)}
         onSaveAction={updatePreferences}
+        onSetLocationAction={setLocation}
       />
       <MobileNav />
     </div>

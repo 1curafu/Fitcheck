@@ -1,6 +1,14 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
+
+// SettingsView drives the shared useLocationPicker hook, which would otherwise
+// hit Open-Meteo's geocoder.
+vi.mock("@/lib/weather/geocode", () => ({
+  searchCities: vi
+    .fn()
+    .mockResolvedValue([{ name: "Manila", country: "PH", lat: 14.6, lon: 120.98 }]),
+}));
 import { SettingsView } from "../settings-view";
 import type { Preferences } from "@/lib/profile/preferences";
 
@@ -18,8 +26,19 @@ const props: {
   preferences: { rainGuard: true, tempUnit: "C" },
 };
 
-function renderSettings(over: Partial<typeof props> = {}, onSaveAction = vi.fn()) {
-  render(<SettingsView {...props} {...over} onSaveAction={onSaveAction} />);
+function renderSettings(
+  over: Partial<typeof props> = {},
+  onSaveAction = vi.fn(),
+  onSetLocationAction = vi.fn().mockResolvedValue(undefined),
+) {
+  render(
+    <SettingsView
+      {...props}
+      {...over}
+      onSaveAction={onSaveAction}
+      onSetLocationAction={onSetLocationAction}
+    />,
+  );
   return onSaveAction;
 }
 
@@ -100,18 +119,17 @@ test("the Pro card is NOT duplicated here", () => {
   expect(screen.queryByText(/go pro/i)).not.toBeInTheDocument();
 });
 
-test("location is shown read-only, with no control implying otherwise", () => {
+test("the location row is a control, and says whether it is open", async () => {
+  // It was read-only until 2026-08-06 and this test asserted the opposite. The
+  // user chose a real picker here, sharing one component with the Stylist's
+  // weather pill, so the row is now the affordance rather than a dead end.
   renderSettings();
   const row = screen.getByTestId("location-row");
   expect(within(row).getByText("Berlin")).toBeInTheDocument();
-  expect(within(row).queryByRole("button")).not.toBeInTheDocument();
-});
-
-test("the location row says where to change it, rather than being a dead end", () => {
-  renderSettings();
-  // The picker lives on the Stylist screen. A value with no affordance and no
-  // hint is the question this row kept prompting.
-  expect(within(screen.getByTestId("location-row")).getByText(/stylist/i)).toBeInTheDocument();
+  const control = within(row).getByRole("button", { name: /location/i });
+  expect(control).toHaveAttribute("aria-expanded", "false");
+  await userEvent.click(control);
+  expect(control).toHaveAttribute("aria-expanded", "true");
 });
 
 test("location falls back to a plain phrase when the profile has none", () => {
@@ -124,4 +142,55 @@ test("sign out is present and posts to the sign-out route", () => {
   const button = screen.getByRole("button", { name: /sign out/i });
   expect(button).toBeInTheDocument();
   expect(button.closest("form")).toHaveAttribute("action", "/auth/signout");
+});
+
+// ── Location, now a real control ────────────────────────────────────────────
+
+test("the location row opens a picker", async () => {
+  renderSettings();
+  expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: /location/i }));
+  expect(screen.getByRole("listbox", { name: /choose a city/i })).toBeInTheDocument();
+});
+
+test("the interim 'change it on the Stylist' hint is gone", () => {
+  // It was copy for a read-only row. Beside a working picker it would point
+  // users away from the control they are already looking at.
+  renderSettings();
+  expect(screen.queryByText(/change it on the stylist/i)).not.toBeInTheDocument();
+});
+
+test("picking a city saves it and shows it immediately", async () => {
+  const onSetLocationAction = vi.fn().mockResolvedValue(undefined);
+  renderSettings({}, undefined, onSetLocationAction);
+  await userEvent.click(screen.getByRole("button", { name: /location/i }));
+  await userEvent.type(screen.getByLabelText(/search a city/i), "Man");
+  await userEvent.click(await screen.findByRole("option", { name: /manila/i }));
+
+  expect(onSetLocationAction).toHaveBeenCalledWith(
+    expect.objectContaining({ lat: 14.6, lon: 120.98, label: "Manila" }),
+  );
+  // Optimistic, like the toggles: a control that waits for a round trip reads
+  // as broken.
+  expect(within(screen.getByTestId("location-row")).getByText("Manila")).toBeInTheDocument();
+  // And it closes, so you can see the value you just chose.
+  expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+});
+
+test("a failed save reverts the location rather than lying about it", async () => {
+  const onSetLocationAction = vi.fn().mockRejectedValue(new Error("offline"));
+  renderSettings({}, undefined, onSetLocationAction);
+  await userEvent.click(screen.getByRole("button", { name: /location/i }));
+  await userEvent.type(screen.getByLabelText(/search a city/i), "Man");
+  await userEvent.click(await screen.findByRole("option", { name: /manila/i }));
+
+  expect(await screen.findByRole("status")).toHaveTextContent(/couldn.t save/i);
+  expect(within(screen.getByTestId("location-row")).getByText("Berlin")).toBeInTheDocument();
+});
+
+test("the row still shows the EFFECTIVE location", () => {
+  // PR #28 fixed this: a null location_label used to read "Not set" here while
+  // the Stylist showed Berlin.
+  renderSettings();
+  expect(within(screen.getByTestId("location-row")).getByText("Berlin")).toBeInTheDocument();
 });
