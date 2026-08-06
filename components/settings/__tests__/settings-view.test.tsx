@@ -107,6 +107,13 @@ test("location is shown read-only, with no control implying otherwise", () => {
   expect(within(row).queryByRole("button")).not.toBeInTheDocument();
 });
 
+test("the location row says where to change it, rather than being a dead end", () => {
+  renderSettings();
+  // The picker lives on the Stylist screen. A value with no affordance and no
+  // hint is the question this row kept prompting.
+  expect(within(screen.getByTestId("location-row")).getByText(/stylist/i)).toBeInTheDocument();
+});
+
 test("location falls back to a plain phrase when the profile has none", () => {
   renderSettings({ locationLabel: null });
   expect(within(screen.getByTestId("location-row")).getByText(/not set/i)).toBeInTheDocument();

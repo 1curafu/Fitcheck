@@ -193,12 +193,19 @@ export function SettingsView({
           </button>
         </div>
 
-        <div
-          data-testid="location-row"
-          className={`${CARD} mt-3 flex items-center justify-between p-4`}
-        >
-          <div className="text-[14.5px] text-foreground">Location</div>
-          <div className="text-[13.5px] text-muted-foreground">{locationLabel ?? "Not set"}</div>
+        {/* Read-only for now, and it says where to change it rather than being a
+            dead end. The picker itself lives on the Stylist screen's weather
+            pill; moving it here properly is its own plan, because it carries
+            geolocation permission, the saved-city-beats-GPS precedence rule and
+            the silent-refresh race that PR #21 fixed — duplicating that logic is
+            how it drifts. `locationLabel` is the EFFECTIVE location, not the
+            stored column, so this row cannot disagree with the Stylist. */}
+        <div data-testid="location-row" className={`${CARD} mt-3 p-4`}>
+          <div className="flex items-center justify-between">
+            <div className="text-[14.5px] text-foreground">Location</div>
+            <div className="text-[13.5px] text-muted-foreground">{locationLabel ?? "Not set"}</div>
+          </div>
+          <div className="mt-[3px] text-[12px] text-muted-dim">Change it on the Stylist screen</div>
         </div>
 
         <form action="/auth/signout" method="post" className="mt-6">
