@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { COLORS } from "@/lib/closet/vocab";
+import { COLORS, type ColorName } from "@/lib/closet/vocab";
 
 /**
  * Colour was the one AI tag the user could never correct — and it feeds
@@ -24,13 +24,13 @@ export function ColorPicker({
   onChange,
   max = 3,
 }: {
-  value: string[];
-  onChange: (next: string[]) => void;
+  value: ColorName[];
+  onChange: (next: ColorName[]) => void;
   max?: number;
 }) {
   const [open, setOpen] = useState(value.length === 0);
 
-  function toggle(name: string) {
+  function toggle(name: ColorName) {
     if (value.includes(name)) {
       onChange(value.filter((c) => c !== name));
       return;

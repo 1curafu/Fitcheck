@@ -101,11 +101,24 @@ const HOT_MATERIALS = ["fleece", "shearling", "down", "quilted", "puffer", "twee
 /** Strictly above 25: 24° is pleasant, 26° is hot. */
 const HOT_C = 25;
 
-export function weatherRules(w: Weather) {
+/** Materials rain ruins. Turned off by the rain-guard preference, nothing else. */
+const WET_MATERIALS = ["suede", "canvas"];
+
+/**
+ * @param prefs `rainGuard` is the settings toggle. It defaults ON: the
+ * protective behaviour shipped before the switch existed, so an absent
+ * preference must preserve it rather than opt the whole userbase out.
+ *
+ * The toggle reaches the WET list only. The heat exclusions are about comfort
+ * at 30°, not about keeping shoes dry, and `needsOuterwear` is about cold — a
+ * switch labelled "never suede in the rain" has no business touching either.
+ */
+export function weatherRules(w: Weather, prefs?: { rainGuard?: boolean }) {
+  const rainGuard = prefs?.rainGuard ?? true;
   return {
     needsOuterwear: w.tempC < 15,
     excludeMaterials: [
-      ...(w.rain ? ["suede", "canvas"] : []),
+      ...(w.rain && rainGuard ? WET_MATERIALS : []),
       ...(w.tempC > HOT_C ? HOT_MATERIALS : []),
     ],
   };

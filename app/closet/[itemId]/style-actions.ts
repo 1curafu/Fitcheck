@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { signItemImages, displayPath } from "@/lib/storage/signed";
 import { fetchForecast } from "@/lib/weather/open-meteo";
 import { laterAdvice } from "@/lib/weather/advice";
+import { readPreferences } from "@/lib/profile/preferences";
 import { personalBand } from "@/lib/generator/rules";
 import { buildCandidates, type CandidateItem } from "@/lib/generator/candidates";
 import { rankTopN } from "@/lib/generator/rank";
@@ -53,7 +54,7 @@ export async function styleWithItem(itemId: string): Promise<StyleResult> {
     const { data: profile } = await supabase
       .from("profiles")
       .select(
-        "archetype, formality_min, formality_max, occasions, location_lat, location_lon, location_label, location_source, location_timezone",
+        "archetype, formality_min, formality_max, occasions, location_lat, location_lon, location_label, location_source, location_timezone, preferences",
       )
       .eq("id", user.id)
       .single();
@@ -97,7 +98,8 @@ export async function styleWithItem(itemId: string): Promise<StyleResult> {
 
     const loc = resolveLocation({ profile });
     const f = await fetchForecast(loc.lat, loc.lon);
-    const advice = laterAdvice(f.hourly);
+    const prefs = readPreferences(profile?.preferences);
+    const advice = laterAdvice(f.hourly, prefs.tempUnit);
     const weather: WeatherPayload = {
       tempC: f.tempC,
       feelsLikeC: f.feelsLikeC,
@@ -109,6 +111,7 @@ export async function styleWithItem(itemId: string): Promise<StyleResult> {
       adviceClause: advice.adviceClause,
       laterLabel: "Later",
       hourly: f.hourly,
+      tempUnit: prefs.tempUnit,
     };
 
     // The occasion the app already believes you are dressing for today — the CTA
@@ -140,6 +143,7 @@ export async function styleWithItem(itemId: string): Promise<StyleResult> {
       season: currentSeason(now),
       excludeItemIds: [],
       maxAccessories: 1,
+      rainGuard: prefs.rainGuard,
     };
     const aesthetic = profile?.archetype ? [profile.archetype] : [];
 

@@ -1,7 +1,17 @@
-const NEUTRALS = new Set([
-  "navy", "grey", "gray", "beige", "white", "black", "brown", "cream", "tan", "stone",
-  "charcoal", "khaki", "ecru",
-]);
+import { COLORS } from "@/lib/closet/vocab";
+
+/**
+ * Derived from the palette, never hand-listed.
+ *
+ * The old literal set carried `khaki`, `ecru` and `gray` — none of which the
+ * picker can produce — and omitted `camel`, `denim` and `silver`, which it can.
+ * With `TagSchema.colors` now a `z.enum`, the palette is the only vocabulary
+ * that exists, so both lists here are computed from it and a test pins that
+ * every name they contain is a real colour.
+ */
+export const NEUTRAL_NAMES: string[] = COLORS.filter((c) => c.neutral).map((c) => c.name);
+
+const NEUTRALS = new Set<string>(NEUTRAL_NAMES);
 
 export function isNeutral(color: string): boolean {
   return NEUTRALS.has(color.trim().toLowerCase());
@@ -15,25 +25,28 @@ export function colorHarmonyScore(colors: string[]): number {
 }
 
 /**
- * The Refine "Lean into" palette, as FAMILIES of tag words.
+ * The Refine "Lean into" palette — the five swatches in `refine-sheet.tsx`.
  *
- * The swatches are five families, not five literal tag values. Item colours come
- * from Haiku as free-form common names ("charcoal", "beige", "khaki" — see
- * `lib/ai/tag-item.ts`), so matching a swatch id verbatim found almost nothing,
- * and `neutral`/`dark` found *nothing at all* — they are categories, not colours.
+ * The swatches are families, not literal tag values: `neutral` and `dark` are
+ * categories, and matching a swatch id verbatim would find nothing for them.
  *
- * Families overlap on purpose (tan is both a neutral and a camel); membership is
- * a per-family lookup, not a partition.
+ * These lists used to carry ~23 free-form names (sand, oatmeal, taupe, cognac,
+ * terracotta, cobalt, sage, onyx…) because Haiku emitted colours off any
+ * vocabulary. That was the right answer while `colors` was `z.string()`; now the
+ * schema is a `z.enum` over the palette, so any name outside it is dead weight
+ * that can never match. A test asserts every member is a real palette colour.
+ *
+ * NOT a partition, on purpose. Families overlap (`tan` is both neutral and
+ * camel), and `pink` and `yellow` belong to none — leaning on "camel" simply
+ * does not favour a pink shirt, which is correct. `leanScore` is a weighted
+ * term, never a filter, so an unfamilied colour is not excluded from anything.
  */
 export const COLOR_FAMILIES: Record<string, string[]> = {
-  neutral: [
-    "beige", "cream", "stone", "tan", "ecru", "sand", "oatmeal", "taupe",
-    "white", "off-white", "ivory", "grey", "gray", "greige",
-  ],
-  camel: ["camel", "tan", "caramel", "cognac", "brown", "chocolate", "toffee", "rust", "terracotta"],
-  navy: ["navy", "blue", "indigo", "denim", "cobalt", "midnight"],
-  olive: ["olive", "khaki", "green", "sage", "forest", "moss", "army"],
-  dark: ["black", "charcoal", "graphite", "onyx", "jet"],
+  neutral: ["white", "ivory", "cream", "stone", "sand", "beige", "taupe", "grey", "silver"],
+  camel: ["camel", "tan", "caramel", "chocolate", "brown", "rust", "terracotta", "gold"],
+  navy: ["navy", "indigo", "denim", "blue", "sky", "teal"],
+  olive: ["olive", "khaki", "sage", "forest", "green", "mint"],
+  dark: ["black", "charcoal", "burgundy", "maroon", "plum"],
 };
 
 export function inFamily(color: string, family: string): boolean {

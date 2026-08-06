@@ -71,12 +71,43 @@ export const TEXTURES = [
   "Other",
 ] as const;
 
+/**
+ * The colour vocabulary — the ONE list, enforced on the model.
+ *
+ * This was `z.array(z.string())` until 2026-08-06, while the edit screens
+ * offered a 21-swatch picker: the model could write "khaki" or "off-white",
+ * which `colorHex()` could not render a swatch for and the user could not
+ * reselect. `lib/generator/color.ts` had meanwhile widened its families with
+ * ~23 free-form names (sand, oatmeal, cognac, terracotta, onyx…) to catch that
+ * output, so three vocabularies were drifting apart at once.
+ *
+ * Constrained here for the same reason MATERIALS and TEXTURES are: the model is
+ * constrained, not asked nicely. `lib/closet/vocab.ts` attaches the hex and the
+ * neutral flag to these names, and a test pins the two lists together.
+ */
+export const COLOR_NAMES = [
+  // Achromatic
+  "black", "charcoal", "grey", "silver", "white", "ivory", "cream",
+  // Warm neutrals / earths
+  "stone", "sand", "beige", "taupe", "khaki", "camel", "tan", "caramel", "chocolate", "brown",
+  // Blues
+  "navy", "indigo", "denim", "blue", "sky", "teal",
+  // Greens
+  "olive", "sage", "forest", "green", "mint",
+  // Reds / pinks
+  "burgundy", "maroon", "red", "rust", "terracotta", "coral", "pink",
+  // Purples
+  "purple", "lavender", "plum",
+  // Yellows / oranges
+  "mustard", "yellow", "gold", "orange",
+] as const;
+
 // Categories + seasons match the prototype (Title case) so tags line up with
 // the closet filters and the generator.
 export const TagSchema = z.object({
   category: z.enum(["Tops", "Bottoms", "Outerwear", "Shoes", "Accessories", "Fragrance"]),
   subcategory: z.string().min(1),
-  colors: z.array(z.string()).min(1).max(3),
+  colors: z.array(z.enum(COLOR_NAMES)).min(1).max(3),
   pattern: z.enum(["solid", "striped", "check", "print", "other"]),
   material: z.enum(MATERIALS),
   texture: z.enum(TEXTURES),

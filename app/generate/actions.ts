@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { signItemImages, displayPath } from "@/lib/storage/signed";
 import { fetchForecast } from "@/lib/weather/open-meteo";
 import { laterAdvice } from "@/lib/weather/advice";
+import { readPreferences } from "@/lib/profile/preferences";
 import { personalBand, applyFormalityOverride } from "@/lib/generator/rules";
 import { buildCandidates, missingCategory, type CandidateItem } from "@/lib/generator/candidates";
 import { rankTopN } from "@/lib/generator/rank";
@@ -56,7 +57,7 @@ export async function generate(input: {
     const { data: profile } = await supabase
       .from("profiles")
       .select(
-        "archetype, formality_min, formality_max, location_lat, location_lon, location_label, location_source",
+        "archetype, formality_min, formality_max, location_lat, location_lon, location_label, location_source, preferences",
       )
       .eq("id", user.id)
       .single();
@@ -76,7 +77,8 @@ export async function generate(input: {
 
     const now = new Date();
     const f = await fetchForecast(loc.lat, loc.lon);
-    const advice = laterAdvice(f.hourly);
+    const prefs = readPreferences(profile?.preferences);
+    const advice = laterAdvice(f.hourly, prefs.tempUnit);
     const weather: WeatherPayload = {
       tempC: f.tempC,
       feelsLikeC: f.feelsLikeC,
@@ -88,6 +90,7 @@ export async function generate(input: {
       adviceClause: advice.adviceClause,
       laterLabel: "Later",
       hourly: f.hourly,
+      tempUnit: prefs.tempUnit,
     };
 
     const today = localDateFor(now, f.timezone);
@@ -172,6 +175,7 @@ export async function generate(input: {
       season: currentSeason(now),
       excludeItemIds: [],
       maxAccessories: 1,
+      rainGuard: prefs.rainGuard,
     };
     const combos = buildCandidates(candItems, candidateArgs);
     if (combos.length === 0) {

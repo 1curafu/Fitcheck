@@ -1,4 +1,4 @@
-import { TagSchema, taggingJsonSchema, MATERIALS, TEXTURES } from "../tagging-schema";
+import { TagSchema, taggingJsonSchema, MATERIALS, TEXTURES, COLOR_NAMES } from "../tagging-schema";
 
 // The tagger now writes from a constrained vocabulary. Before this, `material`
 // was a free-text string, so the AI could emit a value the edit screen could
@@ -82,4 +82,34 @@ test("the vocabularies reach the model as enums", () => {
   const props = (taggingJsonSchema as { properties: Record<string, { enum?: string[] }> }).properties;
   expect(props.material.enum).toEqual([...MATERIALS]);
   expect(props.texture.enum).toEqual([...TEXTURES]);
+});
+
+// ── Colours are a constrained vocabulary, like material and texture ──────────
+
+test("colors are constrained to the palette, not free text", () => {
+  // PR #19 converted material and texture to enums and left colors as
+  // z.array(z.string()), while adding a 21-colour picker in the same PR. The
+  // model could therefore emit a colour the user could not reselect and
+  // colorHex() could not render a swatch for.
+  const base = {
+    category: "Tops" as const,
+    subcategory: "Oxford shirt",
+    pattern: "solid" as const,
+    material: "Cotton" as const,
+    texture: "Flat" as const,
+    formality: 3,
+    seasons: ["Spring" as const],
+  };
+  expect(() => TagSchema.parse({ ...base, colors: ["navy"] })).not.toThrow();
+  expect(() => TagSchema.parse({ ...base, colors: ["chartreuse"] })).toThrow();
+  expect(() => TagSchema.parse({ ...base, colors: ["light blue"] })).toThrow();
+  expect(() => TagSchema.parse({ ...base, colors: ["burnt sienna"] })).toThrow();
+  expect(() => TagSchema.parse({ ...base, colors: ["off-white"] })).toThrow();
+});
+
+test("COLOR_NAMES is the palette the schema enforces", () => {
+  expect(COLOR_NAMES).toContain("navy");
+  expect(COLOR_NAMES).toContain("chocolate");
+  expect(COLOR_NAMES).not.toContain("chartreuse");
+  expect(new Set(COLOR_NAMES).size).toBe(COLOR_NAMES.length); // no duplicates
 });

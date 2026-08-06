@@ -13,6 +13,7 @@ const weather: WeatherPayload = {
   laterSentence: "Rain from 21:00 — take a shell.",
   adviceClause: "take a shell.",
   laterLabel: "Later",
+  tempUnit: "C" as const,
   hourly: [
     { hh: "18:00", tempC: 14, rain: false, isNow: true },
     { hh: "19:00", tempC: 13, rain: false, isNow: false },
@@ -96,4 +97,17 @@ test("city menu opens, selecting a city calls onCityChange and closes", async ()
   await userEvent.click(within(listbox).getByRole("option", { name: /London/ }));
   expect(onCityChange).toHaveBeenCalledWith(expect.objectContaining({ name: "London" }));
   expect(screen.queryByRole("listbox")).toBeNull();
+});
+
+test("the strip renders Fahrenheit when that is the user's unit", () => {
+  // The payload stays Celsius end to end; only this render boundary converts.
+  render(<WeatherStrip weather={{ ...weather, tempUnit: "F" }} />);
+  expect(screen.getByText("57°")).toBeInTheDocument(); // 14°C
+  expect(screen.getByText(/feels 54°/)).toBeInTheDocument(); // 12°C
+});
+
+test("the strip renders Celsius by default", () => {
+  render(<WeatherStrip weather={weather} />);
+  expect(screen.getByText("14°")).toBeInTheDocument();
+  expect(screen.getByText(/feels 12°/)).toBeInTheDocument();
 });

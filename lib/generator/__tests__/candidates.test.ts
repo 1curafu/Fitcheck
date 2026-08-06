@@ -223,3 +223,53 @@ test("relief does NOT rescue a formality gap — only weather exclusions are rel
   // wardrobe gap the empty screen should still name.
   expect(missingCategory(sneakerCloset, { ...summer, band: [3.5, 5] })).toBe("Shoes");
 });
+
+// ── Rain guard, threaded from the user's settings ────────────────────────────
+
+test("rain guard ON (the default) keeps suede out of a wet day", () => {
+  const wet = { ...base, weather: { tempC: 18, rain: true } };
+  // s1 leather survives, so material relief does NOT fire and the exclusion stands.
+  expect(eligibility(items, wet)["Shoes"]).toBe(1);
+  expect(buildCandidates(items, wet).flat().some((i) => i.id === "s2")).toBe(false);
+});
+
+test("rain guard OFF lets the user wear their suede in the rain", () => {
+  const wet = { ...base, weather: { tempC: 18, rain: true }, rainGuard: false };
+  expect(eligibility(items, wet)["Shoes"]).toBe(2);
+  expect(buildCandidates(items, wet).flat().some((i) => i.id === "s2")).toBe(true);
+});
+
+test("every shoe is reachable even when the closet has a single top", () => {
+  // Regression: the shoe index was `(t + d * 2) % shoes.length`. With one top,
+  // `t` is always 0, so the index reduced to `2d % shoes.length` — permanently 0
+  // whenever that length was 2, making the second pair unreachable and emitting
+  // the identical combo twice. PR #14 measured shoe coverage on a 20-top closet,
+  // where `t` supplied the variation and hid it.
+  const minimal = [
+    { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["spring"], material: "cotton" },
+    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["spring"], material: "cotton" },
+    { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["spring"], material: "leather" },
+    { id: "s2", category: "Shoes", colors: ["white"], formality: 3, seasons: ["spring"], material: "cotton" },
+  ];
+  const combos = buildCandidates(minimal, base);
+  const reached = new Set(combos.flat().filter((i) => i.category === "Shoes").map((i) => i.id));
+  expect(reached).toEqual(new Set(["s1", "s2"]));
+});
+
+test("shoe coverage holds across awkward list sizes", () => {
+  // The stride must stay coprime with the shoe count, not merely be even.
+  for (const shoeCount of [1, 2, 3, 4, 5, 6, 8, 9, 10]) {
+    const closet = [
+      { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["spring"], material: "cotton" },
+      { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["spring"], material: "cotton" },
+      ...Array.from({ length: shoeCount }, (_, n) => ({
+        id: `s${n}`, category: "Shoes", colors: ["brown"], formality: 3,
+        seasons: ["spring"], material: "leather",
+      })),
+    ];
+    const reached = new Set(
+      buildCandidates(closet, base).flat().filter((i) => i.category === "Shoes").map((i) => i.id),
+    );
+    expect(reached.size, `shoeCount=${shoeCount}`).toBe(shoeCount);
+  }
+});

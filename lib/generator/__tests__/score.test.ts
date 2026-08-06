@@ -48,10 +48,13 @@ test("an unmatched lean still scores above zero — it never eliminates a combo"
   expect(scoreCombo(noOlive, { ...ctx, lean: ["olive"] })).toBeGreaterThan(0);
 });
 test("the lean matches by family, not by literal tag word", () => {
-  const khaki = [{ category: "top", colors: ["khaki"], formality: 3, style_tags: [] }];
+  // `green` is in the olive family without being the word "olive". This used to
+  // use "khaki", which the tagger can no longer emit now that TagSchema.colors
+  // is a z.enum over the palette.
+  const green = [{ category: "top", colors: ["green"], formality: 3, style_tags: [] }];
   const rust = [{ category: "top", colors: ["rust"], formality: 3, style_tags: [] }];
   const leaning = { ...ctx, lean: ["olive"] };
-  expect(scoreCombo(khaki, leaning)).toBeGreaterThan(scoreCombo(rust, leaning));
+  expect(scoreCombo(green, leaning)).toBeGreaterThan(scoreCombo(rust, leaning));
 });
 test("no lean leaves scoring exactly as it was", () => {
   expect(scoreCombo(good, { ...ctx, lean: [] })).toBe(scoreCombo(good, ctx));

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { WeatherPayload } from "@/lib/generator/types";
 import type { City } from "@/lib/weather/geocode";
+import { formatTemp } from "@/lib/weather/format";
 
 const HAIR = "border-[rgba(237,230,216,0.07)]";
 const HAIR2 = "border-[rgba(237,230,216,0.12)]";
@@ -33,7 +34,7 @@ export function WeatherStrip({
   return (
     <div className="relative">
       <div className="flex items-baseline gap-2 text-sm">
-        <span className="font-serif text-[21px] text-foreground">{weather.tempC}°</span>
+        <span className="font-serif text-[21px] text-foreground">{formatTemp(weather.tempC, weather.tempUnit)}</span>
         <span className="max-w-[9rem] truncate text-[12.5px] text-muted-foreground">{weather.condition}</span>
         <span className="text-faint">·</span>
         <button
@@ -51,7 +52,7 @@ export function WeatherStrip({
             <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        <span className="text-[11px] text-muted-dim">feels {weather.feelsLikeC}°</span>
+        <span className="text-[11px] text-muted-dim">feels {formatTemp(weather.feelsLikeC, weather.tempUnit)}</span>
       </div>
 
       {(locating || geoError) && (
@@ -151,7 +152,7 @@ export function WeatherStrip({
                   <path d="M7 18a4.5 4.5 0 0 1-.5-8.97 5.5 5.5 0 0 1 10.6-.5A4 4 0 0 1 17 18z" />
                 </svg>
               </div>
-              <div className="text-[11.5px] text-foreground">{h.tempC}°</div>
+              <div className="text-[11.5px] text-foreground">{formatTemp(h.tempC, weather.tempUnit)}</div>
             </div>
           ))}
         </div>
