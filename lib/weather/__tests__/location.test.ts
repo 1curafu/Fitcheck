@@ -126,3 +126,21 @@ test("locationChanged is true when nothing is stored yet", () => {
   expect(locationChanged({ lat: 14.6, lon: 120.98 }, null)).toBe(true);
   expect(locationChanged({ lat: 14.6, lon: 120.98 }, { location_lat: null, location_lon: null })).toBe(true);
 });
+
+test("a city saved from Settings suppresses the Stylist's silent GPS refresh", () => {
+  // setLocation always writes source 'city'. resolveLocation surfaces that as
+  // the origin, and stylist.tsx gates its silent refresh on exactly this value
+  // (`geoAllowedRef.current = res.weather.locationOrigin !== "city"`). If this
+  // ever came back as "profile", GPS would overwrite a deliberate choice on the
+  // next load — the bug PR #21 fixed.
+  const r = resolveLocation({
+    profile: {
+      location_lat: 14.6,
+      location_lon: 120.98,
+      location_label: "Manila",
+      location_source: "city",
+    },
+  });
+  expect(r.origin).toBe("city");
+  expect(r.label).toBe("Manila");
+});
