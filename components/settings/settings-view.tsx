@@ -189,7 +189,25 @@ export function SettingsView({
             disabled
             className="flex-1 rounded-full py-[10px] text-center text-[13px] font-semibold text-muted-dim"
           >
-            Deutsch <span className="text-[10px] uppercase tracking-[0.14em]">Soon</span>
+            Deutsch
+            {/* Inline geometry, NOT arbitrary-value utilities. `ml-[6px]`,
+                `text-[9.5px]` and `align-[1px]` all silently failed to resolve
+                here — the badge collapsed flush against the word, reading as
+                "DeutschSOON". Fourth occurrence of this in the project; see the
+                rule in docs/STATE.md. Its own weight too, since inheriting the
+                button's semibold made the badge compete with the label. */}
+            <span
+              className="uppercase text-faint"
+              style={{
+                marginLeft: 6,
+                fontSize: 9.5,
+                fontWeight: 400,
+                letterSpacing: "0.14em",
+                verticalAlign: 1,
+              }}
+            >
+              Soon
+            </span>
           </button>
         </div>
 
