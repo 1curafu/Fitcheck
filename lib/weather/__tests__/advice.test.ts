@@ -51,3 +51,24 @@ test("sentence and adviceClause are always non-empty strings", () => {
   expect(a.sentence.length).toBeGreaterThan(0);
   expect(a.adviceClause.length).toBeGreaterThan(0);
 });
+
+test("the evening-drop sentence respects the user's temperature unit", () => {
+  // The advice sentence is the one place a temperature is baked into prose
+  // server-side, so it cannot be converted at the render boundary like the rest.
+  const hourly = [
+    { hh: "12", tempC: 20, rain: false, isNow: true },
+    { hh: "21", tempC: 10, rain: false, isNow: false },
+  ];
+  expect(laterAdvice(hourly, "C").sentence).toContain("10°");
+  expect(laterAdvice(hourly, "F").sentence).toContain("50°");
+});
+
+test("the advice clause is unchanged by the unit — the rust binding depends on it", () => {
+  const hourly = [
+    { hh: "12", tempC: 20, rain: false, isNow: true },
+    { hh: "21", tempC: 10, rain: false, isNow: false },
+  ];
+  const f = laterAdvice(hourly, "F");
+  expect(f.adviceClause).toBe("carry a jacket.");
+  expect(f.sentence.includes(f.adviceClause)).toBe(true);
+});

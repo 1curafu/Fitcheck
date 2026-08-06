@@ -13,6 +13,7 @@ const weather: WeatherPayload = {
   laterSentence: "Dry through the evening — no extra layer.",
   adviceClause: "no extra layer.",
   laterLabel: "Later",
+  tempUnit: "C" as const,
   hourly: [],
 };
 

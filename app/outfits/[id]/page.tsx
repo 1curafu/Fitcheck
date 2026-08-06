@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { signItemImages, displayPath } from "@/lib/storage/signed";
 import { localDateFor } from "@/lib/outfits/local-date";
 import { isWornToday } from "@/lib/outfits/wear";
+import { readPreferences } from "@/lib/profile/preferences";
+import { formatTemp } from "@/lib/weather/format";
 import { layoutForLook } from "@/lib/generator/layout";
 import { OutfitDetail, type DetailPiece } from "@/components/outfits/outfit-detail";
 import type { Slot } from "@/lib/generator/types";
@@ -67,12 +69,14 @@ export default async function OutfitPage({ params }: { params: Promise<{ id: str
   // Same timezone rule as the action — localDateFor takes a zone, never a bare Date.
   const { data: profile } = await supabase
     .from("profiles")
-    .select("location_timezone")
+    .select("location_timezone, preferences")
     .eq("id", user.id)
     .single();
   const today = localDateFor(new Date(), profile?.location_timezone ?? "UTC");
 
   const weather = outfit.weather_snapshot as { tempC?: number; condition?: string } | null;
+  // The snapshot stores Celsius, as everything does; the unit is applied here.
+  const prefs = readPreferences(profile?.preferences);
 
   return (
     <OutfitDetail
@@ -81,7 +85,7 @@ export default async function OutfitPage({ params }: { params: Promise<{ id: str
         lookName: outfit.look_name ?? "Today's look",
         occasion: outfit.occasion ?? "",
         weatherLabel: weather
-          ? `${Math.round(weather.tempC ?? 0)}° ${weather.condition ?? ""}`.trim()
+          ? `${formatTemp(weather.tempC ?? 0, prefs.tempUnit)} ${weather.condition ?? ""}`.trim()
           : "",
         reasoning: outfit.ai_reasoning,
       }}

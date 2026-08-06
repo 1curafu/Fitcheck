@@ -1,6 +1,8 @@
 // Shared contracts for the Stylist generator. Mirrors the v2 handoff's
 // README §State Management. See docs/superpowers/plans/2026-07-18-stylist-generator.md.
 
+import type { TempUnit } from "@/lib/weather/format";
+
 export type UiOccasion = "everyday" | "work" | "weekend" | "evening";
 
 export type Slot = {
@@ -52,6 +54,11 @@ export type WeatherPayload = {
   adviceClause: string; // JUST the rust clause: "take a shell." — the UI binds the rust <b> to THIS
   laterLabel: string; // "LATER" (static caps label)
   hourly: HourCell[]; // 4 cells for the expand strip
+  // The user's display unit. Every temperature above stays CELSIUS — it is what
+  // Open-Meteo returns, what weatherRules compares against, and what the re-rank
+  // prompt states to the model. `formatTemp` applies this at the render boundary
+  // and nowhere earlier.
+  tempUnit: TempUnit;
 };
 // Invariant (assert in the generate action + advice tests): laterSentence.includes(adviceClause).
 
