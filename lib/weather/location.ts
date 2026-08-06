@@ -67,6 +67,48 @@ export function resolveLocation(args: {
 }
 
 /**
+ * The columns a location write sets, shared by both write paths.
+ *
+ * `saveLocation` (the Stylist, which already knows the timezone from the
+ * generate that just ran) and `setLocation` (Settings, which has to resolve one)
+ * must write identical shapes — a column set that drifts between them is how the
+ * two screens start disagreeing about where you are.
+ *
+ * Pure, and takes `nowIso` rather than reading the clock, so it can be tested.
+ */
+export function locationColumns(d: LocationInput, nowIso: string) {
+  return {
+    location_lat: roundCoord(d.lat),
+    location_lon: roundCoord(d.lon),
+    location_label: d.label,
+    location_source: d.source,
+    location_timezone: d.timezone,
+    location_updated_at: nowIso,
+  };
+}
+
+/**
+ * Is this a genuinely different place from what is stored?
+ *
+ * Compared at STORED precision (2dp), not raw: re-picking your own city, or a
+ * GPS fix that drifted 50 metres, is not a move. This matters because a real
+ * change throws away today's drop — the looks were composed for the old city's
+ * weather — and rebuilding costs a model call.
+ */
+export function locationChanged(
+  next: { lat: number; lon: number },
+  // Only the coordinates are read, so only those are required — callers that
+  // select a narrow column set should not have to fetch a label they ignore.
+  profile?: Pick<ProfileLocation, "location_lat" | "location_lon"> | null,
+): boolean {
+  if (profile?.location_lat == null || profile.location_lon == null) return true;
+  return (
+    roundCoord(next.lat) !== roundCoord(profile.location_lat) ||
+    roundCoord(next.lon) !== roundCoord(profile.location_lon)
+  );
+}
+
+/**
  * What the client may persist. Plain Zod validation keywords are fine here —
  * this schema is NEVER sent to Anthropic as a structured-output format, so the
  * `forStructuredOutput()` stripping rule does not apply.

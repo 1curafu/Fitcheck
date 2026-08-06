@@ -1,4 +1,11 @@
-import { roundCoord, resolveLocation, DEFAULT_LOCATION, LocationInputSchema } from "../location";
+import {
+  roundCoord,
+  resolveLocation,
+  DEFAULT_LOCATION,
+  LocationInputSchema,
+  locationColumns,
+  locationChanged,
+} from "../location";
 
 test("roundCoord snaps to 2dp (~1.1km) so neighbours share one cached forecast URL", () => {
   expect(roundCoord(52.5187234)).toBe(52.52);
@@ -88,4 +95,34 @@ test("LocationInputSchema rejects an unknown source and an empty label", () => {
   const base = { lat: 52.52, lon: 13.41, label: "Berlin", timezone: "Europe/Berlin" };
   expect(() => LocationInputSchema.parse({ ...base, source: "profile" })).toThrow();
   expect(() => LocationInputSchema.parse({ ...base, source: "geo", label: "" })).toThrow();
+});
+
+// ── The shared write payload, and when a change is a change ──────────────────
+
+test("locationColumns rounds coordinates the same way resolveLocation reads them", () => {
+  const c = locationColumns(
+    { lat: 14.5995123, lon: 120.9842456, label: "Manila", source: "city", timezone: "Asia/Manila" },
+    "2026-08-06T12:00:00.000Z",
+  );
+  // 2dp ~ 1.1km: raw GPS precision makes every forecast URL unique and defeats
+  // the 30-minute fetchForecast cache, and stores more precise personal data
+  // than we need.
+  expect(c.location_lat).toBe(14.6);
+  expect(c.location_lon).toBe(120.98);
+  expect(c.location_timezone).toBe("Asia/Manila");
+  expect(c.location_source).toBe("city");
+  expect(c.location_updated_at).toBe("2026-08-06T12:00:00.000Z");
+});
+
+test("locationChanged compares ROUNDED coordinates, not raw ones", () => {
+  const profile = { location_lat: 14.6, location_lon: 120.98, location_label: "Manila" };
+  // Same place to 2dp — re-picking your own city must not count as a change,
+  // because a change throws away today's drop.
+  expect(locationChanged({ lat: 14.6012, lon: 120.9799 }, profile)).toBe(false);
+  expect(locationChanged({ lat: 64.15, lon: -21.94 }, profile)).toBe(true);
+});
+
+test("locationChanged is true when nothing is stored yet", () => {
+  expect(locationChanged({ lat: 14.6, lon: 120.98 }, null)).toBe(true);
+  expect(locationChanged({ lat: 14.6, lon: 120.98 }, { location_lat: null, location_lon: null })).toBe(true);
 });

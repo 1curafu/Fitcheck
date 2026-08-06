@@ -26,6 +26,7 @@ import { recordOverride } from "@/lib/outfits/overrides";
 import {
   resolveLocation,
   roundCoord,
+  locationColumns,
   LocationInputSchema,
   type LocationSource,
 } from "@/lib/weather/location";
@@ -293,14 +294,7 @@ export async function saveLocation(input: unknown): Promise<void> {
 
   await supabase
     .from("profiles")
-    .update({
-      location_lat: roundCoord(d.lat),
-      location_lon: roundCoord(d.lon),
-      location_label: d.label,
-      location_source: d.source,
-      location_timezone: d.timezone,
-      location_updated_at: new Date().toISOString(),
-    })
+    .update(locationColumns(d, new Date().toISOString()))
     .eq("id", user.id);
 }
 
