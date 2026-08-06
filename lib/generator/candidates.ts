@@ -16,9 +16,38 @@ export type CandidateArgs = {
   season: string;
   excludeItemIds: string[];
   maxAccessories: number;
+  /**
+   * The user's rain-guard preference. Optional and defaulting ON, so every
+   * existing caller and fixture keeps the protective behaviour it had before
+   * the toggle existed.
+   *
+   * A bare boolean rather than the whole `Preferences` object: the generator
+   * has no business importing a module that also carries display concerns like
+   * the temperature unit.
+   */
+  rainGuard?: boolean;
 };
 
 const CAP = 200;
+
+function gcd(x: number, y: number): number {
+  return y === 0 ? x : gcd(y, x % y);
+}
+
+/**
+ * A step size that visits every index of a list of length `n` before repeating.
+ *
+ * `buildCandidates` walks shoes with a stride so their pairing does not move in
+ * lockstep with bottoms. A FIXED stride of 2 was wrong: it shares a factor with
+ * every even list length, so with one top — where the top index cannot supply
+ * variation — a two-shoe closet reached only the first pair, and emitted the
+ * same combo twice. Any stride coprime with `n` visits all of it, so pick the
+ * smallest one above 1 and fall back to 1 for n ≤ 2.
+ */
+function decorrelatedStride(n: number): number {
+  for (let s = 2; s < n; s++) if (gcd(s, n) === 1) return s;
+  return 1;
+}
 
 /** The required slots — a combo cannot exist without one of each. */
 export const REQUIRED_CATEGORIES = ["Tops", "Bottoms", "Shoes"] as const;
@@ -90,7 +119,7 @@ export function eligibleByCategory(
   items: CandidateItem[],
   a: CandidateArgs,
 ): Record<string, CandidateItem[]> {
-  const { excludeMaterials } = weatherRules(a.weather);
+  const { excludeMaterials } = weatherRules(a.weather, { rainGuard: a.rainGuard });
   const cats = new Set<string>(items.map((i) => i.category));
   for (const c of REQUIRED_CATEGORIES) cats.add(c);
   cats.add("Outerwear");
@@ -124,7 +153,7 @@ export function missingCategory(items: CandidateItem[], a: CandidateArgs): Requi
 }
 
 export function buildCandidates(items: CandidateItem[], a: CandidateArgs): CandidateItem[][] {
-  const { needsOuterwear } = weatherRules(a.weather);
+  const { needsOuterwear } = weatherRules(a.weather, { rainGuard: a.rainGuard });
 
   // Season ordering and material relief both live in `eligibleByCategory`, so
   // this function, `eligibility` and `missingCategory` can never disagree about
@@ -156,14 +185,17 @@ export function buildCandidates(items: CandidateItem[], a: CandidateArgs): Candi
   //
   // Each pass `d` walks all tops once, pairing each with a different bottom and
   // shoe, so pass 0 alone touches every top, bottom and shoe. Later passes add
-  // fresh pairings rather than exhausting one corner of the space. The offsets
-  // are coprime-ish (d and 2d) so pairings do not repeat early.
+  // fresh pairings rather than exhausting one corner of the space. The shoe
+  // offset uses a stride coprime with the shoe count so pairings do not repeat
+  // early AND every shoe is still reachable — a fixed stride of 2 failed the
+  // second half of that on any even-length list (see `decorrelatedStride`).
   const passes = Math.max(bottoms.length, shoes.length);
+  const shoeStride = decorrelatedStride(shoes.length);
 
   build: for (let d = 0; d < passes; d++) {
     for (let t = 0; t < tops.length; t++) {
       const b = bottoms[(t + d) % bottoms.length];
-      const s = shoes[(t + d * 2) % shoes.length];
+      const s = shoes[(t + d * shoeStride) % shoes.length];
 
       // Outerwear is a PREFERENCE, not a requirement: layer it in when the cold
       // calls for it and the closet has one, but never refuse to dress someone

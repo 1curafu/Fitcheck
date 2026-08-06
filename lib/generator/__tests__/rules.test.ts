@@ -126,3 +126,34 @@ test("cold days are unaffected by the heat rule", () => {
   expect(weatherRules({ tempC: 5, rain: false }).excludeMaterials).toEqual([]);
   expect(weatherRules({ tempC: 5, rain: false }).needsOuterwear).toBe(true);
 });
+
+// ── Rain guard, the settings toggle ──────────────────────────────────────────
+
+test("rain guard off means rain stops excluding suede and canvas", () => {
+  expect(weatherRules({ tempC: 16, rain: true }, { rainGuard: false }).excludeMaterials).toEqual([]);
+});
+
+test("rain guard defaults ON when no preferences are passed", () => {
+  // Every existing caller passes one argument. The protective behaviour already
+  // shipped, so the default must preserve it rather than quietly opting the
+  // whole userbase out.
+  expect(weatherRules({ tempC: 16, rain: true }).excludeMaterials).toEqual(
+    expect.arrayContaining(["suede", "canvas"]),
+  );
+  expect(weatherRules({ tempC: 16, rain: true }, {}).excludeMaterials).toEqual(
+    expect.arrayContaining(["suede", "canvas"]),
+  );
+});
+
+test("rain guard does not reach the heat exclusions", () => {
+  // The heat list is about comfort in 30°, not about protecting shoes from
+  // water. A switch labelled "never suede in the rain" must not silently also
+  // put a shearling coat back into a July outfit.
+  const hot = weatherRules({ tempC: 30, rain: true }, { rainGuard: false }).excludeMaterials;
+  expect(hot).toEqual(expect.arrayContaining(["fleece", "down", "shearling", "tweed"]));
+  expect(hot).not.toContain("suede");
+});
+
+test("rain guard does not reach the outerwear rule", () => {
+  expect(weatherRules({ tempC: 12, rain: true }, { rainGuard: false }).needsOuterwear).toBe(true);
+});
