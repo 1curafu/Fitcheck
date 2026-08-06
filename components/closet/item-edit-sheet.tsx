@@ -17,6 +17,8 @@ import {
   MATERIALS,
   TEXTURES,
   PATTERNS,
+  COLOR_NAMES,
+  type ColorName,
 } from "@/lib/closet/vocab";
 
 // See the note in confirm-form.tsx — CATEGORIES carries Fragrance because it is
@@ -48,7 +50,13 @@ export function ItemEditSheet({
   const [category, setCategory] = useState<Tags["category"]>(item.category);
   const [formality, setFormality] = useState(item.formality ?? 3);
   const [seasons, setSeasons] = useState<string[]>(item.seasons);
-  const [colors, setColors] = useState<string[]>(item.colors);
+  // Narrowed at the boundary, not by loosening ColorPicker: the DB column is
+  // text[], so a row written before TagSchema.colors became an enum could still
+  // hold a stray name. Anything off the palette is dropped rather than offered
+  // back for re-saving.
+  const [colors, setColors] = useState<ColorName[]>(
+    item.colors.filter((c): c is ColorName => (COLOR_NAMES as readonly string[]).includes(c)),
+  );
   const [texture, setTexture] = useState(item.texture ?? "Flat");
   const [pattern, setPattern] = useState(item.pattern ?? "solid");
   const [subcategory, setSubcategory] = useState(item.subcategory ?? "");

@@ -7,6 +7,7 @@ import {
   TEXTURES,
   PATTERNS,
   COLORS,
+  COLOR_NAMES,
   colorHex,
 } from "../vocab";
 import { TagSchema } from "@/lib/ai/tagging-schema";
@@ -70,4 +71,16 @@ test("the closet vocabulary lives ONLY in vocab.ts", () => {
     const src = readFileSync(f, "utf8");
     expect(src, f).not.toMatch(/const\s+(MATERIALS|CATEGORIES|SEASONS|FORMALITY_LABEL)\s*[:=]/);
   }
+});
+
+test("the palette and the schema's enum are the same list", () => {
+  // COLORS carries the hex and the neutral flag; COLOR_NAMES is what the model
+  // is constrained to. Adding a colour to one and not the other would let the
+  // tagger emit something with no swatch, or offer a swatch the tagger can
+  // never produce — the exact drift this module exists to prevent.
+  expect(COLORS.map((c) => c.name).sort()).toEqual([...COLOR_NAMES].sort());
+});
+
+test("every palette colour declares whether it is neutral", () => {
+  for (const c of COLORS) expect(typeof c.neutral).toBe("boolean");
 });
