@@ -23,6 +23,7 @@ export function LocationPicker({
   onSearch,
   onPick,
   onUseMyLocation,
+  variant = "overlay",
   className,
 }: {
   cities: City[];
@@ -31,21 +32,37 @@ export function LocationPicker({
   onPick: (c: City) => void;
   /** Omitted when the browser has no geolocation at all — then search is the only path. */
   onUseMyLocation?: () => void;
+  /**
+   * `overlay` floats over the page (the Stylist's weather pill) and carries its
+   * own card. `bare` has no surface of its own and uses hairline-divided rows,
+   * for when it already sits inside one — nesting the overlay inside another
+   * card produced two borders and two backgrounds, which is what made it look
+   * wrong in Settings.
+   */
+  variant?: "overlay" | "bare";
   className?: string;
 }) {
+  const bare = variant === "bare";
+  const row = bare
+    ? "flex min-h-11 w-full items-center px-4 py-[13px] text-left text-[14px] text-foreground"
+    : "flex min-h-11 w-full items-center rounded-[8px] px-3 text-left text-[13px] text-foreground hover:bg-foreground/5";
   return (
     <div className={className}>
       <ul
         role="listbox"
         aria-label="Choose a city"
-        className={cn("w-full rounded-[12px] border bg-surface-3 p-1.5", HAIR2)}
+        className={cn(
+          "w-full",
+          bare ? "overflow-hidden" : cn("rounded-[12px] border bg-surface-3 p-1.5", HAIR2),
+        )}
       >
         {onUseMyLocation && (
           <li>
             <button
               type="button"
               onClick={onUseMyLocation}
-              className="flex min-h-11 w-full items-center gap-2 rounded-[8px] px-3 text-left text-[13px] text-foreground hover:bg-foreground/5"
+              className={cn(row, "gap-2")}
+              style={bare ? { borderBottom: "1px solid var(--hairline-2)" } : undefined}
             >
               <svg
                 width="11"
@@ -63,12 +80,17 @@ export function LocationPicker({
             </button>
           </li>
         )}
-        <li className="p-1">
+        <li className={bare ? "px-4 py-3" : "p-1"}>
           <input
             aria-label="Search a city"
             placeholder="Search a city…"
             onChange={(e) => onSearch(e.target.value)}
-            className="w-full rounded-[8px] bg-surface-1 px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-dim"
+            className={cn(
+              "w-full rounded-[10px] text-foreground outline-none placeholder:text-muted-dim",
+              bare
+                ? "bg-surface-3 px-3.5 py-3 text-[15px]"
+                : "bg-surface-1 px-3 py-2 text-sm",
+            )}
           />
         </li>
         {cities.map((c) => (
@@ -78,10 +100,13 @@ export function LocationPicker({
               role="option"
               aria-selected={c.name === currentLabel}
               onClick={() => onPick(c)}
-              className="flex min-h-11 w-full items-center justify-between rounded-[8px] px-3 text-left text-[13px] text-foreground hover:bg-foreground/5"
+              className={cn(row, "justify-between")}
+              style={bare ? { borderTop: "1px solid var(--hairline-2)" } : undefined}
             >
               {c.name}
-              <span className="text-[10px] text-muted-dim">{c.country}</span>
+              <span className={bare ? "text-[12.5px] text-muted-dim" : "text-[10px] text-muted-dim"}>
+                {c.country}
+              </span>
             </button>
           </li>
         ))}

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import type { Preferences } from "@/lib/profile/preferences";
 import { useLocationPicker } from "@/lib/weather/use-location-picker";
-import { LocationPicker } from "@/components/weather/location-picker";
+import { LocationSheet } from "@/components/weather/location-sheet";
 import type { City } from "@/lib/weather/geocode";
 
 const CARD =
@@ -241,43 +241,47 @@ export function SettingsView({
           </button>
         </div>
 
-        {/* The same picker the Stylist's weather pill opens — one component, so
-            the two entry points cannot offer different ways to change one
-            setting. The value shown is the EFFECTIVE location, not the stored
-            column, so this row cannot disagree with the Stylist either. */}
+        {/* Opens a sheet, not an inline expansion: nesting the Stylist's
+            floating picker inside this card produced a card-in-a-card, and a
+            searchable list of unknown length needs room the row cannot give it
+            without reflowing the page under the user's thumb. The value shown is
+            the EFFECTIVE location, so this row cannot disagree with the
+            Stylist. */}
         <div data-testid="location-row" className={`${CARD} mt-3`}>
           <button
             type="button"
+            aria-haspopup="dialog"
             aria-expanded={pickerOpen}
-            onClick={() => setPickerOpen((o) => !o)}
+            onClick={() => setPickerOpen(true)}
             className="flex w-full items-center justify-between p-4 text-left"
           >
             <span className="text-[14.5px] text-foreground">Location</span>
             <span className="flex items-center gap-2">
               <span className="text-[13.5px] text-muted-foreground">{location ?? "Not set"}</span>
-              <span aria-hidden className="text-muted-dim">
-                {pickerOpen ? "▴" : "▾"}
+              <span aria-hidden className="text-[20px] text-muted-dim">
+                ›
               </span>
             </span>
           </button>
 
-          {picker.locating || picker.geoError || error?.where === "location" ? (
-            <p role="status" className="px-4 pb-3 text-[12px] text-muted-foreground">
-              {picker.locating ? "Locating…" : (error?.message ?? picker.geoError)}
+          {error?.where === "location" && (
+            <p role="status" className="px-4 pb-3 text-[12px] text-brand-high">
+              {error.message}
             </p>
-          ) : null}
-
-          {pickerOpen && (
-            <LocationPicker
-              className="px-3 pb-3"
-              cities={picker.cities}
-              currentLabel={location ?? undefined}
-              onSearch={picker.search}
-              onPick={pickCity}
-              onUseMyLocation={picker.geoSupported ? picker.useMyLocation : undefined}
-            />
           )}
         </div>
+
+        <LocationSheet
+          open={pickerOpen}
+          currentLabel={location ?? undefined}
+          cities={picker.cities}
+          onSearch={picker.search}
+          onPick={pickCity}
+          onUseMyLocation={picker.geoSupported ? picker.useMyLocation : undefined}
+          locating={picker.locating}
+          geoError={picker.geoError}
+          onClose={() => setPickerOpen(false)}
+        />
 
         <form action="/auth/signout" method="post" className="mt-6">
           <button
