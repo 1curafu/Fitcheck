@@ -134,6 +134,40 @@ export function locationMoved(
 }
 
 /**
+ * Should today's stored drop be thrown away and rebuilt?
+ *
+ * INTENT decides this, not distance. Distance is only a proxy for intent, and
+ * the wrong one: a user who deliberately picks a city 10km away has asked for
+ * looks there, and if nothing changes the app reads as broken with no way to
+ * tell why. The threshold exists for the case where nobody asked — the
+ * Stylist's silent GPS refresh, which runs on every load and would otherwise
+ * charge a commuter a fresh generation every morning.
+ *
+ * - Same place → never. A no-op tap must not cost a rebuild.
+ * - Deliberate pick (`city`) → always, however near.
+ * - GPS (`geo`) → only past `STALE_LOCATION_KM`, where the forecast can differ.
+ *
+ * An explicit "Use my location" tap arrives as `geo` and cannot be told apart
+ * from the silent refresh. That is fine: if the user has not moved, there is
+ * nothing to rebuild.
+ *
+ * `previous` is the RESOLVED location the looks were built for — pass
+ * `resolveLocation({ profile })`, so the first move away from DEFAULT_LOCATION
+ * counts even with nothing stored yet.
+ */
+export function invalidatesDrop(
+  next: { lat: number; lon: number; source: LocationSource },
+  previous: { lat: number; lon: number },
+): boolean {
+  const samePlace =
+    roundCoord(next.lat) === roundCoord(previous.lat) &&
+    roundCoord(next.lon) === roundCoord(previous.lon);
+  if (samePlace) return false;
+
+  return next.source === "city" ? true : locationMoved(next, previous);
+}
+
+/**
  * What the client may persist. Plain Zod validation keywords are fine here —
  * this schema is NEVER sent to Anthropic as a structured-output format, so the
  * `forStructuredOutput()` stripping rule does not apply.

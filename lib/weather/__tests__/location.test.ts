@@ -5,6 +5,7 @@ import {
   LocationInputSchema,
   locationColumns,
   locationMoved,
+  invalidatesDrop,
   distanceKm,
 } from "../location";
 
@@ -166,4 +167,38 @@ test("the threshold is about weather, not about precision", () => {
   const berlin = { lat: 52.52, lon: 13.41 };
   expect(locationMoved({ lat: 52.7, lon: 13.41 }, berlin)).toBe(false); // ~20km
   expect(locationMoved({ lat: 53.0, lon: 13.41 }, berlin)).toBe(true); // ~53km
+});
+
+// ── Intent, not distance, decides whether today's looks survive ──────────────
+
+test("re-picking the same place changes nothing", () => {
+  // A no-op tap must not cost a regeneration. Compared at STORED precision,
+  // because that is the resolution anything ever gets written at.
+  expect(invalidatesDrop({ lat: 59.91, lon: 10.75, source: "city" }, { lat: 59.91, lon: 10.75 })).toBe(false);
+  expect(invalidatesDrop({ lat: 59.9103, lon: 10.7499, source: "city" }, { lat: 59.91, lon: 10.75 })).toBe(false);
+});
+
+test("a deliberate pick invalidates however near it is", () => {
+  // Distance is a proxy for intent, and the wrong one. If the user taps a city
+  // and the looks do not change, the app reads as broken and gives them no way
+  // to tell why.
+  const oslo = { lat: 59.91, lon: 10.75 };
+  const nearby = { lat: 59.95, lon: 10.8, source: "city" as const }; // ~6km
+  expect(distanceKm(nearby, oslo)).toBeLessThan(25);
+  expect(invalidatesDrop(nearby, oslo)).toBe(true);
+});
+
+test("a GPS fix only invalidates once the weather could differ", () => {
+  // The silent refresh runs on every load and the user never asked for it, so
+  // this is where a threshold belongs: a commute must not cost a generation.
+  const home = { lat: 52.52, lon: 13.41 };
+  expect(invalidatesDrop({ lat: 52.55, lon: 13.5, source: "geo" }, home)).toBe(false); // ~7km
+  expect(invalidatesDrop({ lat: 53.0, lon: 13.41, source: "geo" }, home)).toBe(true); // ~53km
+});
+
+test("an explicit 'use my location' while standing still changes nothing", () => {
+  // It arrives as source 'geo' and cannot be told apart from the silent
+  // refresh — which is fine, because if you have not moved there is nothing to
+  // rebuild.
+  expect(invalidatesDrop({ lat: 52.5201, lon: 13.4099, source: "geo" }, { lat: 52.52, lon: 13.41 })).toBe(false);
 });

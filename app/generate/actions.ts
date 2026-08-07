@@ -27,7 +27,7 @@ import {
   resolveLocation,
   roundCoord,
   locationColumns,
-  locationMoved,
+  invalidatesDrop,
   LocationInputSchema,
   type LocationSource,
 } from "@/lib/weather/location";
@@ -112,8 +112,10 @@ export async function generate(input: {
      * caching does not make a 26°C Manila outfit correct under a 12°C
      * Reykjavik sky.
      *
-     * Compared against the RESOLVED previous location, so the first move a
-     * user makes — away from DEFAULT_LOCATION, with nothing stored yet — counts.
+     * INTENT decides, not distance: a deliberate city pick always rebuilds,
+     * however near, because the user asked and a screen that does not change
+     * reads as broken. A silent GPS refresh only rebuilds past 25km, so a
+     * commute does not cost a generation. See `invalidatesDrop`.
      *
      * Falling through here is deliberately how this is implemented: the block
      * below already records a fall-through as a `drop`, never a `regenerate`,
@@ -126,7 +128,7 @@ export async function generate(input: {
      * anything without deleting the looks this very call just stored.
      */
     const movedAway = input.city
-      ? locationMoved(input.city, resolveLocation({ profile }))
+      ? invalidatesDrop(input.city, resolveLocation({ profile }))
       : false;
 
     if (!input.regenerate && !movedAway && stored?.length) {

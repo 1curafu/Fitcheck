@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { PreferencesSchema, readPreferences } from "@/lib/profile/preferences";
 import { fetchForecast } from "@/lib/weather/open-meteo";
-import { locationColumns, locationMoved, resolveLocation } from "@/lib/weather/location";
+import { locationColumns, invalidatesDrop, resolveLocation } from "@/lib/weather/location";
 import { localDateFor } from "@/lib/outfits/local-date";
 
 /**
@@ -85,11 +85,10 @@ export async function setLocation(input: unknown): Promise<void> {
   // location survives — better than storing one with a null timezone.
   const forecast = await fetchForecast(picked.lat, picked.lon);
 
-  // The SAME predicate the Stylist path uses, against the RESOLVED previous
-  // location. Two doors to one setting must agree on what counts as a move, and
-  // resolving means the first move away from DEFAULT_LOCATION counts even
-  // though nothing is stored yet.
-  const moved = locationMoved(picked, resolveLocation({ profile }));
+  // The SAME predicate the Stylist path uses — two doors to one setting must
+  // agree. Everything picked here is a deliberate choice, so this rebuilds for
+  // any genuinely different place and skips a no-op re-tap of the current one.
+  const moved = invalidatesDrop({ ...picked, source: "city" }, resolveLocation({ profile }));
 
   const { error } = await supabase
     .from("profiles")
