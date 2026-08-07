@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import type { WeatherPayload } from "@/lib/generator/types";
 import type { City } from "@/lib/weather/geocode";
 import { formatTemp } from "@/lib/weather/format";
+import { LocationPicker } from "@/components/weather/location-picker";
 
 const HAIR = "border-[rgba(237,230,216,0.07)]";
 const HAIR2 = "border-[rgba(237,230,216,0.12)]";
@@ -62,51 +63,24 @@ export function WeatherStrip({
       )}
 
       {menuOpen && (
-        <ul role="listbox" aria-label="Choose a city" className={cn("absolute z-20 mt-2 w-full rounded-[12px] border bg-surface-3 p-1.5", HAIR2)}>
-          {onUseMyLocation && (
-            <li>
-              <button
-                type="button"
-                onClick={() => {
+        <LocationPicker
+          className="absolute z-20 mt-2 w-full"
+          cities={cities}
+          currentLabel={weather.cityLabel}
+          onSearch={(q) => onSearch?.(q)}
+          onPick={(c) => {
+            onCityChange?.(c);
+            setMenuOpen(false);
+          }}
+          onUseMyLocation={
+            onUseMyLocation
+              ? () => {
                   onUseMyLocation();
                   setMenuOpen(false);
-                }}
-                className="flex min-h-11 w-full items-center gap-2 rounded-[8px] px-3 text-left text-[13px] text-foreground hover:bg-foreground/5"
-              >
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
-                  <circle cx="12" cy="12" r="3.2" />
-                  <path d="M12 2v3.2M12 18.8V22M22 12h-3.2M5.2 12H2" strokeLinecap="round" />
-                </svg>
-                Use my location
-              </button>
-            </li>
-          )}
-          <li className="p-1">
-            <input
-              aria-label="Search a city"
-              placeholder="Search a city…"
-              onChange={(e) => onSearch?.(e.target.value)}
-              className="w-full rounded-[8px] bg-surface-1 px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-dim"
-            />
-          </li>
-          {cities.map((c) => (
-            <li key={`${c.name}-${c.lat}`}>
-              <button
-                type="button"
-                role="option"
-                aria-selected={c.name === weather.cityLabel}
-                onClick={() => {
-                  onCityChange?.(c);
-                  setMenuOpen(false);
-                }}
-                className="flex min-h-11 w-full items-center justify-between rounded-[8px] px-3 text-left text-[13px] text-foreground hover:bg-foreground/5"
-              >
-                {c.name}
-                <span className="text-[10px] text-muted-dim">{c.country}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
+                }
+              : undefined
+          }
+        />
       )}
 
       <button

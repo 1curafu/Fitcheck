@@ -3,6 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { Preferences } from "@/lib/profile/preferences";
+import { useLocationPicker } from "@/lib/weather/use-location-picker";
+import { LocationSheet } from "@/components/weather/location-sheet";
+import type { City } from "@/lib/weather/geocode";
 
 const CARD =
   "rounded-[14px] bg-surface-1 shadow-[inset_0_0_0_1px_var(--hairline-2)]";
@@ -95,6 +98,7 @@ export function SettingsView({
   locationLabel,
   preferences,
   onSaveAction,
+  onSetLocationAction,
 }: {
   name: string;
   email: string;
@@ -102,9 +106,17 @@ export function SettingsView({
   locationLabel: string | null;
   preferences: Preferences;
   onSaveAction: (patch: Partial<Preferences>) => Promise<void>;
+  onSetLocationAction: (city: { lat: number; lon: number; label: string }) => Promise<void>;
 }) {
   const [prefs, setPrefs] = useState(preferences);
-  const [error, setError] = useState<string | null>(null);
+  const [location, setLocation] = useState(locationLabel);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  /**
+   * One error slot with a discriminator, rather than two independent ones.
+   * Two `role="status"` nodes can be live at once, and then "the status" is
+   * ambiguous to a screen reader and to a test alike.
+   */
+  const [error, setError] = useState<{ where: "prefs" | "location"; message: string } | null>(null);
 
   /**
    * Optimistic, and reverted on failure.
@@ -121,9 +133,27 @@ export function SettingsView({
       await onSaveAction(next);
     } catch {
       setPrefs(previous);
-      setError("Couldn't save that — check your connection.");
+      setError({ where: "prefs", message: "Couldn't save that — check your connection." });
     }
   }
+
+  /** Same optimistic-then-revert contract as the toggles. */
+  async function pickCity(c: City) {
+    const previous = location;
+    setLocation(c.name);
+    setPickerOpen(false);
+    setError(null);
+    try {
+      await onSetLocationAction({ lat: c.lat, lon: c.lon, label: c.name });
+    } catch {
+      setLocation(previous);
+      setError({ where: "location", message: "Couldn't save that — check your connection." });
+    }
+  }
+
+  const picker = useLocationPicker({
+    onPick: (p) => pickCity({ name: p.label, country: "", lat: p.lat, lon: p.lon }),
+  });
 
   return (
     <div className="flex min-h-dvh flex-1 flex-col">
@@ -166,9 +196,9 @@ export function SettingsView({
           />
         </div>
 
-        {error && (
+        {error?.where === "prefs" && (
           <p role="status" className="mt-3 text-[12.5px] text-brand-high">
-            {error}
+            {error.message}
           </p>
         )}
 
@@ -211,20 +241,47 @@ export function SettingsView({
           </button>
         </div>
 
-        {/* Read-only for now, and it says where to change it rather than being a
-            dead end. The picker itself lives on the Stylist screen's weather
-            pill; moving it here properly is its own plan, because it carries
-            geolocation permission, the saved-city-beats-GPS precedence rule and
-            the silent-refresh race that PR #21 fixed — duplicating that logic is
-            how it drifts. `locationLabel` is the EFFECTIVE location, not the
-            stored column, so this row cannot disagree with the Stylist. */}
-        <div data-testid="location-row" className={`${CARD} mt-3 p-4`}>
-          <div className="flex items-center justify-between">
-            <div className="text-[14.5px] text-foreground">Location</div>
-            <div className="text-[13.5px] text-muted-foreground">{locationLabel ?? "Not set"}</div>
-          </div>
-          <div className="mt-[3px] text-[12px] text-muted-dim">Change it on the Stylist screen</div>
+        {/* Opens a sheet, not an inline expansion: nesting the Stylist's
+            floating picker inside this card produced a card-in-a-card, and a
+            searchable list of unknown length needs room the row cannot give it
+            without reflowing the page under the user's thumb. The value shown is
+            the EFFECTIVE location, so this row cannot disagree with the
+            Stylist. */}
+        <div data-testid="location-row" className={`${CARD} mt-3`}>
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            aria-expanded={pickerOpen}
+            onClick={() => setPickerOpen(true)}
+            className="flex w-full items-center justify-between p-4 text-left"
+          >
+            <span className="text-[14.5px] text-foreground">Location</span>
+            <span className="flex items-center gap-2">
+              <span className="text-[13.5px] text-muted-foreground">{location ?? "Not set"}</span>
+              <span aria-hidden className="text-[20px] text-muted-dim">
+                ›
+              </span>
+            </span>
+          </button>
+
+          {error?.where === "location" && (
+            <p role="status" className="px-4 pb-3 text-[12px] text-brand-high">
+              {error.message}
+            </p>
+          )}
         </div>
+
+        <LocationSheet
+          open={pickerOpen}
+          currentLabel={location ?? undefined}
+          cities={picker.cities}
+          onSearch={picker.search}
+          onPick={pickCity}
+          onUseMyLocation={picker.geoSupported ? picker.useMyLocation : undefined}
+          locating={picker.locating}
+          geoError={picker.geoError}
+          onClose={() => setPickerOpen(false)}
+        />
 
         <form action="/auth/signout" method="post" className="mt-6">
           <button

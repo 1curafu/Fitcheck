@@ -25,7 +25,8 @@ import { predictOccasion, defaultReason } from "@/lib/outfits/predict-occasion";
 import { recordOverride } from "@/lib/outfits/overrides";
 import {
   resolveLocation,
-  roundCoord,
+  locationColumns,
+  invalidatesDrop,
   LocationInputSchema,
   type LocationSource,
 } from "@/lib/weather/location";
@@ -104,7 +105,32 @@ export async function generate(input: {
     // rejected, which ranking will sink without ever filtering them out.
     const stored = await loadDailyLooks(user.id, input.occasion, today);
 
-    if (!input.regenerate && stored?.length) {
+    /**
+     * Today's looks were composed for wherever the user was when they were
+     * generated. Moving invalidates them: Decision 5 caches the drop, but
+     * caching does not make a 26°C Manila outfit correct under a 12°C
+     * Reykjavik sky.
+     *
+     * INTENT decides, not distance: a deliberate city pick always rebuilds,
+     * however near, because the user asked and a screen that does not change
+     * reads as broken. A silent GPS refresh only rebuilds past 25km, so a
+     * commute does not cost a generation. See `invalidatesDrop`.
+     *
+     * Falling through here is deliberately how this is implemented: the block
+     * below already records a fall-through as a `drop`, never a `regenerate`,
+     * so the rebuild is free on every tier. The user changed where they are;
+     * they did not ask for another look.
+     *
+     * The Settings path clears the stored rows outright in `setLocation`. This
+     * covers the OTHER door — the Stylist's weather pill, which writes through
+     * `saveLocation` AFTER this action has already run, and so cannot clear
+     * anything without deleting the looks this very call just stored.
+     */
+    const movedAway = input.city
+      ? invalidatesDrop(input.city, resolveLocation({ profile }))
+      : false;
+
+    if (!input.regenerate && !movedAway && stored?.length) {
       const paths = Array.from(
         new Set(
           stored
@@ -293,14 +319,7 @@ export async function saveLocation(input: unknown): Promise<void> {
 
   await supabase
     .from("profiles")
-    .update({
-      location_lat: roundCoord(d.lat),
-      location_lon: roundCoord(d.lon),
-      location_label: d.label,
-      location_source: d.source,
-      location_timezone: d.timezone,
-      location_updated_at: new Date().toISOString(),
-    })
+    .update(locationColumns(d, new Date().toISOString()))
     .eq("id", user.id);
 }
 
