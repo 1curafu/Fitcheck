@@ -66,11 +66,13 @@ export function LocationSheet({
       >
         <div className="mx-auto mb-4 h-1 w-[34px] rounded-full bg-faint" />
 
+        {/* A utility sheet, not a pitch. UpgradeSheet earns a 24px serif title
+            because it is making an argument; this one is a control, and at that
+            size the header ate two thirds of the sheet before the user reached
+            anything tappable. */}
         <Kicker className="block">Location</Kicker>
-        <h2 className="mt-2 font-serif text-[24px]/[1.15] text-foreground">
-          Where are you dressing for?
-        </h2>
-        <p className="mt-2 text-sm/[1.5] text-muted-foreground text-pretty">
+        <h2 className="mt-1.5 font-serif text-[20px]/[1.2] text-foreground">Where are you?</h2>
+        <p className="mt-1 text-[12.5px] text-muted-foreground">
           Your looks are built around this forecast.
         </p>
 
@@ -84,7 +86,7 @@ export function LocationSheet({
             surface it sits in. `bare` because this card is the surface. */}
         <div
           data-testid="location-results"
-          className="mt-4 max-h-[46vh] overflow-y-auto rounded-[14px] bg-surface-1 shadow-[inset_0_0_0_1px_var(--hairline-2)]"
+          className="mt-3.5 max-h-[46vh] overflow-y-auto rounded-[14px] bg-surface-1 shadow-[inset_0_0_0_1px_var(--hairline-2)]"
         >
           <LocationPicker
             variant="bare"

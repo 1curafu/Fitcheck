@@ -80,17 +80,18 @@ export function LocationPicker({
             </button>
           </li>
         )}
-        <li className={bare ? "px-4 py-3" : "p-1"}>
+        <li className={bare ? undefined : "p-1"}>
           <input
             aria-label="Search a city"
             placeholder="Search a city…"
             onChange={(e) => onSearch(e.target.value)}
             className={cn(
-              "w-full rounded-[10px] text-foreground outline-none placeholder:text-muted-dim",
+              "w-full text-foreground outline-none placeholder:text-muted-dim",
               bare
-                ? "bg-surface-3 px-3.5 py-3 text-[15px]"
-                : "bg-surface-1 px-3 py-2 text-sm",
+                ? "bg-transparent px-4 py-[13px] text-[14px]"
+                : "rounded-[8px] bg-surface-1 px-3 py-2 text-sm",
             )}
+            style={bare ? { borderBottom: "1px solid var(--hairline-2)" } : undefined}
           />
         </li>
         {cities.map((c) => (
