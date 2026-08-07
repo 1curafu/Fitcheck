@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { searchCities, type City } from "./geocode";
 import { getCurrentPosition, permissionState, GeoError } from "./geolocate";
 
@@ -47,12 +47,37 @@ export function useLocationPicker(opts?: { onPick?: (p: PickedLocation) => void 
     };
   }, []);
 
+  /**
+   * The query whose response we are still willing to accept.
+   *
+   * Typing "Oslo" fires searches for "Os", "Osl" and "Oslo". Without this the
+   * last response to ARRIVE wins rather than the last one asked for, and the
+   * list showed matches for "Os" — Oss, Os de Balaguer — under a field reading
+   * "Oslo". A ref, not state: it must be readable by a closure created before
+   * the next render.
+   */
+  const latestQuery = useRef("");
+
   const search = useCallback((q: string) => {
+    const query = q.trim();
+    latestQuery.current = query;
+
     // The input fires on every keystroke, and a single letter matches most of
     // the planet. Two characters is the floor that makes the result list mean
-    // anything.
-    if (q.trim().length < 2) return;
-    searchCities(q).then(setCities).catch(() => setCities([]));
+    // anything. Below it, clear — stale matches sitting under an emptied box
+    // read as a fresh answer to whatever the user types next.
+    if (query.length < 2) {
+      setCities([]);
+      return;
+    }
+
+    searchCities(query)
+      .then((r) => {
+        if (latestQuery.current === query) setCities(r);
+      })
+      .catch(() => {
+        if (latestQuery.current === query) setCities([]);
+      });
   }, []);
 
   const useMyLocation = useCallback(() => {

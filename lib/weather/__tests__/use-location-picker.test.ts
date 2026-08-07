@@ -1,7 +1,7 @@
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { beforeEach, expect, test, vi } from "vitest";
 import { useLocationPicker } from "../use-location-picker";
-import { searchCities } from "../geocode";
+import { searchCities, type City } from "../geocode";
 import { getCurrentPosition, permissionState, GeoError } from "../geolocate";
 
 vi.mock("../geocode", () => ({ searchCities: vi.fn() }));
@@ -93,4 +93,39 @@ test("probing permission never reads the position — that would prompt", async 
   await waitFor(() => expect(mockPermission).toHaveBeenCalled());
   // The silent-refresh-on-load behaviour belongs to the Stylist, not this hook.
   expect(mockPosition).not.toHaveBeenCalled();
+});
+
+test("a slow earlier query cannot overwrite a newer one", async () => {
+  // Typing "Oslo" fires searches for "Os", "Osl" and "Oslo". Without this
+  // guard the last response to ARRIVE wins rather than the last one asked for,
+  // so the list showed matches for "Os" — Oss, Os de Balaguer — while the field
+  // read "Oslo". Caught in a real browser, not by any unit test.
+  let resolveSlow: (v: City[]) => void = () => {};
+  mockSearch.mockImplementationOnce(
+    () => new Promise<City[]>((res) => (resolveSlow = res)),
+  );
+  mockSearch.mockResolvedValueOnce([{ name: "Oslo", country: "NO", lat: 59.91, lon: 10.75 }]);
+
+  const { result } = renderHook(() => useLocationPicker());
+  act(() => result.current.search("Os"));
+  act(() => result.current.search("Oslo"));
+
+  await waitFor(() => expect(result.current.cities[0]?.name).toBe("Oslo"));
+
+  // The stale response lands afterwards and must be ignored.
+  await act(async () => {
+    resolveSlow([{ name: "Oss", country: "NL", lat: 51.76, lon: 5.51 }]);
+  });
+  expect(result.current.cities[0]?.name).toBe("Oslo");
+});
+
+test("clearing the field clears the results", async () => {
+  // Otherwise a long query's matches sit under an empty box, and the next
+  // thing the user types looks like it returned yesterday's answer.
+  mockSearch.mockResolvedValue([{ name: "Oslo", country: "NO", lat: 59.91, lon: 10.75 }]);
+  const { result } = renderHook(() => useLocationPicker());
+  act(() => result.current.search("Oslo"));
+  await waitFor(() => expect(result.current.cities).toHaveLength(1));
+  act(() => result.current.search(""));
+  await waitFor(() => expect(result.current.cities).toHaveLength(0));
 });
