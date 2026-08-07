@@ -25,7 +25,6 @@ import { predictOccasion, defaultReason } from "@/lib/outfits/predict-occasion";
 import { recordOverride } from "@/lib/outfits/overrides";
 import {
   resolveLocation,
-  roundCoord,
   locationColumns,
   invalidatesDrop,
   LocationInputSchema,
