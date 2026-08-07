@@ -4,7 +4,8 @@ import {
   DEFAULT_LOCATION,
   LocationInputSchema,
   locationColumns,
-  locationChanged,
+  locationMoved,
+  distanceKm,
 } from "../location";
 
 test("roundCoord snaps to 2dp (~1.1km) so neighbours share one cached forecast URL", () => {
@@ -114,19 +115,6 @@ test("locationColumns rounds coordinates the same way resolveLocation reads them
   expect(c.location_updated_at).toBe("2026-08-06T12:00:00.000Z");
 });
 
-test("locationChanged compares ROUNDED coordinates, not raw ones", () => {
-  const profile = { location_lat: 14.6, location_lon: 120.98, location_label: "Manila" };
-  // Same place to 2dp — re-picking your own city must not count as a change,
-  // because a change throws away today's drop.
-  expect(locationChanged({ lat: 14.6012, lon: 120.9799 }, profile)).toBe(false);
-  expect(locationChanged({ lat: 64.15, lon: -21.94 }, profile)).toBe(true);
-});
-
-test("locationChanged is true when nothing is stored yet", () => {
-  expect(locationChanged({ lat: 14.6, lon: 120.98 }, null)).toBe(true);
-  expect(locationChanged({ lat: 14.6, lon: 120.98 }, { location_lat: null, location_lon: null })).toBe(true);
-});
-
 test("a city saved from Settings suppresses the Stylist's silent GPS refresh", () => {
   // setLocation always writes source 'city'. resolveLocation surfaces that as
   // the origin, and stylist.tsx gates its silent refresh on exactly this value
@@ -143,4 +131,39 @@ test("a city saved from Settings suppresses the Stylist's silent GPS refresh", (
   });
   expect(r.origin).toBe("city");
   expect(r.label).toBe("Manila");
+});
+
+// ── Has the user moved far enough for today's looks to be wrong? ─────────────
+
+test("distanceKm is roughly right on known city pairs", () => {
+  expect(distanceKm({ lat: 52.52, lon: 13.41 }, { lat: 47.37, lon: 8.55 })).toBeGreaterThan(650);
+  expect(distanceKm({ lat: 52.52, lon: 13.41 }, { lat: 47.37, lon: 8.55 })).toBeLessThan(720);
+  expect(distanceKm({ lat: 52.52, lon: 13.41 }, { lat: 52.52, lon: 13.41 })).toBe(0);
+});
+
+test("a deliberate city change is a move", () => {
+  expect(locationMoved({ lat: 59.91, lon: 10.75 }, { lat: 47.37, lon: 8.55 })).toBe(true);
+});
+
+test("a commute is NOT a move", () => {
+  // The silent GPS refresh runs on every load. If any coordinate change threw
+  // today's looks away, someone travelling 10km to work would pay for a fresh
+  // generation every morning — and the forecast 10km away is the same forecast,
+  // so the looks were never actually wrong.
+  const home = { lat: 52.52, lon: 13.41 };
+  const office = { lat: 52.55, lon: 13.5 }; // ~7km
+  expect(distanceKm(home, office)).toBeLessThan(25);
+  expect(locationMoved(office, home)).toBe(false);
+});
+
+test("GPS jitter is nowhere near a move", () => {
+  expect(locationMoved({ lat: 52.5203, lon: 13.4102 }, { lat: 52.52, lon: 13.41 })).toBe(false);
+});
+
+test("the threshold is about weather, not about precision", () => {
+  // 25km is the scale at which a forecast genuinely differs. Below it the
+  // stored looks are still right for the conditions they were built for.
+  const berlin = { lat: 52.52, lon: 13.41 };
+  expect(locationMoved({ lat: 52.7, lon: 13.41 }, berlin)).toBe(false); // ~20km
+  expect(locationMoved({ lat: 53.0, lon: 13.41 }, berlin)).toBe(true); // ~53km
 });

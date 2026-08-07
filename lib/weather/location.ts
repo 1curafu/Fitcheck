@@ -87,25 +87,50 @@ export function locationColumns(d: LocationInput, nowIso: string) {
   };
 }
 
+/** Great-circle distance in kilometres. */
+export function distanceKm(
+  a: { lat: number; lon: number },
+  b: { lat: number; lon: number },
+): number {
+  const R = 6371;
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const dLat = rad(b.lat - a.lat);
+  const dLon = rad(b.lon - a.lon);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
 /**
- * Is this a genuinely different place from what is stored?
+ * How far the user must move before today's looks are wrong.
  *
- * Compared at STORED precision (2dp), not raw: re-picking your own city, or a
- * GPS fix that drifted 50 metres, is not a move. This matters because a real
- * change throws away today's drop — the looks were composed for the old city's
- * weather — and rebuilding costs a model call.
+ * This is a WEATHER threshold, not a precision one. Below ~25km the forecast is
+ * effectively identical, so the stored looks are still right for the conditions
+ * they were composed for, and throwing them away would spend a model call to
+ * produce the same answer.
+ *
+ * It has to be this coarse because the Stylist's silent GPS refresh runs on
+ * every load: at a tighter threshold, anyone who commutes would pay for a fresh
+ * generation every morning.
  */
-export function locationChanged(
+export const STALE_LOCATION_KM = 25;
+
+/**
+ * Has the user moved far enough that today's stored drop no longer describes
+ * where they are?
+ *
+ * `previous` is the RESOLVED location the looks were built for — pass
+ * `resolveLocation({ profile })`, not the raw columns. A profile with no
+ * location still generated its drop against `DEFAULT_LOCATION`, so comparing
+ * against a null column would miss the very first move a user makes.
+ */
+export function locationMoved(
   next: { lat: number; lon: number },
-  // Only the coordinates are read, so only those are required — callers that
-  // select a narrow column set should not have to fetch a label they ignore.
-  profile?: Pick<ProfileLocation, "location_lat" | "location_lon"> | null,
+  previous: { lat: number; lon: number },
+  minKm: number = STALE_LOCATION_KM,
 ): boolean {
-  if (profile?.location_lat == null || profile.location_lon == null) return true;
-  return (
-    roundCoord(next.lat) !== roundCoord(profile.location_lat) ||
-    roundCoord(next.lon) !== roundCoord(profile.location_lon)
-  );
+  return distanceKm(next, previous) > minKm;
 }
 
 /**

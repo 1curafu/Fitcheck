@@ -27,6 +27,7 @@ import {
   resolveLocation,
   roundCoord,
   locationColumns,
+  locationMoved,
   LocationInputSchema,
   type LocationSource,
 } from "@/lib/weather/location";
@@ -105,7 +106,30 @@ export async function generate(input: {
     // rejected, which ranking will sink without ever filtering them out.
     const stored = await loadDailyLooks(user.id, input.occasion, today);
 
-    if (!input.regenerate && stored?.length) {
+    /**
+     * Today's looks were composed for wherever the user was when they were
+     * generated. Moving invalidates them: Decision 5 caches the drop, but
+     * caching does not make a 26°C Manila outfit correct under a 12°C
+     * Reykjavik sky.
+     *
+     * Compared against the RESOLVED previous location, so the first move a
+     * user makes — away from DEFAULT_LOCATION, with nothing stored yet — counts.
+     *
+     * Falling through here is deliberately how this is implemented: the block
+     * below already records a fall-through as a `drop`, never a `regenerate`,
+     * so the rebuild is free on every tier. The user changed where they are;
+     * they did not ask for another look.
+     *
+     * The Settings path clears the stored rows outright in `setLocation`. This
+     * covers the OTHER door — the Stylist's weather pill, which writes through
+     * `saveLocation` AFTER this action has already run, and so cannot clear
+     * anything without deleting the looks this very call just stored.
+     */
+    const movedAway = input.city
+      ? locationMoved(input.city, resolveLocation({ profile }))
+      : false;
+
+    if (!input.regenerate && !movedAway && stored?.length) {
       const paths = Array.from(
         new Set(
           stored
