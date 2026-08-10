@@ -1,3 +1,5 @@
+import { diversify } from "@/lib/generator/diversity";
+
 /**
  * "Style an outfit with this" — the pure parts.
  *
@@ -35,4 +37,28 @@ export function styledLookName(item: {
   category: string;
 }): string {
   return `Around the ${item.name ?? item.subcategory ?? item.category}`;
+}
+
+/**
+ * The shortlist handed to the re-ranker for a styled look.
+ *
+ * The daily path calls `diversify` before the model sees anything; this path
+ * shipped with `pinned.slice(0, 20)` and never got it. Ranking CLUSTERS — a
+ * neutral top harmonises with everything, so the raw top of a pinned list is
+ * near-identical and the model ends up choosing between twenty variations of
+ * one idea, then returning the safest.
+ *
+ * Same reasoning that produced `lib/generator/diversity.ts` in PR #14/#15,
+ * applied to the second consumer. `diversify` TIERS rather than filters, so
+ * nothing is discarded and a closet too small to diversify still yields every
+ * candidate — the collapse PR #15 fixed on the daily path cannot reappear here.
+ *
+ * It only reorders a list `pinItem` already filtered, so every combo still
+ * contains the pinned piece.
+ */
+export function shortlistFor<T extends { items: { id: string; category: string }[]; score: number }>(
+  pinned: T[],
+  n = 20,
+): T[] {
+  return diversify(pinned, n);
 }

@@ -14,7 +14,7 @@ import { layoutForLook, staggerOrder } from "@/lib/generator/layout";
 import { localDateFor } from "@/lib/outfits/local-date";
 import { assertCanGenerate, noteGeneration, QuotaExceededError } from "@/lib/outfits/quota";
 import { predictOccasion } from "@/lib/outfits/predict-occasion";
-import { pinItem, styledLookName } from "@/lib/outfits/styled";
+import { pinItem, styledLookName, shortlistFor } from "@/lib/outfits/styled";
 import { loadStyledLook, saveStyledLook } from "@/lib/outfits/styled-store";
 import { resolveLocation } from "@/lib/weather/location";
 import type { LookDraft, LookPiece, WeatherPayload } from "@/lib/generator/types";
@@ -170,7 +170,9 @@ export async function styleWithItem(itemId: string): Promise<StyleResult> {
     }
 
     const byId = new Map(items.map((i) => [i.id, i]));
-    const shortlist = pinned.slice(0, 20);
+    // Diversified, exactly as the daily path does it. A raw slice hands the
+    // model twenty variations of one idea, because ranking clusters.
+    const shortlist = shortlistFor(pinned);
 
     const { picks } = await rerank({
       want: 1,
