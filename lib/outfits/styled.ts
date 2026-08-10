@@ -1,6 +1,21 @@
 import { diversify } from "@/lib/generator/diversity";
 
 /**
+ * How many looks one styling returns.
+ *
+ * TWO, not three. One re-rank call returns both — `rerank` already takes
+ * `want` — so the cost is unchanged, and two is enough to feel like a choice
+ * without implying this screen is a second daily drop. The drop is three
+ * because its index tabs are drawn for 01/02/03; this is a different question
+ * with a different answer.
+ *
+ * Lives here rather than beside the action because a "use server" file may only
+ * export async functions — a constant there fails the production build, though
+ * not the test run.
+ */
+export const STYLED_LOOKS = 2;
+
+/**
  * "Style an outfit with this" — the pure parts.
  *
  * Deliberately free of any Supabase import so it stays testable under jsdom;

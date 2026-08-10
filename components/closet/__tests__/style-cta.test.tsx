@@ -15,11 +15,47 @@ beforeEach(() => {
   styleWithItem.mockReset();
 });
 
-test("a successful styling opens the look it produced", async () => {
-  styleWithItem.mockResolvedValue({ status: "ok", outfitId: "o9" });
+test("a successful styling opens the FIRST look of the set it produced", async () => {
+  // A styling now returns two looks, not one — see STYLED_LOOKS.
+  styleWithItem.mockResolvedValue({ status: "ok", outfitIds: ["o9", "o10"] });
   render(<StyleCta itemId="i1" />);
   await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
   expect(push).toHaveBeenCalledWith("/outfits/o9");
+});
+
+test("the first tap is a cache-friendly read, never a regenerate", async () => {
+  styleWithItem.mockResolvedValue({ status: "ok", outfitIds: ["o9"] });
+  render(<StyleCta itemId="i1" />);
+  await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
+  expect(styleWithItem).toHaveBeenCalledWith("i1", { regenerate: false });
+});
+
+test("'try another' is offered only AFTER a look exists", async () => {
+  // Before there is anything to compare against, the control has no meaning.
+  styleWithItem.mockResolvedValue({ status: "ok", outfitIds: ["o9"] });
+  render(<StyleCta itemId="i1" />);
+  expect(screen.queryByRole("button", { name: /try another/i })).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
+  expect(await screen.findByRole("button", { name: /try another/i })).toBeInTheDocument();
+});
+
+test("'try another' asks for a regenerate, which skips the cache", async () => {
+  // The cache is correct but silent: tapping the primary again returned the
+  // identical look with no explanation. This is the affordance that fixes it.
+  styleWithItem.mockResolvedValue({ status: "ok", outfitIds: ["o9"] });
+  render(<StyleCta itemId="i1" />);
+  await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
+  await userEvent.click(await screen.findByRole("button", { name: /try another/i }));
+  expect(styleWithItem).toHaveBeenLastCalledWith("i1", { regenerate: true });
+});
+
+test("the control says what it does — an icon alone would not", async () => {
+  // PR #20 tried an icon-only Regenerate on the stylist screen and rejected it:
+  // nothing tells you a ⟳ means "spend an AI call".
+  styleWithItem.mockResolvedValue({ status: "ok", outfitIds: ["o9"] });
+  render(<StyleCta itemId="i1" />);
+  await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
+  expect((await screen.findByRole("button", { name: /try another/i })).textContent).toMatch(/try another look/i);
 });
 
 // The seam knows WHICH limit was hit. This copy previously said "that's today's
