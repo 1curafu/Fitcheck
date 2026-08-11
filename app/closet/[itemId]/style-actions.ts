@@ -14,13 +14,18 @@ import { layoutForLook, staggerOrder } from "@/lib/generator/layout";
 import { localDateFor } from "@/lib/outfits/local-date";
 import { assertCanGenerate, noteGeneration, QuotaExceededError } from "@/lib/outfits/quota";
 import { predictOccasion } from "@/lib/outfits/predict-occasion";
-import { pinItem, styledLookName } from "@/lib/outfits/styled";
-import { loadStyledLook, saveStyledLook } from "@/lib/outfits/styled-store";
+import { pinItem, styledLookName, shortlistFor, STYLED_LOOKS } from "@/lib/outfits/styled";
+import {
+  loadStyledLooks,
+  saveStyledLooks,
+  clearStyledLooks,
+  loadStyledPieceIds,
+} from "@/lib/outfits/styled-store";
 import { resolveLocation } from "@/lib/weather/location";
 import type { LookDraft, LookPiece, WeatherPayload } from "@/lib/generator/types";
 
 export type StyleResult =
-  | { status: "ok"; outfitId: string }
+  | { status: "ok"; outfitIds: string[] }
   // Carries the seam's own reason. Styling is a Pro capability rather than a
   // daily allowance, so a message written here ("back tomorrow") would be
   // actively false — tomorrow gives a free user no stylings either.
@@ -43,7 +48,10 @@ export type StyleResult =
  * The alternative readings were measured and rejected; see the plan
  * `todo/2026-07-24-item-detail-rebuild.md`.
  */
-export async function styleWithItem(itemId: string): Promise<StyleResult> {
+export async function styleWithItem(
+  itemId: string,
+  opts?: { regenerate?: boolean },
+): Promise<StyleResult> {
   try {
     const supabase = await createClient();
     const {
@@ -82,8 +90,10 @@ export async function styleWithItem(itemId: string): Promise<StyleResult> {
     // THE CACHE. Checked before the quota is touched and before any I/O beyond
     // this one indexed lookup — re-opening an answer you already have must never
     // cost anything.
-    const cached = await loadStyledLook(user.id, itemId, today);
-    if (cached) return { status: "ok", outfitId: cached };
+    // A regenerate deliberately skips the cache — that is the whole point of
+    // the control. Everything else is a free read, per Decision 5.
+    const cached = opts?.regenerate ? [] : await loadStyledLooks(user.id, itemId, today);
+    if (cached.length) return { status: "ok", outfitIds: cached };
 
     // Checked before the forecast fetch below: a free user is turned away
     // without us paying for I/O they will never see. The occasion is not needed
@@ -150,12 +160,29 @@ export async function styleWithItem(itemId: string): Promise<StyleResult> {
     // Try the day's own formality band first, then the full scale. A piece
     // dressier or more casual than today's context is still stylable — refusing
     // would be the "hard filter empties a required slot" trap again.
+    /**
+     * "Try another" must not return what the user just saw.
+     *
+     * A SOFT penalty, via `Ctx.recentlyShown` — `RECENT_WEIGHT` sinks those
+     * pieces without removing them. Deliberately NOT `excludeItemIds`: a hard
+     * exclusion was measured and rejected on the daily path (0 combos in winter
+     * on a real closet), and here it is worse still, because the pinned piece
+     * appears in every candidate and excluding it would empty the list outright.
+     */
+    const recentlyShown = opts?.regenerate
+      ? Array.from(
+          new Set(
+            (await loadStyledPieceIds(user.id, itemId, today)).filter((id) => id !== itemId),
+          ),
+        )
+      : [];
+
     let pinned: ReturnType<typeof rankTopN> = [];
     for (const band of [personalBand(occasion, profile), [1, 5] as [number, number]]) {
       const combos = buildCandidates(candItems, { ...args, band });
       const ranked = rankTopN(
         combos,
-        { aesthetic, band, lean: [], recentlyShown: [], season: args.season },
+        { aesthetic, band, lean: [], recentlyShown, season: args.season },
         combos.length,
       );
       pinned = pinItem(ranked, itemId);
@@ -170,10 +197,12 @@ export async function styleWithItem(itemId: string): Promise<StyleResult> {
     }
 
     const byId = new Map(items.map((i) => [i.id, i]));
-    const shortlist = pinned.slice(0, 20);
+    // Diversified, exactly as the daily path does it. A raw slice hands the
+    // model twenty variations of one idea, because ranking clusters.
+    const shortlist = shortlistFor(pinned);
 
     const { picks } = await rerank({
-      want: 1,
+      want: STYLED_LOOKS,
       combos: shortlist.map((t) =>
         t.items.map((ci) => {
           const it = byId.get(ci.id)!;
@@ -186,37 +215,56 @@ export async function styleWithItem(itemId: string): Promise<StyleResult> {
       tempC: f.tempC,
     });
 
-    const chosen = shortlist[picks[0]?.combo_index ?? 0] ?? shortlist[0];
-    const dbItems = chosen.items.map((ci) => byId.get(ci.id)!);
-    const paths = dbItems.map(displayPath);
-    const signed = await signItemImages(paths);
-    const slots = layoutForLook(dbItems.map((d) => ({ category: d.category })));
-    const pieces: LookPiece[] = dbItems.map((d, idx) => ({
-      itemId: d.id,
-      category: d.category,
-      subcategory: d.subcategory ?? null,
-      brand: d.brand ?? null,
-      name: d.name ?? null,
-      colors: d.colors ?? [],
-      cutoutUrl: signed.get(displayPath(d)) ?? "",
-      slot: slots[idx],
-    }));
+    // One draft per pick, de-duplicated: the model can name the same combo
+    // twice, and two identical looks are worse than one.
+    const seen = new Set<number>();
+    const drafts: LookDraft[] = [];
+    for (const pick of picks.length ? picks : [{ combo_index: 0, name: "", why: "" }]) {
+      const idx = pick.combo_index ?? 0;
+      const chosen = shortlist[idx] ?? shortlist[0];
+      if (!chosen) continue;
+      const comboKey = chosen.items.map((ci) => ci.id).sort().join("+");
+      if (seen.has(idx)) continue;
+      seen.add(idx);
+      if (drafts.some((d) => d.pieces.map((p) => p.itemId).sort().join("+") === comboKey)) continue;
 
-    const draft: LookDraft = {
-      name: picks[0]?.name || styledLookName(subject),
-      why: picks[0]?.why ?? "",
-      pieces,
-      anchorIndex: staggerOrder(slots)[0],
-    };
+      const dbItems = chosen.items.map((ci) => byId.get(ci.id)!);
+      const signed = await signItemImages(dbItems.map(displayPath));
+      const slots = layoutForLook(dbItems.map((d) => ({ category: d.category })));
+      const pieces: LookPiece[] = dbItems.map((d, i) => ({
+        itemId: d.id,
+        category: d.category,
+        subcategory: d.subcategory ?? null,
+        brand: d.brand ?? null,
+        name: d.name ?? null,
+        colors: d.colors ?? [],
+        cutoutUrl: signed.get(displayPath(d)) ?? "",
+        slot: slots[i],
+      }));
 
-    const outfitId = await saveStyledLook(user.id, itemId, occasion, today, weather, draft);
-    if (!outfitId) return { status: "error", message: "Couldn't save the look" };
+      drafts.push({
+        name: pick.name || styledLookName(subject),
+        why: pick.why ?? "",
+        pieces,
+        anchorIndex: staggerOrder(slots)[0],
+      });
+    }
+
+    if (!drafts.length) return { status: "error", message: "Couldn't style this" };
+
+    // Delete-then-insert, exactly as saveDailyLooks does it: a fresh run may
+    // return a different number of looks, and leftovers must not survive
+    // beside the new set.
+    if (opts?.regenerate) await clearStyledLooks(user.id, itemId, today);
+
+    const outfitIds = await saveStyledLooks(user.id, itemId, occasion, today, weather, drafts);
+    if (!outfitIds.length) return { status: "error", message: "Couldn't save the look" };
 
     // After the model answered AND the write landed. The occasion is known by
     // now, which is why recording is separate from the gate above.
     await noteGeneration(user.id, { kind: "styled", occasion, today });
 
-    return { status: "ok", outfitId };
+    return { status: "ok", outfitIds };
   } catch (e) {
     console.error("[styleWithItem] failed:", e);
     return { status: "error", message: e instanceof Error ? e.message : "Couldn't style this" };

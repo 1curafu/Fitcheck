@@ -1,3 +1,20 @@
+import { diversify } from "@/lib/generator/diversity";
+
+/**
+ * How many looks one styling returns.
+ *
+ * TWO, not three. One re-rank call returns both — `rerank` already takes
+ * `want` — so the cost is unchanged, and two is enough to feel like a choice
+ * without implying this screen is a second daily drop. The drop is three
+ * because its index tabs are drawn for 01/02/03; this is a different question
+ * with a different answer.
+ *
+ * Lives here rather than beside the action because a "use server" file may only
+ * export async functions — a constant there fails the production build, though
+ * not the test run.
+ */
+export const STYLED_LOOKS = 2;
+
 /**
  * "Style an outfit with this" — the pure parts.
  *
@@ -35,4 +52,28 @@ export function styledLookName(item: {
   category: string;
 }): string {
   return `Around the ${item.name ?? item.subcategory ?? item.category}`;
+}
+
+/**
+ * The shortlist handed to the re-ranker for a styled look.
+ *
+ * The daily path calls `diversify` before the model sees anything; this path
+ * shipped with `pinned.slice(0, 20)` and never got it. Ranking CLUSTERS — a
+ * neutral top harmonises with everything, so the raw top of a pinned list is
+ * near-identical and the model ends up choosing between twenty variations of
+ * one idea, then returning the safest.
+ *
+ * Same reasoning that produced `lib/generator/diversity.ts` in PR #14/#15,
+ * applied to the second consumer. `diversify` TIERS rather than filters, so
+ * nothing is discarded and a closet too small to diversify still yields every
+ * candidate — the collapse PR #15 fixed on the daily path cannot reappear here.
+ *
+ * It only reorders a list `pinItem` already filtered, so every combo still
+ * contains the pinned piece.
+ */
+export function shortlistFor<T extends { items: { id: string; category: string }[]; score: number }>(
+  pinned: T[],
+  n = 20,
+): T[] {
+  return diversify(pinned, n);
 }
