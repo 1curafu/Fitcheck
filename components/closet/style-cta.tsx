@@ -16,7 +16,7 @@ import { UpgradeSheet } from "@/components/billing/upgrade-sheet";
  * feature they have never seen, and this screen — the canonical one — is where
  * the want is felt. Tapping it explains the feature rather than doing nothing.
  */
-export function StyleCta({ itemId }: { itemId: string }) {
+export function StyleCta({ itemId, styledToday }: { itemId: string; styledToday: boolean }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
@@ -24,9 +24,14 @@ export function StyleCta({ itemId }: { itemId: string }) {
   // and get different weight: the first is a sheet that explains and sells, the
   // second is a quiet line, because there is nothing to buy — you add a piece.
   const [upgrade, setUpgrade] = useState<string | null>(null);
-  // Only offered once a set exists. "Try another" before there IS another is a
-  // control with nothing to compare against.
-  const [styled, setStyled] = useState(false);
+  /**
+   * Offered only once a set exists — before that there is nothing to compare
+   * against. Seeded from the SERVER, not just from this session: tapping the
+   * primary navigates to the look, so a flag set on that tap is gone by the
+   * time the user comes back and this remounts. Session state alone meant the
+   * control could never appear at all.
+   */
+  const [styled, setStyled] = useState(styledToday);
 
   function run(regenerate: boolean) {
     start(async () => {

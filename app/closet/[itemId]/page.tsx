@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { signItemImages, displayPath } from "@/lib/storage/signed";
 import { localDateFor } from "@/lib/outfits/local-date";
+import { loadStyledLooks } from "@/lib/outfits/styled-store";
 import { itemWearStats } from "@/lib/closet/wear-stats";
 import { goesWith } from "@/lib/closet/goes-with";
 import { ItemDetail, type DetailItem } from "@/components/closet/item-detail";
@@ -80,6 +81,16 @@ export default async function ItemPage({
   // Distinct brands already in the closet → autocomplete suggestions.
   const brandSuggestions = [...new Set(closet.map((i) => i.brand).filter(Boolean) as string[])];
 
+  /**
+   * Whether this piece already has a styled set today.
+   *
+   * Read on the SERVER, not tracked in the CTA's own state: tapping the primary
+   * navigates straight to the look, so a session flag set on that tap is gone
+   * the moment the user comes back and the component remounts — the "try
+   * another" control could never appear at all.
+   */
+  const styledToday = (await loadStyledLooks(user.id, item.id, today)).length > 0;
+
   return (
     <ItemDetail
       item={item as DetailItem}
@@ -87,6 +98,7 @@ export default async function ItemPage({
       brandSuggestions={brandSuggestions}
       stats={stats}
       goesWith={goesWithCards}
+      styledToday={styledToday}
     />
   );
 }
