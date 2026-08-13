@@ -87,3 +87,35 @@ export async function toggleFavorite(outfitId: string): Promise<{ favorite: bool
   revalidatePath(`/outfits/${outfitId}`);
   return { favorite: next };
 }
+
+/**
+ * Stamp that the user opened this look.
+ *
+ * The evening confirmation asks only about looks actually OPENED — asking about
+ * a look nobody saw would invite a "Yes" that fabricates a wear, and wear_logs
+ * is the foundation of everything Pro sells. So opening one has to leave a
+ * trace, and this is it.
+ *
+ * ⚠️ Called from the CLIENT on mount, never during the Server Component's
+ * render. Mutating in render is a side effect React may run more than once, and
+ * it would also fire for a prefetch the user never actually looked at — which
+ * would put looks into the confirmation that were never on screen.
+ *
+ * Deliberately does NOT revalidate: nothing visible depends on the stamp, and a
+ * revalidation here would re-render the screen the user just opened.
+ */
+export async function noteOutfitViewed(outfitId: string): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  // RLS scopes this to the owner; the explicit user_id keeps it true even if a
+  // future policy is loosened.
+  await supabase
+    .from("outfits")
+    .update({ viewed_at: new Date().toISOString() })
+    .eq("id", outfitId)
+    .eq("user_id", user.id);
+}
