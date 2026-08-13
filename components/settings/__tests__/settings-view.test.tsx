@@ -23,7 +23,7 @@ const props: {
   email: "icurafu333@gmail.com",
   initials: "M",
   locationLabel: "Berlin",
-  preferences: { rainGuard: true, tempUnit: "C" },
+  preferences: { rainGuard: true, tempUnit: "C", wearAskedOn: null },
 };
 
 function renderSettings(
@@ -61,7 +61,7 @@ test("each live toggle exposes its state to screen readers", () => {
 });
 
 test("a stored preference is reflected, not assumed", () => {
-  renderSettings({ preferences: { rainGuard: false, tempUnit: "F" } });
+  renderSettings({ preferences: { rainGuard: false, tempUnit: "F", wearAskedOn: null } });
   expect(screen.getByRole("switch", { name: /rain guard/i })).toHaveAttribute(
     "aria-checked",
     "false",

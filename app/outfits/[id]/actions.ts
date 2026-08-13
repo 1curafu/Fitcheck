@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { localDateFor } from "@/lib/outfits/local-date";
+import { readPreferences } from "@/lib/profile/preferences";
 
 /**
  * Log or unlog "I wore this today".
@@ -118,4 +119,50 @@ export async function noteOutfitViewed(outfitId: string): Promise<void> {
     .update({ viewed_at: new Date().toISOString() })
     .eq("id", outfitId)
     .eq("user_id", user.id);
+}
+
+/**
+ * The evening confirmation's two answers.
+ *
+ * ⚠️ **"Yes" goes through `toggleWear`, never a second insert path.** The
+ * `wear_logs_unique_day` index is what guarantees one row per outfit per day,
+ * and a parallel insert here would be a second way to write the number every
+ * wear-derived surface reads.
+ *
+ * ⚠️ **"No" writes NOTHING to `wear_logs`.** That is the entire point of the
+ * feature: the rejected auto-log toggle would have logged a wear the user never
+ * had, and no later query could tell it apart from a real one.
+ *
+ * Both record `wearAskedOn`, so the question is asked at most once a day
+ * whichever way it went. A No that left it askable would reappear until the
+ * user gave in and said Yes — manufacturing exactly the data this exists to
+ * keep honest.
+ */
+export async function answerWearConfirmation(
+  outfitId: string,
+  wore: boolean,
+): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("preferences, location_timezone")
+    .eq("id", user.id)
+    .single();
+
+  const today = localDateFor(new Date(), profile?.location_timezone ?? "UTC");
+
+  // Mark the question answered FIRST. If the wear write then fails, the user is
+  // not re-asked tonight — better a missed log than a sheet that keeps
+  // reappearing until they answer the way it wants.
+  const next = { ...readPreferences(profile?.preferences), wearAskedOn: today };
+  await supabase.from("profiles").update({ preferences: next }).eq("id", user.id);
+
+  if (wore) await toggleWear(outfitId);
+
+  revalidatePath("/generate");
 }

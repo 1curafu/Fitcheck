@@ -18,3 +18,27 @@ export function localDateFor(now: Date, timeZone: string): string {
     return now.toISOString().slice(0, 10);
   }
 }
+
+/**
+ * The user's local hour, 0–23.
+ *
+ * Same reasoning as `localDateFor`, and the same fallback: the evening
+ * confirmation asks after 18:00 LOCAL, so a UTC hour would put the question in
+ * the afternoon for eastern users and after midnight for western ones.
+ *
+ * `hourCycle: "h23"` because the default for some locales is `h24`, which
+ * renders midnight as "24" and would parse to an hour that never compares less
+ * than the evening threshold.
+ */
+export function localHourFor(now: Date, timeZone: string): number {
+  try {
+    const hh = new Intl.DateTimeFormat("en-GB", {
+      timeZone,
+      hour: "2-digit",
+      hourCycle: "h23",
+    }).format(now);
+    return Number(hh);
+  } catch {
+    return now.getUTCHours();
+  }
+}
