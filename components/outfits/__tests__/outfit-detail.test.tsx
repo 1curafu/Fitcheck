@@ -10,6 +10,10 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ back, push }) }));
 vi.mock("@/app/outfits/[id]/actions", () => ({
   toggleWear: vi.fn(),
   toggleFavorite: vi.fn(),
+  // Fired on mount to stamp `viewed_at`, which is what the evening wear
+  // confirmation asks about. Resolved, not undefined: the component calls
+  // `.catch()` on it.
+  noteOutfitViewed: vi.fn().mockResolvedValue(undefined),
 }));
 
 const slot = { xPct: 10, yPct: 20, wPct: 30, hPct: 40, rotationDeg: -3, z: 2 };

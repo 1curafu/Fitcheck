@@ -1,10 +1,10 @@
 "use client";
 
-import { useOptimistic, useTransition, type CSSProperties } from "react";
+import { useOptimistic, useTransition, type CSSProperties, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bookmark } from "lucide-react";
-import { toggleWear, toggleFavorite } from "@/app/outfits/[id]/actions";
+import { toggleWear, toggleFavorite, noteOutfitViewed } from "@/app/outfits/[id]/actions";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { wearLabel } from "@/lib/outfits/wear";
 import type { Slot } from "@/lib/generator/types";
@@ -43,6 +43,18 @@ export function OutfitDetail({
   const [isWorn, showWorn] = useOptimistic(worn);
   const [isFav, showFav] = useOptimistic(favorite);
   const [pending, start] = useTransition();
+
+  /**
+   * Record that this look was opened, for the evening wear confirmation.
+   *
+   * On mount and from the client — not in the route's render — so a prefetch
+   * the user never looked at cannot enter the confirmation. Fire-and-forget:
+   * nothing on screen depends on it, and a failed stamp must never disturb the
+   * look itself.
+   */
+  useEffect(() => {
+    noteOutfitViewed(outfit.id).catch(() => {});
+  }, [outfit.id]);
 
   return (
     <div className="flex min-h-dvh flex-1 flex-col">

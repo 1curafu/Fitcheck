@@ -12,6 +12,8 @@ import { z } from "zod";
 export const PREFERENCE_DEFAULTS = {
   rainGuard: true,
   tempUnit: "C",
+  /** The local date the evening wear confirmation was last ANSWERED. */
+  wearAskedOn: null,
 } as const;
 
 /**
@@ -27,6 +29,12 @@ export const PREFERENCE_DEFAULTS = {
 export const PreferencesSchema = z.object({
   rainGuard: z.boolean().default(PREFERENCE_DEFAULTS.rainGuard),
   tempUnit: z.enum(["C", "F"]).default(PREFERENCE_DEFAULTS.tempUnit),
+  /**
+   * Not a toggle — bookkeeping. Set by BOTH answers to the evening
+   * confirmation, so the question is asked at most once a day whichever way it
+   * went. Null means never answered.
+   */
+  wearAskedOn: z.string().nullable().default(PREFERENCE_DEFAULTS.wearAskedOn),
 });
 
 export type Preferences = z.infer<typeof PreferencesSchema>;
@@ -43,6 +51,7 @@ export type Preferences = z.infer<typeof PreferencesSchema>;
 const LenientSchema = z.object({
   rainGuard: PreferencesSchema.shape.rainGuard.catch(PREFERENCE_DEFAULTS.rainGuard),
   tempUnit: PreferencesSchema.shape.tempUnit.catch(PREFERENCE_DEFAULTS.tempUnit),
+  wearAskedOn: PreferencesSchema.shape.wearAskedOn.catch(PREFERENCE_DEFAULTS.wearAskedOn),
 });
 
 /** Read the stored bag, repairing anything unreadable. */
