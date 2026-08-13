@@ -146,6 +146,8 @@ export async function styleWithItem(
       formality: i.formality,
       seasons: i.seasons ?? [],
       material: i.material,
+      texture: i.texture,
+      pattern: i.pattern,
     }));
 
     const args = {
@@ -182,7 +184,10 @@ export async function styleWithItem(
       const combos = buildCandidates(candItems, { ...args, band });
       const ranked = rankTopN(
         combos,
-        { aesthetic, band, lean: [], recentlyShown, season: args.season },
+        // Styling a chosen piece is weather-aware too: the plan only names the
+        // daily path, but a look built around your favourite jumper still has
+        // to be wearable at today's temperature.
+        { aesthetic, band, lean: [], recentlyShown, season: args.season, tempC: f.tempC },
         combos.length,
       );
       pinned = pinItem(ranked, itemId);

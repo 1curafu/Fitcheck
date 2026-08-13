@@ -1,13 +1,13 @@
 import { buildCandidates, eligibility, missingCategory } from "../candidates";
 
 const items = [
-  { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["spring"], material: "cotton" },
-  { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["spring"], material: "cotton" },
-  { id: "s1", category: "Shoes", colors: ["brown"], formality: 4, seasons: ["spring"], material: "leather" },
-  { id: "s2", category: "Shoes", colors: ["white"], formality: 2, seasons: ["spring"], material: "suede" },
-  { id: "o1", category: "Outerwear", colors: ["navy"], formality: 3, seasons: ["spring"], material: "wool" },
-  { id: "a1", category: "Accessories", colors: ["brown"], formality: 3, seasons: ["spring"], material: "leather" },
-  { id: "f1", category: "Fragrance", colors: [], formality: null, seasons: [], material: null },
+  { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["spring"], material: "cotton", texture: null, pattern: null },
+  { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["spring"], material: "cotton", texture: null, pattern: null },
+  { id: "s1", category: "Shoes", colors: ["brown"], formality: 4, seasons: ["spring"], material: "leather", texture: null, pattern: null },
+  { id: "s2", category: "Shoes", colors: ["white"], formality: 2, seasons: ["spring"], material: "suede", texture: null, pattern: null },
+  { id: "o1", category: "Outerwear", colors: ["navy"], formality: 3, seasons: ["spring"], material: "wool", texture: null, pattern: null },
+  { id: "a1", category: "Accessories", colors: ["brown"], formality: 3, seasons: ["spring"], material: "leather", texture: null, pattern: null },
+  { id: "f1", category: "Fragrance", colors: [], formality: null, seasons: [], material: null, texture: null, pattern: null },
 ];
 const base = {
   band: [2.5, 4] as [number, number],
@@ -70,9 +70,9 @@ test("excludes recently-worn items", () => {
 
 /** A sneakers-only closet: the shape that produced zero Work/Evening outfits. */
 const sneakerCloset = [
-  { id: "t1", category: "Tops", colors: ["blue"], formality: 3, seasons: ["Summer"], material: "cotton" },
-  { id: "b1", category: "Bottoms", colors: ["charcoal"], formality: 3, seasons: ["Summer"], material: "lyocell" },
-  { id: "s1", category: "Shoes", colors: ["white"], formality: 2, seasons: ["Summer"], material: "leather" },
+  { id: "t1", category: "Tops", colors: ["blue"], formality: 3, seasons: ["Summer"], material: "cotton", texture: null, pattern: null },
+  { id: "b1", category: "Bottoms", colors: ["charcoal"], formality: 3, seasons: ["Summer"], material: "lyocell", texture: null, pattern: null },
+  { id: "s1", category: "Shoes", colors: ["white"], formality: 2, seasons: ["Summer"], material: "leather", texture: null, pattern: null },
 ];
 const summer = { ...base, season: "Summer", weather: { tempC: 24, rain: false } };
 
@@ -88,9 +88,9 @@ test("f=2 sneakers do NOT reach EVENING — the stretch is one step, not unlimit
 
 test("the wider tolerance is footwear-only — an f=2 top still can't reach Evening", () => {
   const casualTop = [
-    { id: "t9", category: "Tops", colors: ["grey"], formality: 2, seasons: ["Summer"], material: "cotton" },
-    { id: "b1", category: "Bottoms", colors: ["charcoal"], formality: 4, seasons: ["Summer"], material: "wool" },
-    { id: "s9", category: "Shoes", colors: ["black"], formality: 4, seasons: ["Summer"], material: "leather" },
+    { id: "t9", category: "Tops", colors: ["grey"], formality: 2, seasons: ["Summer"], material: "cotton", texture: null, pattern: null },
+    { id: "b1", category: "Bottoms", colors: ["charcoal"], formality: 4, seasons: ["Summer"], material: "wool", texture: null, pattern: null },
+    { id: "s9", category: "Shoes", colors: ["black"], formality: 4, seasons: ["Summer"], material: "leather", texture: null, pattern: null },
   ];
   expect(buildCandidates(casualTop, { ...summer, band: [3.5, 5] })).toHaveLength(0);
 });
@@ -98,7 +98,7 @@ test("the wider tolerance is footwear-only — an f=2 top still can't reach Even
 test("a formality-1 shoe still cannot reach Work — the stretch is bounded", () => {
   const flipFlops = [
     ...sneakerCloset.filter((i) => i.category !== "Shoes"),
-    { id: "s0", category: "Shoes", colors: ["black"], formality: 1, seasons: ["Summer"], material: "rubber" },
+    { id: "s0", category: "Shoes", colors: ["black"], formality: 1, seasons: ["Summer"], material: "rubber", texture: null, pattern: null },
   ];
   expect(buildCandidates(flipFlops, { ...summer, band: [3, 4.5] })).toHaveLength(0);
 });
@@ -140,10 +140,10 @@ test("season never empties a required slot, so it can never be the missing categ
 
 test("in-season pieces are offered before off-season ones, so the cap keeps the good ones", () => {
   const mixed = [
-    { id: "t-off", category: "Tops", colors: ["cream"], formality: 3, seasons: ["summer"], material: "linen" },
-    { id: "t-on", category: "Tops", colors: ["cream"], formality: 3, seasons: ["winter"], material: "wool" },
-    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["winter"], material: "wool" },
-    { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["winter"], material: "leather" },
+    { id: "t-off", category: "Tops", colors: ["cream"], formality: 3, seasons: ["summer"], material: "linen", texture: null, pattern: null },
+    { id: "t-on", category: "Tops", colors: ["cream"], formality: 3, seasons: ["winter"], material: "wool", texture: null, pattern: null },
+    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["winter"], material: "wool", texture: null, pattern: null },
+    { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["winter"], material: "leather", texture: null, pattern: null },
   ];
   const first = buildCandidates(mixed, { ...base, season: "winter", maxAccessories: 0 })[0];
   expect(first.some((i) => i.id === "t-on")).toBe(true);
@@ -160,9 +160,9 @@ test("rain still excludes suede even when the suede shoe is the in-season one", 
 // outfits in the rain, with the empty screen blaming "Shoes".
 
 const suedeOnly = [
-  { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["Spring"], material: "cotton" },
-  { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Spring"], material: "cotton" },
-  { id: "s1", category: "Shoes", colors: ["tan"], formality: 3, seasons: ["Spring"], material: "suede" },
+  { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["Spring"], material: "cotton", texture: null, pattern: null },
+  { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Spring"], material: "cotton", texture: null, pattern: null },
+  { id: "s1", category: "Shoes", colors: ["tan"], formality: 3, seasons: ["Spring"], material: "suede", texture: null, pattern: null },
 ];
 
 test("rain with suede-only shoes still dresses you — the exclusion cannot empty a slot", () => {
@@ -176,7 +176,7 @@ test("rain with suede-only shoes still dresses you — the exclusion cannot empt
 test("relief applies only when the slot is empty — a dry alternative still wins", () => {
   const withAlternative = [
     ...suedeOnly,
-    { id: "s2", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["Spring"], material: "leather" },
+    { id: "s2", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["Spring"], material: "leather", texture: null, pattern: null },
   ];
   const wet = { ...base, season: "Spring", weather: { tempC: 16, rain: true } };
   expect(buildCandidates(withAlternative, wet).flat().some((i) => i.id === "s1")).toBe(false);
@@ -184,9 +184,9 @@ test("relief applies only when the slot is empty — a dry alternative still win
 
 test("heat with fleece-only bottoms still dresses you", () => {
   const fleeceOnly = [
-    { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["Summer"], material: "linen" },
-    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "polar fleece" },
-    { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["Summer"], material: "leather" },
+    { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["Summer"], material: "linen", texture: null, pattern: null },
+    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "polar fleece", texture: null, pattern: null },
+    { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["Summer"], material: "leather", texture: null, pattern: null },
   ];
   const hot = { ...base, season: "Summer", weather: { tempC: 30, rain: false } };
   expect(buildCandidates(fleeceOnly, hot).length).toBeGreaterThan(0);
@@ -194,10 +194,10 @@ test("heat with fleece-only bottoms still dresses you", () => {
 
 test("materials match by substring, so 'polar fleece' is excluded when there is an alternative", () => {
   const hotCloset = [
-    { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["Summer"], material: "linen" },
-    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "polar fleece" },
-    { id: "b2", category: "Bottoms", colors: ["stone"], formality: 3, seasons: ["Summer"], material: "cotton" },
-    { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["Summer"], material: "leather" },
+    { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["Summer"], material: "linen", texture: null, pattern: null },
+    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "polar fleece", texture: null, pattern: null },
+    { id: "b2", category: "Bottoms", colors: ["stone"], formality: 3, seasons: ["Summer"], material: "cotton", texture: null, pattern: null },
+    { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["Summer"], material: "leather", texture: null, pattern: null },
   ];
   const hot = { ...base, season: "Summer", weather: { tempC: 30, rain: false } };
   expect(buildCandidates(hotCloset, hot).flat().some((i) => i.id === "b1")).toBe(false);
@@ -209,10 +209,10 @@ test("a wool trouser survives real heat — fibre alone never decides", () => {
   // trouser must reach a hot-day outfit; seasonFit demotes it if it is tagged
   // for winter, but nothing here eliminates it.
   const hotCloset = [
-    { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["Summer"], material: "linen" },
-    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "tropical wool" },
-    { id: "b2", category: "Bottoms", colors: ["stone"], formality: 3, seasons: ["Summer"], material: "cotton" },
-    { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["Summer"], material: "leather" },
+    { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["Summer"], material: "linen", texture: null, pattern: null },
+    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "tropical wool", texture: null, pattern: null },
+    { id: "b2", category: "Bottoms", colors: ["stone"], formality: 3, seasons: ["Summer"], material: "cotton", texture: null, pattern: null },
+    { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["Summer"], material: "leather", texture: null, pattern: null },
   ];
   const hot = { ...base, season: "Summer", weather: { tempC: 32, rain: false } };
   expect(buildCandidates(hotCloset, hot).flat().some((i) => i.id === "b1")).toBe(true);
@@ -246,10 +246,10 @@ test("every shoe is reachable even when the closet has a single top", () => {
   // the identical combo twice. PR #14 measured shoe coverage on a 20-top closet,
   // where `t` supplied the variation and hid it.
   const minimal = [
-    { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["spring"], material: "cotton" },
-    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["spring"], material: "cotton" },
-    { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["spring"], material: "leather" },
-    { id: "s2", category: "Shoes", colors: ["white"], formality: 3, seasons: ["spring"], material: "cotton" },
+    { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["spring"], material: "cotton", texture: null, pattern: null },
+    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["spring"], material: "cotton", texture: null, pattern: null },
+    { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["spring"], material: "leather", texture: null, pattern: null },
+    { id: "s2", category: "Shoes", colors: ["white"], formality: 3, seasons: ["spring"], material: "cotton", texture: null, pattern: null },
   ];
   const combos = buildCandidates(minimal, base);
   const reached = new Set(combos.flat().filter((i) => i.category === "Shoes").map((i) => i.id));
@@ -260,11 +260,11 @@ test("shoe coverage holds across awkward list sizes", () => {
   // The stride must stay coprime with the shoe count, not merely be even.
   for (const shoeCount of [1, 2, 3, 4, 5, 6, 8, 9, 10]) {
     const closet = [
-      { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["spring"], material: "cotton" },
-      { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["spring"], material: "cotton" },
+      { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["spring"], material: "cotton", texture: null, pattern: null },
+      { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["spring"], material: "cotton", texture: null, pattern: null },
       ...Array.from({ length: shoeCount }, (_, n) => ({
         id: `s${n}`, category: "Shoes", colors: ["brown"], formality: 3,
-        seasons: ["spring"], material: "leather",
+        seasons: ["spring"], material: "leather", texture: null, pattern: null,
       })),
     ];
     const reached = new Set(

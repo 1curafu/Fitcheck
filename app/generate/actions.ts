@@ -188,6 +188,8 @@ export async function generate(input: {
       formality: i.formality,
       seasons: i.seasons ?? [],
       material: i.material,
+      texture: i.texture,
+      pattern: i.pattern,
     }));
     // Occasion gives the context; the user's onboarding dress codes narrow it;
     // an explicit Refine formality overrides both.
@@ -223,7 +225,14 @@ export async function generate(input: {
     // offered rather than the screen going empty.
     const ranked = rankTopN(
       combos,
-      { aesthetic, band, lean: input.lean, recentlyShown, season: candidateArgs.season },
+      {
+        aesthetic,
+        band,
+        lean: input.lean,
+        recentlyShown,
+        season: candidateArgs.season,
+        tempC: f.tempC,
+      },
       combos.length,
     );
     const top = diversify(ranked, 20);

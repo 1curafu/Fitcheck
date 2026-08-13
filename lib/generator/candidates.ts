@@ -8,6 +8,9 @@ export type CandidateItem = {
   formality: number | null;
   seasons: string[];
   material: string | null;
+  /** Read together with `material` as warmth — see ./texture.ts. */
+  texture: string | null;
+  pattern: string | null;
 };
 
 export type CandidateArgs = {
