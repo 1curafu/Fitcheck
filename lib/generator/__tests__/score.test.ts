@@ -109,3 +109,132 @@ test("season and lean can both apply without pushing the score out of 0..1", () 
   expect(scoreCombo(winterReady, both)).toBeLessThanOrEqual(1);
   expect(scoreCombo(winterReady, both)).toBeGreaterThanOrEqual(0);
 });
+
+// --- Pattern ---------------------------------------------------------------
+// One patterned piece is a statement; two are an argument. Like every other
+// signal here it is a preference — a wardrobe of patterned shirts must still
+// be dressable.
+
+const oneP = [
+  { category: "top", colors: ["cream"], formality: 3, pattern: "striped" },
+  { category: "bottom", colors: ["navy"], formality: 3, pattern: "solid" },
+  { category: "shoes", colors: ["brown"], formality: 3, pattern: "solid" },
+];
+const twoP = [
+  { category: "top", colors: ["cream"], formality: 3, pattern: "striped" },
+  { category: "bottom", colors: ["navy"], formality: 3, pattern: "check" },
+  { category: "shoes", colors: ["brown"], formality: 3, pattern: "solid" },
+];
+
+test("one statement piece outranks two competing patterns", () => {
+  expect(scoreCombo(oneP, ctx)).toBeGreaterThan(scoreCombo(twoP, ctx));
+});
+
+test("two patterns still score above zero — clash is a preference, not a veto", () => {
+  expect(scoreCombo(twoP, ctx)).toBeGreaterThan(0);
+});
+
+test("all-solid is not penalised for being plain", () => {
+  const solid = oneP.map((i) => ({ ...i, pattern: "solid" }));
+  expect(scoreCombo(solid, ctx)).toBeGreaterThanOrEqual(scoreCombo(oneP, ctx));
+});
+
+test("untagged patterns are neutral", () => {
+  const untagged = oneP.map((i) => ({ ...i, pattern: null }));
+  expect(scoreCombo(untagged, ctx)).toBeGreaterThan(0);
+  expect(scoreCombo(untagged, ctx)).toBe(scoreCombo(oneP.map((i) => ({ ...i, pattern: "solid" })), ctx));
+});
+
+test("three patterns are worse than two, and still not zero", () => {
+  const threeP = twoP.map((i) => ({ ...i, pattern: "print" }));
+  expect(scoreCombo(threeP, ctx)).toBeLessThan(scoreCombo(twoP, ctx));
+  expect(scoreCombo(threeP, ctx)).toBeGreaterThan(0);
+});
+
+// --- Warmth, and the single climate term ------------------------------------
+// Season and warmth answer the SAME question — does this suit the climate? —
+// so they share one weight rather than competing for the score. Real
+// temperature against real cloth leads; the month tag grounds it.
+
+test("with no tempC in context the warmth term is inert", () => {
+  const warm = oneP.map((i) => ({ ...i, texture: "Chunky knit" }));
+  const light = oneP.map((i) => ({ ...i, texture: "Fine knit" }));
+  expect(scoreCombo(warm, ctx)).toBe(scoreCombo(light, ctx));
+});
+
+test("on a cold day the warmer combo wins", () => {
+  const warm = oneP.map((i) => ({ ...i, texture: "Chunky knit" }));
+  const light = oneP.map((i) => ({ ...i, texture: "Fine knit" }));
+  expect(scoreCombo(warm, { ...ctx, tempC: 2 })).toBeGreaterThan(
+    scoreCombo(light, { ...ctx, tempC: 2 }),
+  );
+});
+
+test("on a hot day the lighter combo wins", () => {
+  const warm = oneP.map((i) => ({ ...i, texture: "Chunky knit" }));
+  const light = oneP.map((i) => ({ ...i, texture: "Fine knit" }));
+  expect(scoreCombo(light, { ...ctx, tempC: 32 })).toBeGreaterThan(
+    scoreCombo(warm, { ...ctx, tempC: 32 }),
+  );
+});
+
+test("real cloth at a real temperature outweighs the month tag", () => {
+  // The whole point of the merge. A chunky knit tagged Summer is a better
+  // answer at 0°C than a fine knit tagged Winter: the tag is a proxy, the
+  // fabric and the thermometer are not.
+  const winter = { ...ctx, season: "Winter", tempC: 0 };
+  const warmButMistagged = oneP.map((i) => ({
+    ...i,
+    texture: "Chunky knit",
+    material: "Wool",
+    seasons: ["Summer"],
+  }));
+  const lightButTagged = oneP.map((i) => ({
+    ...i,
+    texture: "Fine knit",
+    material: "Linen",
+    seasons: ["Winter"],
+  }));
+  expect(scoreCombo(warmButMistagged, winter)).toBeGreaterThan(scoreCombo(lightButTagged, winter));
+});
+
+test("the season tag still decides when there is no temperature to read", () => {
+  const winter = { ...ctx, season: "Winter" };
+  expect(scoreCombo(winterReady, winter)).toBeGreaterThan(scoreCombo(summerOnly, winter));
+});
+
+test("the season tag still breaks a tie between equally warm combos", () => {
+  // Merged, not replaced: warmth leads but the tag keeps a real vote.
+  const cold = { ...ctx, season: "Winter", tempC: 0 };
+  const tagged = winterReady.map((i) => ({ ...i, material: "Wool", texture: "Flat" }));
+  const untagged = summerOnly.map((i) => ({ ...i, material: "Wool", texture: "Flat" }));
+  expect(scoreCombo(tagged, cold)).toBeGreaterThan(scoreCombo(untagged, cold));
+});
+
+test("every preference at once still lands inside 0..1", () => {
+  const all = { ...ctx, season: "Winter", lean: ["olive"], tempC: -5 };
+  const items = winterReady.map((i) => ({ ...i, material: "Wool", texture: "Chunky knit" }));
+  expect(scoreCombo(items, all)).toBeLessThanOrEqual(1);
+  expect(scoreCombo(items, all)).toBeGreaterThanOrEqual(0);
+});
+
+test("the aesthetic base keeps a real share even with every preference active", () => {
+  // Weather matters, but Fitcheck styles you — it does not just dress you for
+  // the thermometer. Colour, formality and DNA must still be able to decide.
+  // Colours, seasons, material and texture are IDENTICAL across the two, so the
+  // lean and climate terms score them the same and only formality coherence can
+  // separate them. If the base were squeezed to nothing this would tie.
+  const all = { ...ctx, season: "Winter", lean: ["olive"], tempC: -5 };
+  const cloth = { material: "Wool", texture: "Chunky knit", seasons: ["Winter"] };
+  const coherent = [
+    { category: "top", colors: ["cream"], formality: 3, ...cloth },
+    { category: "bottom", colors: ["navy"], formality: 3, ...cloth },
+    { category: "shoes", colors: ["brown"], formality: 3, ...cloth },
+  ];
+  const clash = [
+    { category: "top", colors: ["cream"], formality: 1, ...cloth },
+    { category: "bottom", colors: ["navy"], formality: 5, ...cloth },
+    { category: "shoes", colors: ["brown"], formality: 2, ...cloth },
+  ];
+  expect(scoreCombo(coherent, all)).toBeGreaterThan(scoreCombo(clash, all));
+});
