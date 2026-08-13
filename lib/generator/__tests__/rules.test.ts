@@ -1,4 +1,5 @@
 import { occasionBand, applyFormalityOverride, personalBand, weatherRules } from "../rules";
+import { warmthFit } from "../texture";
 
 test("occasion is CONTEXT, not a dress code — each band spans its real-world spread", () => {
   // Work runs from a creative office in sneakers to a suit; Evening from a
@@ -97,7 +98,28 @@ test("rain excludes suede + canvas", () => {
 
 test("real heat excludes insulation — the measured version of the old season filter", () => {
   const hot = weatherRules({ tempC: 30, rain: false }).excludeMaterials;
-  expect(hot).toEqual(expect.arrayContaining(["fleece", "down", "shearling", "tweed"]));
+  expect(hot).toEqual(expect.arrayContaining(["fleece", "down", "shearling"]));
+});
+
+test("heat no longer excludes tweed — it is scored down instead", () => {
+  // Tweed left the hard list when warmth became a scored signal: its warmth is
+  // in the cloth, `MATERIAL_WARMTH` reads it, and the same argument that keeps
+  // wool out of this list applies to it. Both halves are asserted together on
+  // purpose — dropping the exclusion without the scoring term would be a
+  // regression, and this is the test that would catch it.
+  const hot = weatherRules({ tempC: 32, rain: false }).excludeMaterials;
+  expect(hot).not.toContain("tweed");
+  expect(warmthFit([{ material: "Tweed", texture: "Twill" }], 32)).toBeLessThan(
+    warmthFit([{ material: "Linen", texture: "Flat" }], 32),
+  );
+});
+
+test("the dead keywords are gone — they stopped matching when material became an enum", () => {
+  // `Quilted` is a TEXTURE, and `puffer` is in neither vocabulary, so both had
+  // been matching nothing since item-data-completeness shipped.
+  const hot = weatherRules({ tempC: 32, rain: false }).excludeMaterials;
+  expect(hot).not.toContain("quilted");
+  expect(hot).not.toContain("puffer");
 });
 
 test("heat does NOT exclude wool — weight and weave decide that, and we store neither", () => {
@@ -150,7 +172,7 @@ test("rain guard does not reach the heat exclusions", () => {
   // water. A switch labelled "never suede in the rain" must not silently also
   // put a shearling coat back into a July outfit.
   const hot = weatherRules({ tempC: 30, rain: true }, { rainGuard: false }).excludeMaterials;
-  expect(hot).toEqual(expect.arrayContaining(["fleece", "down", "shearling", "tweed"]));
+  expect(hot).toEqual(expect.arrayContaining(["fleece", "down", "shearling"]));
   expect(hot).not.toContain("suede");
 });
 

@@ -89,14 +89,22 @@ export function applyFormalityOverride(
  * on evidence rather than eliminated on a guess — the same argument this module
  * makes about season itself.
  *
- * The real fix is data, not a longer list. `item-data-completeness` (queue #3)
- * adds an `items.texture` column — Flat / Fine knit / Chunky knit / Brushed /
- * Fleece-back — and constrains `material` to a vocabulary that separates "Wool"
- * from "Merino wool". `item-signals-in-generator` (queue #12) then feeds
- * material × texture into SCORING. Warmth belongs there, as a weighted signal,
- * not here as a veto.
+ * That fix has now landed. Warmth is a SCORED signal — `lib/generator/texture.ts`
+ * reads material × texture against the real temperature — so this list is no
+ * longer where warmth is decided. What remains is only what must never reach a
+ * hot day at all: a soft term demotes, and `diversify` still fills 20 shortlist
+ * slots, so without this a down jacket can surface at 32°C. There is a real
+ * difference between *slightly off-season*, which this project deliberately
+ * accepts, and *physically wrong*. `eligibleByCategory`'s relief rule keeps it
+ * safe — this can narrow a required slot but can never empty one.
+ *
+ * `tweed` left with that change: its warmth now lives in `MATERIAL_WARMTH`, so
+ * a tweed jacket is scored down in heat rather than banned outright — the same
+ * treatment wool already gets, and for the same reason. `quilted` and `puffer`
+ * left because neither ever matched: `Quilted` is a TEXTURE, and `puffer` is in
+ * no vocabulary at all. They had been dead since `material` became an enum.
  */
-const HOT_MATERIALS = ["fleece", "shearling", "down", "quilted", "puffer", "tweed"];
+const HOT_MATERIALS = ["fleece", "shearling", "down"];
 
 /** Strictly above 25: 24° is pleasant, 26° is hot. */
 const HOT_C = 25;

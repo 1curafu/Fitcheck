@@ -50,9 +50,10 @@ test("the materials the generator's heat rule names all exist in the vocabulary"
   // `HOT_MATERIALS` in lib/generator/rules.ts is matched against `material`.
   // Once material is a constrained enum, any term missing from this list
   // silently stops matching — which is how the rule half-broke before.
-  // `quilted` is deliberately absent: it is a TEXTURE, and the heat rule must
-  // read texture for it (see item-signals-in-generator, queue #12).
-  for (const m of ["Fleece", "Shearling", "Down", "Tweed"]) expect(MATERIALS).toContain(m);
+  // The list is now insulation ONLY: `Tweed` moved to scoring (MATERIAL_WARMTH)
+  // and `quilted`/`puffer` were removed as dead. The warmth tables have their
+  // own, exhaustive version of this guard in generator/__tests__/texture.test.ts.
+  for (const m of ["Fleece", "Shearling", "Down"]) expect(MATERIALS).toContain(m);
   expect(TEXTURES).toContain("Quilted");
 });
 
