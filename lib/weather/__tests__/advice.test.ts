@@ -120,3 +120,70 @@ test("omitting the high leaves the sentence exactly as it was", () => {
   expect(laterAdvice(evening, "C")).toEqual(laterAdvice(evening, "C", undefined));
   expect(laterAdvice(evening, "C").adviceClause).toBe("carry a jacket.");
 });
+
+// ── The advice must match the look beside it ────────────────────────────────
+// Measured 2026-08-14, after the day-planning change shipped: on a −2°C day the
+// strip read "Up to 3° this afternoon — you're dressed for it." The rise branch
+// fired on any 5° climb, so it printed a sentence written for heat AND
+// suppressed the evening-drop message, in the season where advice matters most.
+// And on a 6°→18° spring morning it said "you're dressed for it" while the look
+// was a linen shirt with no coat — the LAYER instruction was never built.
+//
+// The rule that resolves both: the strip never tells you to carry something the
+// look already includes, and never reassures you about a day you are not yet
+// dressed for. `OUTERWEAR_C` is shared with the generator so the two cannot drift.
+
+const cells = (temps: number[], startHour = 8) =>
+  temps.map((t, k) => ({
+    hh: `${String(startHour + k).padStart(2, "0")}:00`,
+    tempC: t,
+    rain: false,
+    isNow: k === 0,
+  }));
+
+test("a freezing day does not get a sentence written for heat", () => {
+  const { sentence, adviceClause } = laterAdvice(cells([-2, -1, 0, 1]), "C", 3);
+  expect(sentence).not.toContain("dressed for it");
+  expect(sentence).not.toContain("Up to");
+  expect(adviceClause).toBe("the coat earns its place.");
+});
+
+test("a cold evening is told about the drop, and not to carry what it is wearing", () => {
+  // The look already has outerwear below 15°, so "carry a jacket" would be
+  // describing the flat-lay back at the user.
+  const { sentence, adviceClause } = laterAdvice(cells([8, 6, 4, 2], 18), "C", 9);
+  expect(sentence).toContain("2");
+  expect(adviceClause).toBe("keep the coat on.");
+});
+
+test("a cold morning of a warm day gets the LAYER instruction", () => {
+  // The look is built for 18° and carries no coat, so at 6° the user needs to
+  // be told. This is the half of "dress for the peak plus advice" that was
+  // missing, and the reason this file changed at all.
+  const { sentence, adviceClause } = laterAdvice(cells([6, 8, 10, 12]), "C", 18);
+  expect(sentence).toContain("18");
+  expect(adviceClause).toBe("take a layer for now.");
+});
+
+test("once it is already warm, the climb is reassurance rather than an instruction", () => {
+  const { adviceClause } = laterAdvice(cells([23, 26, 29, 31]), "C", 35);
+  expect(adviceClause).toBe("you're dressed for it.");
+});
+
+test("rain still outranks every temperature branch, cold or hot", () => {
+  const wetAndFreezing = [
+    { hh: "08:00", tempC: -2, rain: false, isNow: true },
+    { hh: "10:00", tempC: 0, rain: true, isNow: false },
+  ];
+  expect(laterAdvice(wetAndFreezing, "C", 3).adviceClause).toBe("take a shell.");
+});
+
+test("the layer instruction is rendered in the user's unit", () => {
+  expect(laterAdvice(cells([6, 8]), "F", 18).sentence).toContain("64"); // 18C = 64F
+});
+
+test("with no day high, behaviour is exactly what it was before any of this", () => {
+  const evening = cells([18, 15, 13, 11], 18);
+  expect(laterAdvice(evening, "C")).toEqual(laterAdvice(evening, "C", undefined));
+  expect(laterAdvice(evening, "C").adviceClause).toBe("carry a jacket.");
+});
