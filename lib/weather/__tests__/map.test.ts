@@ -86,23 +86,25 @@ test("fetchForecast asks for timezone=auto and ROUNDS coords so the 30-min cache
 // day that reached 34.8°C. The drop is generated once and worn all day, so the
 // generator needs the day's high, not the temperature at the moment it ran.
 
-test("the day's high and low come through", () => {
+test("the hours still ahead beat the calendar day's block", () => {
+  // The daily block is midnight-to-midnight. When there are real hours left,
+  // they are the better answer — a 34.8° max that happened at 15:00 says
+  // nothing about an outfit chosen at 18:00.
   const withDaily = {
     ...raw,
     daily: { temperature_2m_max: [34.8], temperature_2m_min: [8.2] },
   };
   const w = mapForecast(withDaily, "2026-01-14T18:00");
-  expect(w.highC).toBe(35);
-  expect(w.lowC).toBe(8);
+  const ahead = w.restOfDay.map((h) => h.tempC);
+  expect(w.highC).toBe(Math.max(...ahead));
+  expect(w.lowC).toBe(Math.min(...ahead));
   expect(w.tempC).toBe(Math.round(raw.current.temperature_2m)); // display is still NOW
 });
 
-test("no daily block falls back to the current temperature", () => {
-  // A cached response from before this shipped must still map, and must behave
-  // exactly as it did then.
+test("with no daily block the range still comes from the remaining hours", () => {
   const w = mapForecast(raw, "2026-01-14T18:00");
-  expect(w.highC).toBe(w.tempC);
-  expect(w.lowC).toBe(w.tempC);
+  expect(w.highC).toBe(w.tempC); // 14 now, and it only falls from here
+  expect(w.lowC).toBe(10); // 22:00
 });
 
 test("the range can never contradict the temperature on screen", () => {
@@ -116,4 +118,56 @@ test("the range can never contradict the temperature on screen", () => {
   const w = mapForecast(contradictory, "2026-01-14T18:00");
   expect(w.highC).toBeGreaterThanOrEqual(w.tempC);
   expect(w.lowC).toBeLessThanOrEqual(w.tempC);
+});
+
+// ── The rest of today ───────────────────────────────────────────────────────
+// `daily.temperature_2m_max` is midnight-to-midnight, so opening the app at
+// 20:00 would plan against a 17:00 peak already lived through. `restOfDay` is
+// the hours still ahead, and the high/low now come from it.
+
+test("restOfDay holds only the hours still ahead, and only today's", () => {
+  const spanning = {
+    ...raw,
+    hourly: {
+      time: [
+        "2026-01-14T16:00", "2026-01-14T17:00", "2026-01-14T18:00",
+        "2026-01-14T22:00", "2026-01-15T08:00", "2026-01-15T18:00",
+      ],
+      temperature_2m: [16, 15, 14, 9, 3, 30],
+      weather_code: [3, 3, 3, 3, 3, 3],
+      precipitation_probability: [5, 5, 5, 5, 5, 5],
+    },
+  };
+  const w = mapForecast(spanning, "2026-01-14T18:00");
+  expect(w.restOfDay.map((h) => h.hh)).toEqual(["18:00", "22:00"]);
+  // Tomorrow's 30° must never reach the planning temperature.
+  expect(w.highC).toBeLessThan(30);
+});
+
+test("the high and low describe what is left of the day, not the calendar day", () => {
+  const eveningNow = {
+    ...raw,
+    current: { ...raw.current, time: "2026-01-14T20:00", temperature_2m: 9 },
+    hourly: {
+      time: ["2026-01-14T08:00", "2026-01-14T14:00", "2026-01-14T20:00", "2026-01-14T22:00"],
+      temperature_2m: [4, 18, 9, 6], // the 18° peak is already gone
+      weather_code: [3, 3, 3, 3],
+      precipitation_probability: [5, 5, 5, 5],
+    },
+    daily: { temperature_2m_max: [18], temperature_2m_min: [4] },
+  };
+  const w = mapForecast(eveningNow, "2026-01-14T20:00");
+  expect(w.highC).toBe(9); // NOT 18
+  expect(w.lowC).toBe(6);
+});
+
+test("with no hourly hours left, the daily block is the fallback", () => {
+  const exhausted = {
+    ...raw,
+    hourly: { time: [], temperature_2m: [], weather_code: [], precipitation_probability: [] },
+    daily: { temperature_2m_max: [21], temperature_2m_min: [2] },
+  };
+  const w = mapForecast(exhausted, "2026-01-14T18:00");
+  expect(w.highC).toBe(21);
+  expect(w.lowC).toBe(2);
 });

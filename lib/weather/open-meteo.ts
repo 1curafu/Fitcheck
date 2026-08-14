@@ -51,6 +51,8 @@ export function mapForecast(
   condition: string;
   timezone: string;
   hourly: HourCell[];
+  /** Every remaining hour of TODAY — what the look is planned against. */
+  restOfDay: HourCell[];
   highC: number;
   lowC: number;
 } {
@@ -69,13 +71,43 @@ export function mapForecast(
     });
   }
 
-  // The look is built for the day's HIGH, not for the minute the app was
-  // opened — the daily drop is generated once and worn all day. Falls back to
-  // the current temperature when the API response carries no daily block, which
-  // is exactly the behaviour that shipped before.
   const now = Math.round(raw.current.temperature_2m);
-  const max = raw.daily?.temperature_2m_max?.[0];
-  const min = raw.daily?.temperature_2m_min?.[0];
+
+  /**
+   * The rest of TODAY, hour by hour.
+   *
+   * Restricted to the current local date on purpose: `forecast_hours=24` runs
+   * past midnight, and an "evening" window matched on hour-of-day alone would
+   * happily plan against TOMORROW's 19:00. Comparing the date part of the ISO
+   * string is enough — `timezone=auto` puts `current.time` and `hourly.time` on
+   * the same local clock.
+   */
+  const today = nowIso.slice(0, 10);
+  const restOfDay: HourCell[] = [];
+  for (let i = 0; i < times.length; i++) {
+    if (times[i] < nowIso || times[i].slice(0, 10) !== today) continue;
+    restOfDay.push({
+      hh: hhmm(times[i]),
+      tempC: Math.round(raw.hourly.temperature_2m[i]),
+      rain: RAIN_CODES.has(raw.hourly.weather_code[i]),
+      isNow: restOfDay.length === 0,
+    });
+  }
+
+  /**
+   * The peak and trough STILL AHEAD, not the calendar day's.
+   *
+   * `daily.temperature_2m_max` covers midnight to midnight, so opening the app
+   * at 20:00 would otherwise plan against a 17:00 peak that has already been
+   * and gone — the mirror of the bug that put a sweater on a 34.8°C day. The
+   * daily block is the fallback for when hourly data is unavailable, and the
+   * current reading is the fallback for that.
+   */
+  const ahead = restOfDay.map((h) => h.tempC);
+  const dailyMax = raw.daily?.temperature_2m_max?.[0];
+  const dailyMin = raw.daily?.temperature_2m_min?.[0];
+  const high = ahead.length ? Math.max(...ahead) : dailyMax == null ? now : Math.round(dailyMax);
+  const low = ahead.length ? Math.min(...ahead) : dailyMin == null ? now : Math.round(dailyMin);
 
   return {
     tempC: now,
@@ -83,9 +115,10 @@ export function mapForecast(
     condition: conditionFor(raw.current.weather_code),
     timezone: raw.timezone,
     hourly,
+    restOfDay,
     // Never let the range contradict the reading the user can see on screen.
-    highC: max == null ? now : Math.max(now, Math.round(max)),
-    lowC: min == null ? now : Math.min(now, Math.round(min)),
+    highC: Math.max(now, high),
+    lowC: Math.min(now, low),
   };
 }
 
