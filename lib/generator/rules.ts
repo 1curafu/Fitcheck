@@ -132,6 +132,16 @@ const HOT_MATERIALS = ["fleece", "shearling", "down"];
 /** Strictly above 25: 24° is pleasant, 26° is hot. */
 const HOT_C = 25;
 
+/**
+ * Below this the LOOK carries outerwear.
+ *
+ * Exported because `laterAdvice` needs the same number: the advice strip must
+ * never tell you to take a layer the flat-lay already contains. Two copies of
+ * 15 would drift, and the drift would be invisible — the sentence would simply
+ * start disagreeing with the picture beside it.
+ */
+export const OUTERWEAR_C = 15;
+
 /** Materials rain ruins. Turned off by the rain-guard preference, nothing else. */
 const WET_MATERIALS = ["suede", "canvas"];
 
@@ -171,7 +181,7 @@ export function weatherRules(w: Weather, prefs?: { rainGuard?: boolean }) {
   const rainGuard = prefs?.rainGuard ?? true;
   const planning = planningTemp(w);
   return {
-    needsOuterwear: planning < 15,
+    needsOuterwear: planning < OUTERWEAR_C,
     excludeMaterials: [
       ...(w.rain && rainGuard ? WET_MATERIALS : []),
       ...(planning > HOT_C ? HOT_MATERIALS : []),
