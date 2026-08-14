@@ -1,6 +1,29 @@
 import type { UiOccasion } from "./types";
 
-export type Weather = { tempC: number; rain: boolean };
+export type Weather = {
+  /** The temperature RIGHT NOW. Display, and the fallback when no day range exists. */
+  tempC: number;
+  rain: boolean;
+  /**
+   * Today's high and low.
+   *
+   * The daily drop is generated once and worn all day, so scoring against
+   * `tempC` optimises for the minute the user happened to open the app. On
+   * 2026-08-14 that produced a cable-knit sweater at 07:45 for a day that
+   * reached 34.8°C. **The look is built for the HIGH; the cold end of the day is
+   * handled by advice, not by the outfit** — otherwise a 22°-afternoon /
+   * 9°-morning day puts a coat in every flat-lay you see at 3pm.
+   *
+   * Optional: fixtures and any caller without a forecast fall back to `tempC`.
+   */
+  highC?: number;
+  lowC?: number;
+};
+
+/** The temperature the LOOK is built for. */
+export function planningTemp(w: Weather): number {
+  return w.highC ?? w.tempC;
+}
 
 // v2 UI occasions → formality bands (Decision D9, widened — see below).
 //
@@ -89,20 +112,47 @@ export function applyFormalityOverride(
  * on evidence rather than eliminated on a guess — the same argument this module
  * makes about season itself.
  *
- * The real fix is data, not a longer list. `item-data-completeness` (queue #3)
- * adds an `items.texture` column — Flat / Fine knit / Chunky knit / Brushed /
- * Fleece-back — and constrains `material` to a vocabulary that separates "Wool"
- * from "Merino wool". `item-signals-in-generator` (queue #12) then feeds
- * material × texture into SCORING. Warmth belongs there, as a weighted signal,
- * not here as a veto.
+ * That fix has now landed. Warmth is a SCORED signal — `lib/generator/texture.ts`
+ * reads material × texture against the real temperature — so this list is no
+ * longer where warmth is decided. What remains is only what must never reach a
+ * hot day at all: a soft term demotes, and `diversify` still fills 20 shortlist
+ * slots, so without this a down jacket can surface at 32°C. There is a real
+ * difference between *slightly off-season*, which this project deliberately
+ * accepts, and *physically wrong*. `eligibleByCategory`'s relief rule keeps it
+ * safe — this can narrow a required slot but can never empty one.
+ *
+ * `tweed` left with that change: its warmth now lives in `MATERIAL_WARMTH`, so
+ * a tweed jacket is scored down in heat rather than banned outright — the same
+ * treatment wool already gets, and for the same reason. `quilted` and `puffer`
+ * left because neither ever matched: `Quilted` is a TEXTURE, and `puffer` is in
+ * no vocabulary at all. They had been dead since `material` became an enum.
  */
-const HOT_MATERIALS = ["fleece", "shearling", "down", "quilted", "puffer", "tweed"];
+const HOT_MATERIALS = ["fleece", "shearling", "down"];
 
 /** Strictly above 25: 24° is pleasant, 26° is hot. */
 const HOT_C = 25;
 
 /** Materials rain ruins. Turned off by the rain-guard preference, nothing else. */
 const WET_MATERIALS = ["suede", "canvas"];
+
+/**
+ * Above this, a garment's computed warmth stops being a penalty and becomes a bar.
+ *
+ * `HOT_MATERIALS` only catches insulation by FIBRE, which is why a cotton
+ * cable-knit sweater reached a 34.8°C day on 2026-08-14. Measured on the real
+ * 21-item closet: the warmth term demoted that combo from #13 to #22 of 66, but
+ * `diversify` fills 20 shortlist slots out of 66 combos — so 30% of everything
+ * reaches the model and a demotion changes nothing. This is the hole the plan
+ * named: *"a soft term demotes, and diversify still fills 20 slots."*
+ *
+ * Safe as a hard rule because it reads `itemWarmth`, which now respects the
+ * wearer's own season tags — a Summer-tagged cable knit is 0.55 and survives,
+ * an Autumn/Winter one is 0.65 and does not — and because
+ * `eligibleByCategory`'s relief rule guarantees it can narrow a required slot
+ * but never empty one.
+ */
+const SWELTERING_C = 28;
+const SWELTERING_MAX_WARMTH = 0.6;
 
 /**
  * @param prefs `rainGuard` is the settings toggle. It defaults ON: the
@@ -112,14 +162,21 @@ const WET_MATERIALS = ["suede", "canvas"];
  * The toggle reaches the WET list only. The heat exclusions are about comfort
  * at 30°, not about keeping shoes dry, and `needsOuterwear` is about cold — a
  * switch labelled "never suede in the rain" has no business touching either.
+ *
+ * Everything thermal here reads `planningTemp` — the day's HIGH — not the
+ * current temperature. Rain is the exception: it is read from `rain`, which is
+ * about the hour you step outside.
  */
 export function weatherRules(w: Weather, prefs?: { rainGuard?: boolean }) {
   const rainGuard = prefs?.rainGuard ?? true;
+  const planning = planningTemp(w);
   return {
-    needsOuterwear: w.tempC < 15,
+    needsOuterwear: planning < 15,
     excludeMaterials: [
       ...(w.rain && rainGuard ? WET_MATERIALS : []),
-      ...(w.tempC > HOT_C ? HOT_MATERIALS : []),
+      ...(planning > HOT_C ? HOT_MATERIALS : []),
     ],
+    /** null = warmth is a preference today, as it is on all but the hottest days. */
+    maxWarmth: planning > SWELTERING_C ? SWELTERING_MAX_WARMTH : null,
   };
 }

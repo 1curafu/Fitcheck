@@ -16,7 +16,7 @@ function closet(n: number) {
     colors: ["navy"],
     formality: 3,
     seasons: [] as string[],
-    material: "cotton",
+    material: "cotton", texture: null, pattern: null,
   });
   return [
     ...Array.from({ length: n }, (_, i) => mk("Tops", i)),

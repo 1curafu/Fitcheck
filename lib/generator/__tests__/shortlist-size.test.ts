@@ -14,7 +14,7 @@ function closet(): CandidateItem[] {
     colors: [["white", "navy", "cream", "black", "brown"][i % 5]],
     formality: 3,
     seasons,
-    material: "cotton",
+    material: "cotton", texture: null, pattern: null,
   });
   const ALL = ["Spring", "Summer", "Autumn", "Winter"];
   return [

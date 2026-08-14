@@ -80,3 +80,40 @@ test("fetchForecast asks for timezone=auto and ROUNDS coords so the 30-min cache
 
   vi.unstubAllGlobals();
 });
+
+// ── Today's range — what the LOOK is built for ──────────────────────────────
+// Reported 2026-08-14: a cable-knit sweater was offered at 07:45 in 20°C for a
+// day that reached 34.8°C. The drop is generated once and worn all day, so the
+// generator needs the day's high, not the temperature at the moment it ran.
+
+test("the day's high and low come through", () => {
+  const withDaily = {
+    ...raw,
+    daily: { temperature_2m_max: [34.8], temperature_2m_min: [8.2] },
+  };
+  const w = mapForecast(withDaily, "2026-01-14T18:00");
+  expect(w.highC).toBe(35);
+  expect(w.lowC).toBe(8);
+  expect(w.tempC).toBe(Math.round(raw.current.temperature_2m)); // display is still NOW
+});
+
+test("no daily block falls back to the current temperature", () => {
+  // A cached response from before this shipped must still map, and must behave
+  // exactly as it did then.
+  const w = mapForecast(raw, "2026-01-14T18:00");
+  expect(w.highC).toBe(w.tempC);
+  expect(w.lowC).toBe(w.tempC);
+});
+
+test("the range can never contradict the temperature on screen", () => {
+  // A stale daily block against a fresh `current` could otherwise report a high
+  // BELOW the number the user is reading, which would look like a bug and would
+  // dress them for a colder day than they are standing in.
+  const contradictory = {
+    ...raw,
+    daily: { temperature_2m_max: [-40], temperature_2m_min: [99] },
+  };
+  const w = mapForecast(contradictory, "2026-01-14T18:00");
+  expect(w.highC).toBeGreaterThanOrEqual(w.tempC);
+  expect(w.lowC).toBeLessThanOrEqual(w.tempC);
+});

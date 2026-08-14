@@ -5,7 +5,7 @@ import { signItemImages, displayPath } from "@/lib/storage/signed";
 import { fetchForecast } from "@/lib/weather/open-meteo";
 import { laterAdvice } from "@/lib/weather/advice";
 import { readPreferences } from "@/lib/profile/preferences";
-import { personalBand, applyFormalityOverride } from "@/lib/generator/rules";
+import { personalBand, applyFormalityOverride, planningTemp } from "@/lib/generator/rules";
 import { buildCandidates, missingCategory, type CandidateItem } from "@/lib/generator/candidates";
 import { rankTopN } from "@/lib/generator/rank";
 import { diversify } from "@/lib/generator/diversity";
@@ -79,7 +79,7 @@ export async function generate(input: {
     const now = new Date();
     const f = await fetchForecast(loc.lat, loc.lon);
     const prefs = readPreferences(profile?.preferences);
-    const advice = laterAdvice(f.hourly, prefs.tempUnit);
+    const advice = laterAdvice(f.hourly, prefs.tempUnit, f.highC);
     const weather: WeatherPayload = {
       tempC: f.tempC,
       feelsLikeC: f.feelsLikeC,
@@ -188,6 +188,8 @@ export async function generate(input: {
       formality: i.formality,
       seasons: i.seasons ?? [],
       material: i.material,
+      texture: i.texture,
+      pattern: i.pattern,
     }));
     // Occasion gives the context; the user's onboarding dress codes narrow it;
     // an explicit Refine formality overrides both.
@@ -197,7 +199,13 @@ export async function generate(input: {
     );
     const candidateArgs = {
       band,
-      weather: { tempC: f.tempC, rain: f.hourly.some((h) => h.isNow && h.rain) },
+      weather: {
+        tempC: f.tempC,
+        rain: f.hourly.some((h) => h.isNow && h.rain),
+        // The look is built for the day, not for this minute.
+        highC: f.highC,
+        lowC: f.lowC,
+      },
       season: currentSeason(now),
       excludeItemIds: [],
       maxAccessories: 1,
@@ -223,7 +231,16 @@ export async function generate(input: {
     // offered rather than the screen going empty.
     const ranked = rankTopN(
       combos,
-      { aesthetic, band, lean: input.lean, recentlyShown, season: candidateArgs.season },
+      {
+        aesthetic,
+        band,
+        lean: input.lean,
+        recentlyShown,
+        season: candidateArgs.season,
+        // The day's high, not the current reading — the drop is generated once
+        // and worn all day. `planningTemp` is the single definition of that.
+        tempC: planningTemp(candidateArgs.weather),
+      },
       combos.length,
     );
     const top = diversify(ranked, 20);

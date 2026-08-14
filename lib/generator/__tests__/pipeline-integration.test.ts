@@ -40,6 +40,8 @@ function closet(): CandidateItem[] {
     formality: 3,
     seasons,
     material,
+    texture: null,
+    pattern: null,
   });
   return [
     // 8 all-season tops, 3 that are summer-only — so winter genuinely narrows.
@@ -164,7 +166,7 @@ test("a weather exclusion narrows a required slot but never empties it (#16 reli
   // Every shoe in this closet is leather, so make leather the excluded material by
   // putting the only shoes in suede — rain must still dress you.
   const suedeShoes = closet().map((i) =>
-    i.category === "Shoes" ? { ...i, material: "suede" } : i,
+    i.category === "Shoes" ? { ...i, material: "suede", texture: null, pattern: null } : i,
   );
   const wet = {
     band: [1.5, 3.5] as [number, number],
@@ -180,9 +182,9 @@ test("a weather exclusion narrows a required slot but never empties it (#16 reli
 test("real heat excludes insulation but never a wool trouser (fibre alone never decides)", () => {
   const mixed = [
     ...closet().filter((i) => i.category !== "Bottoms"),
-    { id: "b-wool", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "tropical wool" },
-    { id: "b-fleece", category: "Bottoms", colors: ["grey"], formality: 3, seasons: ["Summer"], material: "polar fleece" },
-    { id: "b-cotton", category: "Bottoms", colors: ["stone"], formality: 3, seasons: ["Summer"], material: "cotton" },
+    { id: "b-wool", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "tropical wool", texture: null, pattern: null },
+    { id: "b-fleece", category: "Bottoms", colors: ["grey"], formality: 3, seasons: ["Summer"], material: "polar fleece", texture: null, pattern: null },
+    { id: "b-cotton", category: "Bottoms", colors: ["stone"], formality: 3, seasons: ["Summer"], material: "cotton", texture: null, pattern: null },
   ];
   const hot = {
     band: [1.5, 3.5] as [number, number],

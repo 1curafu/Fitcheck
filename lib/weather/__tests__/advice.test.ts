@@ -72,3 +72,51 @@ test("the advice clause is unchanged by the unit — the rust binding depends on
   expect(f.adviceClause).toBe("carry a jacket.");
   expect(f.sentence.includes(f.adviceClause)).toBe(true);
 });
+
+// ── The day still to come ───────────────────────────────────────────────────
+// The generator builds the look for the day's HIGH (see lib/generator/rules.ts,
+// `planningTemp`), so on a morning that climbs the outfit is deliberately
+// lighter than right now justifies. This sentence is the only thing that
+// explains that, and it is the half of the decision that makes dressing for the
+// peak honest rather than just wrong in the other direction.
+
+test("a steep climb is announced, so a light look at 20° makes sense", () => {
+  const morning = [
+    { hh: "08:00", tempC: 20, rain: false, isNow: true },
+    { hh: "09:00", tempC: 22, rain: false, isNow: false },
+  ];
+  const { sentence, adviceClause } = laterAdvice(morning, "C", 35);
+  expect(sentence).toContain("35");
+  expect(sentence).toContain("this afternoon");
+  expect(adviceClause).toBe("you're dressed for it.");
+});
+
+test("a day that is not going anywhere says nothing about the climb", () => {
+  const flat = [
+    { hh: "14:00", tempC: 22, rain: false, isNow: true },
+    { hh: "15:00", tempC: 23, rain: false, isNow: false },
+  ];
+  expect(laterAdvice(flat, "C", 24).sentence).not.toContain("this afternoon");
+});
+
+test("rain still outranks the climb — a shell is the more urgent instruction", () => {
+  const hotAndWet = [
+    { hh: "08:00", tempC: 20, rain: false, isNow: true },
+    { hh: "10:00", tempC: 24, rain: true, isNow: false },
+  ];
+  expect(laterAdvice(hotAndWet, "C", 35).adviceClause).toBe("take a shell.");
+});
+
+test("the climb is rendered in the user's unit", () => {
+  const morning = [{ hh: "08:00", tempC: 20, rain: false, isNow: true }];
+  expect(laterAdvice(morning, "F", 35).sentence).toContain("95"); // 35C = 95F
+});
+
+test("omitting the high leaves the sentence exactly as it was", () => {
+  const evening = [
+    { hh: "18:00", tempC: 18, rain: false, isNow: true },
+    { hh: "22:00", tempC: 11, rain: false, isNow: false },
+  ];
+  expect(laterAdvice(evening, "C")).toEqual(laterAdvice(evening, "C", undefined));
+  expect(laterAdvice(evening, "C").adviceClause).toBe("carry a jacket.");
+});
