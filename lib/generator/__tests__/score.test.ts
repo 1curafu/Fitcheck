@@ -178,24 +178,34 @@ test("on a hot day the lighter combo wins", () => {
   );
 });
 
-test("real cloth at a real temperature outweighs the month tag", () => {
-  // The whole point of the merge. A chunky knit tagged Summer is a better
-  // answer at 0°C than a fine knit tagged Winter: the tag is a proxy, the
-  // fabric and the thermometer are not.
+test("where the season tags agree, the fabric and the thermometer decide", () => {
+  // The merge earning its keep: these two are tagged IDENTICALLY, so `seasonFit`
+  // scores them the same and only the cloth can separate them at 0°C.
   const winter = { ...ctx, season: "Winter", tempC: 0 };
-  const warmButMistagged = oneP.map((i) => ({
+  const tags = ["Spring", "Autumn", "Winter"];
+  const warm = oneP.map((i) => ({ ...i, texture: "Chunky knit", material: "Wool", seasons: tags }));
+  const light = oneP.map((i) => ({ ...i, texture: "Fine knit", material: "Linen", seasons: tags }));
+  expect(scoreCombo(warm, winter)).toBeGreaterThan(scoreCombo(light, winter));
+});
+
+test("but where the wearer's tag speaks, it outranks the photo", () => {
+  // The correction of 2026-08-13, at the scoring level. A cable-knit cotton polo
+  // the user wears in July must beat the same polo they only wear in November,
+  // on a warm day — even though the photo cannot tell the two apart.
+  const warmDay = { ...ctx, season: "Summer", tempC: 24 };
+  const summerOk = oneP.map((i) => ({
     ...i,
-    texture: "Chunky knit",
-    material: "Wool",
-    seasons: ["Summer"],
+    texture: "Cable knit",
+    material: "Cotton",
+    seasons: ["Spring", "Summer"],
   }));
-  const lightButTagged = oneP.map((i) => ({
+  const winterOnly = oneP.map((i) => ({
     ...i,
-    texture: "Fine knit",
-    material: "Linen",
-    seasons: ["Winter"],
+    texture: "Cable knit",
+    material: "Cotton",
+    seasons: ["Autumn", "Winter"],
   }));
-  expect(scoreCombo(warmButMistagged, winter)).toBeGreaterThan(scoreCombo(lightButTagged, winter));
+  expect(scoreCombo(summerOk, warmDay)).toBeGreaterThan(scoreCombo(winterOnly, warmDay));
 });
 
 test("the season tag still decides when there is no temperature to read", () => {

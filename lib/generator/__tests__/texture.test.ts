@@ -68,6 +68,80 @@ test("suede reads warmer than smooth leather", () => {
   expect(itemWarmth("Suede", "Flat")).toBeGreaterThan(itemWarmth("Leather", "Flat"));
 });
 
+// --- The wearer's season tags outrank the photo -----------------------------
+// User correction, 2026-08-13: "I have 2 pieces of wardrobe that are cable knit
+// and they are good for summer in 18-27." He is right, and his closet already
+// says so — two of his four cable-knit pieces carry a Summer tag. A cable is a
+// STITCH PATTERN, not a weight: the same conflation `HOT_MATERIALS` made with
+// "wool", one level down. `material`/`texture` are inferred from a photograph
+// that cannot see yarn weight; `seasons` is the field the user confirms.
+
+test("a cable knit is not warm by virtue of being cabled", () => {
+  // The cotton cable polo that prompted this: it must not read like knitwear
+  // built for February just because the stitch is decorative.
+  expect(itemWarmth("Cotton", "Cable knit")).toBeLessThan(itemWarmth("Cotton", "Chunky knit"));
+  expect(itemWarmth("Cotton", "Cable knit")).toBeLessThan(itemWarmth("Cotton", "Quilted"));
+});
+
+test("a Summer tag caps warmth — the wearer knows what they wear in the heat", () => {
+  const cabled = itemWarmth("Cotton", "Cable knit");
+  expect(itemWarmth("Cotton", "Cable knit", ["Spring", "Summer", "Autumn", "Winter"])).toBeLessThan(
+    cabled,
+  );
+  // Even a genuinely warm construction is capped: the tag is the better evidence.
+  expect(itemWarmth("Merino wool", "Chunky knit", ["Summer"])).toBeLessThan(0.6);
+});
+
+test("Winter without Summer floors warmth", () => {
+  // The black cable crew neck, tagged Autumn/Winter, must read warmer than the
+  // otherwise identical polo the wearer also wears in July.
+  const winterOnly = itemWarmth("Cotton", "Cable knit", ["Autumn", "Winter"]);
+  const yearRound = itemWarmth("Cotton", "Cable knit", ["Spring", "Summer", "Autumn", "Winter"]);
+  expect(winterOnly).toBeGreaterThan(yearRound);
+  expect(winterOnly).toBeGreaterThanOrEqual(0.65);
+});
+
+test("a year-round tag is capped, not floored — it claims no season for itself", () => {
+  // Summer AND Winter both present is not a contradiction to resolve: the piece
+  // is worn in heat, so the cap applies and the floor does not.
+  const all = itemWarmth("Wool", "Ribbed", ["Spring", "Summer", "Autumn", "Winter"]);
+  expect(all).toBeLessThanOrEqual(0.55);
+});
+
+test("insulation is exempt from the cap — physics outranks a mis-tag", () => {
+  // A down gilet tagged Summer is a tagging error, not a summer garment.
+  expect(itemWarmth("Down", "Quilted", ["Summer"])).toBeGreaterThan(0.7);
+  expect(itemWarmth("Fleece", "Fleece-back", ["Spring", "Summer"])).toBeGreaterThan(0.7);
+});
+
+test("linen is exempt from the winter floor — the mirror of the insulation rule", () => {
+  // A linen shirt tagged Winter is worn as an indoor layer; linen does not
+  // insulate, and no tag makes it so. Without this the floor lifts it to 0.65
+  // and it competes with knitwear in February.
+  expect(itemWarmth("Linen", "Flat", ["Winter"])).toBeLessThan(0.4);
+  expect(itemWarmth("Linen", "Flat", ["Winter"])).toBe(itemWarmth("Linen", "Flat"));
+});
+
+test("season tags are read case-insensitively, like everywhere else", () => {
+  expect(itemWarmth("Cotton", "Cable knit", ["summer"])).toBe(
+    itemWarmth("Cotton", "Cable knit", ["Summer"]),
+  );
+});
+
+test("untagged seasons change nothing", () => {
+  const bare = itemWarmth("Cotton", "Cable knit");
+  expect(itemWarmth("Cotton", "Cable knit", [])).toBe(bare);
+  expect(itemWarmth("Cotton", "Cable knit", null)).toBe(bare);
+});
+
+test("a summer-tagged knit beats a winter-only one on a warm day, and loses on a cold one", () => {
+  // End to end through warmthFit — the behaviour the user actually sees.
+  const summerPolo = [{ material: "Cotton", texture: "Cable knit", seasons: ["Summer", "Spring"] }];
+  const winterCrew = [{ material: "Cotton", texture: "Cable knit", seasons: ["Autumn", "Winter"] }];
+  expect(warmthFit(summerPolo, 24)).toBeGreaterThan(warmthFit(winterCrew, 24));
+  expect(warmthFit(winterCrew, 2)).toBeGreaterThan(warmthFit(summerPolo, 2));
+});
+
 test("warm pieces fit a cold day better than light ones", () => {
   const chunky = [{ material: "Cotton", texture: "Chunky knit" }];
   const fine = [{ material: "Cotton", texture: "Fine knit" }];

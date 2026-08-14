@@ -32,7 +32,11 @@ export const TEXTURE_WARMTH: Record<string, number> = {
   Ribbed: 0.6,
   Terry: 0.65,
   Brushed: 0.7,
-  "Cable knit": 0.8,
+  // A cable is a STITCH PATTERN, not a weight. A cable-knit cotton polo and an
+  // aran sweater share this value and are seasons apart — the same conflation
+  // `HOT_MATERIALS` made with "wool". Held below Brushed/Quilted deliberately
+  // so material and the season tags carry the difference.
+  "Cable knit": 0.7,
   Quilted: 0.85,
   Pile: 0.85,
   "Chunky knit": 0.9,
@@ -81,8 +85,39 @@ export const MATERIAL_WARMTH: Record<string, number> = {
  */
 const INSULATION = new Set(["Fleece", "Down", "Shearling"]);
 
+/**
+ * The mirror image: fibres no construction makes warm. A linen shirt tagged
+ * Winter is being worn as an indoor layer, not because linen insulates, so the
+ * winter floor must not lift it. Exactly as narrow as INSULATION and for the
+ * same reason — these are the two ends where physics outranks the tag.
+ */
+const COOLING = new Set(["Linen"]);
+
 /** Texture leads, material grounds it. */
 const TEXTURE_SHARE = 0.65;
+
+/**
+ * The wearer's season tags CONSTRAIN warmth — they do not merely argue with it.
+ *
+ * `material` and `texture` are inferred by Haiku from a photograph, which cannot
+ * see yarn weight or gsm. `seasons` is the field the user edits and confirms.
+ * So on precisely the garments where the two disagree, the tag is the better
+ * evidence, and letting it act HERE — per garment, inside the warmth reading —
+ * beats giving `seasonFit` a heavier weight downstream: a heavier weight would
+ * let the tag out-shout warmth on every piece, where a clamp corrects only the
+ * garments the photo actually got wrong.
+ *
+ * The bounds are deliberately asymmetric. "I wear this in summer" is nearly
+ * always a statement about heat; "I only wear this in winter" is sometimes about
+ * style — a dark colour, a heavy look — so it is allowed to say less.
+ */
+const SUMMER_CAP = 0.55;
+const WINTER_FLOOR = 0.65;
+
+function has(seasons: string[] | null | undefined, season: string): boolean {
+  // The DB stores Title case and fixtures use lower — same tolerance as season.ts.
+  return !!seasons?.some((s) => s.toLowerCase() === season);
+}
 
 /**
  * 0 = coolest, 1 = warmest, 0.5 = no opinion (untagged or unknown).
@@ -92,16 +127,37 @@ const TEXTURE_SHARE = 0.65;
  * the merino case — a chunky merino knit and a fine merino tee share a fibre and
  * are a season apart. Texture carries the larger share because construction is
  * the stronger signal where both are known, but material sets the floor.
+ *
+ * `seasons` is optional and, where present, has the final say — see SUMMER_CAP.
  */
-export function itemWarmth(material: string | null, texture: string | null): number {
+export function itemWarmth(
+  material: string | null,
+  texture: string | null,
+  seasons?: string[] | null,
+): number {
   const m = material ? MATERIAL_WARMTH[material] : undefined;
   const t = texture ? TEXTURE_WARMTH[texture] : undefined;
-  if (m === undefined && t === undefined) return 0.5; // no opinion, never a penalty
-  if (t === undefined) return m!;
-  if (m === undefined) return t;
-  const blended = TEXTURE_SHARE * t + (1 - TEXTURE_SHARE) * m;
-  // A fine-knit fleece is still a fleece.
-  return material && INSULATION.has(material) ? Math.max(blended, m) : blended;
+  const insulating = !!material && INSULATION.has(material);
+
+  let warmth: number;
+  if (m === undefined && t === undefined) warmth = 0.5; // no opinion, never a penalty
+  else if (t === undefined) warmth = m!;
+  else if (m === undefined) warmth = t;
+  else {
+    const blended = TEXTURE_SHARE * t + (1 - TEXTURE_SHARE) * m;
+    // A fine-knit fleece is still a fleece.
+    warmth = insulating ? Math.max(blended, m) : blended;
+  }
+
+  // Insulation is exempt from the cap: a down gilet tagged Summer is a tagging
+  // error, and physics is the one thing that outranks the wearer here. The
+  // floor is not applied when Summer is also tagged — a year-round piece is
+  // making no claim to be winter-only, so there is nothing to contradict.
+  if (has(seasons, "summer")) return insulating ? warmth : Math.min(warmth, SUMMER_CAP);
+  if (has(seasons, "winter") && !(material && COOLING.has(material))) {
+    return Math.max(warmth, WINTER_FLOOR);
+  }
+  return warmth;
 }
 
 /**
@@ -142,7 +198,12 @@ function categoryWeight(category?: string | null): number {
  * formality and DNA should decide instead.
  */
 export function warmthFit(
-  items: { category?: string | null; material?: string | null; texture?: string | null }[],
+  items: {
+    category?: string | null;
+    material?: string | null;
+    texture?: string | null;
+    seasons?: string[] | null;
+  }[],
   tempC: number,
 ): number {
   if (!items.length) return 0.5;
@@ -152,7 +213,7 @@ export function warmthFit(
   let total = 0;
   for (const i of items) {
     const w = categoryWeight(i.category);
-    weighted += w * itemWarmth(i.material ?? null, i.texture ?? null);
+    weighted += w * itemWarmth(i.material ?? null, i.texture ?? null, i.seasons);
     total += w;
   }
   if (total === 0) return 0.5; // nothing in the combo has a thermal say
