@@ -5,7 +5,7 @@ import { signItemImages, displayPath } from "@/lib/storage/signed";
 import { fetchForecast } from "@/lib/weather/open-meteo";
 import { laterAdvice } from "@/lib/weather/advice";
 import { readPreferences } from "@/lib/profile/preferences";
-import { personalBand } from "@/lib/generator/rules";
+import { personalBand, planningTemp } from "@/lib/generator/rules";
 import { buildCandidates, type CandidateItem } from "@/lib/generator/candidates";
 import { rankTopN } from "@/lib/generator/rank";
 import { currentSeason } from "@/lib/generator/season";
@@ -109,7 +109,7 @@ export async function styleWithItem(
     const loc = resolveLocation({ profile });
     const f = await fetchForecast(loc.lat, loc.lon);
     const prefs = readPreferences(profile?.preferences);
-    const advice = laterAdvice(f.hourly, prefs.tempUnit);
+    const advice = laterAdvice(f.hourly, prefs.tempUnit, f.highC);
     const weather: WeatherPayload = {
       tempC: f.tempC,
       feelsLikeC: f.feelsLikeC,
@@ -151,7 +151,13 @@ export async function styleWithItem(
     }));
 
     const args = {
-      weather: { tempC: f.tempC, rain: f.hourly.some((h) => h.isNow && h.rain) },
+      weather: {
+        tempC: f.tempC,
+        rain: f.hourly.some((h) => h.isNow && h.rain),
+        // The look is built for the day, not for this minute.
+        highC: f.highC,
+        lowC: f.lowC,
+      },
       season: currentSeason(now),
       excludeItemIds: [],
       maxAccessories: 1,
@@ -187,7 +193,7 @@ export async function styleWithItem(
         // Styling a chosen piece is weather-aware too: the plan only names the
         // daily path, but a look built around your favourite jumper still has
         // to be wearable at today's temperature.
-        { aesthetic, band, lean: [], recentlyShown, season: args.season, tempC: f.tempC },
+        { aesthetic, band, lean: [], recentlyShown, season: args.season, tempC: planningTemp(args.weather) },
         combos.length,
       );
       pinned = pinItem(ranked, itemId);

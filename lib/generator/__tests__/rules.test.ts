@@ -1,5 +1,5 @@
 import { occasionBand, applyFormalityOverride, personalBand, weatherRules } from "../rules";
-import { warmthFit } from "../texture";
+import { itemWarmth, warmthFit } from "../texture";
 
 test("occasion is CONTEXT, not a dress code — each band spans its real-world spread", () => {
   // Work runs from a creative office in sneakers to a suit; Evening from a
@@ -178,4 +178,58 @@ test("rain guard does not reach the heat exclusions", () => {
 
 test("rain guard does not reach the outerwear rule", () => {
   expect(weatherRules({ tempC: 12, rain: true }, { rainGuard: false }).needsOuterwear).toBe(true);
+});
+
+// ── The look is built for the day's HIGH, not for this minute ────────────────
+// Reported 2026-08-14: at 07:45, 20°C, the drop offered a cable-knit sweater
+// for a day that reached 34.8°C. The daily drop is generated ONCE and worn all
+// day, so scoring against `tempC` optimises for the minute the app happened to
+// be opened. `planningTemp` is the fix.
+
+test("the heat rules read the day's high, not the current temperature", () => {
+  const morningOfAHotDay = { tempC: 20, rain: false, highC: 34, lowC: 20 };
+  expect(weatherRules(morningOfAHotDay).excludeMaterials).toEqual(
+    expect.arrayContaining(["fleece", "down", "shearling"]),
+  );
+  expect(weatherRules(morningOfAHotDay).maxWarmth).toBe(0.6);
+});
+
+test("outerwear follows the high too, so a coat never lands in a 30° flat-lay", () => {
+  // The cold end of the day is handled by ADVICE, not by putting a coat in the
+  // look. A 9°-morning / 22°-afternoon day must not dress you in a jacket.
+  expect(weatherRules({ tempC: 9, rain: false, highC: 22, lowC: 9 }).needsOuterwear).toBe(false);
+  // A day that stays cold still gets one.
+  expect(weatherRules({ tempC: 2, rain: false, highC: 6, lowC: -1 }).needsOuterwear).toBe(true);
+});
+
+test("with no day range the rules fall back to the current temperature", () => {
+  // Every existing caller and fixture passes only tempC; behaviour must be
+  // byte-identical for them.
+  expect(weatherRules({ tempC: 30, rain: false }).excludeMaterials).toEqual(
+    weatherRules({ tempC: 30, rain: false, highC: 30 }).excludeMaterials,
+  );
+  expect(weatherRules({ tempC: 10, rain: false }).needsOuterwear).toBe(true);
+});
+
+test("rain still reads the hour you step outside, not the day", () => {
+  // Wet materials are about the pavement now; heat is about the afternoon.
+  const hotAndRainy = { tempC: 20, rain: true, highC: 34 };
+  expect(weatherRules(hotAndRainy).excludeMaterials).toEqual(
+    expect.arrayContaining(["suede", "canvas", "fleece"]),
+  );
+});
+
+test("warmth becomes a hard bar only on a genuinely sweltering day", () => {
+  expect(weatherRules({ tempC: 25, rain: false }).maxWarmth).toBeNull();
+  expect(weatherRules({ tempC: 28, rain: false }).maxWarmth).toBeNull();
+  expect(weatherRules({ tempC: 29, rain: false }).maxWarmth).toBe(0.6);
+});
+
+test("the sweltering bar separates the wearer's own cable knits", () => {
+  // The whole reason it reads itemWarmth rather than a keyword list: a cable
+  // knit tagged Summer clears the bar, the same garment tagged Autumn/Winter
+  // does not. A material list cannot express that — both are Cotton.
+  const bar = weatherRules({ tempC: 24, rain: false, highC: 34 }).maxWarmth!;
+  expect(itemWarmth("Cotton", "Cable knit", ["Spring", "Summer"])).toBeLessThan(bar);
+  expect(itemWarmth("Cotton", "Cable knit", ["Autumn", "Winter"])).toBeGreaterThanOrEqual(bar);
 });

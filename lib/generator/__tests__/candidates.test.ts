@@ -273,3 +273,64 @@ test("shoe coverage holds across awkward list sizes", () => {
     expect(reached.size, `shoeCount=${shoeCount}`).toBe(shoeCount);
   }
 });
+
+// ── The sweltering-day warmth bar ───────────────────────────────────────────
+// Above 28° a garment's computed warmth stops being a preference. Reported
+// 2026-08-14: a cotton cable-knit sweater reached a 34.8°C day, because
+// `HOT_MATERIALS` only catches insulation by FIBRE and a soft score cannot keep
+// anything out when `diversify` fills 20 shortlist slots from 66 combos.
+
+const hotDay = {
+  ...base,
+  season: "Summer",
+  weather: { tempC: 22, rain: false, highC: 34, lowC: 20 },
+};
+
+test("a heavy knit is barred on a sweltering day even though its fibre is cotton", () => {
+  const closet = [
+    { id: "t-knit", category: "Tops", colors: ["black"], formality: 3, seasons: ["Autumn", "Winter"], material: "Cotton", texture: "Cable knit", pattern: "solid" },
+    { id: "t-linen", category: "Tops", colors: ["white"], formality: 3, seasons: ["Summer"], material: "Linen", texture: "Flat", pattern: "solid" },
+    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "Lyocell", texture: "Twill", pattern: "solid" },
+    { id: "s1", category: "Shoes", colors: ["white"], formality: 3, seasons: ["Summer"], material: "Leather", texture: "Flat", pattern: "solid" },
+  ];
+  const ids = buildCandidates(closet, hotDay).flat().map((i) => i.id);
+  expect(ids).not.toContain("t-knit");
+  expect(ids).toContain("t-linen");
+});
+
+test("the SAME garment survives when the wearer tags it for Summer", () => {
+  // The reason the bar reads `itemWarmth` and not a material list: both of these
+  // are Cotton / Cable knit, and only the wearer can tell them apart.
+  const summerKnit = [
+    { id: "t-knit", category: "Tops", colors: ["navy"], formality: 3, seasons: ["Spring", "Summer"], material: "Cotton", texture: "Cable knit", pattern: "solid" },
+    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "Lyocell", texture: "Twill", pattern: "solid" },
+    { id: "s1", category: "Shoes", colors: ["white"], formality: 3, seasons: ["Summer"], material: "Leather", texture: "Flat", pattern: "solid" },
+  ];
+  expect(buildCandidates(summerKnit, hotDay).flat().map((i) => i.id)).toContain("t-knit");
+});
+
+test("the bar can NARROW a required slot but can never empty one", () => {
+  // The relief rule, and the reason a hard filter is safe here at all. A closet
+  // whose every top is heavy knitwear must still be dressable at 34° — "better
+  // a slightly-wrong outfit than an empty screen" is the rule this project has
+  // now protected four times.
+  const allHeavy = [
+    { id: "t1", category: "Tops", colors: ["black"], formality: 3, seasons: ["Winter"], material: "Wool", texture: "Chunky knit", pattern: "solid" },
+    { id: "t2", category: "Tops", colors: ["grey"], formality: 3, seasons: ["Winter"], material: "Cashmere", texture: "Cable knit", pattern: "solid" },
+    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "Lyocell", texture: "Twill", pattern: "solid" },
+    { id: "s1", category: "Shoes", colors: ["white"], formality: 3, seasons: ["Summer"], material: "Leather", texture: "Flat", pattern: "solid" },
+  ];
+  const combos = buildCandidates(allHeavy, hotDay);
+  expect(combos.length).toBeGreaterThan(0);
+  expect(missingCategory(allHeavy, hotDay)).toBeNull();
+});
+
+test("a merely warm day leaves the bar off entirely", () => {
+  const warmNotHot = { ...base, season: "Summer", weather: { tempC: 22, rain: false, highC: 26 } };
+  const closet = [
+    { id: "t-knit", category: "Tops", colors: ["black"], formality: 3, seasons: ["Autumn", "Winter"], material: "Cotton", texture: "Cable knit", pattern: "solid" },
+    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "Lyocell", texture: "Twill", pattern: "solid" },
+    { id: "s1", category: "Shoes", colors: ["white"], formality: 3, seasons: ["Summer"], material: "Leather", texture: "Flat", pattern: "solid" },
+  ];
+  expect(buildCandidates(closet, warmNotHot).flat().map((i) => i.id)).toContain("t-knit");
+});

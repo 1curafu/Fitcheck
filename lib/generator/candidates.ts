@@ -1,5 +1,6 @@
 import { weatherRules, type Weather } from "./rules";
 import { inSeason } from "./season";
+import { itemWarmth } from "./texture";
 
 export type CandidateItem = {
   id: string;
@@ -77,11 +78,24 @@ function materialExcluded(material: string | null, excludeMaterials: string[]): 
   return excludeMaterials.some((x) => m.includes(x));
 }
 
-function isEligible(i: CandidateItem, a: CandidateArgs, excludeMaterials: string[]): boolean {
+/**
+ * The weather bars, held together so the relief rule can drop ALL of them at
+ * once. Splitting them let a later bar survive relief and empty a slot anyway.
+ */
+type WeatherBars = { excludeMaterials: string[]; maxWarmth: number | null };
+const NO_BARS: WeatherBars = { excludeMaterials: [], maxWarmth: null };
+
+function isEligible(i: CandidateItem, a: CandidateArgs, bars: WeatherBars): boolean {
   const [lo, hi] = a.band;
   if (i.category === "Fragrance") return false; // D11: fragrances are never slotted
   if (a.excludeItemIds.includes(i.id)) return false;
-  if (materialExcluded(i.material, excludeMaterials)) return false;
+  if (materialExcluded(i.material, bars.excludeMaterials)) return false;
+  // On a genuinely sweltering day warmth stops being a preference. Reads the
+  // wearer's season tags, so a cable knit they wear in July survives and one
+  // they only wear in November does not — see lib/generator/texture.ts.
+  if (bars.maxWarmth != null && itemWarmth(i.material, i.texture, i.seasons) >= bars.maxWarmth) {
+    return false;
+  }
   // Season is deliberately NOT filtered here — see ./season.ts. It orders the
   // lists below and weights the score instead. Filtering ran against every
   // required slot, so one narrowly-tagged category zeroed the whole result:
@@ -122,7 +136,8 @@ export function eligibleByCategory(
   items: CandidateItem[],
   a: CandidateArgs,
 ): Record<string, CandidateItem[]> {
-  const { excludeMaterials } = weatherRules(a.weather, { rainGuard: a.rainGuard });
+  const { excludeMaterials, maxWarmth } = weatherRules(a.weather, { rainGuard: a.rainGuard });
+  const bars: WeatherBars = { excludeMaterials, maxWarmth };
   const cats = new Set<string>(items.map((i) => i.category));
   for (const c of REQUIRED_CATEGORIES) cats.add(c);
   cats.add("Outerwear");
@@ -130,8 +145,8 @@ export function eligibleByCategory(
   const out: Record<string, CandidateItem[]> = {};
   for (const c of cats) {
     const inCat = items.filter((i) => i.category === c);
-    let list = inCat.filter((i) => isEligible(i, a, excludeMaterials));
-    if (!list.length && isRequired(c)) list = inCat.filter((i) => isEligible(i, a, []));
+    let list = inCat.filter((i) => isEligible(i, a, bars));
+    if (!list.length && isRequired(c)) list = inCat.filter((i) => isEligible(i, a, NO_BARS));
     out[c] = bySeasonFirst(list, a.season);
   }
   return out;

@@ -1,6 +1,29 @@
 import type { UiOccasion } from "./types";
 
-export type Weather = { tempC: number; rain: boolean };
+export type Weather = {
+  /** The temperature RIGHT NOW. Display, and the fallback when no day range exists. */
+  tempC: number;
+  rain: boolean;
+  /**
+   * Today's high and low.
+   *
+   * The daily drop is generated once and worn all day, so scoring against
+   * `tempC` optimises for the minute the user happened to open the app. On
+   * 2026-08-14 that produced a cable-knit sweater at 07:45 for a day that
+   * reached 34.8°C. **The look is built for the HIGH; the cold end of the day is
+   * handled by advice, not by the outfit** — otherwise a 22°-afternoon /
+   * 9°-morning day puts a coat in every flat-lay you see at 3pm.
+   *
+   * Optional: fixtures and any caller without a forecast fall back to `tempC`.
+   */
+  highC?: number;
+  lowC?: number;
+};
+
+/** The temperature the LOOK is built for. */
+export function planningTemp(w: Weather): number {
+  return w.highC ?? w.tempC;
+}
 
 // v2 UI occasions → formality bands (Decision D9, widened — see below).
 //
@@ -113,6 +136,25 @@ const HOT_C = 25;
 const WET_MATERIALS = ["suede", "canvas"];
 
 /**
+ * Above this, a garment's computed warmth stops being a penalty and becomes a bar.
+ *
+ * `HOT_MATERIALS` only catches insulation by FIBRE, which is why a cotton
+ * cable-knit sweater reached a 34.8°C day on 2026-08-14. Measured on the real
+ * 21-item closet: the warmth term demoted that combo from #13 to #22 of 66, but
+ * `diversify` fills 20 shortlist slots out of 66 combos — so 30% of everything
+ * reaches the model and a demotion changes nothing. This is the hole the plan
+ * named: *"a soft term demotes, and diversify still fills 20 slots."*
+ *
+ * Safe as a hard rule because it reads `itemWarmth`, which now respects the
+ * wearer's own season tags — a Summer-tagged cable knit is 0.55 and survives,
+ * an Autumn/Winter one is 0.65 and does not — and because
+ * `eligibleByCategory`'s relief rule guarantees it can narrow a required slot
+ * but never empty one.
+ */
+const SWELTERING_C = 28;
+const SWELTERING_MAX_WARMTH = 0.6;
+
+/**
  * @param prefs `rainGuard` is the settings toggle. It defaults ON: the
  * protective behaviour shipped before the switch existed, so an absent
  * preference must preserve it rather than opt the whole userbase out.
@@ -120,14 +162,21 @@ const WET_MATERIALS = ["suede", "canvas"];
  * The toggle reaches the WET list only. The heat exclusions are about comfort
  * at 30°, not about keeping shoes dry, and `needsOuterwear` is about cold — a
  * switch labelled "never suede in the rain" has no business touching either.
+ *
+ * Everything thermal here reads `planningTemp` — the day's HIGH — not the
+ * current temperature. Rain is the exception: it is read from `rain`, which is
+ * about the hour you step outside.
  */
 export function weatherRules(w: Weather, prefs?: { rainGuard?: boolean }) {
   const rainGuard = prefs?.rainGuard ?? true;
+  const planning = planningTemp(w);
   return {
-    needsOuterwear: w.tempC < 15,
+    needsOuterwear: planning < 15,
     excludeMaterials: [
       ...(w.rain && rainGuard ? WET_MATERIALS : []),
-      ...(w.tempC > HOT_C ? HOT_MATERIALS : []),
+      ...(planning > HOT_C ? HOT_MATERIALS : []),
     ],
+    /** null = warmth is a preference today, as it is on all but the hottest days. */
+    maxWarmth: planning > SWELTERING_C ? SWELTERING_MAX_WARMTH : null,
   };
 }
