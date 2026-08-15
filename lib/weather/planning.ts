@@ -51,11 +51,36 @@ export function planningTempFor(
   restOfDay: HourCell[],
   fallbackC: number,
 ): number {
-  const [from, to] = WINDOWS[occasion];
-  const inWindow = restOfDay.filter((h) => hourOf(h) >= from && hourOf(h) < to);
-  // An occasion whose window has passed still has to dress the user for the
-  // hours that remain — never for a peak that is already behind them.
-  const hours = inWindow.length ? inWindow : restOfDay;
+  const hours = hoursFor(occasion, restOfDay);
   if (!hours.length) return fallbackC;
   return Math.max(...hours.map((h) => h.tempC));
+}
+
+/**
+ * Will it rain while this look is being worn?
+ *
+ * The rain flag used to be read at the CURRENT hour alone, which left the
+ * wardrobe rules a step behind the advice beside them: a drop generated at
+ * 09:00 for a day that rains from 15:00 chose suede shoes, while the strip
+ * underneath said "Rain from 15:00 — take a shell." Same defect class as
+ * planning the temperature from the current reading, and the same fix.
+ *
+ * Scoped to the occasion's window rather than the whole day on purpose. A
+ * shower at 22:00 should not cost someone their canvas sneakers at breakfast,
+ * and the wet-material rule is a real exclusion — `rainGuard` is the only
+ * preference that can turn it off.
+ */
+export function rainAheadFor(occasion: UiOccasion, restOfDay: HourCell[]): boolean {
+  return hoursFor(occasion, restOfDay).some((h) => h.rain);
+}
+
+/**
+ * The hours this occasion covers that are still ahead. An occasion whose window
+ * has passed falls back to whatever is left of the day — never to hours already
+ * behind the user.
+ */
+function hoursFor(occasion: UiOccasion, restOfDay: HourCell[]): HourCell[] {
+  const [from, to] = WINDOWS[occasion];
+  const inWindow = restOfDay.filter((h) => hourOf(h) >= from && hourOf(h) < to);
+  return inWindow.length ? inWindow : restOfDay;
 }
