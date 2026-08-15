@@ -260,13 +260,23 @@ export async function generate(input: {
       combos: top.map((t) =>
         t.items.map((ci) => {
           const it = byId.get(ci.id)!;
-          return { category: it.category, subcategory: it.subcategory, colors: it.colors ?? [] };
+          return {
+            category: it.category,
+            subcategory: it.subcategory,
+            colors: it.colors ?? [],
+            material: it.material,
+            texture: it.texture,
+            pattern: it.pattern,
+          };
         }),
       ),
       aesthetic,
       occasion: input.occasion,
       weatherLabel: f.condition,
-      tempC: f.tempC,
+      // The temperature the shortlist was BUILT for, not the current reading —
+      // otherwise the "why" describes a different day from the outfit.
+      tempC: planningTemp(candidateArgs.weather),
+      nowC: f.tempC,
     });
 
     const paths = Array.from(

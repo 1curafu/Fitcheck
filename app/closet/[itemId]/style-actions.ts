@@ -220,13 +220,22 @@ export async function styleWithItem(
       combos: shortlist.map((t) =>
         t.items.map((ci) => {
           const it = byId.get(ci.id)!;
-          return { category: it.category, subcategory: it.subcategory, colors: it.colors ?? [] };
+          return {
+            category: it.category,
+            subcategory: it.subcategory,
+            colors: it.colors ?? [],
+            material: it.material,
+            texture: it.texture,
+            pattern: it.pattern,
+          };
         }),
       ),
       aesthetic,
       occasion,
       weatherLabel: f.condition,
-      tempC: f.tempC,
+      // The temperature the shortlist was BUILT for, not the current reading.
+      tempC: planningTemp(args.weather),
+      nowC: f.tempC,
     });
 
     // One draft per pick, de-duplicated: the model can name the same combo
