@@ -168,3 +168,61 @@ test("finalisePicks never returns an empty set, however many looks are pinned", 
   expect(finalisePicks([pick(0), pick(1)], 20, 0)).toHaveLength(1);
   expect(finalisePicks([pick(0), pick(1)], 20, -2)).toHaveLength(1);
 });
+
+// ── What the model is actually told ─────────────────────────────────────────
+// Audit finding, 2026-08-15 (queue #15, the whole-generator pass). The
+// re-ranker saw only subcategory + colours, so the pattern-clash term could
+// ORDER the shortlist while the model picked blind to it — and the "why", which
+// CLAUDE.md calls the product differentiator, described fabric it was inferring
+// from a garment name. Text is nearly free here; images are the expensive thing
+// and are still never sent.
+
+test("fabric, weave and pattern reach the model", () => {
+  const line = describeCombos([
+    [
+      {
+        category: "Tops",
+        subcategory: "Cable knit polo",
+        colors: ["navy"],
+        material: "Cotton",
+        texture: "Cable knit",
+        pattern: "striped",
+      },
+    ],
+  ]);
+  expect(line).toContain("navy");
+  expect(line).toContain("cotton");
+  expect(line).toContain("cable knit");
+  expect(line).toContain("striped");
+});
+
+test("the unremarkable values are left out", () => {
+  // "solid" on every line buries the one patterned piece, and "flat" tells a
+  // reader nothing they were not already assuming.
+  const line = describeCombos([
+    [
+      {
+        category: "Tops",
+        subcategory: "Oxford shirt",
+        colors: ["white"],
+        material: "Linen",
+        texture: "Flat",
+        pattern: "solid",
+      },
+    ],
+  ]);
+  expect(line).toContain("linen");
+  expect(line).not.toContain("flat");
+  expect(line).not.toContain("solid");
+});
+
+test("an item with no fabric data still renders cleanly", () => {
+  const line = describeCombos([
+    [{ category: "Shoes", subcategory: "Sneakers", colors: ["white"] }],
+  ]);
+  expect(line).toBe("0. Sneakers (white)");
+});
+
+test("a piece with nothing but a category does not render empty parentheses", () => {
+  expect(describeCombos([[{ category: "Fragrance", colors: [] }]])).toBe("0. Fragrance");
+});
