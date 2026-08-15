@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { signItemImages, displayPath } from "@/lib/storage/signed";
 import { fetchForecast } from "@/lib/weather/open-meteo";
 import { laterAdvice } from "@/lib/weather/advice";
-import { planningTempFor } from "@/lib/weather/planning";
+import { planningTempFor, rainAheadFor } from "@/lib/weather/planning";
 import { readPreferences } from "@/lib/profile/preferences";
 import { personalBand, planningTemp } from "@/lib/generator/rules";
 import { buildCandidates, type CandidateItem } from "@/lib/generator/candidates";
@@ -154,7 +154,8 @@ export async function styleWithItem(
     const args = {
       weather: {
         tempC: f.tempC,
-        rain: f.hourly.some((h) => h.isNow && h.rain),
+        // Rain while the look is WORN, on the same clock as the temperature.
+        rain: rainAheadFor(occasion, f.restOfDay),
         // The look is built for the day, not for this minute.
         // Same rule on the styled path: the look is built for the window the
         // chosen occasion is worn in, not for whenever the user tapped.

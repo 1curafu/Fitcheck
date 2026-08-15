@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { signItemImages, displayPath } from "@/lib/storage/signed";
 import { fetchForecast } from "@/lib/weather/open-meteo";
 import { laterAdvice } from "@/lib/weather/advice";
-import { planningTempFor } from "@/lib/weather/planning";
+import { planningTempFor, rainAheadFor } from "@/lib/weather/planning";
 import { readPreferences } from "@/lib/profile/preferences";
 import { personalBand, applyFormalityOverride, planningTemp } from "@/lib/generator/rules";
 import { buildCandidates, missingCategory, type CandidateItem } from "@/lib/generator/candidates";
@@ -202,7 +202,8 @@ export async function generate(input: {
       band,
       weather: {
         tempC: f.tempC,
-        rain: f.hourly.some((h) => h.isNow && h.rain),
+        // Rain while the look is WORN, on the same clock as the temperature.
+        rain: rainAheadFor(input.occasion, f.restOfDay),
         // The look is built for the day, not for this minute.
         // The peak of the window this occasion is actually WORN in. An Evening
         // look chosen at 14:00 must not be built for the afternoon.

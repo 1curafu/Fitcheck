@@ -1,4 +1,4 @@
-import { planningTempFor, occasionWindow } from "../planning";
+import { planningTempFor, rainAheadFor, occasionWindow } from "../planning";
 import type { HourCell } from "@/lib/generator/types";
 
 /** Hours from `h` onward at the given temperatures. */
@@ -58,4 +58,42 @@ test("the warmest hour wins, not the average", () => {
   // laterAdvice's job. A mean would split the difference and satisfy neither.
   const spiky = from(12, [10, 10, 28, 10, 10]);
   expect(planningTempFor("everyday", spiky, 10)).toBe(28);
+});
+
+// ── Rain, on the same clock as the temperature ──────────────────────────────
+// Audit finding, 2026-08-15. The wardrobe rules read rain at the CURRENT hour
+// while the advice strip beside them read the whole forecast, so a drop
+// generated at 09:00 for a day that rains from 15:00 chose suede shoes under a
+// line that said "Rain from 15:00 — take a shell."
+
+const wetAfternoon: HourCell[] = [
+  { hh: "09:00", tempC: 14, rain: false, isNow: true },
+  { hh: "12:00", tempC: 17, rain: false, isNow: false },
+  { hh: "15:00", tempC: 16, rain: true, isNow: false },
+  { hh: "21:00", tempC: 12, rain: true, isNow: false },
+];
+
+test("rain later in the day is rain the look has to survive", () => {
+  expect(rainAheadFor("work", wetAfternoon)).toBe(true);
+  expect(rainAheadFor("everyday", wetAfternoon)).toBe(true);
+});
+
+test("rain outside the occasion's window does not reach it", () => {
+  // A 21:00 shower must not cost someone their canvas sneakers at breakfast.
+  const wetNightOnly: HourCell[] = [
+    { hh: "09:00", tempC: 14, rain: false, isNow: true },
+    { hh: "12:00", tempC: 17, rain: false, isNow: false },
+    { hh: "21:00", tempC: 12, rain: true, isNow: false },
+  ];
+  expect(rainAheadFor("work", wetNightOnly)).toBe(false);
+  expect(rainAheadFor("evening", wetNightOnly)).toBe(true);
+});
+
+test("a dry window is dry", () => {
+  const dry: HourCell[] = [{ hh: "09:00", tempC: 14, rain: false, isNow: true }];
+  expect(rainAheadFor("everyday", dry)).toBe(false);
+});
+
+test("no hours at all is not rain", () => {
+  expect(rainAheadFor("work", [])).toBe(false);
 });
