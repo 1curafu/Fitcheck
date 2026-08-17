@@ -90,7 +90,7 @@ export default async function StatsPage() {
         mostWorn={mostWorn(items, wearsById, TOP_N).map((id) => ({
           id,
           name: nameOf(id),
-          sub: `Worn ${wearsById[id]} times`,
+          sub: wearsById[id] === 1 ? "Worn once" : `Worn ${wearsById[id]} times`,
         }))}
         dust={gatheringDust(items, lastWornById, today, TOP_N).map((d) => ({
           id: d.id,
