@@ -33,6 +33,18 @@ export const GAP_CANDIDATES: GapCandidate[] = [
 ];
 
 /**
+ * The weather the simulation runs against: mild and dry.
+ *
+ * Deliberately NOT today's forecast. This screen answers "what should I buy",
+ * and that answer must not change because it happens to be raining — a user who
+ * checks on Tuesday and again on Thursday would be told to buy two different
+ * things. Mild and dry also means no exclusion rule fires, so the count
+ * measures the WARDROBE rather than the week. It is also why this screen makes
+ * no network call of any kind.
+ */
+export const NEUTRAL_WEATHER: Weather = { tempC: 16, rain: false };
+
+/**
  * ⚠️ `buildCandidates` stops at `CAP = 200` (lib/generator/candidates.ts). Any
  * closet big enough to exceed that returns 200 both BEFORE and AFTER the
  * hypothetical piece, so every `unlocks` is 0 and `biggestGap` returns null —
@@ -70,7 +82,7 @@ function countCombos(closet: CandidateItem[], occasions: UiOccasion[], weather: 
 export function biggestGap(
   closet: CandidateItem[],
   occasions: UiOccasion[],
-  weather: Weather,
+  weather: Weather = NEUTRAL_WEATHER,
 ): { candidate: GapCandidate; unlocks: number } | null {
   if (!closet.length) return null;
 
