@@ -1,0 +1,119 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - lib/weather/__tests__/location.test.ts
+  - lib/weather/location.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: lib/weather/__tests__/location.test.ts ===
+@@ -0,0 +1,43 @@
++import { roundCoord, resolveLocation, DEFAULT_LOCATION } from "../location";
++
++test("roundCoord snaps to 2dp (~1.1km) so neighbours share one cached forecast URL", () => {
++  expect(roundCoord(52.5187234)).toBe(52.52);
++  expect(roundCoord(-0.1277583)).toBe(-0.13);
++  expect(roundCoord(13.41)).toBe(13.41); // already short — unchanged
++  expect(roundCoord(0)).toBe(0);
++});
++
++test("client-chosen location wins over everything, carrying its source as the origin", () => {
++  const r = resolveLocation({
++    input: { lat: 51.5, lon: -0.1, label: "London", source: "city" },
++    profile: { location_lat: 48.14, location_lon: 11.58, location_label: "Munich" },
++  });
++  expect(r).toEqual({ lat: 51.5, lon: -0.1, label: "London", origin: "city" });
++});
++
++test("falls back to the profile when there is no client choice", () => {
++  const r = resolveLocation({
++    profile: { location_lat: 48.14, location_lon: 11.58, location_label: "Munich" },
++  });
++  expect(r).toEqual({ lat: 48.14, lon: 11.58, label: "Munich", origin: "profile" });
++});
++
++test("a profile row with no coords is NOT a location — falls through to the default", () => {
++  const r = resolveLocation({
++    profile: { location_lat: null, location_lon: null, location_label: null },
++  });
++  expect(r).toEqual({ ...DEFAULT_LOCATION });
++  expect(r.origin).toBe("default");
++});
++
++test("no input and no profile → the default", () => {
++  expect(resolveLocation({})).toEqual({ ...DEFAULT_LOCATION });
++  expect(resolveLocation({ profile: null })).toEqual({ ...DEFAULT_LOCATION });
++});
++
++test("a stored location with no label is labelled Current location (we never reverse-geocode)", () => {
++  const r = resolveLocation({
++    profile: { location_lat: 48.14, location_lon: 11.58, location_label: null },
++  });
++  expect(r.label).toBe("Current location");
++});
+
+
+=== DIFF: lib/weather/location.ts ===
+@@ -0,0 +1,59 @@
++// Location resolution — pure. No I/O, no clock.
++// We NEVER derive a city name from coordinates: Open-Meteo has no reverse endpoint
++// (D8), and third-party reverse geocoders would ship precise user coords off-stack.
++
++/** What we persist to profiles.location_source. */
++export type LocationSource = "geo" | "city";
++/** Where the location we're using actually came from. */
++export type LocationOrigin = LocationSource | "profile" | "default";
++
++export type ResolvedLocation = {
++  lat: number;
++  lon: number;
++  label: string;
++  origin: LocationOrigin;
++};
++
++export type ProfileLocation = {
++  location_lat: number | null;
++  location_lon: number | null;
++  location_label: string | null;
++};
++
++export const DEFAULT_LOCATION: ResolvedLocation = {
++  lat: 52.52,
++  lon: 13.41,
++  label: "Berlin",
++  origin: "default",
++};
++
++/**
++ * 2dp ≈ 1.1km. Raw GPS precision would make every user's forecast URL unique,
++ * defeating the 30-minute fetch cache in fetchForecast and burning the
++ * Open-Meteo daily request budget. Also stores less precise personal data.
++ */
++export function roundCoord(n: number): number {
++  return Math.round(n * 100) / 100;
++}
++
++export function resolveLocation(args: {
++  input?: { lat: number; lon: number; label: string; source: LocationSource };
++  profile?: ProfileLocation | null;
++}): ResolvedLocation {
++  const { input, profile } = args;
++
++  if (input) {
++    return { lat: input.lat, lon: input.lon, label: input.label, origin: input.source };
++  }
++
++  if (profile?.location_lat != null && profile.location_lon != null) {
++    return {
++      lat: profile.location_lat,
++      lon: profile.location_lon,
++      label: profile.location_label ?? "Current location",
++      origin: "profile",
++    };
++  }
++
++  return { ...DEFAULT_LOCATION };
++}
+
+
+Investigate per the method in your instructions, then return the findings list.
