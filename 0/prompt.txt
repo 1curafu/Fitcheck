@@ -1,0 +1,275 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/generate/actions.ts
+  - components/generate/__tests__/stylist-view.test.tsx
+  - components/generate/__tests__/weather-strip.test.tsx
+  - components/generate/stylist.tsx
+  - lib/generator/types.ts
+  - lib/weather/__tests__/map.test.ts
+  - lib/weather/open-meteo.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/generate/actions.ts ===
+@@ -9,6 +9,7 @@ import { buildCandidates, type CandidateItem } from "@/lib/generator/candidates"
+ import { rankTopN } from "@/lib/generator/rank";
+ import { rerank } from "@/lib/generator/rerank";
+ import { layoutForLook, staggerOrder } from "@/lib/generator/layout";
++import { resolveLocation, type LocationSource } from "@/lib/weather/location";
+ import type {
+   GenerateResult,
+   Look,
+@@ -17,8 +18,6 @@ import type {
+   WeatherPayload,
+ } from "@/lib/generator/types";
+ 
+-const DEFAULT_LOCATION = { lat: 52.52, lon: 13.41, label: "Berlin" };
+-
+ function currentSeason(d: Date): string {
+   const m = d.getMonth();
+   return m < 2 || m === 11 ? "Winter" : m < 5 ? "Spring" : m < 8 ? "Summer" : "Autumn";
+@@ -28,7 +27,7 @@ export async function generate(input: {
+   occasion: UiOccasion;
+   formality: number | null;
+   mustColors: string[];
+-  city?: { lat: number; lon: number; label: string };
++  city?: { lat: number; lon: number; label: string; source: LocationSource };
+ }): Promise<GenerateResult> {
+   try {
+     const supabase = await createClient();
+@@ -50,24 +49,17 @@ export async function generate(input: {
+     const items = itemsRaw ?? [];
+     const byId = new Map(items.map((i) => [i.id, i]));
+ 
+-    const loc =
+-      input.city ??
+-      (profile?.location_lat != null
+-        ? {
+-            lat: profile.location_lat,
+-            lon: profile.location_lon as number,
+-            label: profile.location_label ?? "Current location",
+-          }
+-        : DEFAULT_LOCATION);
++    const loc = resolveLocation({ input: input.city, profile });
+ 
+     const now = new Date();
+-    const f = await fetchForecast(loc.lat, loc.lon, now.toISOString().slice(0, 16));
++    const f = await fetchForecast(loc.lat, loc.lon);
+     const advice = laterAdvice(f.hourly);
+     const weather: WeatherPayload = {
+       tempC: f.tempC,
+       feelsLikeC: f.feelsLikeC,
+       condition: f.condition,
+       cityLabel: loc.label,
++      timezone: f.timezone,
+       laterSentence: advice.sentence,
+       adviceClause: advice.adviceClause,
+       laterLabel: "Later",
+
+
+=== DIFF: components/generate/__tests__/stylist-view.test.tsx ===
+@@ -8,6 +8,7 @@ const weather: WeatherPayload = {
+   feelsLikeC: 12,
+   condition: "Overcast",
+   cityLabel: "Berlin",
++  timezone: "Europe/Berlin",
+   laterSentence: "Dry through the evening — no extra layer.",
+   adviceClause: "no extra layer.",
+   laterLabel: "Later",
+
+
+=== DIFF: components/generate/__tests__/weather-strip.test.tsx ===
+@@ -8,6 +8,7 @@ const weather: WeatherPayload = {
+   feelsLikeC: 12,
+   condition: "Overcast",
+   cityLabel: "Berlin",
++  timezone: "Europe/Berlin",
+   laterSentence: "Rain from 21:00 — take a shell.",
+   adviceClause: "take a shell.",
+   laterLabel: "Later",
+
+
+=== DIFF: components/generate/stylist.tsx ===
+@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
+ import { StylistView, type StylistStatus } from "./stylist-view";
+ import { generate } from "@/app/generate/actions";
+ import { searchCities, type City } from "@/lib/weather/geocode";
++import type { LocationSource } from "@/lib/weather/location";
+ import type { Look, UiOccasion, WeatherPayload } from "@/lib/generator/types";
+ 
+-type Chosen = { lat: number; lon: number; label: string };
++type Chosen = { lat: number; lon: number; label: string; source: LocationSource };
+ 
+ export function Stylist() {
+   const router = useRouter();
+@@ -64,7 +65,7 @@ export function Stylist() {
+         setMustColors(c);
+         setRefineOpen(false);
+       }}
+-      onCityChange={(c) => setCity({ lat: c.lat, lon: c.lon, label: c.name })}
++      onCityChange={(c) => setCity({ lat: c.lat, lon: c.lon, label: c.name, source: "city" })}
+       onCitySearch={(q) => {
+         if (q.trim().length < 2) return;
+         searchCities(q).then(setCities);
+
+
+=== DIFF: lib/generator/types.ts ===
+@@ -37,6 +37,7 @@ export type WeatherPayload = {
+   feelsLikeC: number;
+   condition: string;
+   cityLabel: string;
++  timezone: string; // IANA zone at the location, e.g. "Europe/Berlin" — from timezone=auto
+   laterSentence: string; // full: "Rain from 21:00 — take a shell."
+   adviceClause: string; // JUST the rust clause: "take a shell." — the UI binds the rust <b> to THIS
+   laterLabel: string; // "LATER" (static caps label)
+
+
+=== DIFF: lib/weather/__tests__/map.test.ts ===
+@@ -1,6 +1,14 @@
+-import { mapForecast, RAIN_CODES } from "../open-meteo";
++import { mapForecast, fetchForecast, RAIN_CODES } from "../open-meteo";
++
+ const raw = {
+-  current: { temperature_2m: 14.3, apparent_temperature: 12.1, weather_code: 3 },
++  timezone: "Europe/Berlin",
++  current: {
++    // local time AT THE LOCATION — this is our now-marker, same clock as hourly.time
++    time: "2026-01-14T18:00",
++    temperature_2m: 14.3,
++    apparent_temperature: 12.1,
++    weather_code: 3,
++  },
+   hourly: {
+     // 1-hour steps; NOTE now (18:00) is index 2, not 0 — proves forward-slice-from-now
+     time: [
+@@ -12,12 +20,14 @@ const raw = {
+     precipitation_probability: [5, 8, 10, 20, 30, 80, 75],
+   },
+ };
++
+ test("maps current temp (rounded), feels-like, and condition", () => {
+   const w = mapForecast(raw, "2026-01-14T18:00");
+   expect(w.tempC).toBe(14);
+   expect(w.feelsLikeC).toBe(12);
+   expect(w.condition).toMatch(/overcast|cloud/i);
+ });
++
+ test("hourly = 4 forward cells FROM the now index (pre-now excluded), with isNow + per-cell temp + rain", () => {
+   const w = mapForecast(raw, "2026-01-14T18:00");
+   expect(w.hourly).toHaveLength(4);
+@@ -28,7 +38,45 @@ test("hourly = 4 forward cells FROM the now index (pre-now excluded), with isNow
+   expect(w.hourly.find((c) => c.hh === "21:00")!.rain).toBe(true);
+   expect(w.hourly.find((c) => c.hh === "21:00")!.tempC).toBe(11); // per-cell temp mapped
+ });
++
+ test("rain weather codes are classified as rain", () => {
+   expect(RAIN_CODES.has(61)).toBe(true);
+   expect(RAIN_CODES.has(0)).toBe(false);
+ });
++
++// --- new: timezone correctness -------------------------------------------------
++
++test("with no nowIso, the now-index comes from raw.current.time — NOT the machine clock", () => {
++  const w = mapForecast(raw); // no injected now
++  expect(w.hourly[0].hh).toBe("18:00");
++  expect(w.hourly[0].isNow).toBe(true);
++  expect(w.hourly).toHaveLength(4);
++});
++
++test("an explicitly injected nowIso still overrides the default", () => {
++  const w = mapForecast(raw, "2026-01-14T20:00");
++  expect(w.hourly[0].hh).toBe("20:00");
++});
++
++test("the resolved IANA timezone is passed through (server-side scheduling needs it)", () => {
++  expect(mapForecast(raw).timezone).toBe("Europe/Berlin");
++});
++
++test("fetchForecast asks for timezone=auto and ROUNDS coords so the 30-min cache can hit", async () => {
++  const calls: string[] = [];
++  const fetchMock = vi.fn(async (url: string) => {
++    calls.push(url);
++    return { json: async () => raw } as unknown as Response;
++  });
++  vi.stubGlobal("fetch", fetchMock);
++
++  const w = await fetchForecast(52.5187234, 13.4098765);
++
++  expect(calls[0]).toContain("timezone=auto");
++  expect(calls[0]).toContain("latitude=52.52");
++  expect(calls[0]).toContain("longitude=13.41");
++  expect(calls[0]).not.toContain("52.5187234"); // raw precision never reaches the URL
++  expect(w.timezone).toBe("Europe/Berlin");
++
++  vi.unstubAllGlobals();
++});
+
+
+=== DIFF: lib/weather/open-meteo.ts ===
+@@ -1,9 +1,16 @@
+ import type { HourCell } from "@/lib/generator/types";
++import { roundCoord } from "@/lib/weather/location";
+ 
+ export const RAIN_CODES = new Set([51, 53, 55, 61, 63, 65, 80, 81, 82, 95, 96, 99]);
+ 
+ type Raw = {
+-  current: { temperature_2m: number; apparent_temperature: number; weather_code: number };
++  timezone: string;
++  current: {
++    time: string;
++    temperature_2m: number;
++    apparent_temperature: number;
++    weather_code: number;
++  };
+   hourly: {
+     time: string[];
+     temperature_2m: number[];
+@@ -24,11 +31,15 @@ function hhmm(iso: string): string {
+   return (iso.split("T")[1] ?? "").slice(0, 5);
+ }
+ 
+-/** nowIso is INJECTED (pure) — do not call new Date() here. */
++/**
++ * Pure — never calls the clock. `nowIso` defaults to `raw.current.time`, which is
++ * local time AT THE LOCATION (because we send timezone=auto) and therefore on the
++ * same clock as `raw.hourly.time`. Callers may still inject a now for tests.
++ */
+ export function mapForecast(
+   raw: Raw,
+-  nowIso: string,
+-): { tempC: number; feelsLikeC: number; condition: string; hourly: HourCell[] } {
++  nowIso: string = raw.current.time,
++): { tempC: number; feelsLikeC: number; condition: string; timezone: string; hourly: HourCell[] } {
+   const times = raw.hourly.time;
+   let nowIdx = times.findIndex((t) => t >= nowIso); // first hour at/after now
+   if (nowIdx < 0) nowIdx = 0;
+@@ -48,15 +59,22 @@ export function mapForecast(
+     tempC: Math.round(raw.current.temperature_2m),
+     feelsLikeC: Math.round(raw.current.apparent_temperature),
+     condition: conditionFor(raw.current.weather_code),
++    timezone: raw.timezone,
+     hourly,
+   };
+ }
+ 
+-export async function fetchForecast(lat: number, lon: number, nowIso: string) {
++export async function fetchForecast(lat: number, lon: number, nowIso?: string) {
++  // Round at the boundary: every caller gets a cache-friendly URL, and raw GPS
++  // precision never reaches Open-Meteo. timezone=auto makes both `current.time`
++  // and `hourly.time` local to the coords (otherwise they come back as GMT).
++  const la = roundCoord(lat);
++  const lo = roundCoord(lon);
+   const url =
+-    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
++    `https://api.open-meteo.com/v1/forecast?latitude=${la}&longitude=${lo}` +
+     `&current=temperature_2m,apparent_temperature,weather_code` +
+-    `&hourly=temperature_2m,weather_code,precipitation_probability&forecast_hours=24`;
++    `&hourly=temperature_2m,weather_code,precipitation_probability` +
++    `&forecast_hours=24&timezone=auto`;
+   const res = await fetch(url, { next: { revalidate: 1800 } });
+   return mapForecast(await res.json(), nowIso);
+ }
+
+
+Investigate per the method in your instructions, then return the findings list.
