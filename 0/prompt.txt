@@ -1,0 +1,242 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/generate/actions.ts
+  - components/generate/__tests__/stylist-view.test.tsx
+  - components/generate/__tests__/weather-strip.test.tsx
+  - components/generate/stylist.tsx
+  - lib/generator/types.ts
+  - lib/weather/__tests__/location.test.ts
+  - lib/weather/location.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/generate/actions.ts ===
+@@ -43,7 +43,7 @@ export async function generate(input: {
+ 
+     const { data: profile } = await supabase
+       .from("profiles")
+-      .select("archetype, location_lat, location_lon, location_label")
++      .select("archetype, location_lat, location_lon, location_label, location_source")
+       .eq("id", user.id)
+       .single();
+     const { data: itemsRaw } = await supabase
+@@ -65,6 +65,7 @@ export async function generate(input: {
+       condition: f.condition,
+       cityLabel: loc.label,
+       timezone: f.timezone,
++      locationOrigin: loc.origin,
+       laterSentence: advice.sentence,
+       adviceClause: advice.adviceClause,
+       laterLabel: "Later",
+@@ -130,6 +131,7 @@ export async function generate(input: {
+ 
+     return { status: "ok", weather, looks };
+   } catch (e) {
++    console.error("[generate] failed:", e);
+     return { status: "error", message: e instanceof Error ? e.message : "Generation failed" };
+   }
+ }
+
+
+=== DIFF: components/generate/__tests__/stylist-view.test.tsx ===
+@@ -9,6 +9,7 @@ const weather: WeatherPayload = {
+   condition: "Overcast",
+   cityLabel: "Berlin",
+   timezone: "Europe/Berlin",
++  locationOrigin: "default" as const,
+   laterSentence: "Dry through the evening — no extra layer.",
+   adviceClause: "no extra layer.",
+   laterLabel: "Later",
+
+
+=== DIFF: components/generate/__tests__/weather-strip.test.tsx ===
+@@ -9,6 +9,7 @@ const weather: WeatherPayload = {
+   condition: "Overcast",
+   cityLabel: "Berlin",
+   timezone: "Europe/Berlin",
++  locationOrigin: "default" as const,
+   laterSentence: "Rain from 21:00 — take a shell.",
+   adviceClause: "take a shell.",
+   laterLabel: "Later",
+
+
+=== DIFF: components/generate/stylist.tsx ===
+@@ -1,6 +1,6 @@
+ "use client";
+ 
+-import { useCallback, useEffect, useState } from "react";
++import { useCallback, useEffect, useRef, useState } from "react";
+ import { useRouter } from "next/navigation";
+ import { StylistView, type StylistStatus } from "./stylist-view";
+ import { generate, saveLocation } from "@/app/generate/actions";
+@@ -34,9 +34,27 @@ export function Stylist() {
+   // all, at which point it disappears and city search is the only path.
+   const [geoSupported, setGeoSupported] = useState(true);
+ 
+-  // Silent refresh: querying permissions never prompts, so when the browser
+-  // already holds a "granted" answer we re-read coords on load. That's what
+-  // keeps a traveller's weather correct with no prompt and no tap.
++  // The silent refresh must never overwrite a location the user meant to keep.
++  // Two ways that can happen, both guarded here:
++  //   1. a RACE — the async permission→position chain resolving after the user
++  //      has already picked a city in this session;
++  //   2. a SAVED CITY — profiles.location_source === 'city' is a deliberate
++  //      choice (decision L2), so GPS must not silently replace it.
++  // The fix is parked in a ref until both gates are known, so geolocation still
++  // starts immediately rather than waiting on the first generate to return.
++  const userChoseRef = useRef(false);
++  const pendingGeoRef = useRef<Chosen | null>(null);
++  const geoAllowedRef = useRef<boolean | null>(null); // null = stored origin unknown yet
++
++  const applyPendingGeo = useCallback(() => {
++    if (userChoseRef.current) return; // gate 1
++    if (geoAllowedRef.current !== true) return; // gate 2
++    const fix = pendingGeoRef.current;
++    if (!fix) return;
++    pendingGeoRef.current = null;
++    setCity(fix);
++  }, []);
++
+   useEffect(() => {
+     let cancelled = false;
+     permissionState().then((state) => {
+@@ -45,10 +63,12 @@ export function Stylist() {
+         setGeoSupported(false);
+         return;
+       }
+-      if (state !== "granted") return;
++      if (state !== "granted") return; // querying never prompts; reading would
+       getCurrentPosition()
+         .then((c) => {
+-          if (!cancelled) setCity({ ...c, label: "Current location", source: "geo" });
++          if (cancelled) return;
++          pendingGeoRef.current = { ...c, label: "Current location", source: "geo" };
++          applyPendingGeo();
+         })
+         .catch(() => {
+           /* silent path — never surface an error the user didn't ask for */
+@@ -57,9 +77,12 @@ export function Stylist() {
+     return () => {
+       cancelled = true;
+     };
+-  }, []);
++  }, [applyPendingGeo]);
+ 
++  // An explicit tap always wins, including over a saved city.
+   const useMyLocation = useCallback(() => {
++    userChoseRef.current = true;
++    pendingGeoRef.current = null;
+     setLocating(true);
+     setGeoError(null);
+     getCurrentPosition()
+@@ -75,6 +98,13 @@ export function Stylist() {
+     setStatus("loading");
+     generate({ occasion, formality, mustColors, city: city ?? undefined }).then((res) => {
+       if (cancelled) return;
++      // The first result tells us the STORED provenance. A saved city blocks the
++      // silent refresh for good; anything else releases the parked GPS fix.
++      if (geoAllowedRef.current === null && res.status !== "error") {
++        geoAllowedRef.current = res.weather.locationOrigin !== "city";
++        applyPendingGeo();
++      }
++
+       if (res.status === "ok") {
+         setWeather(res.weather);
+         setLooks(res.looks);
+@@ -121,7 +151,11 @@ export function Stylist() {
+         setMustColors(c);
+         setRefineOpen(false);
+       }}
+-      onCityChange={(c) => setCity({ lat: c.lat, lon: c.lon, label: c.name, source: "city" })}
++      onCityChange={(c) => {
++        userChoseRef.current = true;
++        pendingGeoRef.current = null;
++        setCity({ lat: c.lat, lon: c.lon, label: c.name, source: "city" });
++      }}
+       onCitySearch={(q) => {
+         if (q.trim().length < 2) return;
+         searchCities(q).then(setCities);
+
+
+=== DIFF: lib/generator/types.ts ===
+@@ -38,6 +38,9 @@ export type WeatherPayload = {
+   condition: string;
+   cityLabel: string;
+   timezone: string; // IANA zone at the location, e.g. "Europe/Berlin" — from timezone=auto
++  // Where this location came from. "city" = a deliberate user choice; the client
++  // suppresses its silent GPS refresh so a saved city is never overwritten.
++  locationOrigin: "geo" | "city" | "profile" | "default";
+   laterSentence: string; // full: "Rain from 21:00 — take a shell."
+   adviceClause: string; // JUST the rust clause: "take a shell." — the UI binds the rust <b> to THIS
+   laterLabel: string; // "LATER" (static caps label)
+
+
+=== DIFF: lib/weather/__tests__/location.test.ts ===
+@@ -42,6 +42,34 @@ test("a stored location with no label is labelled Current location (we never rev
+   expect(r.label).toBe("Current location");
+ });
+ 
++test("a stored city is reported as origin 'city' — GPS must not silently override it", () => {
++  const r = resolveLocation({
++    profile: {
++      location_lat: 35.69, location_lon: 139.69,
++      location_label: "Tokyo", location_source: "city",
++    },
++  });
++  expect(r.origin).toBe("city");
++  expect(r.label).toBe("Tokyo");
++});
++
++test("a stored geo fix is reported as origin 'geo' — safe to silently refresh", () => {
++  const r = resolveLocation({
++    profile: {
++      location_lat: 47.24, location_lon: 8.92,
++      location_label: "Current location", location_source: "geo",
++    },
++  });
++  expect(r.origin).toBe("geo");
++});
++
++test("a legacy row with coords but no source is plain 'profile'", () => {
++  const r = resolveLocation({
++    profile: { location_lat: 47.24, location_lon: 8.92, location_label: null },
++  });
++  expect(r.origin).toBe("profile");
++});
++
+ test("LocationInputSchema accepts a well-formed fix", () => {
+   const ok = LocationInputSchema.parse({
+     lat: 52.52, lon: 13.41, label: "Berlin", source: "city", timezone: "Europe/Berlin",
+
+
+=== DIFF: lib/weather/location.ts ===
+@@ -20,6 +20,8 @@ export type ProfileLocation = {
+   location_lat: number | null;
+   location_lon: number | null;
+   location_label: string | null;
++  /** 'city' means the user deliberately picked it — GPS must not silently override it. */
++  location_source?: string | null;
+ };
+ 
+ export const DEFAULT_LOCATION: ResolvedLocation = {
+@@ -49,11 +51,15 @@ export function resolveLocation(args: {
+   }
+ 
+   if (profile?.location_lat != null && profile.location_lon != null) {
++    // Surface the STORED provenance, not a flat "profile": the client uses
++    // origin === "city" to know a deliberate choice is in play and suppress the
++    // silent GPS refresh that would otherwise overwrite it.
++    const stored = profile.location_source;
+     return {
+       lat: profile.location_lat,
+       lon: profile.location_lon,
+       label: profile.location_label ?? "Current location",
+-      origin: "profile",
++      origin: stored === "city" || stored === "geo" ? stored : "profile",
+     };
+   }
+ 
+
+
+Investigate per the method in your instructions, then return the findings list.
