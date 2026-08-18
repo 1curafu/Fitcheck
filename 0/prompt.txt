@@ -1,0 +1,1 @@
+open a details of look is not intuitively, for example in our design example [Image #1] it looks like that and then open our details, what do u think and we should then delete [Image #2] this, cause we have it in details of look but we should make it clickable to open details of cloth or shoe, or im not right?
