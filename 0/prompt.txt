@@ -1,0 +1,267 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/outfits/[id]/actions.ts
+  - components/outfits/outfit-detail.tsx
+  - lib/outfits/__tests__/confirm.test.ts
+  - lib/outfits/confirm.ts
+  - lib/profile/preferences.ts
+  - supabase/migrations/20260813090000_outfit_viewed_at.sql
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/outfits/[id]/actions.ts ===
+@@ -87,3 +87,35 @@ export async function toggleFavorite(outfitId: string): Promise<{ favorite: bool
+   revalidatePath(`/outfits/${outfitId}`);
+   return { favorite: next };
+ }
++
++/**
++ * Stamp that the user opened this look.
++ *
++ * The evening confirmation asks only about looks actually OPENED — asking about
++ * a look nobody saw would invite a "Yes" that fabricates a wear, and wear_logs
++ * is the foundation of everything Pro sells. So opening one has to leave a
++ * trace, and this is it.
++ *
++ * ⚠️ Called from the CLIENT on mount, never during the Server Component's
++ * render. Mutating in render is a side effect React may run more than once, and
++ * it would also fire for a prefetch the user never actually looked at — which
++ * would put looks into the confirmation that were never on screen.
++ *
++ * Deliberately does NOT revalidate: nothing visible depends on the stamp, and a
++ * revalidation here would re-render the screen the user just opened.
++ */
++export async function noteOutfitViewed(outfitId: string): Promise<void> {
++  const supabase = await createClient();
++  const {
++    data: { user },
++  } = await supabase.auth.getUser();
++  if (!user) return;
++
++  // RLS scopes this to the owner; the explicit user_id keeps it true even if a
++  // future policy is loosened.
++  await supabase
++    .from("outfits")
++    .update({ viewed_at: new Date().toISOString() })
++    .eq("id", outfitId)
++    .eq("user_id", user.id);
++}
+
+
+=== DIFF: components/outfits/outfit-detail.tsx ===
+@@ -1,10 +1,10 @@
+ "use client";
+ 
+-import { useOptimistic, useTransition, type CSSProperties } from "react";
++import { useOptimistic, useTransition, type CSSProperties, useEffect } from "react";
+ import Link from "next/link";
+ import { useRouter } from "next/navigation";
+ import { Bookmark } from "lucide-react";
+-import { toggleWear, toggleFavorite } from "@/app/outfits/[id]/actions";
++import { toggleWear, toggleFavorite, noteOutfitViewed } from "@/app/outfits/[id]/actions";
+ import { Kicker } from "@/components/ui-fitcheck/kicker";
+ import { wearLabel } from "@/lib/outfits/wear";
+ import type { Slot } from "@/lib/generator/types";
+@@ -44,6 +44,18 @@ export function OutfitDetail({
+   const [isFav, showFav] = useOptimistic(favorite);
+   const [pending, start] = useTransition();
+ 
++  /**
++   * Record that this look was opened, for the evening wear confirmation.
++   *
++   * On mount and from the client — not in the route's render — so a prefetch
++   * the user never looked at cannot enter the confirmation. Fire-and-forget:
++   * nothing on screen depends on it, and a failed stamp must never disturb the
++   * look itself.
++   */
++  useEffect(() => {
++    noteOutfitViewed(outfit.id).catch(() => {});
++  }, [outfit.id]);
++
+   return (
+     <div className="flex min-h-dvh flex-1 flex-col">
+       {/* This screen opens with a full-bleed flat-lay, so it deliberately does
+
+
+=== DIFF: lib/outfits/__tests__/confirm.test.ts ===
+@@ -0,0 +1,67 @@
++import { expect, test } from "vitest";
++import { shouldAsk, EVENING_HOUR } from "../confirm";
++
++const base = {
++  nowLocalHour: 20,
++  today: "2026-08-13",
++  askedOn: null as string | null,
++  hasWearToday: false,
++  viewedToday: [
++    { id: "a", lookName: "Crisp Oxford", viewedAt: "2026-08-13T09:00:00Z" },
++    { id: "b", lookName: "Navy & Black", viewedAt: "2026-08-13T17:00:00Z" },
++  ],
++};
++
++test("it does not ask before the evening", () => {
++  expect(shouldAsk({ ...base, nowLocalHour: 14 }).ask).toBe(false);
++  expect(shouldAsk({ ...base, nowLocalHour: EVENING_HOUR - 1 }).ask).toBe(false);
++  expect(shouldAsk({ ...base, nowLocalHour: EVENING_HOUR }).ask).toBe(true);
++});
++
++test("it does not ask when nothing was opened today", () => {
++  // The whole reason auto-log was rejected: never ask about a look the user
++  // never saw, because a Yes there is a fabricated wear — and wear_logs is the
++  // foundation of cost-per-wear, streaks and gap analysis.
++  expect(shouldAsk({ ...base, viewedToday: [] }).ask).toBe(false);
++});
++
++test("it does not ask when a wear is already logged today", () => {
++  // They already told us. Asking again is noise, and a second Yes would be a
++  // no-op against the unique index anyway.
++  expect(shouldAsk({ ...base, hasWearToday: true }).ask).toBe(false);
++});
++
++test("it asks once per day, whichever way it was answered", () => {
++  // `askedOn` is set by BOTH Yes and No. A No that leaves the question askable
++  // is a sheet that reappears until the user gives in and says Yes — which
++  // manufactures exactly the data this feature exists to keep honest.
++  expect(shouldAsk({ ...base, askedOn: base.today }).ask).toBe(false);
++  expect(shouldAsk({ ...base, askedOn: "2026-08-12" }).ask).toBe(true);
++});
++
++test("it asks about the MOST RECENTLY opened look", () => {
++  // Dwell time is not tracked, so most-recent is the honest simple choice
++  // rather than a guess at which one they liked.
++  expect(shouldAsk(base)).toMatchObject({ ask: true, outfitId: "b", lookName: "Navy & Black" });
++});
++
++test("input order does not decide the answer", () => {
++  // The route's ordering must not be load-bearing — the rule is "most recent",
++  // not "whatever the query returned first".
++  const reversed = { ...base, viewedToday: [...base.viewedToday].reverse() };
++  expect(shouldAsk(reversed)).toMatchObject({ outfitId: "b" });
++});
++
++test("a single opened look is asked about without special-casing", () => {
++  const one = { ...base, viewedToday: [base.viewedToday[0]!] };
++  expect(shouldAsk(one)).toMatchObject({ ask: true, outfitId: "a" });
++});
++
++test("the evening boundary is the caller's LOCAL hour, never UTC", () => {
++  // A UTC hour would roll the question into the afternoon for eastern users —
++  // the same failure Decision 5 exists to prevent for the daily drop. This
++  // function takes an hour rather than a Date so it cannot get that wrong; the
++  // test pins the contract.
++  expect(shouldAsk({ ...base, nowLocalHour: 23 }).ask).toBe(true);
++  expect(shouldAsk({ ...base, nowLocalHour: 0 }).ask).toBe(false);
++});
+
+
+=== DIFF: lib/outfits/confirm.ts ===
+@@ -0,0 +1,49 @@
++/**
++ * The evening wear confirmation — the decision, as a pure function.
++ *
++ * This exists because "Auto-log worn looks" was rejected twice: opening a look
++ * is not wearing it, and `wear_logs` is the foundation of cost-per-wear,
++ * streaks, most-worn, gathering-dust and gap analysis — i.e. of everything Pro
++ * sells. Logging views as wears inflates all of it permanently, with no way
++ * afterwards to tell a fabricated wear from a real one. Asking is the honest
++ * version of the same idea, and it needs no push, so it is buildable today.
++ *
++ * Everything here is a value, so none of it needs a database to test.
++ */
++
++/** Local hour from which the day is over enough to ask about it. */
++export const EVENING_HOUR = 18;
++
++export type ViewedLook = { id: string; lookName: string; viewedAt: string };
++
++export type ConfirmDecision =
++  | { ask: false }
++  | { ask: true; outfitId: string; lookName: string };
++
++export function shouldAsk(args: {
++  /** The user's LOCAL hour. Taking an hour rather than a Date is deliberate —
++   *  a UTC hour would roll the question into the afternoon for eastern users,
++   *  the same failure Decision 5 exists to prevent for the daily drop. */
++  nowLocalHour: number;
++  today: string;
++  /** Set by BOTH answers. A No that leaves the question askable is a sheet that
++   *  reappears until the user gives in — manufacturing the very data this
++   *  feature exists to keep honest. */
++  askedOn: string | null;
++  hasWearToday: boolean;
++  viewedToday: ViewedLook[];
++}): ConfirmDecision {
++  if (args.nowLocalHour < EVENING_HOUR) return { ask: false };
++  if (args.askedOn === args.today) return { ask: false };
++  // They already told us; asking again is noise.
++  if (args.hasWearToday) return { ask: false };
++  if (!args.viewedToday.length) return { ask: false };
++
++  // Most recent, computed here rather than trusted from the caller's ordering —
++  // the rule is "the last thing they looked at", not "whatever the query
++  // happened to return first". Dwell time is not tracked, so most-recent is the
++  // honest simple choice.
++  const latest = args.viewedToday.reduce((a, b) => (a.viewedAt >= b.viewedAt ? a : b));
++
++  return { ask: true, outfitId: latest.id, lookName: latest.lookName };
++}
+
+
+=== DIFF: lib/profile/preferences.ts ===
+@@ -12,6 +12,8 @@ import { z } from "zod";
+ export const PREFERENCE_DEFAULTS = {
+   rainGuard: true,
+   tempUnit: "C",
++  /** The local date the evening wear confirmation was last ANSWERED. */
++  wearAskedOn: null,
+ } as const;
+ 
+ /**
+@@ -27,6 +29,12 @@ export const PREFERENCE_DEFAULTS = {
+ export const PreferencesSchema = z.object({
+   rainGuard: z.boolean().default(PREFERENCE_DEFAULTS.rainGuard),
+   tempUnit: z.enum(["C", "F"]).default(PREFERENCE_DEFAULTS.tempUnit),
++  /**
++   * Not a toggle — bookkeeping. Set by BOTH answers to the evening
++   * confirmation, so the question is asked at most once a day whichever way it
++   * went. Null means never answered.
++   */
++  wearAskedOn: z.string().nullable().default(PREFERENCE_DEFAULTS.wearAskedOn),
+ });
+ 
+ export type Preferences = z.infer<typeof PreferencesSchema>;
+@@ -43,6 +51,7 @@ export type Preferences = z.infer<typeof PreferencesSchema>;
+ const LenientSchema = z.object({
+   rainGuard: PreferencesSchema.shape.rainGuard.catch(PREFERENCE_DEFAULTS.rainGuard),
+   tempUnit: PreferencesSchema.shape.tempUnit.catch(PREFERENCE_DEFAULTS.tempUnit),
++  wearAskedOn: PreferencesSchema.shape.wearAskedOn.catch(PREFERENCE_DEFAULTS.wearAskedOn),
+ });
+ 
+ /** Read the stored bag, repairing anything unreadable. */
+
+
+=== DIFF: supabase/migrations/20260813090000_outfit_viewed_at.sql ===
+@@ -0,0 +1,19 @@
++-- The evening confirmation asks ONLY about looks the user actually opened, so
++-- opening one has to leave a trace. Nothing recorded that before this.
++--
++-- Why it matters: the alternative — asking about today's drop — would offer a
++-- "Yes" on a look the user never saw, and a Yes there is a fabricated wear.
++-- wear_logs is the foundation of cost-per-wear, streaks, most-worn and gap
++-- analysis, so a fabricated row poisons every one of them permanently, with no
++-- way afterwards to tell it from a real one. That is exactly why the
++-- "Auto-log worn looks" toggle was rejected twice.
++--
++-- A column on `outfits`, not a views table: the question is "was it opened, and
++-- when most recently", never a history. One timestamp answers it.
++alter table public.outfits
++  add column if not exists viewed_at timestamptz;
++
++-- The confirmation reads "today's outfits that were viewed, most recent first".
++create index if not exists outfits_viewed_idx
++  on public.outfits (user_id, generated_on, viewed_at desc)
++  where viewed_at is not null;
+
+
+Investigate per the method in your instructions, then return the findings list.
