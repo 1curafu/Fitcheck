@@ -1,0 +1,7 @@
+<task-notification>
+<task-id>b7o251ocj</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-1curafu-Desktop-Fitcheck-Fitcheck/f3c425b9-b28f-47c6-a76f-e7e23ace2dcc/tasks/b7o251ocj.output</output-file>
+<status>failed</status>
+<summary>Background command "Start Next dev server" failed with exit code 143</summary>
+</task-notification>
