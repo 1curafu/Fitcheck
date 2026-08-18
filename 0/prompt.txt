@@ -1,0 +1,68 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - components/closet/__tests__/item-view.test.tsx
+  - components/closet/item-view.tsx
+
+Unified diff (only + lines are new):
+
+=== DIFF: components/closet/__tests__/item-view.test.tsx ===
+@@ -86,6 +86,23 @@ test("goes-with pieces link to their own detail", () => {
+   );
+ });
+ 
++// A pair whose storage object cannot be signed arrives here as "" — the page
++// maps a missing signed URL to the empty string, exactly as it does for the
++// hero. React treats `<img src="">` as an error ("may cause the browser to
++// download the whole page again"), which Next's dev overlay throws up as a red
++// screen over a working closet. The tile is its own placeholder; render that.
++test("a pair with no signed image renders its tile without a broken img", () => {
++  const err = vi.spyOn(console, "error").mockImplementation(() => {});
++  const { container } = renderView({
++    goesWith: [{ id: "i2", name: "Camel Overshirt", imageUrl: "" }],
++  });
++  expect(container.querySelector('img[src=""]')).toBeNull();
++  expect(err).not.toHaveBeenCalled();
++  err.mockRestore();
++  // The suggestion itself still stands — only its picture is missing.
++  expect(screen.getByRole("link", { name: /camel overshirt/i })).toBeInTheDocument();
++});
++
+ // An empty row is better than a fabricated one — a one-item closet has nothing
+ // to suggest, and the heading alone would read as a loading failure.
+ test("the goes-with section is absent when there is nothing to suggest", () => {
+
+
+=== DIFF: components/closet/item-view.tsx ===
+@@ -177,12 +177,22 @@ export function ItemView({
+                 {goesWith.map((g) => (
+                   <Link key={g.id} href={`/closet/${g.id}`} className="w-[92px] shrink-0">
+                     <div className="relative aspect-square rounded-[12px] bg-surface-2 shadow-[inset_0_0_0_1px_var(--hairline-2)]">
+-                      {/* eslint-disable-next-line @next/next/no-img-element */}
+-                      <img
+-                        src={g.imageUrl}
+-                        alt=""
+-                        className="absolute inset-0 size-full object-contain p-3"
+-                      />
++                      {/* An unsignable storage object arrives as "", and React
++                          errors on `<img src="">` rather than just showing a
++                          gap — in dev that is a red overlay over a working
++                          closet. The tile IS the placeholder, so render it bare
++                          and let the name carry the suggestion. Same guard as
++                          the hero above and the closet card. */}
++                      {g.imageUrl && (
++                        // eslint-disable-next-line @next/next/no-img-element
++                        <img
++                          src={g.imageUrl}
++                          alt=""
++                          loading="lazy"
++                          decoding="async"
++                          className="absolute inset-0 size-full object-contain p-3"
++                        />
++                      )}
+                     </div>
+                     <div className="mt-[6px] text-center text-[10.5px]/[1.2] text-muted-foreground">
+                       {g.name}
+
+
+Investigate per the method in your instructions, then return the findings list.
