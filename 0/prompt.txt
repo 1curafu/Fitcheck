@@ -1,0 +1,479 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/generate/page.tsx
+  - app/outfits/[id]/actions.ts
+  - components/outfits/__tests__/outfit-detail.test.tsx
+  - components/outfits/__tests__/wear-confirm-sheet.test.tsx
+  - components/outfits/wear-confirm-sheet.tsx
+  - components/outfits/wear-confirm.tsx
+  - components/settings/__tests__/settings-view.test.tsx
+  - lib/outfits/__tests__/local-date.test.ts
+  - lib/outfits/local-date.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/generate/page.tsx ===
+@@ -2,6 +2,10 @@ import { redirect } from "next/navigation";
+ import { createClient } from "@/lib/supabase/server";
+ import { MobileNav } from "@/components/shell/mobile-nav";
+ import { Stylist } from "@/components/generate/stylist";
++import { WearConfirm } from "@/components/outfits/wear-confirm";
++import { localDateFor, localHourFor } from "@/lib/outfits/local-date";
++import { readPreferences } from "@/lib/profile/preferences";
++import { shouldAsk } from "@/lib/outfits/confirm";
+ 
+ export default async function GeneratePage() {
+   const supabase = await createClient();
+@@ -10,12 +14,56 @@ export default async function GeneratePage() {
+   } = await supabase.auth.getUser();
+   if (!user) redirect("/");
+ 
++  /**
++   * The evening wear confirmation.
++   *
++   * Mounted HERE rather than in `MobileShell` because this is the app's home
++   * tab and the screen a returning user lands on. In the shell it would fire
++   * mid-capture and mid-edit, which is where an interruption costs most.
++   *
++   * The decision is made server-side so it cannot depend on the device clock,
++   * and the hour is the user's LOCAL one — a UTC hour would roll the question
++   * into the afternoon for eastern users, the failure Decision 5 exists to
++   * prevent.
++   */
++  const { data: profile } = await supabase
++    .from("profiles")
++    .select("preferences, location_timezone")
++    .eq("id", user.id)
++    .single();
++
++  const tz = profile?.location_timezone ?? "UTC";
++  const today = localDateFor(new Date(), tz);
++
++  const [{ data: viewed }, { data: worn }] = await Promise.all([
++    supabase
++      .from("outfits")
++      .select("id, look_name, viewed_at")
++      .eq("user_id", user.id)
++      .eq("generated_on", today)
++      .not("viewed_at", "is", null),
++    supabase.from("wear_logs").select("id").eq("user_id", user.id).eq("worn_on", today).limit(1),
++  ]);
++
++  const confirm = shouldAsk({
++    nowLocalHour: localHourFor(new Date(), tz),
++    today,
++    askedOn: readPreferences(profile?.preferences).wearAskedOn,
++    hasWearToday: Boolean(worn?.length),
++    viewedToday: (viewed ?? []).map((o) => ({
++      id: o.id,
++      lookName: o.look_name ?? "today's look",
++      viewedAt: o.viewed_at as string,
++    })),
++  });
++
+   return (
+     // No bottom padding: the sticky nav occupies its own space in flow at the
+     // end of the page, so nothing sits under it. The old pb-[76px] was both
+     // unnecessary and 31px short of the nav's actual height.
+     <div className="flex min-h-dvh flex-1 flex-col">
+       <Stylist />
++      {confirm.ask && <WearConfirm outfitId={confirm.outfitId} lookName={confirm.lookName} />}
+       <MobileNav />
+     </div>
+   );
+
+
+=== DIFF: app/outfits/[id]/actions.ts ===
+@@ -3,6 +3,7 @@
+ import { revalidatePath } from "next/cache";
+ import { createClient } from "@/lib/supabase/server";
+ import { localDateFor } from "@/lib/outfits/local-date";
++import { readPreferences } from "@/lib/profile/preferences";
+ 
+ /**
+  * Log or unlog "I wore this today".
+@@ -119,3 +120,49 @@ export async function noteOutfitViewed(outfitId: string): Promise<void> {
+     .eq("id", outfitId)
+     .eq("user_id", user.id);
+ }
++
++/**
++ * The evening confirmation's two answers.
++ *
++ * ⚠️ **"Yes" goes through `toggleWear`, never a second insert path.** The
++ * `wear_logs_unique_day` index is what guarantees one row per outfit per day,
++ * and a parallel insert here would be a second way to write the number every
++ * wear-derived surface reads.
++ *
++ * ⚠️ **"No" writes NOTHING to `wear_logs`.** That is the entire point of the
++ * feature: the rejected auto-log toggle would have logged a wear the user never
++ * had, and no later query could tell it apart from a real one.
++ *
++ * Both record `wearAskedOn`, so the question is asked at most once a day
++ * whichever way it went. A No that left it askable would reappear until the
++ * user gave in and said Yes — manufacturing exactly the data this exists to
++ * keep honest.
++ */
++export async function answerWearConfirmation(
++  outfitId: string,
++  wore: boolean,
++): Promise<void> {
++  const supabase = await createClient();
++  const {
++    data: { user },
++  } = await supabase.auth.getUser();
++  if (!user) return;
++
++  const { data: profile } = await supabase
++    .from("profiles")
++    .select("preferences, location_timezone")
++    .eq("id", user.id)
++    .single();
++
++  const today = localDateFor(new Date(), profile?.location_timezone ?? "UTC");
++
++  // Mark the question answered FIRST. If the wear write then fails, the user is
++  // not re-asked tonight — better a missed log than a sheet that keeps
++  // reappearing until they answer the way it wants.
++  const next = { ...readPreferences(profile?.preferences), wearAskedOn: today };
++  await supabase.from("profiles").update({ preferences: next }).eq("id", user.id);
++
++  if (wore) await toggleWear(outfitId);
++
++  revalidatePath("/generate");
++}
+
+
+=== DIFF: components/outfits/__tests__/outfit-detail.test.tsx ===
+@@ -10,6 +10,10 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ back, push }) }));
+ vi.mock("@/app/outfits/[id]/actions", () => ({
+   toggleWear: vi.fn(),
+   toggleFavorite: vi.fn(),
++  // Fired on mount to stamp `viewed_at`, which is what the evening wear
++  // confirmation asks about. Resolved, not undefined: the component calls
++  // `.catch()` on it.
++  noteOutfitViewed: vi.fn().mockResolvedValue(undefined),
+ }));
+ 
+ const slot = { xPct: 10, yPct: 20, wPct: 30, hPct: 40, rotationDeg: -3, z: 2 };
+
+
+=== DIFF: components/outfits/__tests__/wear-confirm-sheet.test.tsx ===
+@@ -0,0 +1,96 @@
++import { render, screen } from "@testing-library/react";
++import userEvent from "@testing-library/user-event";
++import { expect, test, vi } from "vitest";
++import { WearConfirmSheet } from "../wear-confirm-sheet";
++
++function setup(over: Partial<React.ComponentProps<typeof WearConfirmSheet>> = {}) {
++  const onYes = vi.fn();
++  const onNo = vi.fn();
++  const onDismiss = vi.fn();
++  render(
++    <WearConfirmSheet
++      open
++      lookName="Navy & Black"
++      onYes={onYes}
++      onNo={onNo}
++      onDismiss={onDismiss}
++      {...over}
++    />,
++  );
++  return { onYes, onNo, onDismiss };
++}
++
++test("Yes and No carry EXACTLY equal weight", () => {
++  // The whole design. A lone Yes with a dismiss ✕ gets tapped to clear the
++  // sheet and the data inflates anyway — the exact failure that got the
++  // auto-log toggle rejected twice.
++  setup();
++  const yes = screen.getByRole("button", { name: /^yes$/i });
++  const no = screen.getByRole("button", { name: /^no$/i });
++  expect(yes.className).toBe(no.className);
++});
++
++test("there is no third way out that looks like an answer", () => {
++  // "Not now" / "Skip" / "Close" is the lone-Yes problem wearing a different
++  // hat: the easiest escape becomes the default, and here the default would be
++  // a lie about what the user wore.
++  setup();
++  expect(
++    screen.queryByRole("button", { name: /not now|skip|later|close|maybe/i }),
++  ).not.toBeInTheDocument();
++});
++
++test("the backdrop dismisses WITHOUT answering", () => {
++  // It exists so the sheet is not a trap, and it records nothing — a mis-tap
++  // must not silently consume the day's question.
++  const { onDismiss, onYes, onNo } = setup();
++  const backdrop = screen.getByRole("button", { name: /dismiss/i });
++  backdrop.click();
++  expect(onDismiss).toHaveBeenCalled();
++  expect(onYes).not.toHaveBeenCalled();
++  expect(onNo).not.toHaveBeenCalled();
++});
++
++test("it names the look, so the user knows what they are answering about", () => {
++  setup();
++  expect(screen.getByRole("heading")).toHaveTextContent(/navy & black/i);
++});
++
++test("it says outright that we never log a wear for them", () => {
++  // The promise the rejected toggle would have broken. Stating it is what makes
++  // an honest "No" feel safe to give.
++  setup();
++  expect(screen.getByText(/never log a wear for you/i)).toBeInTheDocument();
++});
++
++test("Yes and No each call their own handler", async () => {
++  const { onYes, onNo } = setup();
++  await userEvent.click(screen.getByRole("button", { name: /^yes$/i }));
++  expect(onYes).toHaveBeenCalledTimes(1);
++  await userEvent.click(screen.getByRole("button", { name: /^no$/i }));
++  expect(onNo).toHaveBeenCalledTimes(1);
++});
++
++test("both answers are disabled while a write is in flight", async () => {
++  // A double-tapped Yes is harmless against the unique index, but a double
++  // tapped No followed by a Yes is not — freeze both until it lands.
++  setup({ pending: true });
++  expect(screen.getByRole("button", { name: /^yes$/i })).toBeDisabled();
++  expect(screen.getByRole("button", { name: /^no$/i })).toBeDisabled();
++});
++
++test("it sits above the bottom nav, fixed rather than absolute", () => {
++  // MobileNav is z-50 and renders after the page content. RefineSheet shipped
++  // both of these wrong and its controls were unreachable.
++  setup();
++  const dialog = screen.getByRole("dialog");
++  expect(dialog.className).toMatch(/\bfixed\b/);
++  expect(dialog.className).toMatch(/z-\[70\]/);
++  expect(dialog.className).not.toMatch(/\babsolute\b/);
++});
++
++test("a closed sheet renders nothing at all", () => {
++  setup({ open: false });
++  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
++  expect(screen.queryByRole("button", { name: /^yes$/i })).not.toBeInTheDocument();
++});
+
+
+=== DIFF: components/outfits/wear-confirm-sheet.tsx ===
+@@ -0,0 +1,83 @@
++"use client";
++
++import { Kicker } from "@/components/ui-fitcheck/kicker";
++
++/**
++ * "Did you wear this today?" — asked once, in the evening.
++ *
++ * The honest replacement for the rejected "Auto-log worn looks" toggle. Opening
++ * a look is not wearing it, and `wear_logs` is the foundation of cost-per-wear,
++ * streaks, most-worn and gap analysis — so the app asks rather than assumes.
++ *
++ * ⚠️ **Yes and No are styled IDENTICALLY, and that is the whole design.** A lone
++ * "Yes" with a dismiss ✕ gets tapped to clear the sheet, and the data inflates
++ * anyway — which is the exact failure that got auto-log rejected. There is also
++ * no "Not now", "Skip" or close button, for the same reason: the easiest escape
++ * becomes the default answer, and here the default answer would be a lie.
++ *
++ * The backdrop closes for this session WITHOUT recording an answer, so a
++ * mis-tap does not silently consume the day's question. It is the only way out
++ * that is neither Yes nor No, and it is deliberately the one that changes
++ * nothing.
++ */
++export function WearConfirmSheet({
++  open,
++  lookName,
++  pending = false,
++  onYes,
++  onNo,
++  onDismiss,
++}: {
++  open: boolean;
++  lookName: string;
++  pending?: boolean;
++  onYes: () => void;
++  onNo: () => void;
++  /** Backdrop only. Records NOTHING — the question stays askable. */
++  onDismiss: () => void;
++}) {
++  if (!open) return null;
++
++  // One string, used twice. Two class lists that merely look alike are two
++  // things that can drift; the test asserts they are equal, and this is how
++  // that stays true.
++  const answer =
++    "min-h-[52px] flex-1 rounded-[14px] text-[15.5px] font-semibold text-foreground shadow-[inset_0_0_0_1px_var(--hairline-6)] disabled:opacity-60";
++
++  return (
++    <>
++      <button
++        type="button"
++        aria-label="Dismiss"
++        onClick={onDismiss}
++        className="fixed inset-0 z-[60] bg-[rgba(6,6,8,0.5)] backdrop-blur-[1.5px]"
++      />
++      <div
++        role="dialog"
++        aria-modal="true"
++        aria-label="Wear confirmation"
++        style={{ maxWidth: 440 }}
++        className="fixed inset-x-0 bottom-0 z-[70] mx-auto rounded-t-[22px] border-t border-[rgba(237,230,216,0.12)] bg-surface-2 px-[22px] pb-[calc(env(safe-area-inset-bottom)+20px)] pt-3.5"
++      >
++        <div className="mx-auto mb-4 h-1 w-[34px] rounded-full bg-faint" />
++
++        <Kicker className="block">Today</Kicker>
++        <h2 className="mt-1.5 font-serif text-[22px]/[1.2] text-foreground text-pretty">
++          Did you wear {lookName} today?
++        </h2>
++        <p className="mt-1.5 text-[12.5px] text-muted-foreground">
++          Only you can say — we never log a wear for you.
++        </p>
++
++        <div className="mt-4 flex gap-2">
++          <button type="button" disabled={pending} onClick={onNo} className={answer}>
++            No
++          </button>
++          <button type="button" disabled={pending} onClick={onYes} className={answer}>
++            Yes
++          </button>
++        </div>
++      </div>
++    </>
++  );
++}
+
+
+=== DIFF: components/outfits/wear-confirm.tsx ===
+@@ -0,0 +1,44 @@
++"use client";
++
++import { useState, useTransition } from "react";
++import { answerWearConfirmation } from "@/app/outfits/[id]/actions";
++import { WearConfirmSheet } from "./wear-confirm-sheet";
++
++/**
++ * Mounts the evening confirmation on the stylist screen.
++ *
++ * The DECISION is made on the server (`shouldAsk`) and arrives already made —
++ * this only owns the answering. Keeping the rule server-side means the sheet
++ * cannot appear because of a stale client clock, and the local hour is computed
++ * from `profiles.location_timezone` rather than the device.
++ */
++export function WearConfirm({
++  outfitId,
++  lookName,
++}: {
++  outfitId: string;
++  lookName: string;
++}) {
++  const [open, setOpen] = useState(true);
++  const [pending, start] = useTransition();
++
++  function answer(wore: boolean) {
++    start(async () => {
++      await answerWearConfirmation(outfitId, wore).catch(() => {});
++      setOpen(false);
++    });
++  }
++
++  return (
++    <WearConfirmSheet
++      open={open}
++      lookName={lookName}
++      pending={pending}
++      onYes={() => answer(true)}
++      onNo={() => answer(false)}
++      // Records NOTHING — the question stays askable, so a mis-tap does not
++      // silently consume the day's only chance to log the wear.
++      onDismiss={() => setOpen(false)}
++    />
++  );
++}
+
+
+=== DIFF: components/settings/__tests__/settings-view.test.tsx ===
+@@ -23,7 +23,7 @@ const props: {
+   email: "icurafu333@gmail.com",
+   initials: "M",
+   locationLabel: "Berlin",
+-  preferences: { rainGuard: true, tempUnit: "C" },
++  preferences: { rainGuard: true, tempUnit: "C", wearAskedOn: null },
+ };
+ 
+ function renderSettings(
+@@ -61,7 +61,7 @@ test("each live toggle exposes its state to screen readers", () => {
+ });
+ 
+ test("a stored preference is reflected, not assumed", () => {
+-  renderSettings({ preferences: { rainGuard: false, tempUnit: "F" } });
++  renderSettings({ preferences: { rainGuard: false, tempUnit: "F", wearAskedOn: null } });
+   expect(screen.getByRole("switch", { name: /rain guard/i })).toHaveAttribute(
+     "aria-checked",
+     "false",
+
+
+=== DIFF: lib/outfits/__tests__/local-date.test.ts ===
+@@ -1,4 +1,4 @@
+-import { localDateFor } from "../local-date";
++import { localDateFor, localHourFor } from "../local-date";
+ 
+ // "Today" must be the user's local date. Keying the daily set on the UTC date
+ // rolls the drop over at the wrong hour for everyone outside UTC — 01:30 in
+@@ -18,3 +18,20 @@ test("the same instant is still today in a western zone", () => {
+ test("an unknown zone falls back to UTC instead of throwing", () => {
+   expect(localDateFor(lateEvening, "Not/AZone")).toBe("2026-07-22");
+ });
++
++test("localHourFor reads the hour in the user's zone, not UTC", () => {
++  const t = new Date("2026-08-13T20:00:00Z");
++  expect(localHourFor(t, "UTC")).toBe(20);
++  expect(localHourFor(t, "Asia/Tokyo")).toBe(5); // next morning
++  expect(localHourFor(t, "America/Los_Angeles")).toBe(13); // still afternoon
++});
++
++test("midnight is 0, never 24", () => {
++  // Some locales default to h24 and render midnight as "24", which would never
++  // compare below the evening threshold — the confirmation would ask at 00:00.
++  expect(localHourFor(new Date("2026-08-13T00:00:00Z"), "UTC")).toBe(0);
++});
++
++test("an unknown zone falls back rather than throwing", () => {
++  expect(localHourFor(new Date("2026-08-13T20:00:00Z"), "Not/AZone")).toBe(20);
++});
+
+
+=== DIFF: lib/outfits/local-date.ts ===
+@@ -18,3 +18,27 @@ export function localDateFor(now: Date, timeZone: string): string {
+     return now.toISOString().slice(0, 10);
+   }
+ }
++
++/**
++ * The user's local hour, 0–23.
++ *
++ * Same reasoning as `localDateFor`, and the same fallback: the evening
++ * confirmation asks after 18:00 LOCAL, so a UTC hour would put the question in
++ * the afternoon for eastern users and after midnight for western ones.
++ *
++ * `hourCycle: "h23"` because the default for some locales is `h24`, which
++ * renders midnight as "24" and would parse to an hour that never compares less
++ * than the evening threshold.
++ */
++export function localHourFor(now: Date, timeZone: string): number {
++  try {
++    const hh = new Intl.DateTimeFormat("en-GB", {
++      timeZone,
++      hour: "2-digit",
++      hourCycle: "h23",
++    }).format(now);
++    return Number(hh);
++  } catch {
++    return now.getUTCHours();
++  }
++}
+
+
+Investigate per the method in your instructions, then return the findings list.
