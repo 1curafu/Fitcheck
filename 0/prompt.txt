@@ -1,0 +1,1 @@
+remember, we are making app for mobiles, not for desktop, its full mobile website, later of course we will make a mobile app for ios and android, but a lot later
