@@ -1,0 +1,7 @@
+❯ > 181 |                       <img
+        |                       ^
+    182 |                         src={g.imageUrl}
+    183 |                         alt=""
+    184 |                         className="absolute inset-0 size-full object-contain p-3"
+
+  Next.js version: 16.2.9 (Turbopack)
