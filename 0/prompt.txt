@@ -1,0 +1,122 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - components/generate/__tests__/stylist-view.test.tsx
+  - components/generate/stylist-view.tsx
+  - components/outfits/__tests__/outfit-detail.test.tsx
+  - components/outfits/outfit-detail.tsx
+
+Unified diff (only + lines are new):
+
+=== DIFF: components/generate/__tests__/stylist-view.test.tsx ===
+@@ -103,9 +103,11 @@ test("Regenerate is offered as an explicit action", async () => {
+ 
+ // Until now a look on the stylist screen had nowhere to go — loadDailyLooks
+ // never even selected the outfit id, so the detail screen was unreachable.
+-test("a look links to its own detail screen", () => {
++// A named control, not the flat-lay itself: a whole-image link with no visible
++// affordance was tried and is not discoverable (design :312 names the button).
++test("a look links to its own detail screen from a named control", () => {
+   render(<StylistView {...base} status="ok" looks={[look]} />);
+-  expect(screen.getByRole("link", { name: /view this look/i })).toHaveAttribute(
++  expect(screen.getByRole("link", { name: /see the full look/i })).toHaveAttribute(
+     "href",
+     "/outfits/o1",
+   );
+
+
+=== DIFF: components/generate/stylist-view.tsx ===
+@@ -131,13 +131,7 @@ export function StylistView(props: {
+ 
+         {status === "ok" && look && (
+           <>
+-            {/* The whole flat-lay is the target — it is the biggest thing on the
+-                screen and the one the thumb is already near. */}
+-            <Link
+-              href={`/outfits/${look.id}`}
+-              aria-label="View this look"
+-              className="relative flex flex-1 flex-col"
+-            >
++            <div className="relative flex flex-1 flex-col">
+               <FlatLay look={look} />
+               {/* A worn look is pinned into the day's set rather than removed,
+                   so it has to be legible as already-worn. Quiet by design: the
+@@ -147,9 +141,20 @@ export function StylistView(props: {
+                   <Kicker className="text-value">Worn today</Kicker>
+                 </span>
+               )}
+-            </Link>
++            </div>
+             <WhyQuote name={look.name} why={look.why} />
+             <Credits pieces={look.pieces} onOpenItem={props.onOpenItem} />
++
++            {/* :312 — an explicit, named way into the look. Making the flat-lay
++                itself the target was tried and rejected: a whole-image link with
++                no visible affordance is not discoverable, and the flat-lay
++                already reads as a picture rather than a control. */}
++            <Link
++              href={`/outfits/${look.id}`}
++              className="mt-[18px] block rounded-[13px] bg-foreground p-4 text-center text-base font-semibold text-canvas"
++            >
++              See the full look
++            </Link>
+             {/* Below the look, not in the header: the header was already
+                 rebalanced once to fit Refine at 390px. A quiet action here is
+                 also where the thought "not these" actually occurs. */}
+
+
+=== DIFF: components/outfits/__tests__/outfit-detail.test.tsx ===
+@@ -41,6 +41,16 @@ test("every piece is listed with its brand and category", () => {
+   expect(screen.getByText("Tops")).toBeInTheDocument();
+ });
+ 
++// This is the screen where the user is looking at the clothes, so it is where
++// "what is that, exactly?" gets asked — each row opens that garment.
++test("each piece row opens that item in the closet", () => {
++  render(<OutfitDetail outfit={outfit} pieces={pieces} worn={false} favorite={false} />);
++  expect(screen.getByRole("link", { name: /brushed oxford/i })).toHaveAttribute(
++    "href",
++    "/closet/i1",
++  );
++});
++
+ test("the wear button states what it will do, and what it did", () => {
+   const { rerender } = render(
+     <OutfitDetail outfit={outfit} pieces={pieces} worn={false} favorite={false} />,
+
+
+=== DIFF: components/outfits/outfit-detail.tsx ===
+@@ -1,6 +1,7 @@
+ "use client";
+ 
+ import { useOptimistic, useTransition, type CSSProperties } from "react";
++import Link from "next/link";
+ import { useRouter } from "next/navigation";
+ import { Bookmark } from "lucide-react";
+ import { toggleWear, toggleFavorite } from "@/app/outfits/[id]/actions";
+@@ -102,8 +103,12 @@ export function OutfitDetail({
+           <Kicker className="mb-3 block">In this look</Kicker>
+           <div className="flex flex-col gap-[10px]">
+             {pieces.map((p) => (
+-              <div
++              // Every piece row is a way into that garment — this is the screen
++              // where the user is looking AT the clothes, so it is where "what
++              // is that, exactly?" gets asked.
++              <Link
+                 key={p.id}
++                href={`/closet/${p.id}`}
+                 className="flex items-center gap-[14px] rounded-[13px] bg-surface-1 px-[14px] py-[11px] shadow-[inset_0_0_0_1px_var(--hairline-2)]"
+               >
+                 <div className="relative size-[46px] shrink-0 rounded-[10px] bg-surface-3 p-[7px]">
+@@ -120,7 +125,7 @@ export function OutfitDetail({
+                 <div className="shrink-0 whitespace-nowrap text-[11px] text-muted-dim">
+                   {p.category}
+                 </div>
+-              </div>
++              </Link>
+             ))}
+           </div>
+         </div>
+
+
+Investigate per the method in your instructions, then return the findings list.
