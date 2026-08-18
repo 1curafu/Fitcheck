@@ -1,0 +1,1 @@
+or it has own fucntions about server in next.js
