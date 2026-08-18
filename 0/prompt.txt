@@ -1,0 +1,163 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/closet/[itemId]/style-actions.ts
+  - lib/outfits/__tests__/styled.test.ts
+  - lib/outfits/styled.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/closet/[itemId]/style-actions.ts ===
+@@ -14,7 +14,7 @@ import { layoutForLook, staggerOrder } from "@/lib/generator/layout";
+ import { localDateFor } from "@/lib/outfits/local-date";
+ import { assertCanGenerate, noteGeneration, QuotaExceededError } from "@/lib/outfits/quota";
+ import { predictOccasion } from "@/lib/outfits/predict-occasion";
+-import { pinItem, styledLookName } from "@/lib/outfits/styled";
++import { pinItem, styledLookName, shortlistFor } from "@/lib/outfits/styled";
+ import { loadStyledLook, saveStyledLook } from "@/lib/outfits/styled-store";
+ import { resolveLocation } from "@/lib/weather/location";
+ import type { LookDraft, LookPiece, WeatherPayload } from "@/lib/generator/types";
+@@ -170,7 +170,9 @@ export async function styleWithItem(itemId: string): Promise<StyleResult> {
+     }
+ 
+     const byId = new Map(items.map((i) => [i.id, i]));
+-    const shortlist = pinned.slice(0, 20);
++    // Diversified, exactly as the daily path does it. A raw slice hands the
++    // model twenty variations of one idea, because ranking clusters.
++    const shortlist = shortlistFor(pinned);
+ 
+     const { picks } = await rerank({
+       want: 1,
+
+
+=== DIFF: lib/outfits/__tests__/styled.test.ts ===
+@@ -1,4 +1,4 @@
+-import { pinItem, styledLookName } from "../styled";
++import { pinItem, styledLookName, shortlistFor } from "../styled";
+ 
+ const combo = (...ids: string[]) => ({ items: ids.map((id) => ({ id })) });
+ 
+@@ -32,3 +32,83 @@ test("the fallback name is built from the piece, never left blank", () => {
+     "Around the Tops",
+   );
+ });
++
++// ── The shortlist handed to the model ───────────────────────────────────────
++
++/** A combo whose top/bottom/shoes are named, so clustering is visible. */
++function slotted(top: string, bottom: string, shoe: string, score: number) {
++  return {
++    items: [
++      { id: top, category: "Tops" },
++      { id: bottom, category: "Bottoms" },
++      { id: shoe, category: "Shoes" },
++    ],
++    score,
++  };
++}
++
++test("a clustered shortlist is untangled before the model sees it", () => {
++  // ⚠️ MEASURED 2026-08-10: `buildCandidates` does not currently produce a
++  // clustered pinned list, so on real input this is a no-op — the shortlist
++  // comes out byte-identical, same set and same order, on every closet shape
++  // tried (21 pieces, the 50-piece cap, and lopsided closets up to 82). The
++  // breadth-first walk already pairs each pass with a different bottom and
++  // shoe, and pinning collapses diversify's top-freshness tier.
++  //
++  // It is kept because it costs nothing, cannot shrink the shortlist, and
++  // becomes load-bearing at Task 2: with `want: 2` the head of the list must
++  // be distinct or both looks come out the same. This test pins the guarantee
++  // on a synthetic clustered list — one the current builder cannot emit.
++  const ranked = [
++    ...Array.from({ length: 20 }, (_, i) => slotted("t1", "b1", `s${i}`, 1 - i * 0.001)),
++    slotted("t1", "b2", "s0", 0.5),
++    slotted("t1", "b3", "s1", 0.49),
++    slotted("t1", "b4", "s2", 0.48),
++    slotted("t1", "b5", "s3", 0.47),
++  ];
++
++  const bottomsIn = (list: typeof ranked) =>
++    new Set(list.flatMap((c) => c.items.filter((i) => i.category === "Bottoms").map((i) => i.id)));
++
++  expect(bottomsIn(ranked.slice(0, 20)).size).toBe(1); // the shipped behaviour
++  expect(bottomsIn(shortlistFor(ranked)).size).toBeGreaterThan(1);
++});
++
++test("every combo in the shortlist still contains the pinned piece", () => {
++  // diversify only REORDERS a list pinItem already filtered, so the pin must
++  // survive it. If it ever did not, the screen would offer looks that do not
++  // contain the garment the user asked to style around.
++  const ranked = [
++    slotted("pinned", "b1", "s1", 0.9),
++    slotted("pinned", "b2", "s2", 0.8),
++    slotted("pinned", "b1", "s3", 0.7),
++  ];
++  for (const c of shortlistFor(ranked)) {
++    expect(c.items.some((i) => i.id === "pinned")).toBe(true);
++  }
++});
++
++test("the shortlist is a permutation, never a smaller set", () => {
++  // The safety property that makes this change risk-free: diversify tiers and
++  // then caps, so it can never return fewer candidates than the slice it
++  // replaced, and never drops one.
++  const ranked = [
++    slotted("t1", "b1", "s1", 0.9),
++    slotted("t1", "b2", "s2", 0.8),
++    slotted("t1", "b1", "s3", 0.7),
++  ];
++  const key = (c: (typeof ranked)[number]) => c.items.map((i) => i.id).join("+");
++  expect(shortlistFor(ranked).map(key).sort()).toEqual(ranked.map(key).sort());
++});
++
++test("a closet too small to diversify still yields every candidate", () => {
++  // diversify tiers rather than filters, so nothing is discarded — the bug that
++  // PR #15 fixed on the daily path must not reappear here.
++  const ranked = [slotted("t1", "b1", "s1", 0.9), slotted("t1", "b1", "s2", 0.8)];
++  expect(shortlistFor(ranked)).toHaveLength(2);
++});
++
++test("the shortlist is capped, so the prompt cannot grow without bound", () => {
++  const ranked = Array.from({ length: 60 }, (_, i) => slotted(`t${i}`, `b${i}`, `s${i}`, 1 - i * 0.01));
++  expect(shortlistFor(ranked)).toHaveLength(20);
++});
+
+
+=== DIFF: lib/outfits/styled.ts ===
+@@ -1,3 +1,5 @@
++import { diversify } from "@/lib/generator/diversity";
++
+ /**
+  * "Style an outfit with this" — the pure parts.
+  *
+@@ -36,3 +38,27 @@ export function styledLookName(item: {
+ }): string {
+   return `Around the ${item.name ?? item.subcategory ?? item.category}`;
+ }
++
++/**
++ * The shortlist handed to the re-ranker for a styled look.
++ *
++ * The daily path calls `diversify` before the model sees anything; this path
++ * shipped with `pinned.slice(0, 20)` and never got it. Ranking CLUSTERS — a
++ * neutral top harmonises with everything, so the raw top of a pinned list is
++ * near-identical and the model ends up choosing between twenty variations of
++ * one idea, then returning the safest.
++ *
++ * Same reasoning that produced `lib/generator/diversity.ts` in PR #14/#15,
++ * applied to the second consumer. `diversify` TIERS rather than filters, so
++ * nothing is discarded and a closet too small to diversify still yields every
++ * candidate — the collapse PR #15 fixed on the daily path cannot reappear here.
++ *
++ * It only reorders a list `pinItem` already filtered, so every combo still
++ * contains the pinned piece.
++ */
++export function shortlistFor<T extends { items: { id: string; category: string }[]; score: number }>(
++  pinned: T[],
++  n = 20,
++): T[] {
++  return diversify(pinned, n);
++}
+
+
+Investigate per the method in your instructions, then return the findings list.
