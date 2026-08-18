@@ -1,0 +1,151 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/closet/[itemId]/style-actions.ts
+  - app/generate/actions.ts
+  - lib/weather/__tests__/planning.test.ts
+  - lib/weather/planning.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/closet/[itemId]/style-actions.ts ===
+@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
+ import { signItemImages, displayPath } from "@/lib/storage/signed";
+ import { fetchForecast } from "@/lib/weather/open-meteo";
+ import { laterAdvice } from "@/lib/weather/advice";
+-import { planningTempFor } from "@/lib/weather/planning";
++import { planningTempFor, rainAheadFor } from "@/lib/weather/planning";
+ import { readPreferences } from "@/lib/profile/preferences";
+ import { personalBand, planningTemp } from "@/lib/generator/rules";
+ import { buildCandidates, type CandidateItem } from "@/lib/generator/candidates";
+@@ -154,7 +154,8 @@ export async function styleWithItem(
+     const args = {
+       weather: {
+         tempC: f.tempC,
+-        rain: f.hourly.some((h) => h.isNow && h.rain),
++        // Rain while the look is WORN, on the same clock as the temperature.
++        rain: rainAheadFor(occasion, f.restOfDay),
+         // The look is built for the day, not for this minute.
+         // Same rule on the styled path: the look is built for the window the
+         // chosen occasion is worn in, not for whenever the user tapped.
+
+
+=== DIFF: app/generate/actions.ts ===
+@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
+ import { signItemImages, displayPath } from "@/lib/storage/signed";
+ import { fetchForecast } from "@/lib/weather/open-meteo";
+ import { laterAdvice } from "@/lib/weather/advice";
+-import { planningTempFor } from "@/lib/weather/planning";
++import { planningTempFor, rainAheadFor } from "@/lib/weather/planning";
+ import { readPreferences } from "@/lib/profile/preferences";
+ import { personalBand, applyFormalityOverride, planningTemp } from "@/lib/generator/rules";
+ import { buildCandidates, missingCategory, type CandidateItem } from "@/lib/generator/candidates";
+@@ -202,7 +202,8 @@ export async function generate(input: {
+       band,
+       weather: {
+         tempC: f.tempC,
+-        rain: f.hourly.some((h) => h.isNow && h.rain),
++        // Rain while the look is WORN, on the same clock as the temperature.
++        rain: rainAheadFor(input.occasion, f.restOfDay),
+         // The look is built for the day, not for this minute.
+         // The peak of the window this occasion is actually WORN in. An Evening
+         // look chosen at 14:00 must not be built for the afternoon.
+
+
+=== DIFF: lib/weather/__tests__/planning.test.ts ===
+@@ -1,4 +1,4 @@
+-import { planningTempFor, occasionWindow } from "../planning";
++import { planningTempFor, rainAheadFor, occasionWindow } from "../planning";
+ import type { HourCell } from "@/lib/generator/types";
+ 
+ /** Hours from `h` onward at the given temperatures. */
+@@ -59,3 +59,41 @@ test("the warmest hour wins, not the average", () => {
+   const spiky = from(12, [10, 10, 28, 10, 10]);
+   expect(planningTempFor("everyday", spiky, 10)).toBe(28);
+ });
++
++// ── Rain, on the same clock as the temperature ──────────────────────────────
++// Audit finding, 2026-08-15. The wardrobe rules read rain at the CURRENT hour
++// while the advice strip beside them read the whole forecast, so a drop
++// generated at 09:00 for a day that rains from 15:00 chose suede shoes under a
++// line that said "Rain from 15:00 — take a shell."
++
++const wetAfternoon: HourCell[] = [
++  { hh: "09:00", tempC: 14, rain: false, isNow: true },
++  { hh: "12:00", tempC: 17, rain: false, isNow: false },
++  { hh: "15:00", tempC: 16, rain: true, isNow: false },
++  { hh: "21:00", tempC: 12, rain: true, isNow: false },
++];
++
++test("rain later in the day is rain the look has to survive", () => {
++  expect(rainAheadFor("work", wetAfternoon)).toBe(true);
++  expect(rainAheadFor("everyday", wetAfternoon)).toBe(true);
++});
++
++test("rain outside the occasion's window does not reach it", () => {
++  // A 21:00 shower must not cost someone their canvas sneakers at breakfast.
++  const wetNightOnly: HourCell[] = [
++    { hh: "09:00", tempC: 14, rain: false, isNow: true },
++    { hh: "12:00", tempC: 17, rain: false, isNow: false },
++    { hh: "21:00", tempC: 12, rain: true, isNow: false },
++  ];
++  expect(rainAheadFor("work", wetNightOnly)).toBe(false);
++  expect(rainAheadFor("evening", wetNightOnly)).toBe(true);
++});
++
++test("a dry window is dry", () => {
++  const dry: HourCell[] = [{ hh: "09:00", tempC: 14, rain: false, isNow: true }];
++  expect(rainAheadFor("everyday", dry)).toBe(false);
++});
++
++test("no hours at all is not rain", () => {
++  expect(rainAheadFor("work", [])).toBe(false);
++});
+
+
+=== DIFF: lib/weather/planning.ts ===
+@@ -51,11 +51,36 @@ export function planningTempFor(
+   restOfDay: HourCell[],
+   fallbackC: number,
+ ): number {
+-  const [from, to] = WINDOWS[occasion];
+-  const inWindow = restOfDay.filter((h) => hourOf(h) >= from && hourOf(h) < to);
+-  // An occasion whose window has passed still has to dress the user for the
+-  // hours that remain — never for a peak that is already behind them.
+-  const hours = inWindow.length ? inWindow : restOfDay;
++  const hours = hoursFor(occasion, restOfDay);
+   if (!hours.length) return fallbackC;
+   return Math.max(...hours.map((h) => h.tempC));
+ }
++
++/**
++ * Will it rain while this look is being worn?
++ *
++ * The rain flag used to be read at the CURRENT hour alone, which left the
++ * wardrobe rules a step behind the advice beside them: a drop generated at
++ * 09:00 for a day that rains from 15:00 chose suede shoes, while the strip
++ * underneath said "Rain from 15:00 — take a shell." Same defect class as
++ * planning the temperature from the current reading, and the same fix.
++ *
++ * Scoped to the occasion's window rather than the whole day on purpose. A
++ * shower at 22:00 should not cost someone their canvas sneakers at breakfast,
++ * and the wet-material rule is a real exclusion — `rainGuard` is the only
++ * preference that can turn it off.
++ */
++export function rainAheadFor(occasion: UiOccasion, restOfDay: HourCell[]): boolean {
++  return hoursFor(occasion, restOfDay).some((h) => h.rain);
++}
++
++/**
++ * The hours this occasion covers that are still ahead. An occasion whose window
++ * has passed falls back to whatever is left of the day — never to hours already
++ * behind the user.
++ */
++function hoursFor(occasion: UiOccasion, restOfDay: HourCell[]): HourCell[] {
++  const [from, to] = WINDOWS[occasion];
++  const inWindow = restOfDay.filter((h) => hourOf(h) >= from && hourOf(h) < to);
++  return inWindow.length ? inWindow : restOfDay;
++}
+
+
+Investigate per the method in your instructions, then return the findings list.
