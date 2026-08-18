@@ -1,0 +1,430 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - components/generate/weather-strip.tsx
+  - components/weather/__tests__/location-picker.test.tsx
+  - components/weather/location-picker.tsx
+  - lib/weather/__tests__/use-location-picker.test.ts
+  - lib/weather/use-location-picker.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: components/generate/weather-strip.tsx ===
+@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
+ import type { WeatherPayload } from "@/lib/generator/types";
+ import type { City } from "@/lib/weather/geocode";
+ import { formatTemp } from "@/lib/weather/format";
++import { LocationPicker } from "@/components/weather/location-picker";
+ 
+ const HAIR = "border-[rgba(237,230,216,0.07)]";
+ const HAIR2 = "border-[rgba(237,230,216,0.12)]";
+@@ -62,51 +63,24 @@ export function WeatherStrip({
+       )}
+ 
+       {menuOpen && (
+-        <ul role="listbox" aria-label="Choose a city" className={cn("absolute z-20 mt-2 w-full rounded-[12px] border bg-surface-3 p-1.5", HAIR2)}>
+-          {onUseMyLocation && (
+-            <li>
+-              <button
+-                type="button"
+-                onClick={() => {
++        <LocationPicker
++          className="absolute z-20 mt-2 w-full"
++          cities={cities}
++          currentLabel={weather.cityLabel}
++          onSearch={(q) => onSearch?.(q)}
++          onPick={(c) => {
++            onCityChange?.(c);
++            setMenuOpen(false);
++          }}
++          onUseMyLocation={
++            onUseMyLocation
++              ? () => {
+                   onUseMyLocation();
+                   setMenuOpen(false);
+-                }}
+-                className="flex min-h-11 w-full items-center gap-2 rounded-[8px] px-3 text-left text-[13px] text-foreground hover:bg-foreground/5"
+-              >
+-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+-                  <circle cx="12" cy="12" r="3.2" />
+-                  <path d="M12 2v3.2M12 18.8V22M22 12h-3.2M5.2 12H2" strokeLinecap="round" />
+-                </svg>
+-                Use my location
+-              </button>
+-            </li>
+-          )}
+-          <li className="p-1">
+-            <input
+-              aria-label="Search a city"
+-              placeholder="Search a city…"
+-              onChange={(e) => onSearch?.(e.target.value)}
+-              className="w-full rounded-[8px] bg-surface-1 px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-dim"
+-            />
+-          </li>
+-          {cities.map((c) => (
+-            <li key={`${c.name}-${c.lat}`}>
+-              <button
+-                type="button"
+-                role="option"
+-                aria-selected={c.name === weather.cityLabel}
+-                onClick={() => {
+-                  onCityChange?.(c);
+-                  setMenuOpen(false);
+-                }}
+-                className="flex min-h-11 w-full items-center justify-between rounded-[8px] px-3 text-left text-[13px] text-foreground hover:bg-foreground/5"
+-              >
+-                {c.name}
+-                <span className="text-[10px] text-muted-dim">{c.country}</span>
+-              </button>
+-            </li>
+-          ))}
+-        </ul>
++                }
++              : undefined
++          }
++        />
+       )}
+ 
+       <button
+
+
+=== DIFF: components/weather/__tests__/location-picker.test.tsx ===
+@@ -0,0 +1,62 @@
++import { render, screen, within } from "@testing-library/react";
++import userEvent from "@testing-library/user-event";
++import { expect, test, vi } from "vitest";
++import { LocationPicker } from "../location-picker";
++
++const cities = [
++  { name: "Manila", country: "PH", lat: 14.6, lon: 120.98 },
++  { name: "Berlin", country: "DE", lat: 52.52, lon: 13.41 },
++];
++
++function setup(over: Partial<React.ComponentProps<typeof LocationPicker>> = {}) {
++  const onPick = vi.fn();
++  const onSearch = vi.fn();
++  render(
++    <LocationPicker cities={cities} onPick={onPick} onSearch={onSearch} {...over} />,
++  );
++  return { onPick, onSearch };
++}
++
++test("the listbox is labelled and lists the results", () => {
++  setup();
++  const list = screen.getByRole("listbox", { name: /choose a city/i });
++  expect(within(list).getByRole("option", { name: /manila/i })).toBeInTheDocument();
++  expect(within(list).getByRole("option", { name: /berlin/i })).toBeInTheDocument();
++});
++
++test("the current city is marked selected, so a screen reader knows where you are", () => {
++  setup({ currentLabel: "Berlin" });
++  expect(screen.getByRole("option", { name: /berlin/i })).toHaveAttribute("aria-selected", "true");
++  expect(screen.getByRole("option", { name: /manila/i })).toHaveAttribute("aria-selected", "false");
++});
++
++test("picking a city hands back its coordinates, not just its name", async () => {
++  const { onPick } = setup();
++  await userEvent.click(screen.getByRole("option", { name: /manila/i }));
++  expect(onPick).toHaveBeenCalledWith(expect.objectContaining({ lat: 14.6, lon: 120.98 }));
++});
++
++test("typing searches", async () => {
++  const { onSearch } = setup();
++  await userEvent.type(screen.getByLabelText(/search a city/i), "Man");
++  expect(onSearch).toHaveBeenCalled();
++});
++
++test("'Use my location' is absent when the browser cannot do it", () => {
++  setup();
++  expect(screen.queryByRole("button", { name: /use my location/i })).not.toBeInTheDocument();
++});
++
++test("'Use my location' is offered when it is supported", async () => {
++  const onUseMyLocation = vi.fn();
++  setup({ onUseMyLocation });
++  await userEvent.click(screen.getByRole("button", { name: /use my location/i }));
++  expect(onUseMyLocation).toHaveBeenCalled();
++});
++
++test("every option is at least 44px tall — this is a phone", () => {
++  setup({ onUseMyLocation: vi.fn() });
++  for (const o of screen.getAllByRole("option")) {
++    expect(o.className).toMatch(/min-h-11/);
++  }
++});
+
+
+=== DIFF: components/weather/location-picker.tsx ===
+@@ -0,0 +1,91 @@
++"use client";
++
++import { cn } from "@/lib/utils";
++import type { City } from "@/lib/weather/geocode";
++
++const HAIR2 = "border-[rgba(237,230,216,0.12)]";
++
++/**
++ * The city menu, shared by the Stylist's weather pill and the Settings location
++ * row. Presentational — all browser-API state lives in `useLocationPicker`.
++ *
++ * Lifted verbatim from `weather-strip.tsx` so the two screens cannot drift into
++ * offering different ways to change the same setting.
++ *
++ * The `locating` / `geoError` status line is deliberately NOT here: the Stylist
++ * shows it even with the menu closed (you tap "use my location", the menu
++ * dismisses, and the feedback has to survive that), while Settings shows it
++ * beside its row. Placement is a per-screen concern, so each renders its own.
++ */
++export function LocationPicker({
++  cities,
++  currentLabel,
++  onSearch,
++  onPick,
++  onUseMyLocation,
++  className,
++}: {
++  cities: City[];
++  currentLabel?: string;
++  onSearch: (q: string) => void;
++  onPick: (c: City) => void;
++  /** Omitted when the browser has no geolocation at all — then search is the only path. */
++  onUseMyLocation?: () => void;
++  className?: string;
++}) {
++  return (
++    <div className={className}>
++      <ul
++        role="listbox"
++        aria-label="Choose a city"
++        className={cn("w-full rounded-[12px] border bg-surface-3 p-1.5", HAIR2)}
++      >
++        {onUseMyLocation && (
++          <li>
++            <button
++              type="button"
++              onClick={onUseMyLocation}
++              className="flex min-h-11 w-full items-center gap-2 rounded-[8px] px-3 text-left text-[13px] text-foreground hover:bg-foreground/5"
++            >
++              <svg
++                width="11"
++                height="11"
++                viewBox="0 0 24 24"
++                fill="none"
++                stroke="currentColor"
++                strokeWidth="2.2"
++                aria-hidden="true"
++              >
++                <circle cx="12" cy="12" r="3.2" />
++                <path d="M12 2v3.2M12 18.8V22M22 12h-3.2M5.2 12H2" strokeLinecap="round" />
++              </svg>
++              Use my location
++            </button>
++          </li>
++        )}
++        <li className="p-1">
++          <input
++            aria-label="Search a city"
++            placeholder="Search a city…"
++            onChange={(e) => onSearch(e.target.value)}
++            className="w-full rounded-[8px] bg-surface-1 px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-dim"
++          />
++        </li>
++        {cities.map((c) => (
++          <li key={`${c.name}-${c.lat}`}>
++            <button
++              type="button"
++              role="option"
++              aria-selected={c.name === currentLabel}
++              onClick={() => onPick(c)}
++              className="flex min-h-11 w-full items-center justify-between rounded-[8px] px-3 text-left text-[13px] text-foreground hover:bg-foreground/5"
++            >
++              {c.name}
++              <span className="text-[10px] text-muted-dim">{c.country}</span>
++            </button>
++          </li>
++        ))}
++      </ul>
++    </div>
++  );
++}
+
+
+=== DIFF: lib/weather/__tests__/use-location-picker.test.ts ===
+@@ -0,0 +1,96 @@
++import { renderHook, act, waitFor } from "@testing-library/react";
++import { beforeEach, expect, test, vi } from "vitest";
++import { useLocationPicker } from "../use-location-picker";
++import { searchCities } from "../geocode";
++import { getCurrentPosition, permissionState, GeoError } from "../geolocate";
++
++vi.mock("../geocode", () => ({ searchCities: vi.fn() }));
++vi.mock("../geolocate", async (orig) => ({
++  ...(await orig<typeof import("../geolocate")>()),
++  getCurrentPosition: vi.fn(),
++  permissionState: vi.fn(),
++}));
++
++const mockSearch = vi.mocked(searchCities);
++const mockPosition = vi.mocked(getCurrentPosition);
++const mockPermission = vi.mocked(permissionState);
++
++beforeEach(() => {
++  vi.clearAllMocks();
++  mockSearch.mockResolvedValue([]);
++  mockPermission.mockResolvedValue("prompt");
++});
++
++test("a query under two characters does not hit the network", () => {
++  // The input fires on every keystroke; "b" would return every city on earth.
++  const { result } = renderHook(() => useLocationPicker());
++  act(() => result.current.search("b"));
++  act(() => result.current.search(" "));
++  expect(mockSearch).not.toHaveBeenCalled();
++});
++
++test("a real query searches and exposes the results", async () => {
++  mockSearch.mockResolvedValue([{ name: "Manila", country: "PH", lat: 14.6, lon: 120.98 }]);
++  const { result } = renderHook(() => useLocationPicker());
++  act(() => result.current.search("Man"));
++  await waitFor(() => expect(result.current.cities).toHaveLength(1));
++  expect(mockSearch).toHaveBeenCalledWith("Man");
++});
++
++test("an explicit tap surfaces a denied permission as copy, not a silent no-op", async () => {
++  mockPosition.mockRejectedValue(new GeoError("denied"));
++  const { result } = renderHook(() => useLocationPicker());
++  act(() => result.current.useMyLocation());
++  await waitFor(() => expect(result.current.geoError).toMatch(/location access is off/i));
++});
++
++test("a non-permission failure gets different copy — the user can retry that one", async () => {
++  mockPosition.mockRejectedValue(new GeoError("timeout"));
++  const { result } = renderHook(() => useLocationPicker());
++  act(() => result.current.useMyLocation());
++  await waitFor(() => expect(result.current.geoError).toMatch(/couldn.t get your location/i));
++});
++
++test("locating returns to false after a failure, not stuck", async () => {
++  // A spinner that never stops is indistinguishable from a hung app.
++  mockPosition.mockRejectedValue(new GeoError("unavailable"));
++  const { result } = renderHook(() => useLocationPicker());
++  act(() => result.current.useMyLocation());
++  await waitFor(() => expect(result.current.locating).toBe(false));
++});
++
++test("a successful fix is handed to onPick, labelled as a GPS fix", async () => {
++  // We never reverse-geocode a name from coordinates: Open-Meteo has no reverse
++  // endpoint (D8) and a third party would ship precise user coords off-stack.
++  mockPosition.mockResolvedValue({ lat: 52.52, lon: 13.41 });
++  const onPick = vi.fn();
++  const { result } = renderHook(() => useLocationPicker({ onPick }));
++  act(() => result.current.useMyLocation());
++  await waitFor(() =>
++    expect(onPick).toHaveBeenCalledWith(
++      expect.objectContaining({ lat: 52.52, lon: 13.41, label: "Current location" }),
++    ),
++  );
++});
++
++test("geoSupported goes false only when the browser has no geolocation at all", async () => {
++  // Optimistic on purpose: the row shows until we KNOW it is useless. A denied
++  // permission is not the same as an unsupported browser — the first is
++  // recoverable in system settings, the second never is.
++  mockPermission.mockResolvedValue("denied");
++  const { result } = renderHook(() => useLocationPicker());
++  await waitFor(() => expect(mockPermission).toHaveBeenCalled());
++  expect(result.current.geoSupported).toBe(true);
++
++  mockPermission.mockResolvedValue("unsupported");
++  const second = renderHook(() => useLocationPicker());
++  await waitFor(() => expect(second.result.current.geoSupported).toBe(false));
++});
++
++test("probing permission never reads the position — that would prompt", async () => {
++  mockPermission.mockResolvedValue("granted");
++  renderHook(() => useLocationPicker());
++  await waitFor(() => expect(mockPermission).toHaveBeenCalled());
++  // The silent-refresh-on-load behaviour belongs to the Stylist, not this hook.
++  expect(mockPosition).not.toHaveBeenCalled();
++});
+
+
+=== DIFF: lib/weather/use-location-picker.ts ===
+@@ -0,0 +1,74 @@
++"use client";
++
++import { useCallback, useEffect, useState } from "react";
++import { searchCities, type City } from "./geocode";
++import { getCurrentPosition, permissionState, GeoError } from "./geolocate";
++
++const DENIED_COPY = "Location access is off — search for a city instead.";
++const FAILED_COPY = "Couldn't get your location — search for a city instead.";
++
++/** A place the user deliberately chose, on either screen. */
++export type PickedLocation = { lat: number; lon: number; label: string; source: "geo" | "city" };
++
++/**
++ * Everything the Stylist's weather pill and the Settings location row share:
++ * city search, an explicit "use my location" tap, and the three pieces of state
++ * the UI needs to be honest about what is happening.
++ *
++ * ⚠️ It deliberately does NOT own the Stylist's silent GPS refresh on load.
++ * That exists because the Stylist generates on mount and wants a fresh fix;
++ * Settings has no equivalent moment and must not rewrite a location while the
++ * user is looking at it. It also gates itself on `res.weather.locationOrigin`
++ * from a generate result, which Settings does not have. If a later plan unifies
++ * it, pass the stored origin IN as an argument (Settings can read
++ * `location_source` server-side) rather than re-deriving it here.
++ */
++export function useLocationPicker(opts?: { onPick?: (p: PickedLocation) => void }) {
++  const onPick = opts?.onPick;
++
++  const [cities, setCities] = useState<City[]>([]);
++  const [locating, setLocating] = useState(false);
++  const [geoError, setGeoError] = useState<string | null>(null);
++  // Optimistic: the row shows until we learn the browser has no geolocation at
++  // all, at which point it disappears and city search is the only path. A
++  // DENIED permission is not the same thing — that is recoverable in system
++  // settings, so the control stays and explains itself on tap.
++  const [geoSupported, setGeoSupported] = useState(true);
++
++  useEffect(() => {
++    let cancelled = false;
++    // Querying permission never prompts; reading the position would. So this
++    // only ever learns whether the API exists.
++    permissionState().then((state) => {
++      if (!cancelled && state === "unsupported") setGeoSupported(false);
++    });
++    return () => {
++      cancelled = true;
++    };
++  }, []);
++
++  const search = useCallback((q: string) => {
++    // The input fires on every keystroke, and a single letter matches most of
++    // the planet. Two characters is the floor that makes the result list mean
++    // anything.
++    if (q.trim().length < 2) return;
++    searchCities(q).then(setCities).catch(() => setCities([]));
++  }, []);
++
++  const useMyLocation = useCallback(() => {
++    setLocating(true);
++    setGeoError(null);
++    getCurrentPosition()
++      .then((c) =>
++        // Never reverse-geocoded: Open-Meteo has no reverse endpoint (D8) and a
++        // third-party one would ship precise user coordinates off-stack.
++        onPick?.({ ...c, label: "Current location", source: "geo" }),
++      )
++      .catch((e) =>
++        setGeoError(e instanceof GeoError && e.kind === "denied" ? DENIED_COPY : FAILED_COPY),
++      )
++      .finally(() => setLocating(false));
++  }, [onPick]);
++
++  return { cities, search, useMyLocation, locating, geoError, geoSupported };
++}
+
+
+Investigate per the method in your instructions, then return the findings list.
