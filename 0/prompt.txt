@@ -1,0 +1,30 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - .github/workflows/ci.yml
+
+Unified diff (only + lines are new):
+
+=== DIFF: .github/workflows/ci.yml ===
+@@ -20,9 +20,15 @@ jobs:
+   verify:
+     runs-on: ubuntu-latest
+     steps:
+-      - uses: actions/checkout@v4
+-
+-      - uses: actions/setup-node@v4
++      # @v5 of both actions runs on Node 24. The @v4 releases still ship a Node
++      # 20 entrypoint, which GitHub deprecated in September 2025 and now forces
++      # onto 24 with a warning on every run — pinning the newer majors removes
++      # the warning rather than silencing it.
++      # NOTE: `node-version` below is the runtime for OUR build steps and is
++      # unrelated to the action runtime the warning was about.
++      - uses: actions/checkout@v5
++
++      - uses: actions/setup-node@v5
+         with:
+           node-version: 22
+           cache: npm
+
+
+Investigate per the method in your instructions, then return the findings list.
