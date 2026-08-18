@@ -1,0 +1,6 @@
+<task-notification>
+<task-id>b9r1hm62k</task-id>
+<summary>Monitor event: "GitHub Actions outage recovery + PR #28 CI result"</summary>
+<event>GitHub Actions status: major_outage (PR #28 still cannot run CI)</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
