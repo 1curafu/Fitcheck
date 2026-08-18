@@ -1,0 +1,5 @@
+<task-notification>
+<task-id>b9sbl9t11</task-id>
+<summary>Monitor event: "profiles.location + outfit count while the picker is used"</summary>
+<event>[Monitor timed out — re-arm if needed.]</event>
+</task-notification>
