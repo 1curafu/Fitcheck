@@ -1,0 +1,1 @@
+should we maybe also make a navigation menu sticky, cause everytime scroll down to reach a nav menu, its stupid
