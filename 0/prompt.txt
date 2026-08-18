@@ -1,0 +1,6 @@
+<task-notification>
+<task-id>b9sbl9t11</task-id>
+<summary>Monitor event: "profiles.location + outfit count while the picker is used"</summary>
+<event>watching — current:</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
