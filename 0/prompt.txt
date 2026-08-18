@@ -1,0 +1,122 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/generate/actions.ts
+  - lib/generator/__tests__/rerank.test.ts
+  - lib/generator/rerank.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/generate/actions.ts ===
+@@ -9,7 +9,7 @@ import { buildCandidates, missingCategory, type CandidateItem } from "@/lib/gene
+ import { rankTopN } from "@/lib/generator/rank";
+ import { diversify } from "@/lib/generator/diversity";
+ import { currentSeason } from "@/lib/generator/season";
+-import { rerank } from "@/lib/generator/rerank";
++import { rerank, MAX_PICKS } from "@/lib/generator/rerank";
+ import { layoutForLook, staggerOrder } from "@/lib/generator/layout";
+ import { localDateFor } from "@/lib/outfits/local-date";
+ import { loadDailyLooks, saveDailyLooks } from "@/lib/outfits/daily";
+@@ -167,7 +167,15 @@ export async function generate(input: {
+     );
+     const top = diversify(ranked, 20);
+ 
++    // A look the user has already worn today is PINNED: saveDailyLooks leaves it
++    // in place, so it has to survive in what we hand back to the screen too —
++    // otherwise the day's set silently loses it until the next page load. It
++    // also still COUNTS toward the day's three, so the stylist is asked for
++    // fewer fresh looks rather than the set growing a fourth tab.
++    const pinnedStored = (stored ?? []).filter((s) => s.worn);
++
+     const { picks } = await rerank({
++      want: MAX_PICKS - pinnedStored.length,
+       combos: top.map((t) =>
+         t.items.map((ci) => {
+           const it = byId.get(ci.id)!;
+@@ -180,11 +188,6 @@ export async function generate(input: {
+       tempC: f.tempC,
+     });
+ 
+-    // A look the user has already worn today is PINNED: saveDailyLooks leaves it
+-    // in place, so it has to survive in what we hand back to the screen too —
+-    // otherwise the day's set silently loses it until the next page load.
+-    const pinnedStored = (stored ?? []).filter((s) => s.worn);
+-
+     const paths = Array.from(
+       new Set([
+         ...top.flatMap((t) => t.items.map((ci) => displayPath(byId.get(ci.id)!))),
+
+
+=== DIFF: lib/generator/__tests__/rerank.test.ts ===
+@@ -151,3 +151,20 @@ test("the last valid index is inclusive", () => {
+ test("with no count given, indices are not range-checked", () => {
+   expect(dedupePicks([pick(99)]).map((p) => p.combo_index)).toEqual([99]);
+ });
++
++// A worn look is pinned into the day's set, so it still counts toward the three.
++// Without this the set grew a fourth look on every wear-then-regenerate, and the
++// index tabs are 01/02/03 — a fourth does not fit at 390px.
++test("finalisePicks returns only as many looks as the day still has room for", () => {
++  expect(finalisePicks([pick(0), pick(1), pick(2)], 20, 2).map((p) => p.combo_index)).toEqual([
++    0, 1,
++  ]);
++  expect(finalisePicks([pick(0), pick(1), pick(2)], 20, 1).map((p) => p.combo_index)).toEqual([0]);
++});
++
++// Regenerate must always be worth pressing: even with a full set of worn looks
++// it returns something new rather than silently doing nothing.
++test("finalisePicks never returns an empty set, however many looks are pinned", () => {
++  expect(finalisePicks([pick(0), pick(1)], 20, 0)).toHaveLength(1);
++  expect(finalisePicks([pick(0), pick(1)], 20, -2)).toHaveLength(1);
++});
+
+
+=== DIFF: lib/generator/rerank.ts ===
+@@ -116,8 +116,8 @@ export function dedupePicks(picks: Pick[], comboCount?: number): Pick[] {
+  * repeats and out-of-range indices, then cap at MAX_PICKS. The cap lives here
+  * rather than in the schema so an over-eager model costs the user nothing.
+  */
+-export function finalisePicks(picks: Pick[], comboCount?: number): Pick[] {
+-  return dedupePicks(picks, comboCount).slice(0, MAX_PICKS);
++export function finalisePicks(picks: Pick[], comboCount?: number, want = MAX_PICKS): Pick[] {
++  return dedupePicks(picks, comboCount).slice(0, Math.max(1, want));
+ }
+ 
+ export async function rerank(args: {
+@@ -126,16 +126,24 @@ export async function rerank(args: {
+   occasion: string;
+   weatherLabel: string;
+   tempC: number;
++  /**
++   * How many looks to return. Defaults to the full daily set; a regenerate on a
++   * day where a look has already been WORN asks for fewer, because the worn one
++   * is pinned and still counts toward the day's three. "Today's Looks" is a set
++   * of three — the index tabs are 01/02/03 and a fourth does not fit at 390px.
++   */
++  want?: number;
+ }): Promise<RerankResult> {
++  const want = Math.max(1, Math.min(args.want ?? MAX_PICKS, MAX_PICKS));
+   const prompt = `You are a personal stylist. The user's aesthetic is ${
+     args.aesthetic.join(", ") || "understated, modern menswear"
+   }. Occasion: ${args.occasion}. Weather: ${args.weatherLabel}, ${args.tempC}°C.
+ Here are candidate outfits (already filtered and scored), one per line:
+ ${describeCombos(args.combos)}
+ 
+-Pick the best 3. ${RERANK_VARIETY_RULE}
++Pick the best ${want}. ${RERANK_VARIETY_RULE}
+ 
+-For each return: its combo_index; a short evocative NAME (≤4 words and at most ${NAME_MAX} characters, e.g. "The Off-Duty Camel"); and ONE warm, specific sentence ("why") that references the colours/pieces (e.g. "the camel knit warms the grey trousers and picks up the loafers"). Return exactly 3 picks, each with a DIFFERENT combo_index.`;
++For each return: its combo_index; a short evocative NAME (≤4 words and at most ${NAME_MAX} characters, e.g. "The Off-Duty Camel"); and ONE warm, specific sentence ("why") that references the colours/pieces (e.g. "the camel knit warms the grey trousers and picks up the loafers"). Return exactly ${want} pick${want === 1 ? "" : "s"}, each with a DIFFERENT combo_index.`;
+ 
+   const client = new Anthropic(); // lazy: keeps this module importable in tests without a key
+   const res = await client.messages.create({
+@@ -148,5 +156,5 @@ For each return: its combo_index; a short evocative NAME (≤4 words and at most
+   const parsed = RerankSchema.parse(JSON.parse(text));
+   // The prompt asks for distinct picks; this guarantees it. A model that repeats
+   // an index costs the user one look, not a duplicated outfit on the screen.
+-  return { ...parsed, picks: finalisePicks(parsed.picks, args.combos.length) };
++  return { ...parsed, picks: finalisePicks(parsed.picks, args.combos.length, want) };
+ }
+
+
+Investigate per the method in your instructions, then return the findings list.
