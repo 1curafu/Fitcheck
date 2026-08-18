@@ -1,0 +1,21 @@
+## Error Type
+Console Error
+
+## Error Message
+Each child in a list should have a unique "key" prop.
+
+Check the render method of `ItemView`. It was passed a child from ItemPage. See https://react.dev/link/warning-keys for more information.
+
+
+    at ItemPage (app/closet/[itemId]/page.tsx:91:17)
+
+## Code Frame
+  89 |       stats={stats}
+  90 |       goesWith={goesWithCards}
+> 91 |       styleCta={<StyleCta itemId={item.id} />}
+     |                 ^
+  92 |     />
+  93 |   );
+  94 | }
+
+Next.js version: 16.2.9 (Turbopack)
