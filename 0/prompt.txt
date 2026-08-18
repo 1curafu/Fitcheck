@@ -1,0 +1,113 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - lib/closet/__tests__/wear-stats.test.ts
+  - lib/closet/wear-stats.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: lib/closet/__tests__/wear-stats.test.ts ===
+@@ -0,0 +1,49 @@
++import { itemWearStats } from "../wear-stats";
++
++test("counts wears and divides the price across them", () => {
++  const s = itemWearStats([{ worn_on: "2026-07-01" }, { worn_on: "2026-07-10" }], 100, "2026-07-24");
++  expect(s.wears).toBe(2);
++  expect(s.costPerWear).toBe("£50.00");
++});
++
++test("no price means no cost-per-wear rather than a fabricated zero", () => {
++  expect(itemWearStats([{ worn_on: "2026-07-01" }], null, "2026-07-24").costPerWear).toBeNull();
++});
++
++test("a priced but never-worn item does not divide by zero", () => {
++  const s = itemWearStats([], 100, "2026-07-24");
++  expect(s.wears).toBe(0);
++  expect(s.costPerWear).toBeNull();
++});
++
++test("last worn reads in human time, counting from the most recent wear", () => {
++  expect(itemWearStats([{ worn_on: "2026-07-24" }], null, "2026-07-24").lastWorn).toBe("Today");
++  expect(itemWearStats([{ worn_on: "2026-07-23" }], null, "2026-07-24").lastWorn).toBe("Yesterday");
++  expect(itemWearStats([{ worn_on: "2026-07-14" }], null, "2026-07-24").lastWorn).toBe("10 days ago");
++});
++
++test("the most recent wear wins, not the first in the list", () => {
++  const s = itemWearStats(
++    [{ worn_on: "2026-07-01" }, { worn_on: "2026-07-23" }, { worn_on: "2026-06-02" }],
++    null,
++    "2026-07-24",
++  );
++  expect(s.lastWorn).toBe("Yesterday");
++});
++
++test("never worn says so plainly", () => {
++  expect(itemWearStats([], null, "2026-07-24").lastWorn).toBe("Never");
++});
++
++// Dates are compared as calendar days, not by subtracting timestamps — a wear
++// logged either side of a DST change is still exactly one day ago.
++test("a wear across a DST boundary is still counted in whole days", () => {
++  // Europe/London: clocks go back on 2026-10-25.
++  expect(itemWearStats([{ worn_on: "2026-10-24" }], null, "2026-10-26").lastWorn).toBe("2 days ago");
++});
++
++// The daily drop is keyed on the user's LOCAL date, and so is worn_on. A log
++// dated later than "today" means the clock moved, not that the future happened.
++test("a wear dated ahead of today reads as Today rather than a negative count", () => {
++  expect(itemWearStats([{ worn_on: "2026-07-25" }], null, "2026-07-24").lastWorn).toBe("Today");
++});
+
+
+=== DIFF: lib/closet/wear-stats.ts ===
+@@ -0,0 +1,47 @@
++/**
++ * The three tiles at the top of item detail (Fitcheck.dc.html:609-627).
++ *
++ * The wear rows behind this come from `wear_logs` joined through `outfit_items`
++ * — a wear is logged against an OUTFIT, so an item's wear count is "how many
++ * logged outfits contained it".
++ */
++
++const GBP = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" });
++
++/**
++ * Whole calendar days between two `YYYY-MM-DD` keys.
++ *
++ * Built from the date parts via `Date.UTC` rather than parsing the strings as
++ * local timestamps: `worn_on` is a DATE in the user's local calendar, and
++ * subtracting two local timestamps across a DST change yields 23 or 25 hours,
++ * which rounds to the wrong number of days.
++ */
++function daysBetween(from: string, to: string): number {
++  const a = Date.UTC(+from.slice(0, 4), +from.slice(5, 7) - 1, +from.slice(8, 10));
++  const b = Date.UTC(+to.slice(0, 4), +to.slice(5, 7) - 1, +to.slice(8, 10));
++  return Math.round((b - a) / 86_400_000);
++}
++
++/**
++ * Cost-per-wear is null rather than 0 or "—" when there is no price or no
++ * wears: dividing by zero wears would print £Infinity, and showing £0.00 for an
++ * unpriced item states something false. The UI hides the tile instead.
++ */
++export function itemWearStats(
++  logs: { worn_on: string }[],
++  price: number | null,
++  today: string,
++): { wears: number; costPerWear: string | null; lastWorn: string } {
++  const wears = logs.length;
++  const costPerWear = price != null && wears > 0 ? GBP.format(price / wears) : null;
++
++  if (!wears) return { wears, costPerWear, lastWorn: "Never" };
++
++  const latest = logs.reduce((a, b) => (a.worn_on > b.worn_on ? a : b)).worn_on;
++  const d = daysBetween(latest, today);
++  // `d <= 0` also covers a log dated ahead of today — possible if the device
++  // clock or timezone moved. "Today" is the honest reading; a negative count
++  // would not be.
++  const lastWorn = d <= 0 ? "Today" : d === 1 ? "Yesterday" : `${d} days ago`;
++  return { wears, costPerWear, lastWorn };
++}
+
+
+Investigate per the method in your instructions, then return the findings list.
