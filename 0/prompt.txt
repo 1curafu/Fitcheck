@@ -1,0 +1,6 @@
+<task-notification>
+<task-id>bk1vn3v40</task-id>
+<summary>Monitor event: "CI result for PR #29"</summary>
+<event>PR #29 CI — verify: pass</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
