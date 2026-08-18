@@ -1,0 +1,82 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/generate/page.tsx
+  - components/shell/__tests__/mobile-nav.test.tsx
+  - components/shell/mobile-nav.tsx
+  - components/shell/mobile-shell.tsx
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/generate/page.tsx ===
+@@ -11,7 +11,10 @@ export default async function GeneratePage() {
+   if (!user) redirect("/");
+ 
+   return (
+-    <div className="flex min-h-dvh flex-1 flex-col pb-[76px]">
++    // No bottom padding: the sticky nav occupies its own space in flow at the
++    // end of the page, so nothing sits under it. The old pb-[76px] was both
++    // unnecessary and 31px short of the nav's actual height.
++    <div className="flex min-h-dvh flex-1 flex-col">
+       <Stylist />
+       <MobileNav />
+     </div>
+
+
+=== DIFF: components/shell/__tests__/mobile-nav.test.tsx ===
+@@ -1,5 +1,6 @@
+ import { render, screen } from "@testing-library/react";
+ import { MobileNav } from "../mobile-nav";
++import { MobileShell } from "../mobile-shell";
+ 
+ vi.mock("next/navigation", () => ({ usePathname: () => "/closet" }));
+ 
+@@ -39,3 +40,14 @@ test("the nav is a floating pill, not a full-width bar", () => {
+   expect(pill?.className).toMatch(/rounded-\[22px\]/);
+   expect(pill?.className).toMatch(/backdrop-blur/);
+ });
++
++// The nav is sticky, but an ancestor with `overflow: hidden` is a scroll
++// container — a sticky descendant then sticks to THAT box instead of the
++// viewport, and the nav only appeared once you scrolled to the end of the page.
++// `overflow-x-clip` clips the 440px cap without creating a scroll container.
++test("the shell does not trap the sticky nav in a scroll container", () => {
++  const { container } = render(<MobileShell>content</MobileShell>);
++  const shell = container.firstElementChild as HTMLElement;
++  expect(shell.className).not.toMatch(/(?<!-x-)\boverflow-hidden\b/);
++  expect(shell.className).toContain("overflow-x-clip");
++});
+
+
+=== DIFF: components/shell/mobile-nav.tsx ===
+@@ -20,7 +20,13 @@ export function MobileNav() {
+     // Design :825-826 — a floating PILL, not a full-width bar. The outer
+     // element is only a gradient fade to the canvas; the pill is the inner slab,
+     // inset from the screen edges and lifted clear of the home indicator.
+-    <nav className="sticky bottom-0 z-50 bg-gradient-to-t from-canvas from-72% to-transparent px-4 pb-[26px] pt-[10px]">
++    // The space below the pill is home-indicator clearance, not slack — it only
++    // reads as dead space in Safari, where the browser toolbar occupies that
++    // band instead. `env(safe-area-inset-bottom)` is 0 in the browser (so 26px
++    // holds) and 34px on an iPhone in standalone, where the indicator actually
++    // is; the layout already sets `viewportFit: "cover"`, which is what makes
++    // the variable available at all.
++    <nav className="sticky bottom-0 z-50 bg-gradient-to-t from-canvas from-72% to-transparent px-4 pb-[max(26px,env(safe-area-inset-bottom))] pt-[10px]">
+       <div className="flex items-center justify-around rounded-[22px] bg-[rgba(24,23,26,0.82)] px-2 py-[11px] shadow-[inset_0_0_0_1px_var(--hairline-5),0_10px_30px_rgba(0,0,0,0.4)] backdrop-blur-[18px] backdrop-saturate-150">
+         {TABS.map(({ href, label, Icon }) => {
+           const active = pathname.startsWith(href);
+
+
+=== DIFF: components/shell/mobile-shell.tsx ===
+@@ -2,7 +2,8 @@ import { Grain } from "./grain";
+ 
+ export function MobileShell({ children }: { children: React.ReactNode }) {
+   return (
+-    <div className="relative mx-auto flex min-h-dvh w-full max-w-[440px] flex-col overflow-hidden bg-canvas">
++
++    <div className="relative mx-auto flex min-h-dvh w-full max-w-[440px] flex-col overflow-x-clip bg-canvas">
+       <Grain />
+       {children}
+     </div>
+
+
+Investigate per the method in your instructions, then return the findings list.
