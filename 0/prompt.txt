@@ -1,0 +1,57 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - lib/outfits/__tests__/local-date.test.ts
+  - lib/outfits/local-date.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: lib/outfits/__tests__/local-date.test.ts ===
+@@ -0,0 +1,20 @@
++import { localDateFor } from "../local-date";
++
++// "Today" must be the user's local date. Keying the daily set on the UTC date
++// rolls the drop over at the wrong hour for everyone outside UTC — 01:30 in
++// Berlin is still "yesterday" by UTC, so the user would get a second set of
++// looks in the middle of the night.
++const lateEvening = new Date("2026-07-22T23:30:00Z");
++
++test("formats as YYYY-MM-DD", () => {
++  expect(localDateFor(lateEvening, "UTC")).toBe("2026-07-22");
++});
++test("an instant that is already tomorrow in the user's zone reads as tomorrow", () => {
++  expect(localDateFor(lateEvening, "Europe/Berlin")).toBe("2026-07-23");
++});
++test("the same instant is still today in a western zone", () => {
++  expect(localDateFor(lateEvening, "America/New_York")).toBe("2026-07-22");
++});
++test("an unknown zone falls back to UTC instead of throwing", () => {
++  expect(localDateFor(lateEvening, "Not/AZone")).toBe("2026-07-22");
++});
+
+
+=== DIFF: lib/outfits/local-date.ts ===
+@@ -0,0 +1,20 @@
++/**
++ * The user's local calendar date, as `YYYY-MM-DD`.
++ *
++ * This is the key of the daily look set. It must be LOCAL: keyed on the UTC
++ * date, the drop would roll over mid-evening for eastern users and mid-morning
++ * for western ones. `en-CA` is used purely because it formats as YYYY-MM-DD.
++ */
++export function localDateFor(now: Date, timeZone: string): string {
++  try {
++    return new Intl.DateTimeFormat("en-CA", {
++      timeZone,
++      year: "numeric",
++      month: "2-digit",
++      day: "2-digit",
++    }).format(now);
++  } catch {
++    // An unknown zone must never block generation — fall back to UTC.
++    return now.toISOString().slice(0, 10);
++  }
++}
+
+
+Investigate per the method in your instructions, then return the findings list.
