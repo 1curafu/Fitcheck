@@ -1,0 +1,239 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/closet/page.tsx
+  - components/closet/item-card.tsx
+  - components/shell/__tests__/mobile-nav.test.tsx
+  - components/shell/mobile-nav.tsx
+  - components/ui-fitcheck/__tests__/surface.test.tsx
+  - components/ui-fitcheck/surface.tsx
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/closet/page.tsx ===
+@@ -1,6 +1,6 @@
+ import Link from "next/link";
+ import { redirect } from "next/navigation";
+-import { Plus } from "lucide-react";
++import { Camera } from "lucide-react";
+ import { createClient } from "@/lib/supabase/server";
+ import { signItemImages, displayPath } from "@/lib/storage/signed";
+ import { Kicker } from "@/components/ui-fitcheck/kicker";
+@@ -37,13 +37,6 @@ export default async function ClosetPage() {
+             <Kicker>{grid.length} Pieces</Kicker>
+             <h1 className="font-serif text-3xl text-foreground">The Closet</h1>
+           </div>
+-          <Link
+-            href="/closet/upload"
+-            aria-label="Add a piece"
+-            className="grid size-11 place-items-center rounded-full bg-foreground text-canvas"
+-          >
+-            <Plus size={20} />
+-          </Link>
+         </header>
+ 
+         {grid.length === 0 ? (
+@@ -60,6 +53,19 @@ export default async function ClosetPage() {
+           <ClosetGrid items={grid} />
+         )}
+       </main>
++      {/* Design :192-194 — capture is the closet's primary action, so it gets
++          the most prominent element on the screen: a 60px rust circle floating
++          clear of the tab pill. It used to be the LEAST prominent thing here, a
++          small cream `+` in the header. The camera glyph also says *how* a piece
++          gets added. This is the screen's one rust element (DESIGN.md, the One
++          Rust Rule) — which is why the nav's active tab is cream, not rust. */}
++      <Link
++        href="/closet/upload"
++        aria-label="Add a piece"
++        className="fixed bottom-[108px] right-[22px] z-[85] grid size-[60px] place-items-center rounded-full bg-brand text-[#1a0f09] shadow-[0_12px_28px_rgba(184,106,71,0.35),inset_0_1px_0_rgba(255,255,255,0.18)]"
++      >
++        <Camera size={26} strokeWidth={1.8} />
++      </Link>
+       <MobileNav />
+     </div>
+   );
+
+
+=== DIFF: components/closet/item-card.tsx ===
+@@ -17,7 +17,10 @@ export function ItemCard({
+   return (
+     <Link href={`/closet/${id}`} className="mb-3 block break-inside-avoid">
+       <Surface className="overflow-hidden">
+-        <div style={{ height }} className="bg-surface-2">
++        {/* No fill of its own — the cutout floats on the card's gradient, as in
++            the design (Fitcheck.dc.html:181, where this div carries only the
++            image). A flat panel here covered most of that gradient. */}
++        <div style={{ height }}>
+           {imageUrl ? (
+             // Not next/image on purpose: `imageUrl` is a short-lived signed
+             // Supabase URL, and the optimizer caches by URL — a rotating
+@@ -40,7 +43,10 @@ export function ItemCard({
+               {brand}
+             </p>
+           )}
+-          <p className="font-serif text-[15px] text-foreground">{name}</p>
++          {/* --color-value (#cfc8ba), the middle of the cream ramp. The design
++              gives every label/value pair's VALUE this step; at --foreground it
++              read too loud against the brand kicker above it. */}
++          <p className="font-serif text-[15px] text-value">{name}</p>
+         </div>
+       </Surface>
+     </Link>
+
+
+=== DIFF: components/shell/__tests__/mobile-nav.test.tsx ===
+@@ -11,8 +11,31 @@ test("renders all four tabs with correct hrefs", () => {
+   expect(screen.getByRole("link", { name: /profile/i })).toHaveAttribute("href", "/profile");
+ });
+ 
+-test("marks the active tab with the brand colour", () => {
++// Design :1145 — `tabActive='#EDE6D8'` (--foreground) with weight 600,
++// `tabIdle='#5b5950'`. The active tab was rust, which is both off-design and a
++// second rust element on screens that already spend theirs (the capture FAB,
++// the "f" glyph in the why-quote). See DESIGN.md, the One Rust Rule.
++test("the active tab is the cream foreground at weight 600, not rust", () => {
+   render(<MobileNav />);
+-  expect(screen.getByRole("link", { name: /closet/i })).toHaveClass("text-brand");
+-  expect(screen.getByRole("link", { name: /stylist/i })).not.toHaveClass("text-brand");
++  const active = screen.getByRole("link", { name: /closet/i });
++  expect(active).toHaveClass("text-foreground", "font-semibold");
++  expect(active).not.toHaveClass("text-brand");
++});
++
++test("inactive tabs recede", () => {
++  render(<MobileNav />);
++  const idle = screen.getByRole("link", { name: /stylist/i });
++  expect(idle).toHaveClass("text-muted-dim");
++  expect(idle).not.toHaveClass("text-foreground");
++});
++
++test("the nav is a floating pill, not a full-width bar", () => {
++  const { container } = render(<MobileNav />);
++  const nav = container.querySelector("nav")!;
++  // Design :825-826 — the outer element is a transparent gradient fade; the
++  // pill is the inner slab. A top border means we reverted to the flat bar.
++  expect(nav.className).not.toMatch(/border-t/);
++  const pill = nav.querySelector("div");
++  expect(pill?.className).toMatch(/rounded-\[22px\]/);
++  expect(pill?.className).toMatch(/backdrop-blur/);
+ });
+
+
+=== DIFF: components/shell/mobile-nav.tsx ===
+@@ -17,23 +17,39 @@ const TABS = [
+ export function MobileNav() {
+   const pathname = usePathname();
+   return (
+-    <nav className="sticky bottom-0 z-50 flex border-t border-[--border] bg-canvas/90 px-2 py-2 backdrop-blur">
+-      {TABS.map(({ href, label, Icon }) => {
+-        const active = pathname.startsWith(href);
+-        return (
+-          <Link
+-            key={href}
+-            href={href}
+-            className={cn(
+-              "flex flex-1 flex-col items-center gap-1 py-1 text-[11px]",
+-              active ? "text-brand" : "text-muted-foreground",
+-            )}
+-          >
+-            <Icon size={20} strokeWidth={1.5} />
+-            {label}
+-          </Link>
+-        );
+-      })}
++    // Design :825-826 — a floating PILL, not a full-width bar. The outer
++    // element is only a gradient fade to the canvas; the pill is the inner slab,
++    // inset from the screen edges and lifted clear of the home indicator.
++    <nav className="sticky bottom-0 z-50 bg-gradient-to-t from-canvas from-72% to-transparent px-4 pb-[26px] pt-[10px]">
++      <div className="flex items-center justify-around rounded-[22px] bg-[rgba(24,23,26,0.82)] px-2 py-[11px] shadow-[inset_0_0_0_1px_var(--hairline-5),0_10px_30px_rgba(0,0,0,0.4)] backdrop-blur-[18px] backdrop-saturate-150">
++        {TABS.map(({ href, label, Icon }) => {
++          const active = pathname.startsWith(href);
++          return (
++            <Link
++              key={href}
++              href={href}
++              className={cn(
++                // text-[11px] is retained deliberately: the design specifies
++                // 9.5px here, but this plan must not touch font sizes — the
++                // small-type question is deferred to the end of the project
++                // (decision 2026-07-24) and belongs to its own audit.
++                "flex flex-1 flex-col items-center gap-[5px] py-[2px] text-[11px] tracking-[0.06em]",
++                // :1145 — tabActive '#EDE6D8' at weight 600, tabIdle '#5b5950'.
++                // Idle maps to --muted-dim (#615c52), the nearest system token;
++                // the design's exact value is 6/3/2 darker per channel, which is
++                // imperceptible and not worth a one-off hex.
++                // Deliberately NOT rust: the active tab used to be text-brand,
++                // which spent a second rust on every screen. See DESIGN.md, the
++                // One Rust Rule.
++                active ? "font-semibold text-foreground" : "text-muted-dim",
++              )}
++            >
++              <Icon size={23} strokeWidth={1.5} />
++              {label}
++            </Link>
++          );
++        })}
++      </div>
+     </nav>
+   );
+ }
+
+
+=== DIFF: components/ui-fitcheck/__tests__/surface.test.tsx ===
+@@ -1,8 +1,29 @@
+ import { render, screen } from "@testing-library/react";
+ import { Surface } from "../surface";
+ 
+-test("applies surface background and the inset hairline ring", () => {
++test("applies the design's card gradient and keeps the card radius", () => {
+   render(<Surface data-testid="s">x</Surface>);
+   const el = screen.getByTestId("s");
+-  expect(el).toHaveClass("bg-surface-1", "rounded-[14px]");
++  expect(el).toHaveClass("surface-card", "rounded-[14px]");
++});
++
++test("no flat fill — the design never fills a raised surface with a solid colour", () => {
++  // `.surface-card` (globals.css @layer components) carries BOTH the gradient
++  // and its inset hairline. A `bg-*` utility alongside it would win on layer
++  // order — utilities come after components in Tailwind v4 — and silently
++  // restore the flat fill this replaced.
++  render(<Surface data-testid="s">x</Surface>);
++  const el = screen.getByTestId("s");
++  expect(el.className).not.toMatch(/\bbg-surface-1\b/);
++  expect(el.className).not.toMatch(/shadow-\[inset/);
++});
++
++test("callers can still add layout classes without losing the surface", () => {
++  render(
++    <Surface data-testid="s" className="overflow-hidden">
++      x
++    </Surface>,
++  );
++  const el = screen.getByTestId("s");
++  expect(el).toHaveClass("surface-card", "overflow-hidden");
+ });
+
+
+=== DIFF: components/ui-fitcheck/surface.tsx ===
+@@ -4,7 +4,16 @@ export function Surface({ className, ...props }: React.ComponentProps<"div">) {
+   return (
+     <div
+       className={cn(
+-        "bg-surface-1 rounded-[14px] shadow-[inset_0_0_0_1px_rgba(237,230,216,0.07)]",
++        // `.surface-card` (globals.css @layer components) carries the design's
++        // card gradient AND its inset hairline. It replaced a flat
++        // `bg-surface-1` + a hard-coded 0.07 ring: the design never fills a
++        // raised surface with a solid colour, and drawing one flattened the
++        // depth that the directional gradient provides.
++        //
++        // Do not re-add a `bg-*` utility here or at a call site — utilities sit
++        // after components in Tailwind v4's layer order, so it would win and
++        // silently restore the flat fill.
++        "surface-card rounded-[14px]",
+         className,
+       )}
+       {...props}
+
+
+Investigate per the method in your instructions, then return the findings list.
