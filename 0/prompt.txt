@@ -1,0 +1,96 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - lib/outfits/__tests__/wear.test.ts
+  - lib/outfits/wear.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: lib/outfits/__tests__/wear.test.ts ===
+@@ -0,0 +1,41 @@
++import { freshIndexStart, isWornToday, wearLabel } from "../wear";
++
++test("the button says what it will do, then what it did", () => {
++  // Design :362 — wearLabel is dynamic, so the button reflects state.
++  expect(wearLabel(false)).toBe("Wear this today");
++  expect(wearLabel(true)).toBe("Worn today");
++});
++
++test("a wear counts for today only when its local date matches", () => {
++  expect(isWornToday([{ worn_on: "2026-07-24" }], "2026-07-24")).toBe(true);
++  expect(isWornToday([{ worn_on: "2026-07-23" }], "2026-07-24")).toBe(false);
++  expect(isWornToday([], "2026-07-24")).toBe(false);
++});
++
++test("an outfit worn on several days is still worn today if one of them is today", () => {
++  expect(isWornToday([{ worn_on: "2026-07-01" }, { worn_on: "2026-07-24" }], "2026-07-24")).toBe(
++    true,
++  );
++});
++
++// The pin: a worn outfit survives a Regenerate, so the new set has to be placed
++// AROUND it. outfits_daily_unique is (user_id, occasion, generated_on,
++// look_index), so reusing a pinned index is a constraint violation, not a
++// cosmetic clash.
++test("a regenerate with nothing pinned starts at zero, exactly as before", () => {
++  expect(freshIndexStart([])).toBe(0);
++});
++
++test("a regenerate places the new set past every pinned index", () => {
++  expect(freshIndexStart([0])).toBe(1);
++  expect(freshIndexStart([1])).toBe(2);
++  // Two worn looks, and the gap at 1 is deliberately not reused — indices only
++  // ever move forward, so a second regenerate cannot collide with the first.
++  expect(freshIndexStart([0, 2])).toBe(3);
++});
++
++test("a pinned look with no index does not drag the new set back to zero", () => {
++  // look_index is nullable in the schema; a null must not read as index 0.
++  expect(freshIndexStart([null, 3])).toBe(4);
++  expect(freshIndexStart([null])).toBe(0);
++});
+
+
+=== DIFF: lib/outfits/wear.ts ===
+@@ -0,0 +1,38 @@
++/**
++ * Wear logging — the one write path every wear-derived surface reads from.
++ *
++ * Times worn, cost-per-wear, last worn, the Fit Diary grid, streaks, "most
++ * worn" and "gathering dust" are all views over wear_logs. Nothing wrote to it
++ * before this.
++ */
++
++/** The button states itself: an instruction before, a fact after. */
++export function wearLabel(worn: boolean): string {
++  return worn ? "Worn today" : "Wear this today";
++}
++
++/**
++ * `worn_on` is a DATE column, compared against the user's LOCAL date key — a
++ * UTC comparison would move an evening wear in an eastern timezone onto the
++ * next day, which is the same class of bug the daily drop already avoids.
++ */
++export function isWornToday(logs: { worn_on: string }[], today: string): boolean {
++  return logs.some((l) => l.worn_on === today);
++}
++
++/**
++ * Where a regenerated set starts numbering, given the indices already pinned.
++ *
++ * A worn outfit is pinned: `saveDailyLooks` leaves it out of the day's delete so
++ * that wearing a look and then regenerating cannot destroy what you actually
++ * wore (the FK had no ON DELETE action, so it used to fail outright). But
++ * `outfits_daily_unique` is `(user_id, occasion, generated_on, look_index)`, so
++ * the fresh set has to be numbered past the survivors.
++ *
++ * Indices only ever move forward — gaps left by a previous regenerate are not
++ * reused, because reusing one would collide with a look pinned in between.
++ */
++export function freshIndexStart(pinned: (number | null)[]): number {
++  const used = pinned.filter((i): i is number => typeof i === "number");
++  return used.length === 0 ? 0 : Math.max(...used) + 1;
++}
+
+
+Investigate per the method in your instructions, then return the findings list.
