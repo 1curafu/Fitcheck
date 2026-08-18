@@ -1,0 +1,166 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/generate/actions.ts
+  - app/settings/actions.ts
+  - lib/weather/__tests__/location.test.ts
+  - lib/weather/location.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/generate/actions.ts ===
+@@ -27,7 +27,7 @@ import {
+   resolveLocation,
+   roundCoord,
+   locationColumns,
+-  locationMoved,
++  invalidatesDrop,
+   LocationInputSchema,
+   type LocationSource,
+ } from "@/lib/weather/location";
+@@ -112,8 +112,10 @@ export async function generate(input: {
+      * caching does not make a 26°C Manila outfit correct under a 12°C
+      * Reykjavik sky.
+      *
+-     * Compared against the RESOLVED previous location, so the first move a
+-     * user makes — away from DEFAULT_LOCATION, with nothing stored yet — counts.
++     * INTENT decides, not distance: a deliberate city pick always rebuilds,
++     * however near, because the user asked and a screen that does not change
++     * reads as broken. A silent GPS refresh only rebuilds past 25km, so a
++     * commute does not cost a generation. See `invalidatesDrop`.
+      *
+      * Falling through here is deliberately how this is implemented: the block
+      * below already records a fall-through as a `drop`, never a `regenerate`,
+@@ -126,7 +128,7 @@ export async function generate(input: {
+      * anything without deleting the looks this very call just stored.
+      */
+     const movedAway = input.city
+-      ? locationMoved(input.city, resolveLocation({ profile }))
++      ? invalidatesDrop(input.city, resolveLocation({ profile }))
+       : false;
+ 
+     if (!input.regenerate && !movedAway && stored?.length) {
+
+
+=== DIFF: app/settings/actions.ts ===
+@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
+ import { createClient } from "@/lib/supabase/server";
+ import { PreferencesSchema, readPreferences } from "@/lib/profile/preferences";
+ import { fetchForecast } from "@/lib/weather/open-meteo";
+-import { locationColumns, locationMoved, resolveLocation } from "@/lib/weather/location";
++import { locationColumns, invalidatesDrop, resolveLocation } from "@/lib/weather/location";
+ import { localDateFor } from "@/lib/outfits/local-date";
+ 
+ /**
+@@ -85,11 +85,10 @@ export async function setLocation(input: unknown): Promise<void> {
+   // location survives — better than storing one with a null timezone.
+   const forecast = await fetchForecast(picked.lat, picked.lon);
+ 
+-  // The SAME predicate the Stylist path uses, against the RESOLVED previous
+-  // location. Two doors to one setting must agree on what counts as a move, and
+-  // resolving means the first move away from DEFAULT_LOCATION counts even
+-  // though nothing is stored yet.
+-  const moved = locationMoved(picked, resolveLocation({ profile }));
++  // The SAME predicate the Stylist path uses — two doors to one setting must
++  // agree. Everything picked here is a deliberate choice, so this rebuilds for
++  // any genuinely different place and skips a no-op re-tap of the current one.
++  const moved = invalidatesDrop({ ...picked, source: "city" }, resolveLocation({ profile }));
+ 
+   const { error } = await supabase
+     .from("profiles")
+
+
+=== DIFF: lib/weather/__tests__/location.test.ts ===
+@@ -5,6 +5,7 @@ import {
+   LocationInputSchema,
+   locationColumns,
+   locationMoved,
++  invalidatesDrop,
+   distanceKm,
+ } from "../location";
+ 
+@@ -167,3 +168,37 @@ test("the threshold is about weather, not about precision", () => {
+   expect(locationMoved({ lat: 52.7, lon: 13.41 }, berlin)).toBe(false); // ~20km
+   expect(locationMoved({ lat: 53.0, lon: 13.41 }, berlin)).toBe(true); // ~53km
+ });
++
++// ── Intent, not distance, decides whether today's looks survive ──────────────
++
++test("re-picking the same place changes nothing", () => {
++  // A no-op tap must not cost a regeneration. Compared at STORED precision,
++  // because that is the resolution anything ever gets written at.
++  expect(invalidatesDrop({ lat: 59.91, lon: 10.75, source: "city" }, { lat: 59.91, lon: 10.75 })).toBe(false);
++  expect(invalidatesDrop({ lat: 59.9103, lon: 10.7499, source: "city" }, { lat: 59.91, lon: 10.75 })).toBe(false);
++});
++
++test("a deliberate pick invalidates however near it is", () => {
++  // Distance is a proxy for intent, and the wrong one. If the user taps a city
++  // and the looks do not change, the app reads as broken and gives them no way
++  // to tell why.
++  const oslo = { lat: 59.91, lon: 10.75 };
++  const nearby = { lat: 59.95, lon: 10.8, source: "city" as const }; // ~6km
++  expect(distanceKm(nearby, oslo)).toBeLessThan(25);
++  expect(invalidatesDrop(nearby, oslo)).toBe(true);
++});
++
++test("a GPS fix only invalidates once the weather could differ", () => {
++  // The silent refresh runs on every load and the user never asked for it, so
++  // this is where a threshold belongs: a commute must not cost a generation.
++  const home = { lat: 52.52, lon: 13.41 };
++  expect(invalidatesDrop({ lat: 52.55, lon: 13.5, source: "geo" }, home)).toBe(false); // ~7km
++  expect(invalidatesDrop({ lat: 53.0, lon: 13.41, source: "geo" }, home)).toBe(true); // ~53km
++});
++
++test("an explicit 'use my location' while standing still changes nothing", () => {
++  // It arrives as source 'geo' and cannot be told apart from the silent
++  // refresh — which is fine, because if you have not moved there is nothing to
++  // rebuild.
++  expect(invalidatesDrop({ lat: 52.5201, lon: 13.4099, source: "geo" }, { lat: 52.52, lon: 13.41 })).toBe(false);
++});
+
+
+=== DIFF: lib/weather/location.ts ===
+@@ -133,6 +133,40 @@ export function locationMoved(
+   return distanceKm(next, previous) > minKm;
+ }
+ 
++/**
++ * Should today's stored drop be thrown away and rebuilt?
++ *
++ * INTENT decides this, not distance. Distance is only a proxy for intent, and
++ * the wrong one: a user who deliberately picks a city 10km away has asked for
++ * looks there, and if nothing changes the app reads as broken with no way to
++ * tell why. The threshold exists for the case where nobody asked — the
++ * Stylist's silent GPS refresh, which runs on every load and would otherwise
++ * charge a commuter a fresh generation every morning.
++ *
++ * - Same place → never. A no-op tap must not cost a rebuild.
++ * - Deliberate pick (`city`) → always, however near.
++ * - GPS (`geo`) → only past `STALE_LOCATION_KM`, where the forecast can differ.
++ *
++ * An explicit "Use my location" tap arrives as `geo` and cannot be told apart
++ * from the silent refresh. That is fine: if the user has not moved, there is
++ * nothing to rebuild.
++ *
++ * `previous` is the RESOLVED location the looks were built for — pass
++ * `resolveLocation({ profile })`, so the first move away from DEFAULT_LOCATION
++ * counts even with nothing stored yet.
++ */
++export function invalidatesDrop(
++  next: { lat: number; lon: number; source: LocationSource },
++  previous: { lat: number; lon: number },
++): boolean {
++  const samePlace =
++    roundCoord(next.lat) === roundCoord(previous.lat) &&
++    roundCoord(next.lon) === roundCoord(previous.lon);
++  if (samePlace) return false;
++
++  return next.source === "city" ? true : locationMoved(next, previous);
++}
++
+ /**
+  * What the client may persist. Plain Zod validation keywords are fine here —
+  * this schema is NEVER sent to Anthropic as a structured-output format, so the
+
+
+Investigate per the method in your instructions, then return the findings list.
