@@ -1,0 +1,221 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - components/generate/__tests__/stylist-view.test.tsx
+  - components/generate/__tests__/why-credits.test.tsx
+  - components/generate/__tests__/why-quote.test.tsx
+  - components/generate/credits.tsx
+  - components/generate/stylist-view.tsx
+  - components/generate/stylist.tsx
+  - components/generate/why-quote.tsx
+
+Unified diff (only + lines are new):
+
+=== DIFF: components/generate/__tests__/stylist-view.test.tsx ===
+@@ -55,7 +55,6 @@ const base = {
+   onSelectLook: noop,
+   onRetry: noop,
+   onRegenerate: noop,
+-  onOpenItem: noop,
+   reason: "",
+ };
+ 
+
+
+=== DIFF: components/generate/__tests__/why-credits.test.tsx ===
+@@ -1,44 +0,0 @@
+-import { render, screen } from "@testing-library/react";
+-import userEvent from "@testing-library/user-event";
+-import { WhyQuote } from "../why-quote";
+-import { Credits } from "../credits";
+-import type { LookPiece } from "@/lib/generator/types";
+-
+-const slot = { xPct: 0, yPct: 0, wPct: 10, hPct: 10, rotationDeg: 0, z: 1 };
+-const piece = (over: Partial<LookPiece>): LookPiece => ({
+-  itemId: "x",
+-  category: "Tops",
+-  subcategory: null,
+-  brand: null,
+-  name: null,
+-  colors: [],
+-  cutoutUrl: "",
+-  slot,
+-  ...over,
+-});
+-
+-test("why: renders the reasoning led by a rust 'f' glyph, with the name in muted-foreground (D5/D2/D3)", () => {
+-  render(<WhyQuote name="The Off-Duty Camel" why="the camel coat does the talking" />);
+-  expect(screen.getByText(/camel coat does the talking/i)).toBeInTheDocument();
+-  expect(screen.getByText("f")).toHaveClass("bg-brand");
+-  expect(screen.getByText("The Off-Duty Camel")).toHaveClass("text-muted-foreground");
+-});
+-
+-test("credits: brand names are the most readable (D2 reversal), separator muted, segment opens item", async () => {
+-  const onOpenItem = vi.fn();
+-  render(
+-    <Credits
+-      pieces={[
+-        piece({ itemId: "i1", category: "Outerwear", brand: "Uniqlo U", name: "Camel coat" }),
+-        piece({ itemId: "i2", category: "Tops", brand: "COS", name: "Cream knit" }),
+-      ]}
+-      onOpenItem={onOpenItem}
+-    />,
+-  );
+-  expect(screen.getByText("Uniqlo U")).toHaveClass("text-foreground", "font-semibold");
+-  expect(screen.getByText("·")).toHaveClass("text-muted-dim");
+-  const segment = screen.getByRole("button", { name: /Camel coat/ });
+-  expect(segment).toHaveClass("min-h-11");
+-  await userEvent.click(segment);
+-  expect(onOpenItem).toHaveBeenCalledWith("i1");
+-});
+
+
+=== DIFF: components/generate/__tests__/why-quote.test.tsx ===
+@@ -0,0 +1,13 @@
++import { render, screen } from "@testing-library/react";
++import { WhyQuote } from "../why-quote";
++
++// The credit line that used to live beside the why was removed on 2026-07-30 —
++// the outfit detail screen now carries the piece list, with each row opening the
++// same garment page. Its D2 test (brand names the most readable) went with it.
++
++test("why: renders the reasoning led by a rust 'f' glyph, with the name in muted-foreground (D5/D2/D3)", () => {
++  render(<WhyQuote name="The Off-Duty Camel" why="the camel coat does the talking" />);
++  expect(screen.getByText(/camel coat does the talking/i)).toBeInTheDocument();
++  expect(screen.getByText("f")).toHaveClass("bg-brand");
++  expect(screen.getByText("The Off-Duty Camel")).toHaveClass("text-muted-foreground");
++});
+
+
+=== DIFF: components/generate/credits.tsx ===
+@@ -1,32 +0,0 @@
+-"use client";
+-
+-import type { LookPiece } from "@/lib/generator/types";
+-
+-// Magazine credit line (README §8). D2 reversal: brand names are the MOST readable
+-// (foreground, semibold), garment words muted-foreground, separators muted-dim.
+-
+-export function Credits({
+-  pieces,
+-  onOpenItem,
+-}: {
+-  pieces: LookPiece[];
+-  onOpenItem: (itemId: string) => void;
+-}) {
+-  return (
+-    <p className="mt-[13px] border-t border-[rgba(237,230,216,0.07)] pt-[11px] text-[10px] uppercase leading-[1.8] tracking-[0.13em]">
+-      {pieces.map((p, i) => (
+-        <span key={p.itemId}>
+-          {i > 0 && <span className="text-muted-dim"> · </span>}
+-          <button
+-            type="button"
+-            onClick={() => onOpenItem(p.itemId)}
+-            className="inline min-h-11 text-muted-foreground hover:text-foreground"
+-          >
+-            {p.brand && <b className="font-semibold text-foreground">{p.brand} </b>}
+-            {p.name ?? p.subcategory ?? p.category}
+-          </button>
+-        </span>
+-      ))}
+-    </p>
+-  );
+-}
+
+
+=== DIFF: components/generate/stylist-view.tsx ===
+@@ -1,6 +1,7 @@
+ "use client";
+ 
+ import Link from "next/link";
++import { RotateCcw } from "lucide-react";
+ import { Kicker } from "@/components/ui-fitcheck/kicker";
+ import { WeatherStrip } from "./weather-strip";
+ import { OccasionRow, RefineButton } from "./occasion-row";
+@@ -8,7 +9,6 @@ import { RefineSheet } from "./refine-sheet";
+ import { IndexTabs } from "./index-tabs";
+ import { FlatLay } from "./flat-lay";
+ import { WhyQuote } from "./why-quote";
+-import { Credits } from "./credits";
+ import type { Look, UiOccasion, WeatherPayload } from "@/lib/generator/types";
+ import type { City } from "@/lib/weather/geocode";
+ 
+@@ -53,7 +53,6 @@ export function StylistView(props: {
+   geoError: string | null;
+   onSelectLook: (i: number) => void;
+   onRetry: () => void;
+-  onOpenItem: (itemId: string) => void;
+   /** Decision 5: the ONLY way to spend an AI call on a day already answered. */
+   onRegenerate: () => void;
+   /** The legible "why" for the predicted default occasion (empty until seeded). */
+@@ -143,8 +142,12 @@ export function StylistView(props: {
+               )}
+             </div>
+             <WhyQuote name={look.name} why={look.why} />
+-            <Credits pieces={look.pieces} onOpenItem={props.onOpenItem} />
+ 
++            {/* The magazine credit line used to sit here (brand · garment, each
++                opening its item). Removed 2026-07-30: the detail screen now
++                lists every piece with its brand, image and category, and each
++                row opens the same garment page — so the line was a second copy
++                of that list costing ~200px of the fold on a 390px phone. */}
+             {/* :312 — an explicit, named way into the look. Making the flat-lay
+                 itself the target was tried and rejected: a whole-image link with
+                 no visible affordance is not discoverable, and the flat-lay
+@@ -155,14 +158,20 @@ export function StylistView(props: {
+             >
+               See the full look
+             </Link>
+-            {/* Below the look, not in the header: the header was already
+-                rebalanced once to fit Refine at 390px. A quiet action here is
+-                also where the thought "not these" actually occurs. */}
++
++            {/* Regenerate keeps its WORDS. It was a bare uppercase line, which
++                read as a caption rather than a control; an icon-only button
++                beside the primary was tried next and rejected — nothing tells
++                you a ⟳ means "spend an AI call and replace today's looks".
++                So: a real button shell, but secondary — bounded, tonal, and
++                below the primary, because this is the one control on the screen
++                that costs money to press. */}
+             <button
+               type="button"
+               onClick={props.onRegenerate}
+-              className="mt-4 min-h-11 w-full text-[11px] font-medium uppercase tracking-[0.22em] text-muted-dim"
++              className="mt-[10px] flex w-full items-center justify-center gap-2 rounded-[13px] bg-surface-1 p-4 text-sm text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-7)]"
+             >
++              <RotateCcw size={15} />
+               Regenerate today&apos;s looks
+             </button>
+           </>
+
+
+=== DIFF: components/generate/stylist.tsx ===
+@@ -233,7 +233,6 @@ export function Stylist() {
+       onSelectLook={setSelectedLook}
+       onRetry={() => setNonce((n) => n + 1)}
+       onRegenerate={regenerate}
+-      onOpenItem={(id) => router.push(`/closet/${id}`)}
+     />
+   );
+ }
+
+
+=== DIFF: components/generate/why-quote.tsx ===
+@@ -6,9 +6,13 @@ export function WhyQuote({ name, why }: { name: string; why: string }) {
+   return (
+     <div className="mt-[14px]">
+       <p className="font-serif text-[18px] italic leading-[1.36] text-foreground text-pretty">
++        {/* `align-middle` centres the glyph on the parent's x-height, which sits
++            ~2px below the visual centre of an 18px/1.36 serif line — and it used
++            to carry a further 2px downward nudge, so it read as sagging under
++            the first line. Lifted to sit on that line's centre. */}
+         <span
+           aria-hidden="true"
+-          className="mr-2 inline-flex h-5 w-5 translate-y-0.5 items-center justify-center rounded-full bg-brand align-middle font-serif text-[12px] not-italic text-canvas"
++          className="mr-2 inline-flex h-5 w-5 -translate-y-px items-center justify-center rounded-full bg-brand align-middle font-serif text-[12px] not-italic text-canvas"
+         >
+           f
+         </span>
+
+
+Investigate per the method in your instructions, then return the findings list.
