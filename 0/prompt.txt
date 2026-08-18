@@ -1,0 +1,1 @@
+perfect, so we would use cached the signed url and instead of action.ts use route for that, if yes its good, also remember after this all changes that we discussed, we should check if we need to change something about urls, routes and other website things, that should be changen because of our new chagnes
