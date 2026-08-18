@@ -1,0 +1,395 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/closet/[itemId]/style-actions.ts
+  - app/generate/actions.ts
+  - app/outfits/[id]/page.tsx
+  - components/generate/__tests__/stylist-view.test.tsx
+  - components/generate/__tests__/weather-strip.test.tsx
+  - components/generate/weather-strip.tsx
+  - lib/generator/types.ts
+  - lib/weather/__tests__/advice.test.ts
+  - lib/weather/__tests__/format.test.ts
+  - lib/weather/advice.ts
+  - lib/weather/format.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/closet/[itemId]/style-actions.ts ===
+@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
+ import { signItemImages, displayPath } from "@/lib/storage/signed";
+ import { fetchForecast } from "@/lib/weather/open-meteo";
+ import { laterAdvice } from "@/lib/weather/advice";
++import { readPreferences } from "@/lib/profile/preferences";
+ import { personalBand } from "@/lib/generator/rules";
+ import { buildCandidates, type CandidateItem } from "@/lib/generator/candidates";
+ import { rankTopN } from "@/lib/generator/rank";
+@@ -53,7 +54,7 @@ export async function styleWithItem(itemId: string): Promise<StyleResult> {
+     const { data: profile } = await supabase
+       .from("profiles")
+       .select(
+-        "archetype, formality_min, formality_max, occasions, location_lat, location_lon, location_label, location_source, location_timezone",
++        "archetype, formality_min, formality_max, occasions, location_lat, location_lon, location_label, location_source, location_timezone, preferences",
+       )
+       .eq("id", user.id)
+       .single();
+@@ -97,7 +98,8 @@ export async function styleWithItem(itemId: string): Promise<StyleResult> {
+ 
+     const loc = resolveLocation({ profile });
+     const f = await fetchForecast(loc.lat, loc.lon);
+-    const advice = laterAdvice(f.hourly);
++    const prefs = readPreferences(profile?.preferences);
++    const advice = laterAdvice(f.hourly, prefs.tempUnit);
+     const weather: WeatherPayload = {
+       tempC: f.tempC,
+       feelsLikeC: f.feelsLikeC,
+@@ -109,6 +111,7 @@ export async function styleWithItem(itemId: string): Promise<StyleResult> {
+       adviceClause: advice.adviceClause,
+       laterLabel: "Later",
+       hourly: f.hourly,
++      tempUnit: prefs.tempUnit,
+     };
+ 
+     // The occasion the app already believes you are dressing for today — the CTA
+@@ -140,6 +143,7 @@ export async function styleWithItem(itemId: string): Promise<StyleResult> {
+       season: currentSeason(now),
+       excludeItemIds: [],
+       maxAccessories: 1,
++      rainGuard: prefs.rainGuard,
+     };
+     const aesthetic = profile?.archetype ? [profile.archetype] : [];
+ 
+
+
+=== DIFF: app/generate/actions.ts ===
+@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
+ import { signItemImages, displayPath } from "@/lib/storage/signed";
+ import { fetchForecast } from "@/lib/weather/open-meteo";
+ import { laterAdvice } from "@/lib/weather/advice";
++import { readPreferences } from "@/lib/profile/preferences";
+ import { personalBand, applyFormalityOverride } from "@/lib/generator/rules";
+ import { buildCandidates, missingCategory, type CandidateItem } from "@/lib/generator/candidates";
+ import { rankTopN } from "@/lib/generator/rank";
+@@ -56,7 +57,7 @@ export async function generate(input: {
+     const { data: profile } = await supabase
+       .from("profiles")
+       .select(
+-        "archetype, formality_min, formality_max, location_lat, location_lon, location_label, location_source",
++        "archetype, formality_min, formality_max, location_lat, location_lon, location_label, location_source, preferences",
+       )
+       .eq("id", user.id)
+       .single();
+@@ -76,7 +77,8 @@ export async function generate(input: {
+ 
+     const now = new Date();
+     const f = await fetchForecast(loc.lat, loc.lon);
+-    const advice = laterAdvice(f.hourly);
++    const prefs = readPreferences(profile?.preferences);
++    const advice = laterAdvice(f.hourly, prefs.tempUnit);
+     const weather: WeatherPayload = {
+       tempC: f.tempC,
+       feelsLikeC: f.feelsLikeC,
+@@ -88,6 +90,7 @@ export async function generate(input: {
+       adviceClause: advice.adviceClause,
+       laterLabel: "Later",
+       hourly: f.hourly,
++      tempUnit: prefs.tempUnit,
+     };
+ 
+     const today = localDateFor(now, f.timezone);
+@@ -172,6 +175,7 @@ export async function generate(input: {
+       season: currentSeason(now),
+       excludeItemIds: [],
+       maxAccessories: 1,
++      rainGuard: prefs.rainGuard,
+     };
+     const combos = buildCandidates(candItems, candidateArgs);
+     if (combos.length === 0) {
+
+
+=== DIFF: app/outfits/[id]/page.tsx ===
+@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
+ import { signItemImages, displayPath } from "@/lib/storage/signed";
+ import { localDateFor } from "@/lib/outfits/local-date";
+ import { isWornToday } from "@/lib/outfits/wear";
++import { readPreferences } from "@/lib/profile/preferences";
++import { formatTemp } from "@/lib/weather/format";
+ import { layoutForLook } from "@/lib/generator/layout";
+ import { OutfitDetail, type DetailPiece } from "@/components/outfits/outfit-detail";
+ import type { Slot } from "@/lib/generator/types";
+@@ -67,12 +69,14 @@ export default async function OutfitPage({ params }: { params: Promise<{ id: str
+   // Same timezone rule as the action — localDateFor takes a zone, never a bare Date.
+   const { data: profile } = await supabase
+     .from("profiles")
+-    .select("location_timezone")
++    .select("location_timezone, preferences")
+     .eq("id", user.id)
+     .single();
+   const today = localDateFor(new Date(), profile?.location_timezone ?? "UTC");
+ 
+   const weather = outfit.weather_snapshot as { tempC?: number; condition?: string } | null;
++  // The snapshot stores Celsius, as everything does; the unit is applied here.
++  const prefs = readPreferences(profile?.preferences);
+ 
+   return (
+     <OutfitDetail
+@@ -81,7 +85,7 @@ export default async function OutfitPage({ params }: { params: Promise<{ id: str
+         lookName: outfit.look_name ?? "Today's look",
+         occasion: outfit.occasion ?? "",
+         weatherLabel: weather
+-          ? `${Math.round(weather.tempC ?? 0)}° ${weather.condition ?? ""}`.trim()
++          ? `${formatTemp(weather.tempC ?? 0, prefs.tempUnit)} ${weather.condition ?? ""}`.trim()
+           : "",
+         reasoning: outfit.ai_reasoning,
+       }}
+
+
+=== DIFF: components/generate/__tests__/stylist-view.test.tsx ===
+@@ -13,6 +13,7 @@ const weather: WeatherPayload = {
+   laterSentence: "Dry through the evening — no extra layer.",
+   adviceClause: "no extra layer.",
+   laterLabel: "Later",
++  tempUnit: "C" as const,
+   hourly: [],
+ };
+ 
+
+
+=== DIFF: components/generate/__tests__/weather-strip.test.tsx ===
+@@ -13,6 +13,7 @@ const weather: WeatherPayload = {
+   laterSentence: "Rain from 21:00 — take a shell.",
+   adviceClause: "take a shell.",
+   laterLabel: "Later",
++  tempUnit: "C" as const,
+   hourly: [
+     { hh: "18:00", tempC: 14, rain: false, isNow: true },
+     { hh: "19:00", tempC: 13, rain: false, isNow: false },
+@@ -97,3 +98,16 @@ test("city menu opens, selecting a city calls onCityChange and closes", async ()
+   expect(onCityChange).toHaveBeenCalledWith(expect.objectContaining({ name: "London" }));
+   expect(screen.queryByRole("listbox")).toBeNull();
+ });
++
++test("the strip renders Fahrenheit when that is the user's unit", () => {
++  // The payload stays Celsius end to end; only this render boundary converts.
++  render(<WeatherStrip weather={{ ...weather, tempUnit: "F" }} />);
++  expect(screen.getByText("57°")).toBeInTheDocument(); // 14°C
++  expect(screen.getByText(/feels 54°/)).toBeInTheDocument(); // 12°C
++});
++
++test("the strip renders Celsius by default", () => {
++  render(<WeatherStrip weather={weather} />);
++  expect(screen.getByText("14°")).toBeInTheDocument();
++  expect(screen.getByText(/feels 12°/)).toBeInTheDocument();
++});
+
+
+=== DIFF: components/generate/weather-strip.tsx ===
+@@ -4,6 +4,7 @@ import { useState } from "react";
+ import { cn } from "@/lib/utils";
+ import type { WeatherPayload } from "@/lib/generator/types";
+ import type { City } from "@/lib/weather/geocode";
++import { formatTemp } from "@/lib/weather/format";
+ 
+ const HAIR = "border-[rgba(237,230,216,0.07)]";
+ const HAIR2 = "border-[rgba(237,230,216,0.12)]";
+@@ -33,7 +34,7 @@ export function WeatherStrip({
+   return (
+     <div className="relative">
+       <div className="flex items-baseline gap-2 text-sm">
+-        <span className="font-serif text-[21px] text-foreground">{weather.tempC}°</span>
++        <span className="font-serif text-[21px] text-foreground">{formatTemp(weather.tempC, weather.tempUnit)}</span>
+         <span className="max-w-[9rem] truncate text-[12.5px] text-muted-foreground">{weather.condition}</span>
+         <span className="text-faint">·</span>
+         <button
+@@ -51,7 +52,7 @@ export function WeatherStrip({
+             <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+           </svg>
+         </button>
+-        <span className="text-[11px] text-muted-dim">feels {weather.feelsLikeC}°</span>
++        <span className="text-[11px] text-muted-dim">feels {formatTemp(weather.feelsLikeC, weather.tempUnit)}</span>
+       </div>
+ 
+       {(locating || geoError) && (
+@@ -151,7 +152,7 @@ export function WeatherStrip({
+                   <path d="M7 18a4.5 4.5 0 0 1-.5-8.97 5.5 5.5 0 0 1 10.6-.5A4 4 0 0 1 17 18z" />
+                 </svg>
+               </div>
+-              <div className="text-[11.5px] text-foreground">{h.tempC}°</div>
++              <div className="text-[11.5px] text-foreground">{formatTemp(h.tempC, weather.tempUnit)}</div>
+             </div>
+           ))}
+         </div>
+
+
+=== DIFF: lib/generator/types.ts ===
+@@ -1,6 +1,8 @@
+ // Shared contracts for the Stylist generator. Mirrors the v2 handoff's
+ // README §State Management. See docs/superpowers/plans/2026-07-18-stylist-generator.md.
+ 
++import type { TempUnit } from "@/lib/weather/format";
++
+ export type UiOccasion = "everyday" | "work" | "weekend" | "evening";
+ 
+ export type Slot = {
+@@ -52,6 +54,11 @@ export type WeatherPayload = {
+   adviceClause: string; // JUST the rust clause: "take a shell." — the UI binds the rust <b> to THIS
+   laterLabel: string; // "LATER" (static caps label)
+   hourly: HourCell[]; // 4 cells for the expand strip
++  // The user's display unit. Every temperature above stays CELSIUS — it is what
++  // Open-Meteo returns, what weatherRules compares against, and what the re-rank
++  // prompt states to the model. `formatTemp` applies this at the render boundary
++  // and nowhere earlier.
++  tempUnit: TempUnit;
+ };
+ // Invariant (assert in the generate action + advice tests): laterSentence.includes(adviceClause).
+ 
+
+
+=== DIFF: lib/weather/__tests__/advice.test.ts ===
+@@ -51,3 +51,24 @@ test("sentence and adviceClause are always non-empty strings", () => {
+   expect(a.sentence.length).toBeGreaterThan(0);
+   expect(a.adviceClause.length).toBeGreaterThan(0);
+ });
++
++test("the evening-drop sentence respects the user's temperature unit", () => {
++  // The advice sentence is the one place a temperature is baked into prose
++  // server-side, so it cannot be converted at the render boundary like the rest.
++  const hourly = [
++    { hh: "12", tempC: 20, rain: false, isNow: true },
++    { hh: "21", tempC: 10, rain: false, isNow: false },
++  ];
++  expect(laterAdvice(hourly, "C").sentence).toContain("10°");
++  expect(laterAdvice(hourly, "F").sentence).toContain("50°");
++});
++
++test("the advice clause is unchanged by the unit — the rust binding depends on it", () => {
++  const hourly = [
++    { hh: "12", tempC: 20, rain: false, isNow: true },
++    { hh: "21", tempC: 10, rain: false, isNow: false },
++  ];
++  const f = laterAdvice(hourly, "F");
++  expect(f.adviceClause).toBe("carry a jacket.");
++  expect(f.sentence.includes(f.adviceClause)).toBe(true);
++});
+
+
+=== DIFF: lib/weather/__tests__/format.test.ts ===
+@@ -0,0 +1,48 @@
++import { describe, expect, test } from "vitest";
++import { formatTemp, toFahrenheit } from "../format";
++
++describe("toFahrenheit", () => {
++  test("converts the fixed points", () => {
++    expect(toFahrenheit(0)).toBe(32);
++    expect(toFahrenheit(100)).toBe(212);
++    expect(toFahrenheit(-40)).toBe(-40);
++  });
++
++  test("rounds to a whole degree", () => {
++    // 18°C is 64.4°F — a weather strip shows no decimals.
++    expect(toFahrenheit(18)).toBe(64);
++    expect(toFahrenheit(21)).toBe(70);
++  });
++
++  test("handles temperatures below freezing", () => {
++    expect(toFahrenheit(-5)).toBe(23);
++  });
++});
++
++describe("formatTemp", () => {
++  test("Celsius passes the stored value straight through", () => {
++    expect(formatTemp(18, "C")).toBe("18°");
++  });
++
++  test("Fahrenheit converts", () => {
++    expect(formatTemp(18, "F")).toBe("64°");
++  });
++
++  test("the degree sign is bare in both units, as the design draws it", () => {
++    // The unit is established by the Settings screen, not repeated on every
++    // number — `Fitcheck.dc.html` prints `18°` on the weather strip.
++    expect(formatTemp(18, "C")).not.toContain("C");
++    expect(formatTemp(18, "F")).not.toContain("F");
++  });
++
++  test("defaults to Celsius when no unit is given", () => {
++    // Every existing call site passes one argument; the default must not
++    // silently reinterpret a stored Celsius value as Fahrenheit.
++    expect(formatTemp(18)).toBe("18°");
++  });
++
++  test("a fractional reading is rounded, not printed raw", () => {
++    expect(formatTemp(18.6, "C")).toBe("19°");
++    expect(formatTemp(18.6, "F")).toBe("65°");
++  });
++});
+
+
+=== DIFF: lib/weather/advice.ts ===
+@@ -1,12 +1,22 @@
+ import type { HourCell } from "@/lib/generator/types";
++import { formatTemp, type TempUnit } from "./format";
+ 
+ /**
+  * The single dressing-advice voice on the screen (README §2). Deterministic:
+  * rain later → shell; a big evening drop → jacket; else reassuring.
+  * Returns the full `sentence` and the `adviceClause` on its own so the UI can
+  * render the clause in rust (README wraps it in #D69873/600).
++ *
++ * @param unit the user's display unit. This sentence is the ONE place a
++ * temperature is baked into prose server-side, so it cannot be converted at the
++ * render boundary with everything else. The 5° drop that triggers it is still
++ * measured in Celsius — the threshold is physics, only the printed number is a
++ * preference.
+  */
+-export function laterAdvice(hourly: HourCell[]): { sentence: string; adviceClause: string } {
++export function laterAdvice(
++  hourly: HourCell[],
++  unit: TempUnit = "C",
++): { sentence: string; adviceClause: string } {
+   const rainHour = hourly.find((h) => h.rain);
+   if (rainHour) {
+     const adviceClause = "take a shell.";
+@@ -17,7 +27,7 @@ export function laterAdvice(hourly: HourCell[]): { sentence: string; adviceClaus
+   const last = hourly[hourly.length - 1]?.tempC ?? now;
+   if (now - last >= 5) {
+     const adviceClause = "carry a jacket.";
+-    return { sentence: `Down to ${last}° tonight — ${adviceClause}`, adviceClause };
++    return { sentence: `Down to ${formatTemp(last, unit)} tonight — ${adviceClause}`, adviceClause };
+   }
+ 
+   const adviceClause = "no extra layer.";
+
+
+=== DIFF: lib/weather/format.ts ===
+@@ -0,0 +1,27 @@
++import type { Preferences } from "@/lib/profile/preferences";
++
++export type TempUnit = Preferences["tempUnit"];
++
++/** Whole degrees — a weather strip shows no decimals. */
++export function toFahrenheit(tempC: number): number {
++  return Math.round((tempC * 9) / 5 + 32);
++}
++
++/**
++ * Render a stored Celsius temperature in the user's chosen unit.
++ *
++ * Celsius is the storage and reasoning unit everywhere: Open-Meteo is requested
++ * in it, `weatherRules` compares against Celsius thresholds, and the re-rank
++ * prompt states °C to the model. This function is the ONLY place the user's
++ * preference is applied, and it sits at the render boundary — converting any
++ * earlier would put Fahrenheit numbers in front of rules that read them as
++ * Celsius.
++ *
++ * The degree sign is bare in both units, as `Fitcheck.dc.html` draws it. The
++ * unit is established once on the Settings screen rather than repeated beside
++ * every number.
++ */
++export function formatTemp(tempC: number, unit: TempUnit = "C"): string {
++  const value = unit === "F" ? toFahrenheit(tempC) : Math.round(tempC);
++  return `${value}°`;
++}
+
+
+Investigate per the method in your instructions, then return the findings list.
