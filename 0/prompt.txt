@@ -1,0 +1,4 @@
+Yes, do both in one pass. Two changes to the rule text first:
+
+Make the staleness check mechanical. "If the date is more than a few days old" is a judgment call you'll evaluate inconsistently. Instead: compare the TL;DR's last-updated date against git log -1 --format=%cd. If commits exist newer than that date, treat the TL;DR as stale — trust git log and git branch --show-current for branch state, and say so explicitly.
+Change the update trigger from "before the session ends" to "at the moment it happens." Sessions end abruptly — context runs out, I close the window. An end-of-session obligation is exactly the one that gets skipped, and skipping it is what produced the current staleness. Update the TL;DR when you create the branch, merge the PR, or reject the approach — not later.
