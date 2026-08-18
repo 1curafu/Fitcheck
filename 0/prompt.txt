@@ -1,0 +1,532 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/profile/page.tsx
+  - components/billing/pro-card.tsx
+  - components/billing/upgrade-sheet.tsx
+  - components/closet/__tests__/style-cta.test.tsx
+  - components/profile/__tests__/profile-hub.test.tsx
+  - components/profile/profile-hub.tsx
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/profile/page.tsx ===
+@@ -14,10 +14,10 @@ import { entitlementsFor } from "@/lib/billing/tiers";
+  * an unready row renders disabled with "Soon" rather than linking into nothing.
+  */
+ const LINKS: HubLink[] = [
+-  { href: "/style-dna", label: "Style DNA", desc: "Your archetype, shareable", ready: false },
+-  { href: "/outfits", label: "Saved Outfits", desc: "Looks you kept", ready: false },
+-  { href: "/stats", label: "Wear Stats", desc: "What you actually wear", ready: false },
+-  { href: "/settings", label: "Settings", desc: "Preferences and account", ready: false },
++  { href: "/style-dna", label: "Style DNA", desc: "Your archetype, shareable", icon: "dna", ready: false },
++  { href: "/outfits", label: "Saved Outfits", desc: "Looks you kept", icon: "saved", ready: false },
++  { href: "/stats", label: "Wear Stats", desc: "What you actually wear", icon: "stats", ready: false },
++  { href: "/settings", label: "Settings", desc: "Preferences and account", icon: "settings", ready: false },
+ ];
+ 
+ export default async function ProfilePage() {
+
+
+=== DIFF: components/billing/pro-card.tsx ===
+@@ -0,0 +1,48 @@
++"use client";
++
++import { useState } from "react";
++import type { Tier } from "@/lib/billing/tiers";
++import { UpgradeSheet } from "./upgrade-sheet";
++
++/**
++ * The Pro banner on the profile hub (`Fitcheck.dc.html:694-698`).
++ *
++ * Structure is the mockup's, verbatim: serif italic title, a one-line pitch,
++ * and the price pill inside the card. An earlier version printed all seven
++ * benefits here instead and read as a wall of bullets — worse to look at AND an
++ * unforced divergence from a design that had already solved this.
++ *
++ * The whole card is the control; the pill is an affordance inside it rather
++ * than a nested button, which would be invalid HTML. Tapping opens the sheet,
++ * which is where the full case gets made — so the pitch lives in exactly one
++ * place whether the user arrives here or from a gate.
++ */
++export function ProCard({ tier }: { tier: Tier }) {
++  const [open, setOpen] = useState(false);
++  const isPro = tier === "pro";
++
++  return (
++    <>
++      <button
++        type="button"
++        onClick={() => setOpen(true)}
++        className="mt-[13px] block w-full rounded-[16px] p-5 text-left [background:linear-gradient(120deg,#b86a47,#9a5236)]"
++      >
++        <span className="block font-serif text-[21px] italic text-[#1a0f09]">Fitcheck Pro</span>
++        <span className="mt-[5px] block max-w-[84%] text-[13px]/[1.4] text-[rgba(26,15,9,0.82)]">
++          {isPro ? "Active — everything unlocked." : "Get the whole wardrobe working."}
++        </span>
++        <span className="mt-[13px] inline-block rounded-full bg-canvas px-[17px] py-[9px] text-[13px] font-semibold text-foreground">
++          {isPro ? "Your membership" : "Go Pro · €5/mo"}
++        </span>
++      </button>
++
++      <UpgradeSheet
++        open={open}
++        isPro={isPro}
++        title={isPro ? "Your Pro membership" : "Get the whole wardrobe working"}
++        onClose={() => setOpen(false)}
++      />
++    </>
++  );
++}
+
+
+=== DIFF: components/billing/upgrade-sheet.tsx ===
+@@ -1,34 +1,65 @@
+ "use client";
+ 
++import {
++  RotateCcw,
++  Sparkles,
++  Shirt,
++  Luggage,
++  ChartColumn,
++  Compass,
++  Bookmark,
++} from "lucide-react";
+ import { Kicker } from "@/components/ui-fitcheck/kicker";
+ 
++/**
++ * What Pro unlocks, in the order MONETISATION.md §3 lists it.
++ *
++ * Lives here rather than on the profile hub because this sheet is the ONLY
++ * place the pitch is made — from a gate or from the Pro card, the user sees the
++ * same list. Two copies is how two surfaces end up disagreeing about the tier.
++ *
++ * Icons are muted, not rust: seven rust glyphs would spend the One Rust Rule
++ * seven times over. The kicker is this sheet's single rust element.
++ */
++export const PRO_BENEFITS = [
++  { icon: RotateCcw, label: "Unlimited rerolls", desc: "Any occasion, as often as you like" },
++  { icon: Sparkles, label: "Style around any piece", desc: "Build a look from one garment" },
++  { icon: Shirt, label: "An unlimited closet", desc: "Past the free 50 pieces" },
++  { icon: Luggage, label: "Packing mode", desc: "A trip in, a capsule out" },
++  { icon: ChartColumn, label: "Cost-per-wear analytics", desc: "What your wardrobe really costs" },
++  { icon: Compass, label: "Gap analysis", desc: "The one piece that unlocks the most" },
++  { icon: Bookmark, label: "Unlimited saved outfits", desc: "Keep every look you love" },
++];
++
+ /**
+  * The one place a Pro gate explains itself.
+  *
+- * Five surfaces are gated (styled looks, wear-stats analytics, gap analysis,
+- * unlimited regenerates, packing mode), so this is a shared component for the
+- * same reason `lib/billing` is a shared seam: writing the explanation five
+- * times is how five screens end up disagreeing about what Pro is.
++ * Five surfaces are gated, so this is shared for the same reason `lib/billing`
++ * is a shared seam: writing the explanation five times is how five screens end
++ * up disagreeing about what Pro is.
+  *
+  * It exists because the first version put a small muted line under the primary
+- * button. That reads as a validation error — something you did wrong — rather
+- * than a feature you have not bought, and it offered no way forward.
++ * button, which read as a validation error — something you did wrong — rather
++ * than a feature you have not bought.
+  *
+- * Deliberately NOT a hard paywall in front of the button: the control stays
+- * live and tappable, because nobody buys a feature they have never reached for.
+- * The sheet is the answer to the tap, not a fence around it.
++ * Deliberately NOT a hard paywall in front of the control: the gated button
++ * stays live and tappable, because nobody buys a feature they have never
++ * reached for. The sheet is the answer to the tap, not a fence around it.
+  */
+ export function UpgradeSheet({
+   open,
+   title,
+   body,
++  isPro = false,
+   onClose,
+ }: {
+   open: boolean;
+   /** What the user just tried to do, in their words. */
+   title: string;
+-  /** The seam's own reason — never re-worded here. */
+-  body: string;
++  /** The seam's own reason, when opened from a gate. Never re-worded here. */
++  body?: string;
++  /** A subscriber gets the same list as a receipt, never a sales pitch. */
++  isPro?: boolean;
+   onClose: () => void;
+ }) {
+   if (!open) return null;
+@@ -48,7 +79,11 @@ export function UpgradeSheet({
+         role="dialog"
+         aria-modal="true"
+         aria-label={title}
+-        className="fixed inset-x-0 bottom-0 z-[70] mx-auto max-w-[440px] rounded-t-[22px] border-t border-[rgba(237,230,216,0.12)] bg-surface-2 px-[22px] pb-[calc(env(safe-area-inset-bottom)+20px)] pt-3.5"
++        // maxWidth inline for the same reason the row geometry is: the shell
++        // caps at 440 and a sheet wider than it would hang off the app on a
++        // desktop viewport.
++        style={{ maxWidth: 440 }}
++        className="fixed inset-x-0 bottom-0 z-[70] mx-auto rounded-t-[22px] border-t border-[rgba(237,230,216,0.12)] bg-surface-2 px-[22px] pb-[calc(env(safe-area-inset-bottom)+20px)] pt-3.5"
+       >
+         <div className="mx-auto mb-4 h-1 w-[34px] rounded-full bg-faint" />
+ 
+@@ -58,18 +93,68 @@ export function UpgradeSheet({
+         </Kicker>
+ 
+         <h2 className="mt-2 font-serif text-[24px]/[1.15] text-foreground">{title}</h2>
+-        <p className="mt-2 text-sm/[1.5] text-muted-foreground text-pretty">{body}</p>
++        {body && <p className="mt-2 text-sm/[1.5] text-muted-foreground text-pretty">{body}</p>}
++
++        {/* The spec-table pattern from item detail — hairline-divided rows in a
++            single surface. A bare bulleted list read as unstyled text; this is
++            the shape the design system already uses to present a set of facts. */}
++        {/* Geometry is INLINE, not utility classes.
++            A newly-added arbitrary value (`size-[32px]`, `text-[12px]/[1.3]`)
++            silently failed to resolve here, collapsing the icon tile to nothing
++            and leaving the description at an inherited size — the same class of
++            failure that put the diary's day number in the middle of its cell.
++            Inline styles land whatever the CSS pipeline does. */}
++        <ul className="mt-4 overflow-hidden rounded-[14px] bg-surface-1 shadow-[inset_0_0_0_1px_var(--hairline-2)]">
++          {PRO_BENEFITS.map(({ icon: Icon, label, desc }, i) => (
++            <li
++              key={label}
++              className="flex items-center"
++              style={{
++                gap: 13,
++                padding: "11px 14px",
++                borderTop: i === 0 ? undefined : "1px solid var(--hairline-2)",
++              }}
++            >
++              <span
++                aria-hidden="true"
++                className="grid shrink-0 place-items-center text-muted-foreground"
++                style={{ width: 32, height: 32, borderRadius: 9, background: "var(--color-surface-3)" }}
++              >
++                <Icon size={15} strokeWidth={1.6} />
++              </span>
++              <span className="min-w-0 flex-1">
++                <span className="block text-value" style={{ fontSize: 14, lineHeight: 1.25 }}>
++                  {label}
++                </span>
++                <span
++                  className="block text-muted-dim"
++                  style={{ fontSize: 12, lineHeight: 1.3, marginTop: 1 }}
++                >
++                  {desc}
++                </span>
++              </span>
++            </li>
++          ))}
++        </ul>
++
++        {/* Inert: billing is a later phase, and a button that takes money it
++            cannot take is worse than none. It states the price so the offer is
++            complete; the purchase arrives with Stripe. */}
++        {!isPro && (
++          <div className="mt-5 grid min-h-[52px] w-full place-items-center rounded-[14px] bg-foreground text-[15.5px] font-semibold text-canvas">
++            Go Pro · €5/mo
++          </div>
++        )}
+ 
+-        {/* No checkout yet — billing is a later phase, and a dead "Upgrade"
+-            button that goes nowhere is worse than none. This closes honestly;
+-            the Pro card on the profile hub becomes the real destination when it
+-            exists (queue #9). */}
++        {/* A gate you cannot dismiss is a trap — but it must not crowd the
++            primary either. At mt-2 the two read as one stuck-together block;
++            the decline needs its own air to look like a real second option. */}
+         <button
+           type="button"
+           onClick={onClose}
+-          className="mt-5 min-h-[52px] w-full rounded-[14px] bg-foreground text-[15.5px] font-semibold text-canvas"
++          className="mt-3 min-h-[44px] w-full text-[14px] text-muted-foreground"
+         >
+-          Got it
++          {isPro ? "Close" : "Not now"}
+         </button>
+       </div>
+     </>
+
+
+=== DIFF: components/closet/__tests__/style-cta.test.tsx ===
+@@ -40,17 +40,29 @@ test("a limited result opens the upgrade sheet with the reason verbatim", async
+   expect(push).not.toHaveBeenCalled();
+ });
+ 
+-// A gate the user cannot dismiss is a trap, and the sheet is an explanation
+-// rather than a checkout — there is nothing to complete.
++// A gate the user cannot dismiss is a trap. "Not now" must stay as reachable
++// as the upgrade path.
+ test("the upgrade sheet can be dismissed", async () => {
+   styleWithItem.mockResolvedValue({ status: "limited", message: "Pro feature." });
+   render(<StyleCta itemId="i1" />);
+   await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
+   await screen.findByRole("dialog");
+-  await userEvent.click(screen.getByRole("button", { name: /got it/i }));
++  await userEvent.click(screen.getByRole("button", { name: /not now/i }));
+   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+ });
+ 
++// A gate that ends in a shrug teaches nothing. The sheet carries the whole
++// pitch itself — same list the profile card opens — so there is nowhere to
++// navigate to and nothing to look up.
++test("the gate's sheet makes the full case, not just the refusal", async () => {
++  styleWithItem.mockResolvedValue({ status: "limited", message: "Pro feature." });
++  render(<StyleCta itemId="i1" />);
++  await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
++  const sheet = await screen.findByRole("dialog");
++  expect(sheet).toHaveTextContent(/gap analysis/i);
++  expect(sheet).toHaveTextContent(/€5\/mo/);
++});
++
+ // "Your closet is too thin for this yet" has nothing to sell — you add a piece.
+ // Surfacing it as an upgrade prompt would be selling against a non-problem.
+ test("a non-billing failure stays a quiet line, not an upgrade sheet", async () => {
+
+
+=== DIFF: components/profile/__tests__/profile-hub.test.tsx ===
+@@ -1,4 +1,5 @@
+ import { render, screen, within } from "@testing-library/react";
++import userEvent from "@testing-library/user-event";
+ import { ProfileHub } from "../profile-hub";
+ 
+ const props = {
+@@ -10,8 +11,20 @@ const props = {
+   tier: "free" as const,
+   stats: { pieces: 24, outfits: 9, streak: 3 },
+   links: [
+-    { href: "/style-dna", label: "Style DNA", desc: "Your archetype, shareable", ready: true },
+-    { href: "/outfits", label: "Saved Outfits", desc: "Looks you kept", ready: false },
++    {
++      href: "/style-dna",
++      label: "Style DNA",
++      desc: "Your archetype, shareable",
++      icon: "dna" as const,
++      ready: true,
++    },
++    {
++      href: "/outfits",
++      label: "Saved Outfits",
++      desc: "Looks you kept",
++      icon: "saved" as const,
++      ready: false,
++    },
+   ],
+ };
+ 
+@@ -59,46 +72,57 @@ test("an unbuilt destination is not a link — it says Soon", () => {
+ });
+ 
+ describe("the Pro card", () => {
+-  // The price is EUR. The design says £5 and the plan said render it verbatim;
+-  // that is superseded for the price only — every other price in the app renders
+-  // in euro, and £5 beside a €3.00 cost-per-wear is a visible inconsistency.
+-  test("states the price in euro, not the design's pounds", () => {
++  // A TEASER, not a brochure. The first version printed all seven benefits into
++  // the rust card and read as a wall of bullets; the card invites the tap and
++  // the sheet makes the case.
++  test("is a compact hook, not the full feature list", () => {
+     render(<ProfileHub {...props} />);
+-    const card = screen.getByTestId("pro-card");
+-    expect(card).toHaveTextContent(/€5\/mo/);
+-    expect(card).not.toHaveTextContent(/£/);
++    const card = screen.getByRole("button", { name: /fitcheck pro/i });
++    expect(card).toHaveTextContent(/whole wardrobe/i);
++    expect(card).not.toHaveTextContent(/gap analysis/i);
+   });
+ 
+-  test("keeps the design's pitch verbatim", () => {
++  // The mockup puts the price pill inside the banner (Fitcheck.dc.html:697).
++  test("carries the price pill, as the mockup does", () => {
+     render(<ProfileHub {...props} />);
+-    expect(screen.getByTestId("pro-card")).toHaveTextContent(
+-      /unlimited daily looks, packing mode & cost-per-wear analytics/i,
++    expect(screen.getByRole("button", { name: /fitcheck pro/i })).toHaveTextContent(
++      /go pro · €5\/mo/i,
+     );
+   });
+ 
+-  // This card is where every gate in the app now sends people, so the one-line
+-  // pitch is not enough — someone who just hit a wall needs to see what they
+-  // would actually get.
+-  test("lists what Pro actually unlocks", () => {
++  test("tapping it opens the pitch with the price", async () => {
+     render(<ProfileHub {...props} />);
+-    const card = screen.getByTestId("pro-card");
+-    expect(card).toHaveTextContent(/rerolls/i);
+-    expect(card).toHaveTextContent(/closet/i);
+-    expect(card).toHaveTextContent(/around any piece/i);
++    await userEvent.click(screen.getByRole("button", { name: /fitcheck pro/i }));
++    const sheet = await screen.findByRole("dialog");
++    expect(sheet).toHaveTextContent(/gap analysis/i);
++    expect(sheet).toHaveTextContent(/around any piece/i);
++    // The price is EUR. The design says £5 and the plan said render it verbatim;
++    // superseded for the price only — every other price in the app is euro.
++    expect(sheet).toHaveTextContent(/€5\/mo/);
++    expect(sheet).not.toHaveTextContent(/£/);
+   });
+ 
+-  test("is inert — billing does not exist yet", () => {
++  // Scoped to the sheet: the CARD's own accessible name contains "Go Pro ·
++  // €5/mo" because the mockup puts the price pill inside it, so an unscoped
++  // query matches the card and passes for the wrong reason.
++  test("the pitch is inert — billing does not exist yet", async () => {
+     render(<ProfileHub {...props} />);
+-    expect(screen.queryByRole("link", { name: /go pro/i })).not.toBeInTheDocument();
+-    expect(screen.queryByRole("button", { name: /go pro/i })).not.toBeInTheDocument();
++    await userEvent.click(screen.getByRole("button", { name: /fitcheck pro/i }));
++    const sheet = await screen.findByRole("dialog");
++    expect(within(sheet).queryByRole("link", { name: /go pro/i })).not.toBeInTheDocument();
++    expect(within(sheet).queryByRole("button", { name: /go pro/i })).not.toBeInTheDocument();
+   });
+ 
+   // Selling Pro to someone who already pays is the clearest possible sign that
+   // nothing is reading their tier.
+-  test("a Pro subscriber is not sold the upgrade", () => {
++  test("a Pro subscriber is not sold the upgrade", async () => {
+     render(<ProfileHub {...props} tier="pro" />);
+-    const card = screen.getByTestId("pro-card");
+-    expect(card).not.toHaveTextContent(/go pro/i);
++    const card = screen.getByRole("button", { name: /fitcheck pro/i });
+     expect(card).toHaveTextContent(/active/i);
++    expect(card).not.toHaveTextContent(/go pro/i);
++    await userEvent.click(card);
++    const sheet = await screen.findByRole("dialog");
++    expect(sheet).not.toHaveTextContent(/€5\/mo/);
++    expect(sheet).toHaveTextContent(/gap analysis/i);
+   });
+ });
+
+
+=== DIFF: components/profile/profile-hub.tsx ===
+@@ -1,32 +1,32 @@
+ import Link from "next/link";
++import { Fingerprint, Bookmark, ChartColumn, Settings } from "lucide-react";
++import { ProCard } from "@/components/billing/pro-card";
+ import type { Tier } from "@/lib/billing/tiers";
+ 
++/**
++ * Icons are named by a string id, not passed as elements.
++ *
++ * Handing JSX across the RSC boundary earns a React key warning — a serialised
++ * element has no positional identity — which is the trap `page.tsx` already hit
++ * once passing `<StyleCta/>` into `ItemDetail`. A string keeps the route's data
++ * serialisable and the mapping here, next to the markup that uses it.
++ */
++const ICONS = {
++  dna: Fingerprint,
++  saved: Bookmark,
++  stats: ChartColumn,
++  settings: Settings,
++} as const;
++
+ export type HubLink = {
+   href: string;
+   label: string;
+   desc: string;
++  icon: keyof typeof ICONS;
+   /** False until the destination exists on `main`. */
+   ready: boolean;
+ };
+ 
+-/**
+- * What Pro unlocks, in the order MONETISATION.md §3 lists it.
+- *
+- * The design's card carries only the one-line pitch, which was enough when this
+- * screen was the only place Pro was mentioned. It is now the destination for
+- * every gate in the app, so someone arriving here has just been refused
+- * something and needs to see what they would actually get.
+- */
+-const PRO_BENEFITS = [
+-  "Unlimited rerolls, any occasion",
+-  "Build a look around any piece",
+-  "An unlimited closet",
+-  "Packing mode for trips",
+-  "Cost-per-wear analytics",
+-  "Gap analysis — what to buy next",
+-  "Unlimited saved outfits",
+-];
+-
+ function StatCell({ value, label }: { value: string; label: string }) {
+   return (
+     <div className="flex-1 px-[6px] py-4 text-center">
+@@ -37,9 +37,15 @@ function StatCell({ value, label }: { value: string; label: string }) {
+ }
+ 
+ function LinkRow({ link }: { link: HubLink }) {
++  const Icon = ICONS[link.icon];
+   const body = (
+     <>
+-      <div className="size-[38px] shrink-0 rounded-[10px] bg-[#201b18]" aria-hidden="true" />
++      <div
++        className="grid size-[38px] shrink-0 place-items-center rounded-[10px] bg-[#201b18] text-muted-foreground"
++        aria-hidden="true"
++      >
++        <Icon size={17} strokeWidth={1.6} />
++      </div>
+       <div className="min-w-0 flex-1">
+         <div className="text-[15px] text-foreground">{link.label}</div>
+         <div className="mt-[2px] text-[12px] text-muted-foreground">{link.desc}</div>
+@@ -96,8 +102,6 @@ export function ProfileHub({
+   /** Sign-out, until Settings owns it. */
+   children?: React.ReactNode;
+ }) {
+-  const isPro = tier === "pro";
+-
+   return (
+     <div className="flex-1 overflow-y-auto px-[22px] pb-[120px] screen-top">
+       <div className="flex items-center gap-[14px]">
+@@ -150,48 +154,7 @@ export function ProfileHub({
+         ))}
+       </div>
+ 
+-      {/* Inert by design: there is no checkout, and a button that goes nowhere
+-          is worse than none. This card is the explanation, not the purchase. */}
+-      <div
+-        data-testid="pro-card"
+-        className="mt-[13px] rounded-[16px] p-5 [background:linear-gradient(120deg,#b86a47,#9a5236)]"
+-      >
+-        <div className="font-serif text-[21px] italic text-[#1a0f09]">Fitcheck Pro</div>
+-
+-        {isPro ? (
+-          <>
+-            <p className="mt-[5px] text-[13px]/[1.4] text-[rgba(26,15,9,0.82)]">
+-              Active — everything below is yours.
+-            </p>
+-            <ul className="mt-3 flex flex-col gap-[6px]">
+-              {PRO_BENEFITS.map((b) => (
+-                <li key={b} className="text-[13px]/[1.35] text-[rgba(26,15,9,0.82)]">
+-                  {b}
+-                </li>
+-              ))}
+-            </ul>
+-          </>
+-        ) : (
+-          <>
+-            {/* The design's pitch, verbatim — it names packing mode, which does
+-                not exist yet. Deliberate while nothing can be bought; it must be
+-                built before Pro is actually sold. */}
+-            <p className="mt-[5px] max-w-[84%] text-[13px]/[1.4] text-[rgba(26,15,9,0.82)]">
+-              Unlimited daily looks, packing mode &amp; cost-per-wear analytics.
+-            </p>
+-            <ul className="mt-3 flex flex-col gap-[6px]">
+-              {PRO_BENEFITS.map((b) => (
+-                <li key={b} className="text-[13px]/[1.35] text-[rgba(26,15,9,0.82)]">
+-                  {b}
+-                </li>
+-              ))}
+-            </ul>
+-            <div className="mt-[13px] inline-block rounded-full bg-canvas px-[17px] py-[9px] text-[13px] font-semibold text-foreground">
+-              Go Pro · €5/mo
+-            </div>
+-          </>
+-        )}
+-      </div>
++      <ProCard tier={tier} />
+ 
+       {children && <div className="mt-[13px]">{children}</div>}
+     </div>
+
+
+Investigate per the method in your instructions, then return the findings list.
