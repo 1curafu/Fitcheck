@@ -1,0 +1,438 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - lib/weather/__tests__/use-location-picker.test.ts
+  - lib/weather/use-location-picker.ts
+  - app/generate/actions.ts
+  - app/settings/actions.ts
+  - lib/weather/__tests__/location.test.ts
+  - lib/weather/location.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: lib/weather/__tests__/use-location-picker.test.ts ===
+@@ -0,0 +1,96 @@
++import { renderHook, act, waitFor } from "@testing-library/react";
++import { beforeEach, expect, test, vi } from "vitest";
++import { useLocationPicker } from "../use-location-picker";
++import { searchCities } from "../geocode";
++import { getCurrentPosition, permissionState, GeoError } from "../geolocate";
++
++vi.mock("../geocode", () => ({ searchCities: vi.fn() }));
++vi.mock("../geolocate", async (orig) => ({
++  ...(await orig<typeof import("../geolocate")>()),
++  getCurrentPosition: vi.fn(),
++  permissionState: vi.fn(),
++}));
++
++const mockSearch = vi.mocked(searchCities);
++const mockPosition = vi.mocked(getCurrentPosition);
++const mockPermission = vi.mocked(permissionState);
++
++beforeEach(() => {
++  vi.clearAllMocks();
++  mockSearch.mockResolvedValue([]);
++  mockPermission.mockResolvedValue("prompt");
++});
++
++test("a query under two characters does not hit the network", () => {
++  // The input fires on every keystroke; "b" would return every city on earth.
++  const { result } = renderHook(() => useLocationPicker());
++  act(() => result.current.search("b"));
++  act(() => result.current.search(" "));
++  expect(mockSearch).not.toHaveBeenCalled();
++});
++
++test("a real query searches and exposes the results", async () => {
++  mockSearch.mockResolvedValue([{ name: "Manila", country: "PH", lat: 14.6, lon: 120.98 }]);
++  const { result } = renderHook(() => useLocationPicker());
++  act(() => result.current.search("Man"));
++  await waitFor(() => expect(result.current.cities).toHaveLength(1));
++  expect(mockSearch).toHaveBeenCalledWith("Man");
++});
++
++test("an explicit tap surfaces a denied permission as copy, not a silent no-op", async () => {
++  mockPosition.mockRejectedValue(new GeoError("denied"));
++  const { result } = renderHook(() => useLocationPicker());
++  act(() => result.current.useMyLocation());
++  await waitFor(() => expect(result.current.geoError).toMatch(/location access is off/i));
++});
++
++test("a non-permission failure gets different copy — the user can retry that one", async () => {
++  mockPosition.mockRejectedValue(new GeoError("timeout"));
++  const { result } = renderHook(() => useLocationPicker());
++  act(() => result.current.useMyLocation());
++  await waitFor(() => expect(result.current.geoError).toMatch(/couldn.t get your location/i));
++});
++
++test("locating returns to false after a failure, not stuck", async () => {
++  // A spinner that never stops is indistinguishable from a hung app.
++  mockPosition.mockRejectedValue(new GeoError("unavailable"));
++  const { result } = renderHook(() => useLocationPicker());
++  act(() => result.current.useMyLocation());
++  await waitFor(() => expect(result.current.locating).toBe(false));
++});
++
++test("a successful fix is handed to onPick, labelled as a GPS fix", async () => {
++  // We never reverse-geocode a name from coordinates: Open-Meteo has no reverse
++  // endpoint (D8) and a third party would ship precise user coords off-stack.
++  mockPosition.mockResolvedValue({ lat: 52.52, lon: 13.41 });
++  const onPick = vi.fn();
++  const { result } = renderHook(() => useLocationPicker({ onPick }));
++  act(() => result.current.useMyLocation());
++  await waitFor(() =>
++    expect(onPick).toHaveBeenCalledWith(
++      expect.objectContaining({ lat: 52.52, lon: 13.41, label: "Current location" }),
++    ),
++  );
++});
++
++test("geoSupported goes false only when the browser has no geolocation at all", async () => {
++  // Optimistic on purpose: the row shows until we KNOW it is useless. A denied
++  // permission is not the same as an unsupported browser — the first is
++  // recoverable in system settings, the second never is.
++  mockPermission.mockResolvedValue("denied");
++  const { result } = renderHook(() => useLocationPicker());
++  await waitFor(() => expect(mockPermission).toHaveBeenCalled());
++  expect(result.current.geoSupported).toBe(true);
++
++  mockPermission.mockResolvedValue("unsupported");
++  const second = renderHook(() => useLocationPicker());
++  await waitFor(() => expect(second.result.current.geoSupported).toBe(false));
++});
++
++test("probing permission never reads the position — that would prompt", async () => {
++  mockPermission.mockResolvedValue("granted");
++  renderHook(() => useLocationPicker());
++  await waitFor(() => expect(mockPermission).toHaveBeenCalled());
++  // The silent-refresh-on-load behaviour belongs to the Stylist, not this hook.
++  expect(mockPosition).not.toHaveBeenCalled();
++});
+
+
+=== DIFF: lib/weather/use-location-picker.ts ===
+@@ -0,0 +1,74 @@
++"use client";
++
++import { useCallback, useEffect, useState } from "react";
++import { searchCities, type City } from "./geocode";
++import { getCurrentPosition, permissionState, GeoError } from "./geolocate";
++
++const DENIED_COPY = "Location access is off — search for a city instead.";
++const FAILED_COPY = "Couldn't get your location — search for a city instead.";
++
++/** A place the user deliberately chose, on either screen. */
++export type PickedLocation = { lat: number; lon: number; label: string; source: "geo" | "city" };
++
++/**
++ * Everything the Stylist's weather pill and the Settings location row share:
++ * city search, an explicit "use my location" tap, and the three pieces of state
++ * the UI needs to be honest about what is happening.
++ *
++ * ⚠️ It deliberately does NOT own the Stylist's silent GPS refresh on load.
++ * That exists because the Stylist generates on mount and wants a fresh fix;
++ * Settings has no equivalent moment and must not rewrite a location while the
++ * user is looking at it. It also gates itself on `res.weather.locationOrigin`
++ * from a generate result, which Settings does not have. If a later plan unifies
++ * it, pass the stored origin IN as an argument (Settings can read
++ * `location_source` server-side) rather than re-deriving it here.
++ */
++export function useLocationPicker(opts?: { onPick?: (p: PickedLocation) => void }) {
++  const onPick = opts?.onPick;
++
++  const [cities, setCities] = useState<City[]>([]);
++  const [locating, setLocating] = useState(false);
++  const [geoError, setGeoError] = useState<string | null>(null);
++  // Optimistic: the row shows until we learn the browser has no geolocation at
++  // all, at which point it disappears and city search is the only path. A
++  // DENIED permission is not the same thing — that is recoverable in system
++  // settings, so the control stays and explains itself on tap.
++  const [geoSupported, setGeoSupported] = useState(true);
++
++  useEffect(() => {
++    let cancelled = false;
++    // Querying permission never prompts; reading the position would. So this
++    // only ever learns whether the API exists.
++    permissionState().then((state) => {
++      if (!cancelled && state === "unsupported") setGeoSupported(false);
++    });
++    return () => {
++      cancelled = true;
++    };
++  }, []);
++
++  const search = useCallback((q: string) => {
++    // The input fires on every keystroke, and a single letter matches most of
++    // the planet. Two characters is the floor that makes the result list mean
++    // anything.
++    if (q.trim().length < 2) return;
++    searchCities(q).then(setCities).catch(() => setCities([]));
++  }, []);
++
++  const useMyLocation = useCallback(() => {
++    setLocating(true);
++    setGeoError(null);
++    getCurrentPosition()
++      .then((c) =>
++        // Never reverse-geocoded: Open-Meteo has no reverse endpoint (D8) and a
++        // third-party one would ship precise user coordinates off-stack.
++        onPick?.({ ...c, label: "Current location", source: "geo" }),
++      )
++      .catch((e) =>
++        setGeoError(e instanceof GeoError && e.kind === "denied" ? DENIED_COPY : FAILED_COPY),
++      )
++      .finally(() => setLocating(false));
++  }, [onPick]);
++
++  return { cities, search, useMyLocation, locating, geoError, geoSupported };
++}
+
+
+=== DIFF: app/generate/actions.ts ===
+@@ -26,6 +26,7 @@ import { recordOverride } from "@/lib/outfits/overrides";
+ import {
+   resolveLocation,
+   roundCoord,
++  locationColumns,
+   LocationInputSchema,
+   type LocationSource,
+ } from "@/lib/weather/location";
+@@ -293,14 +294,7 @@ export async function saveLocation(input: unknown): Promise<void> {
+ 
+   await supabase
+     .from("profiles")
+-    .update({
+-      location_lat: roundCoord(d.lat),
+-      location_lon: roundCoord(d.lon),
+-      location_label: d.label,
+-      location_source: d.source,
+-      location_timezone: d.timezone,
+-      location_updated_at: new Date().toISOString(),
+-    })
++    .update(locationColumns(d, new Date().toISOString()))
+     .eq("id", user.id);
+ }
+ 
+
+
+=== DIFF: app/settings/actions.ts ===
+@@ -1,8 +1,12 @@
+ "use server";
+ 
++import { z } from "zod";
+ import { revalidatePath } from "next/cache";
+ import { createClient } from "@/lib/supabase/server";
+ import { PreferencesSchema, readPreferences } from "@/lib/profile/preferences";
++import { fetchForecast } from "@/lib/weather/open-meteo";
++import { locationColumns, locationChanged } from "@/lib/weather/location";
++import { localDateFor } from "@/lib/outfits/local-date";
+ 
+ /**
+  * Persist a partial preferences patch.
+@@ -38,3 +42,101 @@ export async function updatePreferences(patch: unknown): Promise<void> {
+   // tempUnit reaches the weather strip.
+   revalidatePath("/generate");
+ }
++
++const PickedCitySchema = z.object({
++  lat: z.number().min(-90).max(90),
++  lon: z.number().min(-180).max(180),
++  label: z.string().min(1).max(80),
++});
++
++/**
++ * Set the user's location from Settings.
++ *
++ * WHY THIS EXISTS SEPARATELY FROM `saveLocation`: that one runs inside the
++ * Stylist's `applyResult`, where the timezone is already in hand from the
++ * generate that just happened. Settings has no generate — and location cannot be
++ * written without a timezone, because `localDateFor` and `predictDefaultOccasion`
++ * read `location_timezone` and a null falls back to UTC, which is exactly the
++ * failure Decision 5 exists to prevent (a UTC key rolls the daily drop over
++ * mid-evening). So this resolves one first. That is one Open-Meteo call, no API
++ * key, no AI, and `fetchForecast` already caches it 30 minutes per rounded
++ * coordinate.
++ *
++ * A picked city is always `source: "city"` — `resolveLocation` surfaces that as
++ * the origin, and it is what suppresses the Stylist's silent GPS refresh so a
++ * deliberate choice is not overwritten on the next load.
++ */
++export async function setLocation(input: unknown): Promise<void> {
++  const picked = PickedCitySchema.parse(input);
++
++  const supabase = await createClient();
++  const {
++    data: { user },
++  } = await supabase.auth.getUser();
++  if (!user) throw new Error("Not signed in");
++
++  const { data: profile } = await supabase
++    .from("profiles")
++    .select("location_lat, location_lon, location_timezone")
++    .eq("id", user.id)
++    .single();
++
++  // Resolve the timezone BEFORE writing anything. If this throws, the old
++  // location survives — better than storing one with a null timezone.
++  const forecast = await fetchForecast(picked.lat, picked.lon);
++
++  const moved = locationChanged(picked, profile);
++
++  const { error } = await supabase
++    .from("profiles")
++    .update(
++      locationColumns(
++        { ...picked, source: "city", timezone: forecast.timezone },
++        new Date().toISOString(),
++      ),
++    )
++    .eq("id", user.id);
++  if (error) throw new Error(error.message);
++
++  if (moved) await clearTodaysDrop(supabase, user.id, forecast.timezone);
++
++  revalidatePath("/settings");
++  revalidatePath("/generate");
++}
++
++/**
++ * Today's looks were composed for the OLD city's weather, so a move invalidates
++ * them. Decision 5 caches the drop; it does not make it correct for a different
++ * climate — without this you land in Reykjavik and see outfits built for 26°C
++ * Manila rain under a strip reading 12°C overcast.
++ *
++ * The rebuild is FREE, and that is not incidental: `generation_events` records
++ * `kind` by whether a stored set already exists, so deleting the set is exactly
++ * what makes the next call a `drop`. MONETISATION §2 — drops are never metered,
++ * on any tier. The user changed a setting; they did not ask for a reroll.
++ *
++ * ⚠️ Keyed on the NEW timezone. Crossing zones can change what "today" is, and
++ * deleting under the old key would destroy a past day's history while leaving
++ * the row that is actually stale untouched — both intentions inverted.
++ */
++async function clearTodaysDrop(
++  supabase: Awaited<ReturnType<typeof createClient>>,
++  userId: string,
++  timezone: string,
++): Promise<void> {
++  const today = localDateFor(new Date(), timezone);
++
++  // Styled looks carry a weather snapshot too, and are cached per
++  // (user, item, local day) — a look styled for Manila is as wrong as a drop is.
++  const { data: rows } = await supabase
++    .from("outfits")
++    .select("id")
++    .eq("user_id", userId)
++    .eq("generated_on", today);
++
++  const ids = (rows ?? []).map((r) => r.id);
++  if (!ids.length) return;
++
++  await supabase.from("outfit_items").delete().in("outfit_id", ids);
++  await supabase.from("outfits").delete().in("id", ids);
++}
+
+
+=== DIFF: lib/weather/__tests__/location.test.ts ===
+@@ -1,4 +1,11 @@
+-import { roundCoord, resolveLocation, DEFAULT_LOCATION, LocationInputSchema } from "../location";
++import {
++  roundCoord,
++  resolveLocation,
++  DEFAULT_LOCATION,
++  LocationInputSchema,
++  locationColumns,
++  locationChanged,
++} from "../location";
+ 
+ test("roundCoord snaps to 2dp (~1.1km) so neighbours share one cached forecast URL", () => {
+   expect(roundCoord(52.5187234)).toBe(52.52);
+@@ -89,3 +96,33 @@ test("LocationInputSchema rejects an unknown source and an empty label", () => {
+   expect(() => LocationInputSchema.parse({ ...base, source: "profile" })).toThrow();
+   expect(() => LocationInputSchema.parse({ ...base, source: "geo", label: "" })).toThrow();
+ });
++
++// ── The shared write payload, and when a change is a change ──────────────────
++
++test("locationColumns rounds coordinates the same way resolveLocation reads them", () => {
++  const c = locationColumns(
++    { lat: 14.5995123, lon: 120.9842456, label: "Manila", source: "city", timezone: "Asia/Manila" },
++    "2026-08-06T12:00:00.000Z",
++  );
++  // 2dp ~ 1.1km: raw GPS precision makes every forecast URL unique and defeats
++  // the 30-minute fetchForecast cache, and stores more precise personal data
++  // than we need.
++  expect(c.location_lat).toBe(14.6);
++  expect(c.location_lon).toBe(120.98);
++  expect(c.location_timezone).toBe("Asia/Manila");
++  expect(c.location_source).toBe("city");
++  expect(c.location_updated_at).toBe("2026-08-06T12:00:00.000Z");
++});
++
++test("locationChanged compares ROUNDED coordinates, not raw ones", () => {
++  const profile = { location_lat: 14.6, location_lon: 120.98, location_label: "Manila" };
++  // Same place to 2dp — re-picking your own city must not count as a change,
++  // because a change throws away today's drop.
++  expect(locationChanged({ lat: 14.6012, lon: 120.9799 }, profile)).toBe(false);
++  expect(locationChanged({ lat: 64.15, lon: -21.94 }, profile)).toBe(true);
++});
++
++test("locationChanged is true when nothing is stored yet", () => {
++  expect(locationChanged({ lat: 14.6, lon: 120.98 }, null)).toBe(true);
++  expect(locationChanged({ lat: 14.6, lon: 120.98 }, { location_lat: null, location_lon: null })).toBe(true);
++});
+
+
+=== DIFF: lib/weather/location.ts ===
+@@ -66,6 +66,48 @@ export function resolveLocation(args: {
+   return { ...DEFAULT_LOCATION };
+ }
+ 
++/**
++ * The columns a location write sets, shared by both write paths.
++ *
++ * `saveLocation` (the Stylist, which already knows the timezone from the
++ * generate that just ran) and `setLocation` (Settings, which has to resolve one)
++ * must write identical shapes — a column set that drifts between them is how the
++ * two screens start disagreeing about where you are.
++ *
++ * Pure, and takes `nowIso` rather than reading the clock, so it can be tested.
++ */
++export function locationColumns(d: LocationInput, nowIso: string) {
++  return {
++    location_lat: roundCoord(d.lat),
++    location_lon: roundCoord(d.lon),
++    location_label: d.label,
++    location_source: d.source,
++    location_timezone: d.timezone,
++    location_updated_at: nowIso,
++  };
++}
++
++/**
++ * Is this a genuinely different place from what is stored?
++ *
++ * Compared at STORED precision (2dp), not raw: re-picking your own city, or a
++ * GPS fix that drifted 50 metres, is not a move. This matters because a real
++ * change throws away today's drop — the looks were composed for the old city's
++ * weather — and rebuilding costs a model call.
++ */
++export function locationChanged(
++  next: { lat: number; lon: number },
++  // Only the coordinates are read, so only those are required — callers that
++  // select a narrow column set should not have to fetch a label they ignore.
++  profile?: Pick<ProfileLocation, "location_lat" | "location_lon"> | null,
++): boolean {
++  if (profile?.location_lat == null || profile.location_lon == null) return true;
++  return (
++    roundCoord(next.lat) !== roundCoord(profile.location_lat) ||
++    roundCoord(next.lon) !== roundCoord(profile.location_lon)
++  );
++}
++
+ /**
+  * What the client may persist. Plain Zod validation keywords are fine here —
+  * this schema is NEVER sent to Anthropic as a structured-output format, so the
+
+
+Investigate per the method in your instructions, then return the findings list.
