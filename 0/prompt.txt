@@ -1,0 +1,120 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - components/closet/__tests__/color-picker.test.tsx
+  - components/closet/color-picker.tsx
+
+Unified diff (only + lines are new):
+
+=== DIFF: components/closet/__tests__/color-picker.test.tsx ===
+@@ -0,0 +1,47 @@
++import { render, screen, fireEvent } from "@testing-library/react";
++import { ColorPicker } from "../color-picker";
++
++test("renders a swatch per palette colour with an accessible name", () => {
++  render(<ColorPicker value={[]} onChange={() => {}} />);
++  expect(screen.getByRole("button", { name: /navy/i })).toBeInTheDocument();
++});
++
++test("selecting a colour adds it; selecting again removes it", () => {
++  const onChange = vi.fn();
++  const { rerender } = render(<ColorPicker value={[]} onChange={onChange} />);
++  fireEvent.click(screen.getByRole("button", { name: /navy/i }));
++  expect(onChange).toHaveBeenCalledWith(["navy"]);
++
++  rerender(<ColorPicker value={["navy"]} onChange={onChange} />);
++  fireEvent.click(screen.getByRole("button", { name: /navy/i }));
++  expect(onChange).toHaveBeenCalledWith([]);
++});
++
++test("selection is capped so the tag schema's max of 3 can never be violated", () => {
++  const onChange = vi.fn();
++  render(<ColorPicker value={["navy", "cream", "brown"]} onChange={onChange} />);
++  fireEvent.click(screen.getByRole("button", { name: /olive/i }));
++  expect(onChange).not.toHaveBeenCalled();
++});
++
++test("an already-selected colour can still be deselected at the cap", () => {
++  const onChange = vi.fn();
++  render(<ColorPicker value={["navy", "cream", "brown"]} onChange={onChange} />);
++  fireEvent.click(screen.getByRole("button", { name: /navy/i }));
++  expect(onChange).toHaveBeenCalledWith(["cream", "brown"]);
++});
++
++test("selected swatches are marked pressed for screen readers", () => {
++  render(<ColorPicker value={["navy"]} onChange={() => {}} />);
++  expect(screen.getByRole("button", { name: /navy/i })).toHaveAttribute("aria-pressed", "true");
++});
++
++test("the selected ring uses a real theme token", () => {
++  // Tailwind v4 `@theme` exposes the rust as `--color-brand`; there is no
++  // `--brand`, and an undefined var renders no ring at all — the selected
++  // state would be invisible.
++  const { container } = render(<ColorPicker value={["navy"]} onChange={() => {}} />);
++  const selected = screen.getByRole("button", { name: /navy/i });
++  expect(selected.className).toContain("var(--color-brand)");
++  expect(container.innerHTML).not.toContain("var(--brand)");
++});
+
+
+=== DIFF: components/closet/color-picker.tsx ===
+@@ -0,0 +1,56 @@
++"use client";
++
++import { COLORS } from "@/lib/closet/vocab";
++
++/**
++ * Colour was the one AI tag the user could never correct — and it feeds
++ * `colorHarmonyScore` directly, so a mis-read colour quietly degrades every
++ * outfit the generator ranks. The design shows colour as a hex swatch beside a
++ * name (Fitcheck.dc.html:548-560); this is that control, made multi-select
++ * because the schema stores up to three.
++ */
++export function ColorPicker({
++  value,
++  onChange,
++  max = 3,
++}: {
++  value: string[];
++  onChange: (next: string[]) => void;
++  max?: number;
++}) {
++  function toggle(name: string) {
++    if (value.includes(name)) {
++      onChange(value.filter((c) => c !== name));
++      return;
++    }
++    if (value.length >= max) return; // the cap mirrors TagSchema.colors.max(3)
++    onChange([...value, name]);
++  }
++
++  return (
++    <div className="flex flex-wrap gap-2">
++      {COLORS.map((c) => {
++        const active = value.includes(c.name);
++        return (
++          <button
++            key={c.name}
++            type="button"
++            onClick={() => toggle(c.name)}
++            aria-label={c.name}
++            aria-pressed={active}
++            title={c.name}
++            // `--color-brand`, not `--brand`: Tailwind v4's `@theme` names the
++            // token `--color-*`, and an undefined var would render no ring at
++            // all — leaving the selected state invisible.
++            className={`size-9 rounded-[10px] transition-transform ${
++              active
++                ? "scale-105 shadow-[0_0_0_2px_var(--color-brand)]"
++                : "shadow-[inset_0_0_0_1px_rgba(237,230,216,0.12)]"
++            }`}
++            style={{ background: c.hex }}
++          />
++        );
++      })}
++    </div>
++  );
++}
+
+
+Investigate per the method in your instructions, then return the findings list.
