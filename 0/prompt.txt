@@ -1,0 +1,204 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - components/closet/__tests__/item-card.test.tsx
+  - components/closet/item-card.tsx
+  - lib/generator/__tests__/rerank.test.ts
+  - lib/generator/rerank.ts
+  - supabase/config.toml
+
+Unified diff (only + lines are new):
+
+=== DIFF: components/closet/__tests__/item-card.test.tsx ===
+@@ -0,0 +1,20 @@
++import { render, screen } from "@testing-library/react";
++import { ItemCard } from "../item-card";
++
++// The closet grid is the one screen that renders many images at once, and it
++// deliberately does NOT use next/image: every URL is a short-lived Supabase
++// signature (lib/storage/signed.ts), so the optimizer's URL-keyed cache would
++// miss on every load and bill a transformation per view. The two wins that do
++// NOT need the optimizer we take by hand.
++
++test("a grid image defers loading until it is near the viewport", () => {
++  render(<ItemCard id="i1" name="Camel knit" imageUrl="https://example.test/a.png" height={200} />);
++  const img = screen.getByAltText("Camel knit");
++  expect(img).toHaveAttribute("loading", "lazy");
++  expect(img).toHaveAttribute("decoding", "async");
++});
++
++test("the card reserves its height before the image loads, so the grid never shifts", () => {
++  render(<ItemCard id="i1" name="Camel knit" imageUrl="https://example.test/a.png" height={200} />);
++  expect(screen.getByAltText("Camel knit").parentElement).toHaveStyle({ height: "200px" });
++});
+
+
+=== DIFF: components/closet/item-card.tsx ===
+@@ -19,8 +19,19 @@ export function ItemCard({
+       <Surface className="overflow-hidden">
+         <div style={{ height }} className="bg-surface-2">
+           {imageUrl ? (
++            // Not next/image on purpose: `imageUrl` is a short-lived signed
++            // Supabase URL, and the optimizer caches by URL — a rotating
++            // signature means a paid transformation on nearly every view for an
++            // image already compressed at upload. Lazy + async decode are the
++            // parts of next/image worth having here, and they cost nothing.
+             // eslint-disable-next-line @next/next/no-img-element
+-            <img src={imageUrl} alt={name} className="size-full object-contain p-5" />
++            <img
++              src={imageUrl}
++              alt={name}
++              loading="lazy"
++              decoding="async"
++              className="size-full object-contain p-5"
++            />
+           ) : null}
+         </div>
+         <div className="px-3 pb-3 pt-2">
+
+
+=== DIFF: lib/generator/__tests__/rerank.test.ts ===
+@@ -1,4 +1,4 @@
+-import { describeCombos, RerankSchema, rerankJsonSchema } from "../rerank";
++import { describeCombos, RerankSchema, rerankJsonSchema, NAME_MAX } from "../rerank";
+ 
+ test("describes each combo as one indexed line with subcategory + colours", () => {
+   const t = describeCombos([
+@@ -23,11 +23,41 @@ test("schema REJECTS the wrong pick count (pins 'exactly 3')", () => {
+   expect(() => RerankSchema.parse({ picks: [pick(0)] })).toThrow();
+   expect(() => RerankSchema.parse({ picks: [pick(0), pick(1), pick(2), pick(3)] })).toThrow();
+ });
+-test("schema REJECTS a pick missing name, and a name over 24 chars (D3)", () => {
++test("schema REJECTS a pick missing a name entirely", () => {
+   expect(() => RerankSchema.parse({ picks: [{ combo_index: 0, why: "x" }, pick(1), pick(2)] })).toThrow();
+-  expect(() =>
+-    RerankSchema.parse({ picks: [{ combo_index: 0, name: "x".repeat(25), why: "x" }, pick(1), pick(2)] }),
+-  ).toThrow();
++});
++
++// A look NAME is decoration; the "why" is the product. An overlong name used to
++// throw out of RerankSchema.parse and fail the whole generation as "Couldn't
++// reach the stylist" — a lie, the stylist answered fine. It went unnoticed
++// because the length is never enforced on the model: `forStructuredOutput`
++// strips maxLength (it 400s the API), so the cap existed ONLY as a post-hoc
++// throw. The prompt asks for ≤4 words, and real 4-word names ("The Relaxed
++// Navy Cream" = 22) sit right on the old 24-char limit.
++
++test("an overlong name is trimmed, never thrown — a long name cannot fail a generation", () => {
++  const long = "The Impeccably Understated Charcoal Layering Piece";
++  const out = RerankSchema.parse({
++    picks: [{ combo_index: 0, name: long, why: "x" }, pick(1), pick(2)],
++  });
++  expect(out.picks[0].name.length).toBeLessThanOrEqual(NAME_MAX);
++  expect(out.picks[0].name.length).toBeGreaterThan(0);
++});
++test("trimming falls on a word boundary, never mid-word", () => {
++  const out = RerankSchema.parse({
++    picks: [
++      { combo_index: 0, name: "The Impeccably Understated Charcoal Layering Piece", why: "x" },
++      pick(1),
++      pick(2),
++    ],
++  });
++  expect(out.picks[0].name).not.toMatch(/\s$/);
++  expect("The Impeccably Understated Charcoal Layering Piece").toContain(out.picks[0].name);
++});
++test("a normal four-word name survives untouched", () => {
++  const name = "The Relaxed Navy Cream"; // 22 chars — used to sit one word from failure
++  const out = RerankSchema.parse({ picks: [{ combo_index: 0, name, why: "x" }, pick(1), pick(2)] });
++  expect(out.picks[0].name).toBe(name);
+ });
+ test("rerankJsonSchema POSITIVELY describes the shape AND is free of validation keywords", () => {
+   const js: any = rerankJsonSchema;
+
+
+=== DIFF: lib/generator/rerank.ts ===
+@@ -17,25 +17,49 @@ export function describeCombos(combos: DescItem[][]): string {
+     .join("\n");
+ }
+ 
+-export const RerankSchema = z.object({
+-  picks: z
+-    .array(
+-      z.object({
+-        combo_index: z.number().int(),
+-        name: z.string().min(1).max(24),
+-        why: z.string().min(1),
+-      }),
+-    )
+-    .length(3),
++/**
++ * Display budget for a look name — comfortably fits the "≤4 words" the prompt
++ * asks for ("The Impeccable Charcoal Layer" = 29) with room to spare.
++ */
++export const NAME_MAX = 40;
++
++/**
++ * Clamp a name to NAME_MAX on a word boundary.
++ *
++ * A name is decoration; the "why" is the product. This is a `transform`, not a
++ * `.max()`, on purpose: the cap is never enforced on the model — CLAUDE.md's
++ * `forStructuredOutput` strips `maxLength` because the API 400s on it — so a
++ * hard bound here existed only as a post-hoc throw that failed the ENTIRE
++ * generation and surfaced as "Couldn't reach the stylist". Repair, don't reject.
++ */
++export function clampName(raw: string): string {
++  const s = raw.trim();
++  if (s.length <= NAME_MAX) return s;
++  const cut = s.slice(0, NAME_MAX);
++  const lastSpace = cut.lastIndexOf(" ");
++  return (lastSpace > 0 ? cut.slice(0, lastSpace) : cut).trimEnd();
++}
++
++// The WIRE shape — what we ask the model for. Kept transform-free because
++// `z.toJSONSchema` cannot represent a transform ("Transforms cannot be
++// represented in JSON Schema"); the repair belongs on the way in, not the way out.
++const PickShape = z.object({
++  combo_index: z.number().int(),
++  name: z.string().min(1),
++  why: z.string().min(1),
+ });
+-export type RerankResult = z.infer<typeof RerankSchema>;
+ 
+ // Sanitised JSON Schema for Anthropic's output_config.format (strips min/max keywords
+ // that would 400 — real bounds re-enforced by RerankSchema.parse after the call).
+-export const rerankJsonSchema = forStructuredOutput(z.toJSONSchema(RerankSchema)) as Record<
+-  string,
+-  unknown
+->;
++export const rerankJsonSchema = forStructuredOutput(
++  z.toJSONSchema(z.object({ picks: z.array(PickShape).length(3) })),
++) as Record<string, unknown>;
++
++// The PARSE shape — same fields, plus the name repair.
++export const RerankSchema = z.object({
++  picks: z.array(PickShape.extend({ name: z.string().min(1).transform(clampName) })).length(3),
++});
++export type RerankResult = z.infer<typeof RerankSchema>;
+ 
+ export async function rerank(args: {
+   combos: DescItem[][];
+@@ -50,7 +74,7 @@ export async function rerank(args: {
+ Here are candidate outfits (already filtered and scored), one per line:
+ ${describeCombos(args.combos)}
+ 
+-Pick the best 3. For each return: its combo_index; a short evocative NAME (≤4 words, e.g. "The Off-Duty Camel"); and ONE warm, specific sentence ("why") that references the colours/pieces (e.g. "the camel knit warms the grey trousers and picks up the loafers"). Return exactly 3 picks.`;
++Pick the best 3. For each return: its combo_index; a short evocative NAME (≤4 words and at most ${NAME_MAX} characters, e.g. "The Off-Duty Camel"); and ONE warm, specific sentence ("why") that references the colours/pieces (e.g. "the camel knit warms the grey trousers and picks up the loafers"). Return exactly 3 picks.`;
+ 
+   const client = new Anthropic(); // lazy: keeps this module importable in tests without a key
+   const res = await client.messages.create({
+
+
+=== DIFF: supabase/config.toml ===
+@@ -90,7 +90,7 @@ openai_api_key = "env(OPENAI_API_KEY)"
+ 
+ # Email testing server. Emails sent with the local dev setup are not actually sent - rather, they
+ # are monitored, and you can view the emails that would have been sent from the web interface.
+-[inbucket]
++[local_smtp]
+ enabled = true
+ # Port to use for the email testing server web interface.
+ port = 54324
+
+
+Investigate per the method in your instructions, then return the findings list.
