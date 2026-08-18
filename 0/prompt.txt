@@ -1,0 +1,105 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - lib/outfits/__tests__/predict-occasion.test.ts
+  - lib/outfits/predict-occasion.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: lib/outfits/__tests__/predict-occasion.test.ts ===
+@@ -0,0 +1,43 @@
++import { predictOccasion, defaultReason } from "../predict-occasion";
++
++// 2026-07-22 is a Wednesday, 2026-07-25 a Saturday.
++const wednesday = new Date("2026-07-22T09:00:00Z");
++const saturday = new Date("2026-07-25T09:00:00Z");
++const ALL = ["Work", "Everyday", "Weekend", "Evening"];
++
++test("a weekday defaults to Work when the user dresses for work", () => {
++  expect(predictOccasion(wednesday, "UTC", ALL)).toBe("work");
++});
++test("a weekday falls back to Everyday when the user does NOT dress for work", () => {
++  expect(predictOccasion(wednesday, "UTC", ["Everyday", "Weekend"])).toBe("everyday");
++});
++test("a weekend defaults to Weekend when the user dresses for it", () => {
++  expect(predictOccasion(saturday, "UTC", ALL)).toBe("weekend");
++});
++test("a weekend falls back to Everyday when the user does not dress for the weekend", () => {
++  expect(predictOccasion(saturday, "UTC", ["Work", "Everyday"])).toBe("everyday");
++});
++
++// The prediction is a soft default — it must degrade, never throw.
++test("empty occasions default to everyday (today's behavior, no regression)", () => {
++  expect(predictOccasion(wednesday, "UTC", [])).toBe("everyday");
++});
++test("never returns an occasion the user did not select", () => {
++  // dresses only for Evening — a weekday can't produce Work/Everyday/Weekend
++  expect(predictOccasion(wednesday, "UTC", ["Evening"])).toBe("evening");
++});
++
++// Day-of-week is LOCAL. 2026-07-25T00:30Z is still Friday in New York but already
++// Saturday in Berlin — the default must follow the user's zone.
++test("timezone decides which day it is", () => {
++  const lateFriUtc = new Date("2026-07-25T00:30:00Z");
++  expect(predictOccasion(lateFriUtc, "America/New_York", ALL)).toBe("work"); // still Fri
++  expect(predictOccasion(lateFriUtc, "Europe/Berlin", ALL)).toBe("weekend"); // already Sat
++});
++
++test("each occasion has its own legible reason", () => {
++  expect(defaultReason("work")).toMatch(/work/i);
++  expect(defaultReason("weekend")).toMatch(/weekend/i);
++  expect(defaultReason("everyday")).toBeTruthy();
++  expect(defaultReason("evening")).toBeTruthy();
++});
+
+
+=== DIFF: lib/outfits/predict-occasion.ts ===
+@@ -0,0 +1,45 @@
++import type { UiOccasion } from "@/lib/generator/types";
++
++/**
++ * The predicted occasion for the user's morning.
++ *
++ * A prediction of their day, not a fixed rule — the seam for the future learner
++ * is the (later, optional) `history` argument this signature can grow. For now:
++ * the day-of-week, narrowed to occasions they actually dress for.
++ *
++ * Priority differs by day-type, and always falls back through the occasions the
++ * user DID pick, so it never surfaces one they skipped. Empty picks → everyday,
++ * matching the previous hardcoded default so nothing regresses.
++ */
++export function predictOccasion(now: Date, timeZone: string, occasions: string[]): UiOccasion {
++  const weekend = isWeekend(now, timeZone);
++  const priority: UiOccasion[] = weekend
++    ? ["weekend", "everyday", "work", "evening"]
++    : ["work", "everyday", "weekend", "evening"];
++
++  const dressesFor = new Set(occasions.map((o) => o.toLowerCase()));
++  return priority.find((o) => dressesFor.has(o)) ?? "everyday";
++}
++
++/** Day-of-week in the user's zone. `Intl` `weekday: "short"` is locale-stable in en-US. */
++function isWeekend(now: Date, timeZone: string): boolean {
++  let day: string;
++  try {
++    day = new Intl.DateTimeFormat("en-US", { timeZone, weekday: "short" }).format(now);
++  } catch {
++    day = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", weekday: "short" }).format(now);
++  }
++  return day === "Sat" || day === "Sun";
++}
++
++const REASONS: Record<UiOccasion, string> = {
++  work: "Styled for your work day",
++  everyday: "Everyday ease",
++  weekend: "Weekend, off-duty",
++  evening: "Out tonight",
++};
++
++/** The legible "why" shown above the looks — makes the smart default feel intentional. */
++export function defaultReason(occasion: UiOccasion): string {
++  return REASONS[occasion];
++}
+
+
+Investigate per the method in your instructions, then return the findings list.
