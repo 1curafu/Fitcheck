@@ -1,4 +1,4 @@
-import { biggestGap, bottleneck, GAP_CANDIDATES } from "../gap";
+import { biggestGap, slotCounts, GAP_CANDIDATES } from "../gap";
 import type { CandidateItem } from "@/lib/generator/candidates";
 
 const base = { occasions: ["everyday", "work"] as const };
@@ -104,17 +104,26 @@ test("a coatless closet is told to buy a coat before anything else", () => {
   expect(biggestGap(noCoat, ["work"])!.candidate.category).toBe("Outerwear");
 });
 
-test("the bottleneck is named in the user's own counts", () => {
+test("slot counts are the user's own numbers, and INCLUDE outerwear", () => {
+  // ⚠️ Outerwear is not in `REQUIRED_CATEGORIES`, and leaving it out of this
+  // made the card contradict itself on the real dev closet: it recommended a
+  // camel overcoat and then explained "you have 4 pairs of shoes against 10
+  // tops" — a reason for a different purchase entirely.
   const closet = [
     ...Array.from({ length: 9 }, (_, i) => piece(`t${i}`, "Tops")),
     ...Array.from({ length: 6 }, (_, i) => piece(`b${i}`, "Bottoms")),
     ...Array.from({ length: 2 }, (_, i) => piece(`s${i}`, "Shoes")),
+    piece("o1", "Outerwear"),
   ];
-  const b = bottleneck(closet, ["everyday"])!;
-  expect(b.category).toBe("Shoes");
-  expect(b.count).toBe(2);
-  expect(b.deepest).toBe("Tops");
-  expect(b.deepestCount).toBe(9);
+  const counts = slotCounts(closet, ["everyday"]);
+  expect(counts).toEqual({ Tops: 9, Bottoms: 6, Shoes: 2, Outerwear: 1 });
+});
+
+test("a closet with no coat reports zero, not a missing key", () => {
+  // The page phrases "You have 0 coats against 9 tops" off this, so the slot
+  // has to be present and zero rather than absent.
+  const counts = slotCounts([piece("t1", "Tops")], ["everyday"]);
+  expect(counts.Outerwear).toBe(0);
 });
 
 // NOT `expect(gap === null || gap.unlocks > 0)` — `biggestGap` only ever sets

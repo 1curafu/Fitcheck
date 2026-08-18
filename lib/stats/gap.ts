@@ -121,21 +121,25 @@ function countCombos(closet: CandidateItem[], occasions: UiOccasion[]): number {
  * against 11 tops" is therefore not a decoration on the number; it IS the
  * finding, in units the user can verify by counting.
  */
-export function bottleneck(
+/**
+ * How many wearable pieces the closet holds in each slot the simulation uses.
+ *
+ * ⚠️ Includes **Outerwear**, which `REQUIRED_CATEGORIES` does not. Leaving it
+ * out made the card contradict itself on the real dev closet: it recommended a
+ * camel overcoat and then explained *"you have 4 shoes against 10 tops"* — a
+ * reason for a different purchase. Whatever the winner is, the sentence has to
+ * be about the winner.
+ *
+ * Counted on the COLD pass, the only one where every slot is in play.
+ */
+export function slotCounts(
   closet: CandidateItem[],
   occasions: UiOccasion[],
-): { category: string; count: number; deepest: string; deepestCount: number } | null {
-  const by = eligibleByCategory(closet, argsFor(occasions[0] ?? "everyday", SIMULATED_CONDITIONS[1]));
-  const counts = REQUIRED_CATEGORIES.map((c) => ({ category: c, count: (by[c] ?? []).length }));
-  if (!counts.length) return null;
-  const low = counts.reduce((a, b) => (b.count < a.count ? b : a));
-  const high = counts.reduce((a, b) => (b.count > a.count ? b : a));
-  return {
-    category: low.category,
-    count: low.count,
-    deepest: high.category,
-    deepestCount: high.count,
-  };
+): Record<string, number> {
+  const by = eligibleByCategory(closet, argsFor(occasions[0] ?? "everyday", SIMULATED_CONDITIONS[0]));
+  const out: Record<string, number> = {};
+  for (const c of [...REQUIRED_CATEGORIES, "Outerwear"]) out[c] = (by[c] ?? []).length;
+  return out;
 }
 
 /**

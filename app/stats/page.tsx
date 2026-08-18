@@ -4,7 +4,7 @@ import { MobileNav } from "@/components/shell/mobile-nav";
 import { localDateFor } from "@/lib/outfits/local-date";
 import { entitlementsFor } from "@/lib/billing/tiers";
 import { closetStats, mostWorn, gatheringDust } from "@/lib/stats/aggregate";
-import { biggestGap, bottleneck } from "@/lib/stats/gap";
+import { biggestGap, slotCounts } from "@/lib/stats/gap";
 import { StatsView } from "@/components/stats/stats-view";
 import type { CandidateItem } from "@/lib/generator/candidates";
 import type { UiOccasion } from "@/lib/generator/types";
@@ -13,6 +13,24 @@ import type { UiOccasion } from "@/lib/generator/types";
 const ALL_OCCASIONS: UiOccasion[] = ["everyday", "work", "weekend", "evening"];
 
 const TOP_N = 3;
+
+/**
+ * Plain words for a slot, singular and plural.
+ *
+ * "1 outerwear against 10 tops" is not English, and neither is "1 coats" —
+ * both were shipped and caught on the screen rather than in a test.
+ */
+const SLOT_WORD: Record<string, [string, string]> = {
+  Tops: ["top", "tops"],
+  Bottoms: ["bottom", "bottoms"],
+  Shoes: ["pair of shoes", "pairs of shoes"],
+  Outerwear: ["coat", "coats"],
+};
+
+function slotPhrase(category: string, n: number): string {
+  const [one, many] = SLOT_WORD[category] ?? ["piece", "pieces"];
+  return `${n} ${n === 1 ? one : many}`;
+}
 
 export default async function StatsPage() {
   const supabase = await createClient();
@@ -77,21 +95,30 @@ export default async function StatsPage() {
   // Skipped entirely for a user who cannot see it — a few dozen passes over the
   // closet is cheap, but computing an answer nobody is shown is still waste.
   const gap = entitlements.gapAnalysis ? biggestGap(closet, ALL_OCCASIONS) : null;
-  const neck = entitlements.gapAnalysis ? bottleneck(closet, ALL_OCCASIONS) : null;
 
   /**
-   * The reason line names the bottleneck in the user's OWN counts.
+   * The reason line names the gap in the user's OWN counts.
    *
-   * This is not decoration on the number — it IS what the simulation found. A
-   * wardrobe is a product of its slots, so the piece worth buying is always the
-   * one in the shallowest slot, and "3 pairs of shoes against 11 tops" is a
-   * claim the user can check by counting. That is the kind of "why" this app
-   * sells; a bare percentage is not.
+   * This is not decoration on the percentage — it IS what the simulation found.
+   * A wardrobe is a product of its slots, so the piece worth buying is the one
+   * in the shallowest slot, and "1 coat against 10 tops" is a claim the user can
+   * check by counting. That is the kind of "why" this app sells; a bare
+   * percentage is not.
+   *
+   * ⚠️ It is phrased about the WINNING candidate's slot, never about the
+   * smallest slot in the abstract — those can differ, and the first version
+   * recommended a camel overcoat while explaining that shoes were the problem.
    */
-  const reason =
-    neck && neck.count < neck.deepestCount
-      ? `You have ${neck.count} ${neck.category.toLowerCase()} against ${neck.deepestCount} ${neck.deepest.toLowerCase()} — that's what's holding the rest back.`
-      : "It pairs with more of your closet than anything else you're missing.";
+  const reason = (() => {
+    if (!gap) return "";
+    const counts = slotCounts(closet, ALL_OCCASIONS);
+    const mine = counts[gap.candidate.category] ?? 0;
+    const deepest = Object.entries(counts).reduce((a, b) => (b[1] > a[1] ? b : a));
+    if (deepest[0] === gap.candidate.category || deepest[1] <= mine) {
+      return "It pairs with more of your closet than anything else you're missing.";
+    }
+    return `You have ${slotPhrase(gap.candidate.category, mine)} against ${slotPhrase(deepest[0], deepest[1])} — that's what's holding the rest back.`;
+  })();
 
   return (
     <div className="flex min-h-dvh flex-1 flex-col">
