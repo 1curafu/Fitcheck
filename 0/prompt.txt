@@ -1,0 +1,1 @@
+i would also like to choose city, cause we will get users location, but he could go to another city and there will be another weather for example, and we should also give give an advice, cause in 18 oclock it will be sunny and in 3 hours rainy
