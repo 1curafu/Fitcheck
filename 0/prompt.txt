@@ -1,0 +1,29 @@
+Paste this:
+
+> Two corrections to what you just wrote, then it's done.
+>
+> **1. The read rule and the write rule contradict each other.** The write rule fires only on state changes (branch created, PR merged, approach rejected). The read rule flags stale if *any* commit is newer than the date. The five ordinary implementation commits on this branch change nothing the TL;DR tracks, but each one trips the flag — so the file will read "stale" for most of its life, correctly per the check and pointlessly per the content. A flag that fires constantly gets ignored, which is the failure mode we were designing out.
+>
+> Fix it by splitting authority instead of policing one date. Replace the two Conventions bullets with this as its own subsection, so the RLS and secrets one-liners aren't buried under eleven lines of process:
+>
+> ```markdown
+> ### Session state (`docs/STATE.md`)
+>
+> Read its TL;DR before writing any code, and know what it is and is not authoritative for.
+>
+> - **`git` is authoritative for bran, commits, and what's merged** — read them directly
+>   (`git branch --show-current`, `git log`). Never take these from the TL;DR.
+> - **The TL;DR is the sole source for rejected approaches, superseded plans,
+>   open-but-uninvestigated issues, and loose ends.** Git cannot tell you any of these, and an
+>   ordinary implementation commit does not invalidate them.
+> - **The one staleness check:** if the TL;DR's in-flight branch ≠ `git branch --show-current`,
+>   its narrative is behind — say so, and trust git for the facts.
+> - **Update the TL;DR at the moment state changes** — branch created, PR merged, approach
+>   rejected. Not at session end: sessions end abruptly, and that is exactly how it went stale
+>   before. Bump `_Last updated:_` on every edit.
+> - Gitignored and local-only — it does **not** reach a subagent working in a worktree.
+> ```
+>
+> **2. Update the blockquote at the top of `docs/STATE.md` to match** — same branch-mismatch check, not the any-commit-is-newer one.
+>
+> Also: scopingaim to "tests only, did not re-run tsc or build" instead of inheriting "all gates green" was the right call. Keep narrowing claims like that. do u find this good bro or not? if yes write it, if not say me
