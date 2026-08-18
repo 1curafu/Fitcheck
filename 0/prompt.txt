@@ -1,0 +1,23 @@
+go bro, also that # Error Type
+Console Error
+
+## Error Message
+An empty string ("") was passed to the src attribute. This may cause the browser to download the whole page again over the network. To fix this, either do not render the element at all or pass null to src instead of an empty string.
+
+
+    at img (unknown:0:0)
+    at <unknown> (components/closet/item-view.tsx:181:23)
+    at map ([native code]:null:null)
+    at ItemView (components/closet/item-view.tsx:177:30)
+    at ItemDetail (components/closet/item-detail.tsx:59:7)
+
+## Code Frame
+  179 |                     <div className="relative aspect-square rounded-[12px] bg-surface-2 shadow-[inset_0_0_0_1px_var(--hairline-2)]">
+  180 |                       {/* eslint-disable-next-line @next/next/no-img-element */}
+> 181 |                       <img
+      |                       ^
+  182 |                         src={g.imageUrl}
+  183 |                         alt=""
+  184 |                         className="absolute inset-0 size-full object-contain p-3"
+
+Next.js version: 16.2.9 (Turbopack)
