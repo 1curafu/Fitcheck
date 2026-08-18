@@ -1,0 +1,194 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/generate/actions.ts
+  - lib/outfits/daily.ts
+  - lib/outfits/quota.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/generate/actions.ts ===
+@@ -9,6 +9,10 @@ import { buildCandidates, missingCategory, type CandidateItem } from "@/lib/gene
+ import { rankTopN } from "@/lib/generator/rank";
+ import { rerank } from "@/lib/generator/rerank";
+ import { layoutForLook, staggerOrder } from "@/lib/generator/layout";
++import { localDateFor } from "@/lib/outfits/local-date";
++import { loadDailyLooks, saveDailyLooks } from "@/lib/outfits/daily";
++import { reassembleLooks } from "@/lib/outfits/reassemble";
++import { assertCanGenerate } from "@/lib/outfits/quota";
+ import {
+   resolveLocation,
+   roundCoord,
+@@ -33,6 +37,8 @@ export async function generate(input: {
+   formality: number | null;
+   /** Refine "Lean into" colour families (`COLOR_FAMILIES` keys). A preference, not a filter. */
+   lean: string[];
++  /** Explicit user action only — the one way to spend an AI call on a day already answered. */
++  regenerate?: boolean;
+   city?: { lat: number; lon: number; label: string; source: LocationSource };
+ }): Promise<GenerateResult> {
+   try {
+@@ -75,6 +81,35 @@ export async function generate(input: {
+       hourly: f.hourly,
+     };
+ 
++    const today = localDateFor(now, f.timezone);
++
++    // The daily drop (Decision 5): today's looks are generated once and then
++    // read back. Only an explicit regenerate spends an AI call on a day the
++    // stylist has already answered.
++    if (!input.regenerate) {
++      const stored = await loadDailyLooks(user.id, input.occasion, today);
++      if (stored?.length) {
++        const paths = Array.from(
++          new Set(
++            stored
++              .flatMap((s) => s.pieces.map((p) => byId.get(p.itemId)))
++              .filter((it): it is NonNullable<typeof it> => Boolean(it))
++              .map((it) => displayPath(it)),
++          ),
++        );
++        const signed = await signItemImages(paths);
++        const looks = reassembleLooks(stored, byId, signed, (id) => {
++          const it = byId.get(id);
++          return it ? displayPath(it) : undefined;
++        });
++        // null = the closet changed under the stored set; fall through and
++        // regenerate rather than showing an outfit with a hole in it.
++        if (looks) return { status: "ok", weather, looks };
++      }
++    }
++
++    await assertCanGenerate(user.id);
++
+     const candItems: CandidateItem[] = items.map((i) => ({
+       id: i.id,
+       category: i.category,
+@@ -142,6 +177,10 @@ export async function generate(input: {
+       return { name: p.name, why: p.why, pieces, anchorIndex: staggerOrder(slots)[0] };
+     });
+ 
++    // Fire-and-forget would be simpler, but a failed write means the user pays
++    // for another AI call on their next tap — worth awaiting.
++    await saveDailyLooks(user.id, input.occasion, today, weather, looks);
++
+     return { status: "ok", weather, looks };
+   } catch (e) {
+     console.error("[generate] failed:", e);
+
+
+=== DIFF: lib/outfits/daily.ts ===
+@@ -0,0 +1,88 @@
++import { createClient } from "@/lib/supabase/server";
++import type { Look, WeatherPayload } from "@/lib/generator/types";
++import type { StoredLook } from "./reassemble";
++
++/** Today's stored set for one occasion, in the order the stylist chose. */
++export async function loadDailyLooks(
++  userId: string,
++  occasion: string,
++  generatedOn: string,
++): Promise<StoredLook[] | null> {
++  const supabase = await createClient();
++  const { data } = await supabase
++    .from("outfits")
++    .select("look_name, ai_reasoning, layout, look_index")
++    .eq("user_id", userId)
++    .eq("occasion", occasion)
++    .eq("generated_on", generatedOn)
++    .order("look_index", { ascending: true });
++
++  if (!data || data.length === 0) return null;
++
++  return data.map((row) => {
++    const layout = (row.layout ?? {}) as {
++      anchorIndex?: number;
++      pieces?: StoredLook["pieces"];
++    };
++    return {
++      lookName: row.look_name ?? "",
++      why: row.ai_reasoning ?? "",
++      anchorIndex: layout.anchorIndex ?? 0,
++      pieces: layout.pieces ?? [],
++    };
++  });
++}
++
++/**
++ * Replace today's set for one occasion. Delete-then-insert rather than upsert:
++ * a regenerate may return a different NUMBER of looks, and leftovers from the
++ * previous set must not survive alongside the new one.
++ */
++export async function saveDailyLooks(
++  userId: string,
++  occasion: string,
++  generatedOn: string,
++  weather: WeatherPayload,
++  looks: Look[],
++): Promise<void> {
++  const supabase = await createClient();
++
++  await supabase
++    .from("outfits")
++    .delete()
++    .eq("user_id", userId)
++    .eq("occasion", occasion)
++    .eq("generated_on", generatedOn);
++
++  const rows = looks.map((look, i) => ({
++    user_id: userId,
++    occasion,
++    generated_on: generatedOn,
++    look_index: i,
++    look_name: look.name,
++    ai_reasoning: look.why,
++    weather_snapshot: weather,
++    layout: {
++      anchorIndex: look.anchorIndex,
++      pieces: look.pieces.map((p) => ({ itemId: p.itemId, slot: p.slot })),
++    },
++  }));
++
++  const { data: inserted } = await supabase
++    .from("outfits")
++    .insert(rows)
++    .select("id, look_index");
++  if (!inserted) return;
++
++  // outfit_items is the relational record — it is what wear_logs and future
++  // analytics join against. The renderable geometry lives in outfits.layout.
++  const links = inserted.flatMap((row) => {
++    const look = looks[row.look_index];
++    return (look?.pieces ?? []).map((p) => ({
++      outfit_id: row.id,
++      item_id: p.itemId,
++      slot: p.category,
++    }));
++  });
++  if (links.length) await supabase.from("outfit_items").insert(links);
++}
+
+
+=== DIFF: lib/outfits/quota.ts ===
+@@ -0,0 +1,18 @@
++/**
++ * The single gate every real generation passes through.
++ *
++ * It allows everything today. It exists so that adding a paid tier later is a
++ * change to THIS file — not surgery across the generate action — per the
++ * project's preference for the extensible option over the minimal diff.
++ * See docs/superpowers/plans/2026-07-22-regenerate-quota.md.
++ */
++export async function assertCanGenerate(_userId: string): Promise<void> {
++  return;
++}
++
++export class QuotaExceededError extends Error {
++  constructor() {
++    super("Daily regeneration limit reached");
++    this.name = "QuotaExceededError";
++  }
++}
+
+
+Investigate per the method in your instructions, then return the findings list.
