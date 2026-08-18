@@ -1,0 +1,360 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/closet/page.tsx
+  - app/page.tsx
+  - components/capture/onboarding-capture.tsx
+  - components/closet/item-detail.tsx
+  - components/generate/stylist-view.tsx
+  - components/generate/stylist.tsx
+  - components/onboarding/quiz.tsx
+  - components/outfits/__tests__/outfit-detail.test.tsx
+  - components/outfits/outfit-detail.tsx
+  - components/shell/mobile-nav.tsx
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/closet/page.tsx ===
+@@ -31,7 +31,7 @@ export default async function ClosetPage() {
+ 
+   return (
+     <div className="flex min-h-dvh flex-1 flex-col">
+-      <main className="flex flex-1 flex-col gap-5 py-8">
++      <main className="screen-top flex flex-1 flex-col gap-5 pb-8">
+         <header className="flex items-end justify-between px-6">
+           <div>
+             <Kicker>{grid.length} Pieces</Kicker>
+
+
+=== DIFF: app/page.tsx ===
+@@ -11,7 +11,7 @@ export default async function Welcome() {
+   if (user) redirect("/onboarding");
+ 
+   return (
+-    <main className="flex flex-1 flex-col justify-between px-7 pb-10 pt-20">
++    <main className="screen-top flex flex-1 flex-col justify-between px-7 pb-10">
+       <div className="flex flex-1 flex-col items-center justify-center text-center">
+         <p className="mb-[22px] text-[13px] uppercase tracking-[0.34em] text-brand">
+           Your AI Stylist
+
+
+=== DIFF: components/capture/onboarding-capture.tsx ===
+@@ -17,7 +17,7 @@ export function OnboardingCapture({ initialCount = 0 }: { initialCount?: number
+ 
+   if (cap.phase === "confirm" && cap.draft) {
+     return (
+-      <main className="flex flex-1 flex-col px-6 pb-7 pt-12">
++      <main className="screen-top flex flex-1 flex-col px-6 pb-7">
+         <ConfirmForm
+           draft={cap.draft}
+           saving={cap.saving}
+@@ -32,7 +32,7 @@ export function OnboardingCapture({ initialCount = 0 }: { initialCount?: number
+   }
+ 
+   return (
+-    <main className="flex flex-1 flex-col px-6 pb-7 pt-[30px]">
++    <main className="screen-top flex flex-1 flex-col px-6 pb-7">
+       <Kicker className="mb-[10px] block">Almost there</Kicker>
+       <h1 className="mb-[6px] font-serif text-3xl/[1.12] text-foreground">
+         Capture your first five.
+
+
+=== DIFF: components/closet/item-detail.tsx ===
+@@ -106,7 +106,7 @@ export function ItemDetail({
+   }
+ 
+   return (
+-    <main className="flex flex-1 flex-col gap-5 px-6 pb-7 pt-12">
++    <main className="screen-top flex flex-1 flex-col gap-5 px-6 pb-7">
+       <button
+         onClick={() => router.back()}
+         className="self-start text-2xl leading-none text-muted-foreground"
+
+
+=== DIFF: components/generate/stylist-view.tsx ===
+@@ -63,7 +63,7 @@ export function StylistView(props: {
+   const occLabel = occasion.charAt(0).toUpperCase() + occasion.slice(1);
+ 
+   return (
+-    <main className="relative flex flex-1 flex-col overflow-hidden px-[22px] pt-[46px]">
++    <main className="relative flex flex-1 flex-col overflow-hidden screen-top px-[22px]">
+       {/* The legible "why" — a quiet kicker above the title that makes the smart
+           default read as intentional. Uses the documented label step. */}
+       {props.reason && (
+
+
+=== DIFF: components/generate/stylist.tsx ===
+@@ -1,7 +1,6 @@
+ "use client";
+ 
+ import { useCallback, useEffect, useRef, useState } from "react";
+-import { useRouter } from "next/navigation";
+ import { StylistView, type StylistStatus } from "./stylist-view";
+ import {
+   generate,
+@@ -20,8 +19,50 @@ type Chosen = { lat: number; lon: number; label: string; source: LocationSource
+ const DENIED_COPY = "Location access is off — search for a city instead.";
+ const FAILED_COPY = "Couldn't get your location — search for a city instead.";
+ 
++const OCCASIONS: UiOccasion[] = ["everyday", "work", "weekend", "evening"];
++
+ export function Stylist() {
+-  const router = useRouter();
++
++  /**
++   * Which occasion and which of the day's looks you were on lives in the URL,
++   * not in React state alone.
++   *
++   * This component unmounts the moment you open a look's detail screen, so
++   * anything held only in state is gone when you come back: picking look 02 and
++   * tapping "See the full look" used to return you to 01, and a manual switch to
++   * Weekend fell back to the predicted occasion.
++   *
++   * Writes go through `history.replaceState`, NOT `router.replace` — the latter
++   * refetches the route on every tab tap. Next supports this exact pattern for
++   * search params that should not re-render the server component.
++   *
++   * Reads come from `window.location.search`, NOT `useSearchParams()`: that hook
++   * reads the App Router's own idea of the URL and never observes a
++   * `history.replaceState`, so on the way back it still reported the params from
++   * before the write and the restore silently did nothing. The read happens in
++   * an effect rather than a state initialiser so server and client agree on the
++   * first render.
++   */
++  // Which look every incoming result should land on; null means 01.
++  //
++  // NOT consumed on first use. `generate` runs more than once per visit — the
++  // silent geolocation refresh sets `city`, which re-runs it — and a
++  // consume-once ref meant the second result quietly reset the selection to 01.
++  // Cleared only when the day's set actually changes underneath: a regenerate or
++  // an occasion switch.
++  const desiredLookRef = useRef<number | null>(null);
++  const urlOccasionRef = useRef<UiOccasion | null>(null);
++
++  const writeParams = useCallback((patch: Record<string, string | null>) => {
++    const next = new URLSearchParams(window.location.search);
++    for (const [k, v] of Object.entries(patch)) {
++      if (v === null) next.delete(k);
++      else next.set(k, v);
++    }
++    const qs = next.toString();
++    window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
++  }, []);
++
+   const [status, setStatus] = useState<StylistStatus>("loading");
+   const [occasion, setOccasion] = useState<UiOccasion>("everyday");
+   const [formality, setFormality] = useState<number | null>(null);
+@@ -115,7 +156,9 @@ export function Stylist() {
+       if (res.status === "ok") {
+         setWeather(res.weather);
+         setLooks(res.looks);
+-        setSelectedLook(0);
++        // Hold the look the user was on — clamped, because a regenerate may
++        // have returned fewer than the index refers to.
++        setSelectedLook(Math.min(desiredLookRef.current ?? 0, Math.max(res.looks.length - 1, 0)));
+         setStatus("ok");
+       } else if (res.status === "empty") {
+         setWeather(res.weather);
+@@ -147,12 +190,27 @@ export function Stylist() {
+   // prediction — that would spend two AI calls on a fresh day.
+   useEffect(() => {
+     let cancelled = false;
++
++    // Synchronous, before the async prediction resolves — so the generate effect
++    // (gated on `seeded`) runs once, against the restored occasion.
++    const sp = new URLSearchParams(window.location.search);
++    const restoredOccasion = OCCASIONS.find((o) => o === sp.get("occasion")) ?? null;
++    urlOccasionRef.current = restoredOccasion;
++    desiredLookRef.current = Number(sp.get("look")) || null;
++    if (restoredOccasion) setOccasion(restoredOccasion);
++
+     predictDefaultOccasion()
+       .then(({ occasion: predicted, reason: why }) => {
+         if (cancelled) return;
++        // predictedRef is set either way — it is the baseline every override is
++        // logged against, and a restored URL occasion is not a fresh override
++        // (the user already tapped it once, and it was logged then).
+         predictedRef.current = predicted;
+-        setReason(why);
+-        setOccasion(predicted);
++        if (urlOccasionRef.current) setReason(defaultReason(urlOccasionRef.current));
++        else {
++          setReason(why);
++          setOccasion(predicted);
++        }
+       })
+       .finally(() => {
+         // Release the gate even if prediction fails — looks still load against
+@@ -185,11 +243,14 @@ export function Stylist() {
+    * and would then regenerate that occasion too.
+    */
+   const regenerate = useCallback(() => {
++    // A fresh set starts at 01, and the remembered index may not even exist.
++    desiredLookRef.current = null;
++    writeParams({ look: null });
+     setStatus("loading");
+     generate({ occasion, formality, lean, city: city ?? undefined, regenerate: true }).then(
+       applyResult,
+     );
+-  }, [occasion, formality, lean, city, applyResult]);
++  }, [occasion, formality, lean, city, applyResult, writeParams]);
+ 
+   return (
+     <StylistView
+@@ -207,6 +268,9 @@ export function Stylist() {
+       onOccasion={(o) => {
+         setOccasion(o);
+         setReason(defaultReason(o));
++        // A new occasion is a new set of looks — drop the remembered index.
++        desiredLookRef.current = null;
++        writeParams({ occasion: o, look: null });
+         // A tap that departs from the prediction is the flywheel signal for the
+         // future learner. Fire-and-forget — it must never disturb the looks.
+         if (o !== predictedRef.current) {
+@@ -230,7 +294,11 @@ export function Stylist() {
+         searchCities(q).then(setCities);
+       }}
+       onUseMyLocation={geoSupported ? useMyLocation : undefined}
+-      onSelectLook={setSelectedLook}
++      onSelectLook={(i) => {
++        desiredLookRef.current = i || null;
++        setSelectedLook(i);
++        writeParams({ look: i === 0 ? null : String(i) });
++      }}
+       onRetry={() => setNonce((n) => n + 1)}
+       onRegenerate={regenerate}
+     />
+
+
+=== DIFF: components/onboarding/quiz.tsx ===
+@@ -58,7 +58,7 @@ export function Quiz() {
+   }
+ 
+   return (
+-    <main className="flex flex-1 flex-col px-6 pb-7 pt-14">
++    <main className="screen-top flex flex-1 flex-col px-6 pb-7">
+       {/* progress */}
+       <div className="mb-8 flex items-center gap-3">
+         <button
+
+
+=== DIFF: components/outfits/__tests__/outfit-detail.test.tsx ===
+@@ -1,7 +1,10 @@
+ import { render, screen } from "@testing-library/react";
++import userEvent from "@testing-library/user-event";
+ import { OutfitDetail } from "../outfit-detail";
+ 
+-vi.mock("next/navigation", () => ({ useRouter: () => ({ back: vi.fn() }) }));
++const back = vi.fn();
++const push = vi.fn();
++vi.mock("next/navigation", () => ({ useRouter: () => ({ back, push }) }));
+ // The Server Actions are the write path, exercised live rather than here — this
+ // keeps the component test about what the screen SAYS.
+ vi.mock("@/app/outfits/[id]/actions", () => ({
+@@ -89,3 +92,28 @@ test("the flat-lay places each piece at its stored position", () => {
+   const img = stage.querySelector("img");
+   expect(img).toHaveStyle({ left: "10%", top: "20%", width: "30%", height: "40%" });
+ });
++
++// Reached by a shared link, a refresh, or a PWA cold start, this screen is the
++// FIRST history entry — `router.back()` alone is a dead control that silently
++// does nothing.
++test("back falls out to the stylist screen when there is no history to return to", async () => {
++  back.mockClear();
++  push.mockClear();
++  const spy = vi.spyOn(window.history, "length", "get").mockReturnValue(1);
++  render(<OutfitDetail outfit={outfit} pieces={pieces} worn={false} favorite={false} />);
++  await userEvent.click(screen.getByRole("button", { name: /back/i }));
++  expect(back).not.toHaveBeenCalled();
++  expect(push).toHaveBeenCalledWith("/generate");
++  spy.mockRestore();
++});
++
++test("back returns to where you came from when there is history", async () => {
++  back.mockClear();
++  push.mockClear();
++  const spy = vi.spyOn(window.history, "length", "get").mockReturnValue(3);
++  render(<OutfitDetail outfit={outfit} pieces={pieces} worn={false} favorite={false} />);
++  await userEvent.click(screen.getByRole("button", { name: /back/i }));
++  expect(back).toHaveBeenCalled();
++  expect(push).not.toHaveBeenCalled();
++  spy.mockRestore();
++});
+
+
+=== DIFF: components/outfits/outfit-detail.tsx ===
+@@ -46,11 +46,23 @@ export function OutfitDetail({
+ 
+   return (
+     <div className="flex min-h-dvh flex-1 flex-col">
++      {/* This screen opens with a full-bleed flat-lay, so it deliberately does
++          NOT use `.screen-top` — the stage runs to the top edge and only this
++          overlay control is inset. `top-[58px]` was a hard-coded status-bar
++          allowance: correct in the installed PWA, a 58px gap in a Safari tab
++          where the viewport already clears the clock. */}
+       <button
+         type="button"
+-        onClick={() => router.back()}
++        onClick={() => {
++          // `router.back()` alone is a dead control whenever this screen is the
++          // first entry in the session — a shared link, a refresh, or a PWA cold
++          // start on /outfits/[id]. There is nothing to go back TO, so the tap
++          // silently does nothing. Fall back to the screen the look belongs to.
++          if (window.history.length > 1) router.back();
++          else router.push("/generate");
++        }}
+         aria-label="Back"
+-        className="absolute left-[18px] top-[58px] z-40 grid size-10 place-items-center rounded-full bg-[rgba(20,19,22,0.7)] text-xl text-foreground shadow-[inset_0_0_0_1px_var(--hairline-7)] backdrop-blur-[10px]"
++        className="absolute left-[18px] top-[calc(env(safe-area-inset-top)+18px)] z-40 grid size-10 place-items-center rounded-full bg-[rgba(20,19,22,0.7)] text-xl text-foreground shadow-[inset_0_0_0_1px_var(--hairline-7)] backdrop-blur-[10px]"
+       >
+         ‹
+       </button>
+@@ -60,7 +72,7 @@ export function OutfitDetail({
+             screen laid out, so tapping a look does not rearrange it. */}
+         <div
+           data-testid="detail-stage"
+-          className="relative h-[420px] [background:radial-gradient(120%_90%_at_50%_22%,#201f22_0%,#0E0E10_78%)]"
++          className="surface-stage relative h-[420px]"
+         >
+           {pieces.map((p) => {
+             const s = p.slot;
+@@ -131,7 +143,10 @@ export function OutfitDetail({
+         </div>
+       </div>
+ 
+-      <div className="sticky bottom-0 z-30 flex gap-3 bg-gradient-to-t from-canvas from-60% to-transparent px-[22px] pb-[30px] pt-[14px]">
++      {/* Same additive inset as the bottom nav — `pb-[30px]` was a hard-coded
++          home-indicator allowance, which is 30px of dead space in a browser tab
++          where the toolbar already occupies that band. */}
++      <div className="sticky bottom-0 z-30 flex gap-3 bg-gradient-to-t from-canvas from-60% to-transparent px-[22px] pb-[calc(env(safe-area-inset-bottom)+14px)] pt-[14px]">
+         <button
+           type="button"
+           aria-label="Favourite"
+
+
+=== DIFF: components/shell/mobile-nav.tsx ===
+@@ -20,13 +20,14 @@ export function MobileNav() {
+     // Design :825-826 — a floating PILL, not a full-width bar. The outer
+     // element is only a gradient fade to the canvas; the pill is the inner slab,
+     // inset from the screen edges and lifted clear of the home indicator.
+-    // The space below the pill is home-indicator clearance, not slack — it only
+-    // reads as dead space in Safari, where the browser toolbar occupies that
+-    // band instead. `env(safe-area-inset-bottom)` is 0 in the browser (so 26px
+-    // holds) and 34px on an iPhone in standalone, where the indicator actually
+-    // is; the layout already sets `viewportFit: "cover"`, which is what makes
+-    // the variable available at all.
+-    <nav className="sticky bottom-0 z-50 bg-gradient-to-t from-canvas from-72% to-transparent px-4 pb-[max(26px,env(safe-area-inset-bottom))] pt-[10px]">
++    // ADDITIVE, not `max(26px, …)`. The gap below the pill exists to clear the
++    // home indicator, which only exists in the installed PWA — a floor of 26px
++    // meant 26px of measured dead space in a browser tab, where the toolbar
++    // already occupies that band and `env(safe-area-inset-bottom)` is 0.
++    // Now: 12px in the browser, 46px on an iPhone in standalone (34 + 12), so
++    // the pill sits just clear of the indicator either way. `viewportFit:
++    // "cover"` in app/layout.tsx is what makes the variable resolve at all.
++    <nav className="sticky bottom-0 z-50 bg-gradient-to-t from-canvas from-72% to-transparent px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-[10px]">
+       <div className="flex items-center justify-around rounded-[22px] bg-[rgba(24,23,26,0.82)] px-2 py-[11px] shadow-[inset_0_0_0_1px_var(--hairline-5),0_10px_30px_rgba(0,0,0,0.4)] backdrop-blur-[18px] backdrop-saturate-150">
+         {TABS.map(({ href, label, Icon }) => {
+           const active = pathname.startsWith(href);
+
+
+Investigate per the method in your instructions, then return the findings list.
