@@ -1,0 +1,146 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - components/diary/diary-grid.tsx
+  - lib/diary/__tests__/thumbnail.test.ts
+  - lib/diary/thumbnail.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: components/diary/diary-grid.tsx ===
+@@ -69,11 +69,28 @@ function DayCell({ cell }: { cell: Cell }) {
+   const body = (
+     <>
+       {cell.log && <Thumbnail pieces={cell.log.pieces} />}
++      {/* Positioned inline, not by utility class, for the same reason the
++          cutouts are: the offsets must land whatever the CSS pipeline does.
++          A bare `absolute` with no resolved offset falls back to its static
++          position — which inside this centring flex box is the middle of the
++          cell, straight across the look.
++
++          `zIndex` is load-bearing too: the cutouts carry their own z (1-3), so
++          an unstacked number is painted OVER by them. The corner it sits in is
++          reserved by THUMB_SLOTS, so it never lands on a garment; the shadow
++          only insures it against a pale piece drifting under it. */}
+       <span
+-        className={
++        className={worn ? "text-[9px] text-foreground/70" : "text-[12px] text-muted-dim"}
++        style={
+           worn
+-            ? "absolute bottom-[3px] right-[5px] text-[9px] text-foreground/50"
+-            : "text-[12px] text-muted-dim"
++            ? {
++                position: "absolute",
++                bottom: 4,
++                right: 5,
++                zIndex: 10,
++                textShadow: "0 1px 3px rgba(0,0,0,0.95)",
++              }
++            : undefined
+         }
+       >
+         {cell.day}
+
+
+=== DIFF: lib/diary/__tests__/thumbnail.test.ts ===
+@@ -1,4 +1,4 @@
+-import { thumbnailPieces, MAX_THUMB_PIECES } from "../thumbnail";
++import { thumbnailPieces, MAX_THUMB_PIECES, DAY_CORNER } from "../thumbnail";
+ 
+ const p = (category: string, imageUrl = `${category}.webp`) => ({ category, imageUrl });
+ 
+@@ -45,8 +45,27 @@ test("every piece carries in-bounds flat-lay geometry", () => {
+   }
+ });
+ 
+-// Accessories and fragrance are the CORNER slot at 14% — three pixels wide in a
+-// diary cell, and never what you remember an outfit by.
+ test("a look of only accessories still yields a thumbnail", () => {
+   expect(thumbnailPieces([p("Accessories"), p("Fragrance")]).length).toBeGreaterThan(0);
+ });
++
++// The day number lives in the bottom-right corner. Stacking it above the
++// cutouts makes it legible but still puts 9px of text on a garment, so the
++// geometry keeps that corner empty instead.
++test("no piece intrudes on the corner the day number occupies", () => {
++  const full = thumbnailPieces([p("Outerwear"), p("Tops"), p("Bottoms"), p("Shoes")]);
++  expect(full.length).toBe(MAX_THUMB_PIECES);
++  for (const { slot } of full) {
++    const overlaps =
++      slot.xPct + slot.wPct > DAY_CORNER.xPct && slot.yPct + slot.hPct > DAY_CORNER.yPct;
++    expect(overlaps).toBe(false);
++  }
++});
++
++// Three cutouts in a 45px cell only read if they do not sit on top of each
++// other; each piece owns a distinct region.
++test("the three slots occupy distinct positions", () => {
++  const slots = thumbnailPieces([p("Tops"), p("Bottoms"), p("Shoes")]).map((x) => x.slot);
++  const keys = slots.map((s) => `${s.xPct},${s.yPct}`);
++  expect(new Set(keys).size).toBe(slots.length);
++});
+
+
+=== DIFF: lib/diary/thumbnail.ts ===
+@@ -1,6 +1,35 @@
+-import { layoutForLook } from "@/lib/generator/layout";
++import type { Slot } from "@/lib/generator/types";
+ import type { DiaryPiece } from "./month";
+ 
++/**
++ * The corner the day number owns, as percentages. Nothing may be laid into it.
++ *
++ * Reserving it in the geometry is the only reliable fix: stacking the number
++ * above the cutouts makes it legible but still lands it ON a garment, and at
++ * 9px over a busy cutout that reads as a smudge.
++ */
++export const DAY_CORNER = { xPct: 62, yPct: 72 };
++
++/**
++ * Thumbnail geometry, authored for the ~45×54px diary cell.
++ *
++ * This deliberately does NOT reuse `layoutForLook`. Those templates are drawn
++ * for a stage of 200px and up, where their generous negative space reads as
++ * composition — shrunk to a calendar cell it is simply an empty cell with three
++ * small things in one corner, and its SIDE slot runs to 90% height on the right,
++ * straight through where the day number has to sit.
++ *
++ * So the cell gets its own three-slot arrangement: upper body top-left, bottoms
++ * up the right, shoes bottom-left, and the bottom-right corner left empty.
++ */
++const THUMB_SLOTS = {
++  UPPER: { xPct: 4, yPct: 4, wPct: 56, hPct: 54, rotationDeg: -4, z: 3 },
++  BOTTOMS: { xPct: 54, yPct: 8, wPct: 44, hPct: 56, rotationDeg: 3, z: 2 },
++  SHOES: { xPct: 6, yPct: 62, wPct: 46, hPct: 32, rotationDeg: -3, z: 1 },
++} satisfies Record<string, Slot>;
++
++const SLOT_ORDER = [THUMB_SLOTS.UPPER, THUMB_SLOTS.BOTTOMS, THUMB_SLOTS.SHOES];
++
+ /**
+  * How many cutouts a diary cell shows.
+  *
+@@ -20,10 +49,9 @@ const UPPER = ["Outerwear", "Tops"];
+ /**
+  * Choose and position the cutouts for one day's cell.
+  *
+- * Geometry comes from `layoutForLook`, the same deterministic templates the
+- * full-size flat-lay uses, so a thumbnail is a scaled-down version of the look
+- * the user tapped rather than a second, divergent layout system. The templates
+- * are percentage-based, so they survive the shrink unchanged.
++ * Order is fixed — upper body, bottoms, shoes — so a sparse look fills the
++ * template from the top rather than leaving a hole where its missing piece
++ * would have gone.
+  */
+ export function thumbnailPieces(pieces: Candidate[]): DiaryPiece[] {
+   // A piece the storage layer could not sign is dropped here rather than
+@@ -43,6 +71,5 @@ export function thumbnailPieces(pieces: Candidate[]): DiaryPiece[] {
+   }
+ 
+   const capped = chosen.slice(0, MAX_THUMB_PIECES);
+-  const slots = layoutForLook(capped);
+-  return capped.map((p, i) => ({ imageUrl: p.imageUrl, slot: slots[i] }));
++  return capped.map((p, i) => ({ imageUrl: p.imageUrl, slot: SLOT_ORDER[i] }));
+ }
+
+
+Investigate per the method in your instructions, then return the findings list.
