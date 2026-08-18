@@ -1,0 +1,271 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - lib/generator/__tests__/score.test.ts
+  - lib/generator/score.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: lib/generator/__tests__/score.test.ts ===
+@@ -109,3 +109,132 @@ test("season and lean can both apply without pushing the score out of 0..1", ()
+   expect(scoreCombo(winterReady, both)).toBeLessThanOrEqual(1);
+   expect(scoreCombo(winterReady, both)).toBeGreaterThanOrEqual(0);
+ });
++
++// --- Pattern ---------------------------------------------------------------
++// One patterned piece is a statement; two are an argument. Like every other
++// signal here it is a preference — a wardrobe of patterned shirts must still
++// be dressable.
++
++const oneP = [
++  { category: "top", colors: ["cream"], formality: 3, pattern: "striped" },
++  { category: "bottom", colors: ["navy"], formality: 3, pattern: "solid" },
++  { category: "shoes", colors: ["brown"], formality: 3, pattern: "solid" },
++];
++const twoP = [
++  { category: "top", colors: ["cream"], formality: 3, pattern: "striped" },
++  { category: "bottom", colors: ["navy"], formality: 3, pattern: "check" },
++  { category: "shoes", colors: ["brown"], formality: 3, pattern: "solid" },
++];
++
++test("one statement piece outranks two competing patterns", () => {
++  expect(scoreCombo(oneP, ctx)).toBeGreaterThan(scoreCombo(twoP, ctx));
++});
++
++test("two patterns still score above zero — clash is a preference, not a veto", () => {
++  expect(scoreCombo(twoP, ctx)).toBeGreaterThan(0);
++});
++
++test("all-solid is not penalised for being plain", () => {
++  const solid = oneP.map((i) => ({ ...i, pattern: "solid" }));
++  expect(scoreCombo(solid, ctx)).toBeGreaterThanOrEqual(scoreCombo(oneP, ctx));
++});
++
++test("untagged patterns are neutral", () => {
++  const untagged = oneP.map((i) => ({ ...i, pattern: null }));
++  expect(scoreCombo(untagged, ctx)).toBeGreaterThan(0);
++  expect(scoreCombo(untagged, ctx)).toBe(scoreCombo(oneP.map((i) => ({ ...i, pattern: "solid" })), ctx));
++});
++
++test("three patterns are worse than two, and still not zero", () => {
++  const threeP = twoP.map((i) => ({ ...i, pattern: "print" }));
++  expect(scoreCombo(threeP, ctx)).toBeLessThan(scoreCombo(twoP, ctx));
++  expect(scoreCombo(threeP, ctx)).toBeGreaterThan(0);
++});
++
++// --- Warmth, and the single climate term ------------------------------------
++// Season and warmth answer the SAME question — does this suit the climate? —
++// so they share one weight rather than competing for the score. Real
++// temperature against real cloth leads; the month tag grounds it.
++
++test("with no tempC in context the warmth term is inert", () => {
++  const warm = oneP.map((i) => ({ ...i, texture: "Chunky knit" }));
++  const light = oneP.map((i) => ({ ...i, texture: "Fine knit" }));
++  expect(scoreCombo(warm, ctx)).toBe(scoreCombo(light, ctx));
++});
++
++test("on a cold day the warmer combo wins", () => {
++  const warm = oneP.map((i) => ({ ...i, texture: "Chunky knit" }));
++  const light = oneP.map((i) => ({ ...i, texture: "Fine knit" }));
++  expect(scoreCombo(warm, { ...ctx, tempC: 2 })).toBeGreaterThan(
++    scoreCombo(light, { ...ctx, tempC: 2 }),
++  );
++});
++
++test("on a hot day the lighter combo wins", () => {
++  const warm = oneP.map((i) => ({ ...i, texture: "Chunky knit" }));
++  const light = oneP.map((i) => ({ ...i, texture: "Fine knit" }));
++  expect(scoreCombo(light, { ...ctx, tempC: 32 })).toBeGreaterThan(
++    scoreCombo(warm, { ...ctx, tempC: 32 }),
++  );
++});
++
++test("real cloth at a real temperature outweighs the month tag", () => {
++  // The whole point of the merge. A chunky knit tagged Summer is a better
++  // answer at 0°C than a fine knit tagged Winter: the tag is a proxy, the
++  // fabric and the thermometer are not.
++  const winter = { ...ctx, season: "Winter", tempC: 0 };
++  const warmButMistagged = oneP.map((i) => ({
++    ...i,
++    texture: "Chunky knit",
++    material: "Wool",
++    seasons: ["Summer"],
++  }));
++  const lightButTagged = oneP.map((i) => ({
++    ...i,
++    texture: "Fine knit",
++    material: "Linen",
++    seasons: ["Winter"],
++  }));
++  expect(scoreCombo(warmButMistagged, winter)).toBeGreaterThan(scoreCombo(lightButTagged, winter));
++});
++
++test("the season tag still decides when there is no temperature to read", () => {
++  const winter = { ...ctx, season: "Winter" };
++  expect(scoreCombo(winterReady, winter)).toBeGreaterThan(scoreCombo(summerOnly, winter));
++});
++
++test("the season tag still breaks a tie between equally warm combos", () => {
++  // Merged, not replaced: warmth leads but the tag keeps a real vote.
++  const cold = { ...ctx, season: "Winter", tempC: 0 };
++  const tagged = winterReady.map((i) => ({ ...i, material: "Wool", texture: "Flat" }));
++  const untagged = summerOnly.map((i) => ({ ...i, material: "Wool", texture: "Flat" }));
++  expect(scoreCombo(tagged, cold)).toBeGreaterThan(scoreCombo(untagged, cold));
++});
++
++test("every preference at once still lands inside 0..1", () => {
++  const all = { ...ctx, season: "Winter", lean: ["olive"], tempC: -5 };
++  const items = winterReady.map((i) => ({ ...i, material: "Wool", texture: "Chunky knit" }));
++  expect(scoreCombo(items, all)).toBeLessThanOrEqual(1);
++  expect(scoreCombo(items, all)).toBeGreaterThanOrEqual(0);
++});
++
++test("the aesthetic base keeps a real share even with every preference active", () => {
++  // Weather matters, but Fitcheck styles you — it does not just dress you for
++  // the thermometer. Colour, formality and DNA must still be able to decide.
++  // Colours, seasons, material and texture are IDENTICAL across the two, so the
++  // lean and climate terms score them the same and only formality coherence can
++  // separate them. If the base were squeezed to nothing this would tie.
++  const all = { ...ctx, season: "Winter", lean: ["olive"], tempC: -5 };
++  const cloth = { material: "Wool", texture: "Chunky knit", seasons: ["Winter"] };
++  const coherent = [
++    { category: "top", colors: ["cream"], formality: 3, ...cloth },
++    { category: "bottom", colors: ["navy"], formality: 3, ...cloth },
++    { category: "shoes", colors: ["brown"], formality: 3, ...cloth },
++  ];
++  const clash = [
++    { category: "top", colors: ["cream"], formality: 1, ...cloth },
++    { category: "bottom", colors: ["navy"], formality: 5, ...cloth },
++    { category: "shoes", colors: ["brown"], formality: 2, ...cloth },
++  ];
++  expect(scoreCombo(coherent, all)).toBeGreaterThan(scoreCombo(clash, all));
++});
+
+
+=== DIFF: lib/generator/score.ts ===
+@@ -1,5 +1,6 @@
+ import { colorHarmonyScore, leanScore } from "./color";
+ import { seasonFit } from "./season";
++import { warmthFit } from "./texture";
+ 
+ export type ScoreItem = {
+   category: string;
+@@ -7,6 +8,11 @@ export type ScoreItem = {
+   formality: number | null;
+   style_tags?: string[];
+   seasons?: string[];
++  /** "solid" | "striped" | "check" | "print" | "other". Null = no opinion. */
++  pattern?: string | null;
++  /** Fibre and construction. Together they carry warmth — see ./texture.ts. */
++  material?: string | null;
++  texture?: string | null;
+ };
+ export type Ctx = {
+   aesthetic: string[];
+@@ -22,6 +28,12 @@ export type Ctx = {
+   recentlyShown?: string[];
+   /** The current season ("Winter"). Absent = no season preference at all. */
+   season?: string;
++  /**
++   * Today's temperature. Absent = no thermal reading, so the climate term falls
++   * back to the season tag alone. Threaded from the forecast the generator
++   * already fetches.
++   */
++  tempC?: number;
+ };
+ 
+ /**
+@@ -33,12 +45,33 @@ export type Ctx = {
+ const LEAN_WEIGHT = 0.3;
+ 
+ /**
+- * The same bargain for season. Slightly lower than the lean because a lean is an
+- * explicit request the user just made, while season is inferred from the month.
+- * Both together cap at 0.5, so coherence and colour harmony always keep half the
+- * score — an off-season combo that actually works still beats an in-season mess.
++ * Climate — "does this suit the weather?" — is ONE term, not two.
++ *
++ * Season and warmth answer the same question with different evidence, so they
++ * share a weight instead of competing for the score. Adding warmth as a third
++ * independent preference would have pushed the total past 0.5 and squeezed
++ * colour, formality and DNA below half whenever a Refine lean was also active;
++ * merging keeps the budget bounded by construction and gives weather a single,
++ * better-informed vote. Future weather work (wind, humidity) belongs inside
++ * this term, not beside it.
++ *
++ * Slightly above the 0.2 season alone used to carry — the term now reads a real
++ * temperature rather than only the month — and still low enough that an
++ * off-season combo which actually works beats an in-season mess.
+  */
+-const SEASON_WEIGHT = 0.2;
++const CLIMATE_WEIGHT = 0.28;
++
++/**
++ * Within climate, how much of the vote the thermometer gets over the tag.
++ *
++ * Warmth leads because it reads today's temperature against this garment's
++ * fibre and construction, where `seasons` is a coarse, user-editable proxy
++ * that no closet fills in reliably. The tag keeps a real share because it
++ * carries what fabric cannot say — a linen suit is Summer, a Christmas jumper
++ * is December — and because it is the only climate signal left when a forecast
++ * fails.
++ */
++const WARMTH_SHARE = 0.7;
+ 
+ /** 1.0 = identical formality; falls off with spread. */
+ export function formalityCoherence(formalities: number[]): number {
+@@ -48,20 +81,48 @@ export function formalityCoherence(formalities: number[]): number {
+   return Math.max(0, 1 - spread / 4); // spread of 4 (1↔5) → 0
+ }
+ 
++/**
++ * One patterned piece is a statement; two are an argument.
++ *
++ * Counts non-solid pieces: 0 or 1 is clean, each additional one costs. Floored
++ * well above zero because a wardrobe of patterned shirts must still be
++ * dressable — the same rule every other signal in this file follows.
++ */
++export function patternHarmony(patterns: (string | null | undefined)[]): number {
++  const loud = patterns.filter((p) => p && p !== "solid").length;
++  return loud <= 1 ? 1 : Math.max(0.3, 1 - (loud - 1) * 0.35);
++}
++
++/**
++ * How well the combo suits today, on whichever evidence exists.
++ *
++ * Returns null when there is neither a temperature nor a season, so the caller
++ * can drop the term entirely rather than fold in a meaningless 0.5.
++ */
++function climateFit(items: ScoreItem[], ctx: Ctx): number | null {
++  const warmth = ctx.tempC == null ? null : warmthFit(items, ctx.tempC);
++  const season = ctx.season ? seasonFit(items, ctx.season) : null;
++  if (warmth == null) return season;
++  if (season == null) return warmth;
++  return WARMTH_SHARE * warmth + (1 - WARMTH_SHARE) * season;
++}
++
+ export function scoreCombo(items: ScoreItem[], ctx: Ctx): number {
+   const colors = items.flatMap((i) => i.colors);
+   const harmony = colorHarmonyScore(colors);
+   const coherence = formalityCoherence(items.map((i) => i.formality ?? 3));
+   const dnaHits = items.filter((i) => i.style_tags?.some((t) => ctx.aesthetic.includes(t))).length;
+   const dna = items.length ? dnaHits / items.length : 0;
+-  const base = 0.45 * harmony + 0.35 * coherence + 0.2 * dna;
++  const pattern = patternHarmony(items.map((i) => i.pattern));
++  const base = 0.4 * harmony + 0.3 * coherence + 0.15 * dna + 0.15 * pattern;
+ 
+   // Each preference claims its weight only when it applies, so with neither one
+   // set the score is byte-identical to what it was before either landed.
++  const climate = climateFit(items, ctx);
+   const wl = ctx.lean?.length ? LEAN_WEIGHT : 0;
+-  const ws = ctx.season ? SEASON_WEIGHT : 0;
++  const wc = climate == null ? 0 : CLIMATE_WEIGHT;
+   return Math.min(
+     1,
+-    base * (1 - wl - ws) + wl * leanScore(colors, ctx.lean ?? []) + ws * seasonFit(items, ctx.season),
++    base * (1 - wl - wc) + wl * leanScore(colors, ctx.lean ?? []) + wc * (climate ?? 0),
+   );
+ }
+
+
+Investigate per the method in your instructions, then return the findings list.
