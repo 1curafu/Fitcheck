@@ -1,0 +1,105 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/profile/page.tsx
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/profile/page.tsx ===
+@@ -1,9 +1,25 @@
+ import { redirect } from "next/navigation";
+ import { createClient } from "@/lib/supabase/server";
+ import { MobileNav } from "@/components/shell/mobile-nav";
+-import { Kicker } from "@/components/ui-fitcheck/kicker";
++import { localDateFor } from "@/lib/outfits/local-date";
++import { currentStreak } from "@/lib/diary/streak";
++import { initials, handleFrom, paletteFor } from "@/lib/profile/identity";
++import { ProfileHub, type HubLink } from "@/components/profile/profile-hub";
++import { entitlementsFor } from "@/lib/billing/tiers";
++
++/**
++ * Rows are marked ready ONLY for routes that exist on `main` today.
++ *
++ * Two of the four bottom tabs used to 404 for exactly this reason (BUGS.md #5);
++ * an unready row renders disabled with "Soon" rather than linking into nothing.
++ */
++const LINKS: HubLink[] = [
++  { href: "/style-dna", label: "Style DNA", desc: "Your archetype, shareable", ready: false },
++  { href: "/outfits", label: "Saved Outfits", desc: "Looks you kept", ready: false },
++  { href: "/stats", label: "Wear Stats", desc: "What you actually wear", ready: false },
++  { href: "/settings", label: "Settings", desc: "Preferences and account", ready: false },
++];
+ 
+-// Stub — plan 10 builds the real Profile hub (Style DNA, Saved Outfits, Stats, Settings).
+ export default async function ProfilePage() {
+   const supabase = await createClient();
+   const {
+@@ -13,29 +29,51 @@ export default async function ProfilePage() {
+ 
+   const { data: profile } = await supabase
+     .from("profiles")
+-    .select("display_name, archetype")
++    .select("display_name, archetype, tier, location_timezone")
+     .eq("id", user.id)
+     .single();
+ 
++  /**
++   * `outfits` counts looks WORN, not looks generated.
++   *
++   * The `outfits` table holds every look the generator ever produced — three
++   * per drop, plus styled looks, plus every past day — so a row count reports
++   * the generator's output rather than anything the user did, and it inflates
++   * on its own every day the app runs.
++   */
++  const [{ count: pieces }, { data: logs }] = await Promise.all([
++    supabase.from("items").select("id", { count: "exact", head: true }).eq("archived", false),
++    supabase.from("wear_logs").select("worn_on").eq("user_id", user.id),
++  ]);
++
++  const today = localDateFor(new Date(), profile?.location_timezone ?? "UTC");
++  const wornDates = (logs ?? []).map((r) => r.worn_on);
++
+   return (
+     <div className="flex min-h-dvh flex-1 flex-col">
+-      <main className="flex flex-1 flex-col items-center justify-center gap-3 px-8 text-center">
+-        <Kicker>Profile</Kicker>
+-        <h1 className="font-serif text-3xl text-foreground">
+-          {profile?.display_name ?? "You"}
+-        </h1>
+-        {profile?.archetype && (
+-          <p className="text-sm text-muted-foreground">{profile.archetype}</p>
+-        )}
++      <ProfileHub
++        name={profile?.display_name ?? "You"}
++        handle={handleFrom(user.email ?? "")}
++        initials={initials(profile?.display_name ?? null, user.email ?? "")}
++        archetype={profile?.archetype ?? null}
++        palette={paletteFor(profile?.archetype ?? null)}
++        tier={entitlementsFor(profile?.tier).tier}
++        stats={{
++          pieces: pieces ?? 0,
++          outfits: wornDates.length,
++          streak: currentStreak(wornDates, today),
++        }}
++        links={LINKS}
++      >
++        {/* The design moves sign-out to Settings. Until that route exists this
++            is the only way out of the app, and removing it would be a
++            regression — it moves when Settings ships, not before. */}
+         <form action="/auth/signout" method="post">
+-          <button className="mt-4 rounded-[12px] border border-[--input] px-5 py-3 text-sm text-foreground">
++          <button className="w-full rounded-[14px] bg-surface-1 py-4 text-[15px] text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-2)]">
+             Sign out
+           </button>
+         </form>
+-        <p className="mt-2 text-xs text-muted-dim">
+-          Style DNA · Saved Outfits · Stats · Settings — coming soon
+-        </p>
+-      </main>
++      </ProfileHub>
+       <MobileNav />
+     </div>
+   );
+
+
+Investigate per the method in your instructions, then return the findings list.
