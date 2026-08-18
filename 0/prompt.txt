@@ -1,0 +1,219 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/generate/actions.ts
+  - lib/weather/__tests__/location.test.ts
+  - lib/weather/location.ts
+  - supabase/migrations/20260721090000_authenticated_grants.sql
+  - supabase/migrations/20260721100000_profile_location.sql
+  - components/generate/__tests__/stylist-view.test.tsx
+  - components/generate/__tests__/weather-strip.test.tsx
+  - components/generate/stylist.tsx
+  - lib/generator/types.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/generate/actions.ts ===
+@@ -9,7 +9,12 @@ import { buildCandidates, type CandidateItem } from "@/lib/generator/candidates"
+ import { rankTopN } from "@/lib/generator/rank";
+ import { rerank } from "@/lib/generator/rerank";
+ import { layoutForLook, staggerOrder } from "@/lib/generator/layout";
+-import { resolveLocation, type LocationSource } from "@/lib/weather/location";
++import {
++  resolveLocation,
++  roundCoord,
++  LocationInputSchema,
++  type LocationSource,
++} from "@/lib/weather/location";
+ import type {
+   GenerateResult,
+   Look,
+@@ -128,3 +133,31 @@ export async function generate(input: {
+     return { status: "error", message: e instanceof Error ? e.message : "Generation failed" };
+   }
+ }
++
++/**
++ * The single write path for a user's location. `generate` stays read-only.
++ * Called by the client after a successful generate for a location the user
++ * actually supplied (geolocation or city search) — never for the profile or
++ * default fallback, where there is nothing new to write.
++ */
++export async function saveLocation(input: unknown): Promise<void> {
++  const d = LocationInputSchema.parse(input);
++
++  const supabase = await createClient();
++  const {
++    data: { user },
++  } = await supabase.auth.getUser();
++  if (!user) return;
++
++  await supabase
++    .from("profiles")
++    .update({
++      location_lat: roundCoord(d.lat),
++      location_lon: roundCoord(d.lon),
++      location_label: d.label,
++      location_source: d.source,
++      location_timezone: d.timezone,
++      location_updated_at: new Date().toISOString(),
++    })
++    .eq("id", user.id);
++}
+
+
+=== DIFF: lib/weather/__tests__/location.test.ts ===
+@@ -1,4 +1,4 @@
+-import { roundCoord, resolveLocation, DEFAULT_LOCATION } from "../location";
++import { roundCoord, resolveLocation, DEFAULT_LOCATION, LocationInputSchema } from "../location";
+ 
+ test("roundCoord snaps to 2dp (~1.1km) so neighbours share one cached forecast URL", () => {
+   expect(roundCoord(52.5187234)).toBe(52.52);
+@@ -41,3 +41,23 @@ test("a stored location with no label is labelled Current location (we never rev
+   });
+   expect(r.label).toBe("Current location");
+ });
++
++test("LocationInputSchema accepts a well-formed fix", () => {
++  const ok = LocationInputSchema.parse({
++    lat: 52.52, lon: 13.41, label: "Berlin", source: "city", timezone: "Europe/Berlin",
++  });
++  expect(ok.label).toBe("Berlin");
++});
++
++test("LocationInputSchema rejects out-of-range coordinates", () => {
++  const bad = { lon: 13.41, label: "Nowhere", source: "geo", timezone: "Europe/Berlin" };
++  expect(() => LocationInputSchema.parse({ ...bad, lat: 91 })).toThrow();
++  expect(() => LocationInputSchema.parse({ ...bad, lat: -91 })).toThrow();
++  expect(() => LocationInputSchema.parse({ lat: 52.52, ...bad, lon: 181 })).toThrow();
++});
++
++test("LocationInputSchema rejects an unknown source and an empty label", () => {
++  const base = { lat: 52.52, lon: 13.41, label: "Berlin", timezone: "Europe/Berlin" };
++  expect(() => LocationInputSchema.parse({ ...base, source: "profile" })).toThrow();
++  expect(() => LocationInputSchema.parse({ ...base, source: "geo", label: "" })).toThrow();
++});
+
+
+=== DIFF: lib/weather/location.ts ===
+@@ -1,3 +1,5 @@
++import { z } from "zod";
++
+ // Location resolution — pure. No I/O, no clock.
+ // We NEVER derive a city name from coordinates: Open-Meteo has no reverse endpoint
+ // (D8), and third-party reverse geocoders would ship precise user coords off-stack.
+@@ -57,3 +59,18 @@ export function resolveLocation(args: {
+ 
+   return { ...DEFAULT_LOCATION };
+ }
++
++/**
++ * What the client may persist. Plain Zod validation keywords are fine here —
++ * this schema is NEVER sent to Anthropic as a structured-output format, so the
++ * `forStructuredOutput()` stripping rule does not apply.
++ */
++export const LocationInputSchema = z.object({
++  lat: z.number().min(-90).max(90),
++  lon: z.number().min(-180).max(180),
++  label: z.string().min(1).max(80),
++  source: z.enum(["geo", "city"]),
++  timezone: z.string().min(1).max(64),
++});
++
++export type LocationInput = z.infer<typeof LocationInputSchema>;
+
+
+=== DIFF: supabase/migrations/20260721090000_authenticated_grants.sql ===
+@@ -0,0 +1,13 @@
++-- Table-level DML grants for the `authenticated` role on the public app tables.
++-- RLS still restricts WHICH rows each user can touch (auth.uid() = user_id); but
++-- without these table grants Postgres returns 42501 "permission denied" regardless
++-- of policy. Older Supabase DB images auto-granted this; newer ones do not, so we
++-- make it explicit and portable (survives `supabase db reset` / fresh volumes).
++
++grant usage on schema public to anon, authenticated;
++
++grant select, insert, update, delete on all tables in schema public to authenticated;
++
++-- future tables in public inherit the same grants for authenticated
++alter default privileges in schema public
++  grant select, insert, update, delete on tables to authenticated;
+
+
+=== DIFF: supabase/migrations/20260721100000_profile_location.sql ===
+@@ -0,0 +1,15 @@
++-- A location RECORD, not just coordinates. Phase-2 features (morning push, daily
++-- OOTD, share cards) run server-side with no browser and can only use what's here:
++--   location_timezone   — to fire "8am LOCAL" (free from Open-Meteo's timezone=auto)
++--   location_source     — 'geo' is a transient fix worth silently refreshing;
++--                         'city' is a deliberate choice worth trusting
++--   location_updated_at — tells a job a fresh fix from a year-old one
++-- location_lat/lon exist since 20260614170628_profiles.sql; location_label since
++-- 20260718090000_outfits.sql. RLS: profiles_update_own already covers these
++-- columns, and 20260721090000_authenticated_grants.sql covers the table DML.
++
++alter table public.profiles
++  add column if not exists location_timezone   text,
++  add column if not exists location_source     text
++    check (location_source in ('geo', 'city')),
++  add column if not exists location_updated_at timestamptz;
+
+
+=== DIFF: components/generate/__tests__/stylist-view.test.tsx ===
+@@ -8,6 +8,7 @@ const weather: WeatherPayload = {
+   feelsLikeC: 12,
+   condition: "Overcast",
+   cityLabel: "Berlin",
++  timezone: "Europe/Berlin",
+   laterSentence: "Dry through the evening — no extra layer.",
+   adviceClause: "no extra layer.",
+   laterLabel: "Later",
+
+
+=== DIFF: components/generate/__tests__/weather-strip.test.tsx ===
+@@ -8,6 +8,7 @@ const weather: WeatherPayload = {
+   feelsLikeC: 12,
+   condition: "Overcast",
+   cityLabel: "Berlin",
++  timezone: "Europe/Berlin",
+   laterSentence: "Rain from 21:00 — take a shell.",
+   adviceClause: "take a shell.",
+   laterLabel: "Later",
+
+
+=== DIFF: components/generate/stylist.tsx ===
+@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
+ import { StylistView, type StylistStatus } from "./stylist-view";
+ import { generate } from "@/app/generate/actions";
+ import { searchCities, type City } from "@/lib/weather/geocode";
++import type { LocationSource } from "@/lib/weather/location";
+ import type { Look, UiOccasion, WeatherPayload } from "@/lib/generator/types";
+ 
+-type Chosen = { lat: number; lon: number; label: string };
++type Chosen = { lat: number; lon: number; label: string; source: LocationSource };
+ 
+ export function Stylist() {
+   const router = useRouter();
+@@ -64,7 +65,7 @@ export function Stylist() {
+         setMustColors(c);
+         setRefineOpen(false);
+       }}
+-      onCityChange={(c) => setCity({ lat: c.lat, lon: c.lon, label: c.name })}
++      onCityChange={(c) => setCity({ lat: c.lat, lon: c.lon, label: c.name, source: "city" })}
+       onCitySearch={(q) => {
+         if (q.trim().length < 2) return;
+         searchCities(q).then(setCities);
+
+
+=== DIFF: lib/generator/types.ts ===
+@@ -37,6 +37,7 @@ export type WeatherPayload = {
+   feelsLikeC: number;
+   condition: string;
+   cityLabel: string;
++  timezone: string; // IANA zone at the location, e.g. "Europe/Berlin" — from timezone=auto
+   laterSentence: string; // full: "Rain from 21:00 — take a shell."
+   adviceClause: string; // JUST the rust clause: "take a shell." — the UI binds the rust <b> to THIS
+   laterLabel: string; // "LATER" (static caps label)
+
+
+Investigate per the method in your instructions, then return the findings list.
