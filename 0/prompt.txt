@@ -1,0 +1,245 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - lib/outfits/daily.ts
+  - lib/outfits/quota.ts
+  - lib/outfits/__tests__/reassemble.test.ts
+  - lib/outfits/reassemble.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: lib/outfits/daily.ts ===
+@@ -0,0 +1,88 @@
++import { createClient } from "@/lib/supabase/server";
++import type { Look, WeatherPayload } from "@/lib/generator/types";
++import type { StoredLook } from "./reassemble";
++
++/** Today's stored set for one occasion, in the order the stylist chose. */
++export async function loadDailyLooks(
++  userId: string,
++  occasion: string,
++  generatedOn: string,
++): Promise<StoredLook[] | null> {
++  const supabase = await createClient();
++  const { data } = await supabase
++    .from("outfits")
++    .select("look_name, ai_reasoning, layout, look_index")
++    .eq("user_id", userId)
++    .eq("occasion", occasion)
++    .eq("generated_on", generatedOn)
++    .order("look_index", { ascending: true });
++
++  if (!data || data.length === 0) return null;
++
++  return data.map((row) => {
++    const layout = (row.layout ?? {}) as {
++      anchorIndex?: number;
++      pieces?: StoredLook["pieces"];
++    };
++    return {
++      lookName: row.look_name ?? "",
++      why: row.ai_reasoning ?? "",
++      anchorIndex: layout.anchorIndex ?? 0,
++      pieces: layout.pieces ?? [],
++    };
++  });
++}
++
++/**
++ * Replace today's set for one occasion. Delete-then-insert rather than upsert:
++ * a regenerate may return a different NUMBER of looks, and leftovers from the
++ * previous set must not survive alongside the new one.
++ */
++export async function saveDailyLooks(
++  userId: string,
++  occasion: string,
++  generatedOn: string,
++  weather: WeatherPayload,
++  looks: Look[],
++): Promise<void> {
++  const supabase = await createClient();
++
++  await supabase
++    .from("outfits")
++    .delete()
++    .eq("user_id", userId)
++    .eq("occasion", occasion)
++    .eq("generated_on", generatedOn);
++
++  const rows = looks.map((look, i) => ({
++    user_id: userId,
++    occasion,
++    generated_on: generatedOn,
++    look_index: i,
++    look_name: look.name,
++    ai_reasoning: look.why,
++    weather_snapshot: weather,
++    layout: {
++      anchorIndex: look.anchorIndex,
++      pieces: look.pieces.map((p) => ({ itemId: p.itemId, slot: p.slot })),
++    },
++  }));
++
++  const { data: inserted } = await supabase
++    .from("outfits")
++    .insert(rows)
++    .select("id, look_index");
++  if (!inserted) return;
++
++  // outfit_items is the relational record — it is what wear_logs and future
++  // analytics join against. The renderable geometry lives in outfits.layout.
++  const links = inserted.flatMap((row) => {
++    const look = looks[row.look_index];
++    return (look?.pieces ?? []).map((p) => ({
++      outfit_id: row.id,
++      item_id: p.itemId,
++      slot: p.category,
++    }));
++  });
++  if (links.length) await supabase.from("outfit_items").insert(links);
++}
+
+
+=== DIFF: lib/outfits/quota.ts ===
+@@ -0,0 +1,18 @@
++/**
++ * The single gate every real generation passes through.
++ *
++ * It allows everything today. It exists so that adding a paid tier later is a
++ * change to THIS file — not surgery across the generate action — per the
++ * project's preference for the extensible option over the minimal diff.
++ * See docs/superpowers/plans/2026-07-22-regenerate-quota.md.
++ */
++export async function assertCanGenerate(_userId: string): Promise<void> {
++  return;
++}
++
++export class QuotaExceededError extends Error {
++  constructor() {
++    super("Daily regeneration limit reached");
++    this.name = "QuotaExceededError";
++  }
++}
+
+
+=== DIFF: lib/outfits/__tests__/reassemble.test.ts ===
+@@ -0,0 +1,50 @@
++import { reassembleLooks, type StoredLook, type ItemRow } from "../reassemble";
++
++const slot = { xPct: 10, yPct: 20, wPct: 30, hPct: 40, rotationDeg: -3, z: 2 };
++const stored: StoredLook[] = [
++  {
++    lookName: "The Off-Duty Camel",
++    why: "the camel knit warms the grey trousers",
++    anchorIndex: 1,
++    pieces: [
++      { itemId: "t1", slot },
++      { itemId: "b1", slot },
++    ],
++  },
++];
++const items = new Map<string, ItemRow>([
++  ["t1", { id: "t1", category: "Tops", subcategory: "knit", brand: "Uniqlo", name: "Camel knit", colors: ["camel"] }],
++  ["b1", { id: "b1", category: "Bottoms", subcategory: "trousers", brand: "Zara", name: "Grey trousers", colors: ["grey"] }],
++]);
++const signed = new Map([
++  ["t1.png", "https://signed/t1"],
++  ["b1.png", "https://signed/b1"],
++]);
++const pathFor = (id: string) => `${id}.png`;
++
++test("rebuilds a stored look, reading item details LIVE from the closet", () => {
++  const looks = reassembleLooks(stored, items, signed, pathFor)!;
++  expect(looks).toHaveLength(1);
++  expect(looks[0].name).toBe("The Off-Duty Camel");
++  expect(looks[0].pieces[0].brand).toBe("Uniqlo");
++  expect(looks[0].pieces[0].cutoutUrl).toBe("https://signed/t1");
++});
++test("preserves the stored geometry and anchor exactly, so the flat-lay re-renders identically", () => {
++  const looks = reassembleLooks(stored, items, signed, pathFor)!;
++  expect(looks[0].pieces[0].slot).toEqual(slot);
++  expect(looks[0].anchorIndex).toBe(1);
++});
++
++// A stored look is only as valid as the closet behind it. Rather than render a
++// look with a hole in it, we declare the day's set stale and let the caller
++// regenerate — the user sees a complete outfit or a fresh one, never a gap.
++test("a piece whose item was deleted from the closet makes the whole set stale", () => {
++  const without = new Map(items);
++  without.delete("b1");
++  expect(reassembleLooks(stored, without, signed, pathFor)).toBeNull();
++});
++test("a piece with no signed URL makes the set stale rather than rendering a broken image", () => {
++  expect(
++    reassembleLooks(stored, items, new Map([["t1.png", "https://signed/t1"]]), pathFor),
++  ).toBeNull();
++});
+
+
+=== DIFF: lib/outfits/reassemble.ts ===
+@@ -0,0 +1,62 @@
++import type { Look, LookPiece, Slot } from "@/lib/generator/types";
++
++export type StoredPiece = { itemId: string; slot: Slot };
++export type StoredLook = {
++  lookName: string;
++  why: string;
++  anchorIndex: number;
++  pieces: StoredPiece[];
++};
++export type ItemRow = {
++  id: string;
++  category: string;
++  subcategory: string | null;
++  brand: string | null;
++  name: string | null;
++  colors: string[] | null;
++};
++
++/**
++ * Rebuild today's stored looks for the screen, or return null if they can no
++ * longer be rendered faithfully.
++ *
++ * Garment details (brand, name, colours) are read LIVE from `itemsById` rather
++ * than from the stored row, so renaming an item in the closet is reflected in
++ * today's look. Only the stylist's decisions — which items, in which slots, in
++ * which order, and what it said about them — come from storage.
++ *
++ * Returning null (rather than a partial look) is deliberate: a closet edit
++ * during the day must produce a fresh complete outfit, never one with a hole.
++ */
++export function reassembleLooks(
++  stored: StoredLook[],
++  itemsById: Map<string, ItemRow>,
++  signed: Map<string, string>,
++  pathFor: (itemId: string) => string | undefined,
++): Look[] | null {
++  const looks: Look[] = [];
++
++  for (const s of stored) {
++    const pieces: LookPiece[] = [];
++    for (const p of s.pieces) {
++      const item = itemsById.get(p.itemId);
++      if (!item) return null; // item left the closet
++      const path = pathFor(p.itemId);
++      const url = path ? signed.get(path) : undefined;
++      if (!url) return null; // image no longer signable
++      pieces.push({
++        itemId: item.id,
++        category: item.category,
++        subcategory: item.subcategory ?? null,
++        brand: item.brand ?? null,
++        name: item.name ?? null,
++        colors: item.colors ?? [],
++        cutoutUrl: url,
++        slot: p.slot,
++      });
++    }
++    looks.push({ name: s.lookName, why: s.why, pieces, anchorIndex: s.anchorIndex });
++  }
++
++  return looks;
++}
+
+
+Investigate per the method in your instructions, then return the findings list.
