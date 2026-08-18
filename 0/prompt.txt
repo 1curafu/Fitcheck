@@ -1,0 +1,90 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - lib/generator/__tests__/coverage.test.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: lib/generator/__tests__/coverage.test.ts ===
+@@ -0,0 +1,78 @@
++import { buildCandidates } from "../candidates";
++
++/**
++ * Coverage measurement for candidate generation.
++ *
++ * Reported symptom: the generator repeats pieces across the day's looks and
++ * never uses most of the closet. These tests measure what the candidate set can
++ * actually reach, so a fix has a before/after number rather than a feeling.
++ */
++
++/** A realistic closet: n of each required category, all mutually compatible. */
++function closet(n: number) {
++  const mk = (cat: string, i: number) => ({
++    id: `${cat}-${i}`,
++    category: cat,
++    colors: ["navy"],
++    formality: 3,
++    seasons: [] as string[],
++    material: "cotton",
++  });
++  return [
++    ...Array.from({ length: n }, (_, i) => mk("Tops", i)),
++    ...Array.from({ length: n }, (_, i) => mk("Bottoms", i)),
++    ...Array.from({ length: n }, (_, i) => mk("Shoes", i)),
++    ...Array.from({ length: 3 }, (_, i) => mk("Outerwear", i)),
++    ...Array.from({ length: 3 }, (_, i) => mk("Accessories", i)),
++  ];
++}
++
++const args = {
++  band: [1, 5] as [number, number],
++  weather: { tempC: 18, rain: false },
++  season: "Summer",
++  excludeItemIds: [] as string[],
++  maxAccessories: 1,
++};
++
++function reach(combos: { category: string; id: string }[][], cat: string): number {
++  return new Set(combos.flat().filter((i) => i.category === cat).map((i) => i.id)).size;
++}
++
++test("MEASUREMENT: every eligible top is reachable", () => {
++  const combos = buildCandidates(closet(20), args);
++  console.log(`combos: ${combos.length}, tops reachable: ${reach(combos, "Tops")} of 20`);
++  expect(reach(combos, "Tops")).toBe(20);
++});
++
++test("MEASUREMENT: every eligible bottom is reachable", () => {
++  const combos = buildCandidates(closet(20), args);
++  console.log(`bottoms reachable: ${reach(combos, "Bottoms")} of 20`);
++  expect(reach(combos, "Bottoms")).toBe(20);
++});
++
++test("MEASUREMENT: every eligible shoe is reachable", () => {
++  const combos = buildCandidates(closet(20), args);
++  console.log(`shoes reachable: ${reach(combos, "Shoes")} of 20`);
++  expect(reach(combos, "Shoes")).toBe(20);
++});
++
++test("MEASUREMENT: more than one coat is offered on a cold day", () => {
++  const combos = buildCandidates(closet(20), { ...args, weather: { tempC: 5, rain: false } });
++  console.log(`coats reachable: ${reach(combos, "Outerwear")} of 3`);
++  expect(reach(combos, "Outerwear")).toBeGreaterThan(1);
++});
++
++test("MEASUREMENT: more than one accessory is offered", () => {
++  const combos = buildCandidates(closet(20), args);
++  console.log(`accessories reachable: ${reach(combos, "Accessories")} of 3`);
++  expect(reach(combos, "Accessories")).toBeGreaterThan(1);
++});
++
++test("MEASUREMENT: a small closet is fully reachable too", () => {
++  const combos = buildCandidates(closet(3), args);
++  console.log(`small closet — tops: ${reach(combos, "Tops")}/3, bottoms: ${reach(combos, "Bottoms")}/3, shoes: ${reach(combos, "Shoes")}/3`);
++  expect(reach(combos, "Tops")).toBe(3);
++  expect(reach(combos, "Bottoms")).toBe(3);
++  expect(reach(combos, "Shoes")).toBe(3);
++});
+
+
+Investigate per the method in your instructions, then return the findings list.
