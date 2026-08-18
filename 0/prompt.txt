@@ -1,0 +1,7 @@
+<task-notification>
+<task-id>b8a351l3z</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-1curafu-Desktop-Fitcheck-Fitcheck/5a77392a-fa71-4cd0-ad0a-5561aa08716c/tasks/b8a351l3z.output</output-file>
+<status>killed</status>
+<summary>Background command "Restart the Next dev server" was stopped</summary>
+</task-notification>
