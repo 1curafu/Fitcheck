@@ -1,0 +1,143 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - components/generate/stylist.tsx
+  - components/generate/__tests__/stylist-view.test.tsx
+  - components/generate/stylist-view.tsx
+
+Unified diff (only + lines are new):
+
+=== DIFF: components/generate/stylist.tsx ===
+@@ -3,7 +3,13 @@
+ import { useCallback, useEffect, useRef, useState } from "react";
+ import { useRouter } from "next/navigation";
+ import { StylistView, type StylistStatus } from "./stylist-view";
+-import { generate, saveLocation } from "@/app/generate/actions";
++import {
++  generate,
++  saveLocation,
++  predictDefaultOccasion,
++  logOccasionOverride,
++} from "@/app/generate/actions";
++import { defaultReason } from "@/lib/outfits/predict-occasion";
+ import { searchCities, type City } from "@/lib/weather/geocode";
+ import { getCurrentPosition, permissionState, GeoError } from "@/lib/weather/geolocate";
+ import type { LocationSource } from "@/lib/weather/location";
+@@ -22,6 +28,9 @@ export function Stylist() {
+   const [lean, setLean] = useState<string[]>([]);
+   const [city, setCity] = useState<Chosen | null>(null);
+   const [nonce, setNonce] = useState(0);
++  const [reason, setReason] = useState<string>("");
++  const [seeded, setSeeded] = useState(false);
++  const predictedRef = useRef<UiOccasion>("everyday");
+ 
+   const [weather, setWeather] = useState<WeatherPayload | null>(null);
+   const [looks, setLooks] = useState<Look[]>([]);
+@@ -131,7 +140,32 @@ export function Stylist() {
+ 
+   // Reads today's stored set (Decision 5). Switching occasion runs this again,
+   // but the action answers from the database — no AI call, no spend.
++  // The morning seed: predict the occasion BEFORE the first generate, so the
++  // generate effect reads the right stored set and runs ONCE. Predicting is
++  // cheap (no AI/weather). The generate effect is gated on `seeded` below, so
++  // it never fires for the placeholder "everyday" and then again for the
++  // prediction — that would spend two AI calls on a fresh day.
+   useEffect(() => {
++    let cancelled = false;
++    predictDefaultOccasion()
++      .then(({ occasion: predicted, reason: why }) => {
++        if (cancelled) return;
++        predictedRef.current = predicted;
++        setReason(why);
++        setOccasion(predicted);
++      })
++      .finally(() => {
++        // Release the gate even if prediction fails — looks still load against
++        // the "everyday" fallback.
++        if (!cancelled) setSeeded(true);
++      });
++    return () => {
++      cancelled = true;
++    };
++  }, []);
++
++  useEffect(() => {
++    if (!seeded) return; // wait for the prediction, so generate runs once
+     let cancelled = false;
+     setStatus("loading");
+     generate({ occasion, formality, lean, city: city ?? undefined }).then((res) => {
+@@ -141,7 +175,7 @@ export function Stylist() {
+     return () => {
+       cancelled = true;
+     };
+-  }, [occasion, formality, lean, city, nonce, applyResult]);
++  }, [seeded, occasion, formality, lean, city, nonce, applyResult]);
+ 
+   /**
+    * The only path that spends an AI call on a day already answered.
+@@ -169,7 +203,16 @@ export function Stylist() {
+       missing={missing}
+       locating={locating}
+       geoError={geoError}
+-      onOccasion={setOccasion}
++      reason={reason}
++      onOccasion={(o) => {
++        setOccasion(o);
++        setReason(defaultReason(o));
++        // A tap that departs from the prediction is the flywheel signal for the
++        // future learner. Fire-and-forget — it must never disturb the looks.
++        if (o !== predictedRef.current) {
++          logOccasionOverride({ predicted: predictedRef.current, chosen: o }).catch(() => {});
++        }
++      }}
+       onOpenRefine={() => setRefineOpen(true)}
+       onCloseRefine={() => setRefineOpen(false)}
+       onRefineApply={({ formality: f, lean: c }) => {
+
+
+=== DIFF: components/generate/__tests__/stylist-view.test.tsx ===
+@@ -54,6 +54,7 @@ const base = {
+   onRetry: noop,
+   onRegenerate: noop,
+   onOpenItem: noop,
++  reason: "",
+ };
+ 
+ test("loading (D10): skeleton shown, no outfit image", () => {
+@@ -97,3 +98,9 @@ test("Regenerate is offered as an explicit action", async () => {
+   await userEvent.click(screen.getByRole("button", { name: /regenerate/i }));
+   expect(onRegenerate).toHaveBeenCalledTimes(1);
+ });
++
++// The smart-default "why" (legible intelligence): a quiet label above the looks.
++test("the predicted occasion's reason is shown above the looks", () => {
++  render(<StylistView {...base} status="ok" looks={[look]} reason="Styled for your work day" />);
++  expect(screen.getByText("Styled for your work day")).toBeInTheDocument();
++});
+
+
+=== DIFF: components/generate/stylist-view.tsx ===
+@@ -54,6 +54,8 @@ export function StylistView(props: {
+   onOpenItem: (itemId: string) => void;
+   /** Decision 5: the ONLY way to spend an AI call on a day already answered. */
+   onRegenerate: () => void;
++  /** The legible "why" for the predicted default occasion (empty until seeded). */
++  reason?: string;
+ }) {
+   const { status, weather, looks, selectedLook, occasion } = props;
+   const look = looks[selectedLook];
+@@ -61,6 +63,11 @@ export function StylistView(props: {
+ 
+   return (
+     <main className="relative flex flex-1 flex-col overflow-hidden px-[22px] pt-[46px]">
++      {/* The legible "why" — a quiet kicker above the title that makes the smart
++          default read as intentional. Uses the documented label step. */}
++      {props.reason && (
++        <p className="mb-1 text-[11px] uppercase tracking-[0.22em] text-muted-dim">{props.reason}</p>
++      )}
+       <div className="mb-[10px] flex items-center justify-between gap-3">
+         <h1 className="font-serif text-[24px] text-foreground">Today&apos;s Looks</h1>
+         <RefineButton onRefine={props.onOpenRefine} />
+
+
+Investigate per the method in your instructions, then return the findings list.
