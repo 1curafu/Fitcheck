@@ -1,0 +1,435 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/closet/[itemId]/style-actions.ts
+  - components/billing/upgrade-sheet.tsx
+  - components/closet/__tests__/style-cta.test.tsx
+  - components/closet/style-cta.tsx
+  - components/generate/__tests__/stylist-view.test.tsx
+  - components/generate/stylist-view.tsx
+  - components/generate/stylist.tsx
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/closet/[itemId]/style-actions.ts ===
+@@ -20,7 +20,10 @@ import type { LookDraft, LookPiece, WeatherPayload } from "@/lib/generator/types
+ 
+ export type StyleResult =
+   | { status: "ok"; outfitId: string }
+-  | { status: "limited" }
++  // Carries the seam's own reason. Styling is a Pro capability rather than a
++  // daily allowance, so a message written here ("back tomorrow") would be
++  // actively false — tomorrow gives a free user no stylings either.
++  | { status: "limited"; message: string }
+   | { status: "empty"; message: string }
+   | { status: "error"; message: string };
+ 
+@@ -88,7 +91,7 @@ export async function styleWithItem(itemId: string): Promise<StyleResult> {
+     try {
+       await assertCanGenerate(user.id, { kind: "styled", today });
+     } catch (e) {
+-      if (e instanceof QuotaExceededError) return { status: "limited" };
++      if (e instanceof QuotaExceededError) return { status: "limited", message: e.message };
+       throw e;
+     }
+ 
+
+
+=== DIFF: components/billing/upgrade-sheet.tsx ===
+@@ -0,0 +1,74 @@
++"use client";
++
++import { Kicker } from "@/components/ui-fitcheck/kicker";
++
++/**
++ * The one place a Pro gate explains itself.
++ *
++ * Five surfaces are gated (styled looks, wear-stats analytics, gap analysis,
++ * unlimited regenerates, packing mode), so this is a shared component for the
++ * same reason `lib/billing` is a shared seam: writing the explanation five
++ * times is how five screens end up disagreeing about what Pro is.
++ *
++ * It exists because the first version put a small muted line under the primary
++ * button. That reads as a validation error — something you did wrong — rather
++ * than a feature you have not bought, and it offered no way forward.
++ *
++ * Deliberately NOT a hard paywall in front of the button: the control stays
++ * live and tappable, because nobody buys a feature they have never reached for.
++ * The sheet is the answer to the tap, not a fence around it.
++ */
++export function UpgradeSheet({
++  open,
++  title,
++  body,
++  onClose,
++}: {
++  open: boolean;
++  /** What the user just tried to do, in their words. */
++  title: string;
++  /** The seam's own reason — never re-worded here. */
++  body: string;
++  onClose: () => void;
++}) {
++  if (!open) return null;
++
++  return (
++    <>
++      <button
++        type="button"
++        aria-label="Close"
++        onClick={onClose}
++        className="fixed inset-0 z-40 bg-[rgba(6,6,8,0.5)] backdrop-blur-[1.5px]"
++      />
++      <div
++        role="dialog"
++        aria-modal="true"
++        aria-label={title}
++        className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[440px] rounded-t-[22px] border-t border-[rgba(237,230,216,0.12)] bg-surface-2 px-[22px] pb-[calc(env(safe-area-inset-bottom)+20px)] pt-3.5"
++      >
++        <div className="mx-auto mb-4 h-1 w-[34px] rounded-full bg-faint" />
++
++        {/* The screen's single rust spend — the One Rust Rule. */}
++        <Kicker variant="brand" className="block">
++          Pro
++        </Kicker>
++
++        <h2 className="mt-2 font-serif text-[24px]/[1.15] text-foreground">{title}</h2>
++        <p className="mt-2 text-sm/[1.5] text-muted-foreground text-pretty">{body}</p>
++
++        {/* No checkout yet — billing is a later phase, and a dead "Upgrade"
++            button that goes nowhere is worse than none. This closes honestly;
++            the Pro card on the profile hub becomes the real destination when it
++            exists (queue #9). */}
++        <button
++          type="button"
++          onClick={onClose}
++          className="mt-5 min-h-[52px] w-full rounded-[14px] bg-foreground text-[15.5px] font-semibold text-canvas"
++        >
++          Got it
++        </button>
++      </div>
++    </>
++  );
++}
+
+
+=== DIFF: components/closet/__tests__/style-cta.test.tsx ===
+@@ -0,0 +1,86 @@
++import { render, screen } from "@testing-library/react";
++import userEvent from "@testing-library/user-event";
++import { StyleCta } from "../style-cta";
++
++const push = vi.fn();
++vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
++
++const styleWithItem = vi.fn();
++vi.mock("@/app/closet/[itemId]/style-actions", () => ({
++  styleWithItem: (...args: unknown[]) => styleWithItem(...args),
++}));
++
++beforeEach(() => {
++  push.mockClear();
++  styleWithItem.mockReset();
++});
++
++test("a successful styling opens the look it produced", async () => {
++  styleWithItem.mockResolvedValue({ status: "ok", outfitId: "o9" });
++  render(<StyleCta itemId="i1" />);
++  await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
++  expect(push).toHaveBeenCalledWith("/outfits/o9");
++});
++
++// The seam knows WHICH limit was hit. This copy previously said "that's today's
++// stylings used — back tomorrow", written when styling was assumed to share the
++// daily generation allowance. It is a Pro capability, so tomorrow gives a free
++// user no more of them — the message told people to wait for something that
++// would never arrive.
++test("a limited result opens the upgrade sheet with the reason verbatim", async () => {
++  styleWithItem.mockResolvedValue({
++    status: "limited",
++    message: "Building a look around a piece is a Pro feature.",
++  });
++  render(<StyleCta itemId="i1" />);
++  await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
++  const sheet = await screen.findByRole("dialog");
++  expect(sheet).toHaveTextContent(/pro feature/i);
++  expect(screen.queryByText(/back tomorrow/i)).not.toBeInTheDocument();
++  expect(push).not.toHaveBeenCalled();
++});
++
++// A gate the user cannot dismiss is a trap, and the sheet is an explanation
++// rather than a checkout — there is nothing to complete.
++test("the upgrade sheet can be dismissed", async () => {
++  styleWithItem.mockResolvedValue({ status: "limited", message: "Pro feature." });
++  render(<StyleCta itemId="i1" />);
++  await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
++  await screen.findByRole("dialog");
++  await userEvent.click(screen.getByRole("button", { name: /got it/i }));
++  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
++});
++
++// "Your closet is too thin for this yet" has nothing to sell — you add a piece.
++// Surfacing it as an upgrade prompt would be selling against a non-problem.
++test("a non-billing failure stays a quiet line, not an upgrade sheet", async () => {
++  styleWithItem.mockResolvedValue({
++    status: "empty",
++    message: "Fragrance finishes a look rather than forming one.",
++  });
++  render(<StyleCta itemId="i1" />);
++  await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
++  expect(await screen.findByRole("status")).toHaveTextContent(/fragrance finishes/i);
++  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
++});
++
++// Nobody buys a feature they have never seen, and this is the screen where the
++// want is felt — so the gate explains itself rather than hiding the control.
++test("the button stays available to a gated user", async () => {
++  styleWithItem.mockResolvedValue({ status: "limited", message: "Pro feature." });
++  render(<StyleCta itemId="i1" />);
++  const button = screen.getByRole("button", { name: /style an outfit/i });
++  await userEvent.click(button);
++  await screen.findByRole("dialog");
++  expect(button).toBeEnabled();
++});
++
++test("an empty result explains itself too", async () => {
++  styleWithItem.mockResolvedValue({
++    status: "empty",
++    message: "Fragrance finishes a look rather than forming one.",
++  });
++  render(<StyleCta itemId="i1" />);
++  await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
++  expect(await screen.findByRole("status")).toHaveTextContent(/fragrance finishes/i);
++});
+
+
+=== DIFF: components/closet/style-cta.tsx ===
+@@ -3,18 +3,27 @@
+ import { useState, useTransition } from "react";
+ import { useRouter } from "next/navigation";
+ import { styleWithItem } from "@/app/closet/[itemId]/style-actions";
++import { UpgradeSheet } from "@/components/billing/upgrade-sheet";
+ 
+ /**
+  * The one primary action on item detail (Fitcheck.dc.html:654).
+  *
+- * The outcome is a STATE, not an exception: "you have used today's stylings" and
+- * "there is not enough else in your closet yet" are both real answers, and a
+- * thrown error would render as a dead button with no explanation.
++ * The outcome is a STATE, not an exception: "this is a Pro feature" and "there
++ * is not enough else in your closet yet" are both real answers, and a thrown
++ * error would render as a dead button with no explanation.
++ *
++ * The button stays VISIBLE and enabled for free users on purpose. Nobody buys a
++ * feature they have never seen, and this screen — the canonical one — is where
++ * the want is felt. Tapping it explains the feature rather than doing nothing.
+  */
+ export function StyleCta({ itemId }: { itemId: string }) {
+   const router = useRouter();
+   const [pending, start] = useTransition();
+   const [message, setMessage] = useState<string | null>(null);
++  // A Pro gate and "your closet is too thin for this yet" are different answers
++  // and get different weight: the first is a sheet that explains and sells, the
++  // second is a quiet line, because there is nothing to buy — you add a piece.
++  const [upgrade, setUpgrade] = useState<string | null>(null);
+ 
+   return (
+     <div className="flex flex-1 flex-col">
+@@ -24,10 +33,16 @@ export function StyleCta({ itemId }: { itemId: string }) {
+         onClick={() =>
+           start(async () => {
+             setMessage(null);
++            setUpgrade(null);
+             const res = await styleWithItem(itemId);
+             if (res.status === "ok") router.push(`/outfits/${res.outfitId}`);
+-            else if (res.status === "limited")
+-              setMessage("That's today's stylings used — back tomorrow.");
++            // The reason is rendered verbatim, never re-worded here. It used to
++            // read "that's today's stylings used — back tomorrow", written when
++            // styling was assumed to share the daily generation allowance. It
++            // is a Pro capability, so tomorrow gives a free user no more of them
++            // — the old copy told people to wait for something that would never
++            // arrive.
++            else if (res.status === "limited") setUpgrade(res.message);
+             else setMessage(res.message);
+           })
+         }
+@@ -40,6 +55,13 @@ export function StyleCta({ itemId }: { itemId: string }) {
+           {message}
+         </p>
+       )}
++
++      <UpgradeSheet
++        open={Boolean(upgrade)}
++        title="Style a look around any piece"
++        body={upgrade ?? ""}
++        onClose={() => setUpgrade(null)}
++      />
+     </div>
+   );
+ }
+
+
+=== DIFF: components/generate/__tests__/stylist-view.test.tsx ===
+@@ -114,6 +114,55 @@ test("limited: the reason is rendered verbatim, not a generic message", () => {
+   expect(screen.getByText(/building a look around a piece/i)).toBeInTheDocument();
+ });
+ 
++// Pressing Regenerate must never COST you the looks you already had — being
++// refused more is not the same as losing what you have.
++test("limited: looks already on screen are kept", () => {
++  render(
++    <StylistView
++      {...base}
++      status="limited"
++      looks={[look]}
++      limitMessage="You've used today's redo for this occasion. Pro regenerates freely."
++    />,
++  );
++  expect(screen.getByText(look.why)).toBeInTheDocument();
++  expect(screen.getByRole("link", { name: /see the full look/i })).toBeInTheDocument();
++});
++
++// The control stays live and opens the Pro sheet. A caption in its place was
++// tried first: it read as a validation error rather than a feature you have not
++// bought, and left nothing to press, so nothing explained itself.
++test("limited: the regenerate control opens the upgrade sheet instead of regenerating", async () => {
++  const onRegenerate = vi.fn();
++  const onShowUpgrade = vi.fn();
++  render(
++    <StylistView
++      {...base}
++      status="limited"
++      looks={[look]}
++      limitMessage="Pro regenerates freely."
++      onRegenerate={onRegenerate}
++      onShowUpgrade={onShowUpgrade}
++    />,
++  );
++  await userEvent.click(screen.getByRole("button", { name: /regenerate/i }));
++  expect(onShowUpgrade).toHaveBeenCalled();
++  expect(onRegenerate).not.toHaveBeenCalled();
++});
++
++test("the upgrade sheet renders the seam's reason when open", () => {
++  render(
++    <StylistView
++      {...base}
++      status="limited"
++      looks={[look]}
++      upgradeOpen
++      limitMessage="You've used today's redo for this occasion. Pro regenerates freely."
++    />,
++  );
++  expect(screen.getByRole("dialog")).toHaveTextContent(/used today's redo/i);
++});
++
+ test("ok (D3): the active look's index name and its byline name are the same single string", () => {
+   render(<StylistView {...base} status="ok" looks={[look]} />);
+   expect(screen.getAllByText("The Camel").length).toBeGreaterThanOrEqual(2); // index tab + why byline
+
+
+=== DIFF: components/generate/stylist-view.tsx ===
+@@ -6,6 +6,7 @@ import { Kicker } from "@/components/ui-fitcheck/kicker";
+ import { WeatherStrip } from "./weather-strip";
+ import { OccasionRow, RefineButton } from "./occasion-row";
+ import { RefineSheet } from "./refine-sheet";
++import { UpgradeSheet } from "@/components/billing/upgrade-sheet";
+ import { IndexTabs } from "./index-tabs";
+ import { FlatLay } from "./flat-lay";
+ import { WhyQuote } from "./why-quote";
+@@ -61,6 +62,10 @@ export function StylistView(props: {
+   onRetry: () => void;
+   /** Decision 5: the ONLY way to spend an AI call on a day already answered. */
+   onRegenerate: () => void;
++  /** Opens the Pro sheet when the regenerate allowance is spent. */
++  onShowUpgrade?: () => void;
++  upgradeOpen?: boolean;
++  onCloseUpgrade?: () => void;
+   /** The legible "why" for the predicted default occasion (empty until seeded). */
+   reason?: string;
+ }) {
+@@ -121,11 +126,15 @@ export function StylistView(props: {
+           </div>
+         )}
+ 
+-        {/* A meter that ran out is a WORKING app with a clear next step, so it
+-            gets the empty state's calm shape rather than the error's apology
+-            and retry button — "Try again" would be a lie here, and the rust
+-            spend belongs to the upgrade, which is the one action on offer. */}
+-        {status === "limited" && (
++        {/* Only when there is genuinely nothing to show — a limit hit before any
++            look exists for this occasion. If the user HAS looks, they keep them
++            and the message replaces the Regenerate control instead (below):
++            being told you cannot have more must never cost you what you already
++            had, which is exactly what pressing Regenerate would then have done.
++
++            The shape is the empty state's, not the error's — "Try again" would
++            be a lie, and the app is working correctly. */}
++        {status === "limited" && !look && (
+           <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 text-center">
+             <p className="font-serif text-[20px] text-foreground">That&apos;s today&apos;s looks</p>
+             <p data-testid="limit-copy" className="max-w-[32ch] text-sm text-muted-foreground">
+@@ -147,7 +156,7 @@ export function StylistView(props: {
+           </div>
+         )}
+ 
+-        {status === "ok" && look && (
++        {(status === "ok" || status === "limited") && look && (
+           <>
+             <div className="relative flex flex-1 flex-col">
+               <FlatLay look={look} />
+@@ -185,9 +194,14 @@ export function StylistView(props: {
+                 So: a real button shell, but secondary — bounded, tonal, and
+                 below the primary, because this is the one control on the screen
+                 that costs money to press. */}
++            {/* The control stays LIVE when the allowance is gone, and tapping
++                it opens the same upgrade sheet the styled-look gate uses.
++                Replacing it with a caption was tried first and read as a
++                validation error rather than a feature you have not bought —
++                and it left nothing to press, so nothing explained itself. */}
+             <button
+               type="button"
+-              onClick={props.onRegenerate}
++              onClick={status === "limited" ? props.onShowUpgrade : props.onRegenerate}
+               className="mt-[10px] flex w-full items-center justify-center gap-2 rounded-[13px] bg-surface-1 p-4 text-sm text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-7)]"
+             >
+               <RotateCcw size={15} />
+@@ -203,6 +217,13 @@ export function StylistView(props: {
+         onApply={props.onRefineApply}
+         onClose={props.onCloseRefine}
+       />
++
++      <UpgradeSheet
++        open={Boolean(props.upgradeOpen)}
++        title="Regenerate as often as you like"
++        body={props.limitMessage ?? ""}
++        onClose={props.onCloseUpgrade ?? (() => {})}
++      />
+     </main>
+   );
+ }
+
+
+=== DIFF: components/generate/stylist.tsx ===
+@@ -81,6 +81,7 @@ export function Stylist() {
+   const [missing, setMissing] = useState<string | null>(null);
+   // The seam's own words for which allowance ran out — never re-worded here.
+   const [limitMessage, setLimitMessage] = useState<string>("");
++  const [upgradeOpen, setUpgradeOpen] = useState(false);
+   const [locating, setLocating] = useState(false);
+   const [geoError, setGeoError] = useState<string | null>(null);
+   // Optimistic: the row shows until we learn the browser has no geolocation at
+@@ -273,6 +274,9 @@ export function Stylist() {
+       refineOpen={refineOpen}
+       missing={missing}
+       limitMessage={limitMessage}
++      upgradeOpen={upgradeOpen}
++      onShowUpgrade={() => setUpgradeOpen(true)}
++      onCloseUpgrade={() => setUpgradeOpen(false)}
+       locating={locating}
+       geoError={geoError}
+       reason={reason}
+
+
+Investigate per the method in your instructions, then return the findings list.
