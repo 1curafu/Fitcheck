@@ -1,0 +1,128 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - components/generate/__tests__/stylist-view.test.tsx
+  - components/generate/stylist-view.tsx
+  - components/generate/stylist.tsx
+
+Unified diff (only + lines are new):
+
+=== DIFF: components/generate/__tests__/stylist-view.test.tsx ===
+@@ -86,6 +86,34 @@ test("error (D10): the retry control re-invokes onRetry", async () => {
+   expect(onRetry).toHaveBeenCalled();
+ });
+ 
++// "Limited" is a STATE, not an error. A user at their allowance has a working
++// app and a clear next step; rendering the error path would tell them the
++// product is broken and lose the upgrade moment entirely.
++test("limited: the meter explains itself instead of looking broken", () => {
++  render(
++    <StylistView
++      {...base}
++      status="limited"
++      limitMessage="You've used today's redo for this occasion. Pro regenerates freely."
++    />,
++  );
++  expect(screen.getByText(/used today's redo/i)).toBeInTheDocument();
++  expect(screen.queryByText(/couldn't reach the stylist/i)).not.toBeInTheDocument();
++});
++
++// The reason comes from the seam, which knows WHICH allowance ran out — a
++// hard-coded string here would be wrong for the styled-look gate.
++test("limited: the reason is rendered verbatim, not a generic message", () => {
++  render(
++    <StylistView
++      {...base}
++      status="limited"
++      limitMessage="Building a look around a piece is a Pro feature."
++    />,
++  );
++  expect(screen.getByText(/building a look around a piece/i)).toBeInTheDocument();
++});
++
+ test("ok (D3): the active look's index name and its byline name are the same single string", () => {
+   render(<StylistView {...base} status="ok" looks={[look]} />);
+   expect(screen.getAllByText("The Camel").length).toBeGreaterThanOrEqual(2); // index tab + why byline
+
+
+=== DIFF: components/generate/stylist-view.tsx ===
+@@ -12,7 +12,7 @@ import { WhyQuote } from "./why-quote";
+ import type { Look, UiOccasion, WeatherPayload } from "@/lib/generator/types";
+ import type { City } from "@/lib/weather/geocode";
+ 
+-export type StylistStatus = "loading" | "ok" | "empty" | "error";
++export type StylistStatus = "loading" | "ok" | "empty" | "error" | "limited";
+ 
+ /**
+  * An empty result is almost never "add more pieces" — it's one specific gap for
+@@ -42,6 +42,12 @@ export function StylistView(props: {
+   refineOpen: boolean;
+   /** Required slot that blocked every combo, when status === "empty". */
+   missing?: string | null;
++  /**
++   * The reason the meter gave, when status === "limited". Rendered verbatim:
++   * the seam knows WHICH allowance ran out (a regenerate, a styled look), and
++   * a message hard-coded here would be wrong for the others.
++   */
++  limitMessage?: string;
+   onOccasion: (o: UiOccasion) => void;
+   onOpenRefine: () => void;
+   onCloseRefine: () => void;
+@@ -115,6 +121,19 @@ export function StylistView(props: {
+           </div>
+         )}
+ 
++        {/* A meter that ran out is a WORKING app with a clear next step, so it
++            gets the empty state's calm shape rather than the error's apology
++            and retry button — "Try again" would be a lie here, and the rust
++            spend belongs to the upgrade, which is the one action on offer. */}
++        {status === "limited" && (
++          <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 text-center">
++            <p className="font-serif text-[20px] text-foreground">That&apos;s today&apos;s looks</p>
++            <p data-testid="limit-copy" className="max-w-[32ch] text-sm text-muted-foreground">
++              {props.limitMessage}
++            </p>
++          </div>
++        )}
++
+         {status === "error" && (
+           <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+             <p className="text-sm text-muted-foreground">Couldn&apos;t reach the stylist.</p>
+
+
+=== DIFF: components/generate/stylist.tsx ===
+@@ -79,6 +79,8 @@ export function Stylist() {
+   const [cities, setCities] = useState<City[]>([]);
+   const [refineOpen, setRefineOpen] = useState(false);
+   const [missing, setMissing] = useState<string | null>(null);
++  // The seam's own words for which allowance ran out — never re-worded here.
++  const [limitMessage, setLimitMessage] = useState<string>("");
+   const [locating, setLocating] = useState(false);
+   const [geoError, setGeoError] = useState<string | null>(null);
+   // Optimistic: the row shows until we learn the browser has no geolocation at
+@@ -165,6 +167,14 @@ export function Stylist() {
+         setLooks([]);
+         setMissing(res.missing);
+         setStatus("empty");
++      } else if (res.status === "limited") {
++        // Weather is kept so the strip stays put — being out of regenerates
++        // does not mean the app stopped knowing the forecast. Looks are NOT
++        // cleared for the same reason a limit is not an error: whatever the
++        // user was already looking at is still theirs to look at.
++        setWeather(res.weather);
++        setLimitMessage(res.message);
++        setStatus("limited");
+       } else {
+         setStatus("error");
+       }
+@@ -262,6 +272,7 @@ export function Stylist() {
+       cities={cities}
+       refineOpen={refineOpen}
+       missing={missing}
++      limitMessage={limitMessage}
+       locating={locating}
+       geoError={geoError}
+       reason={reason}
+
+
+Investigate per the method in your instructions, then return the findings list.
