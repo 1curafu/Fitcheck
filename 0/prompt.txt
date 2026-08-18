@@ -1,0 +1,1 @@
+turn of server and supabase, also write in memory to give u a api key for weather, cause its not real weather data
