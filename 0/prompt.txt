@@ -1,0 +1,80 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - lib/generator/candidates.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: lib/generator/candidates.ts ===
+@@ -81,23 +81,55 @@ export function buildCandidates(items: CandidateItem[], a: CandidateArgs): Candi
+   const outer = byCat("Outerwear");
+   const accessories = byCat("Accessories");
+ 
++  // A combo needs all three required slots; without one there is nothing to build.
++  if (!tops.length || !bottoms.length || !shoes.length) return [];
++
+   const combos: CandidateItem[][] = [];
+-  for (const t of tops)
+-    for (const b of bottoms)
+-      for (const s of shoes) {
+-        // Outerwear is a PREFERENCE, not a requirement: layer it in when the cold
+-        // calls for it and the closet has one, but never refuse to dress someone
+-        // who owns no coat — that silently killed every outfit below 15°.
+-        // The weather strip's "Later" advice is what tells them to take a layer.
+-        const base = needsOuterwear && outer.length ? [t, b, s, outer[0]] : [t, b, s];
+-        combos.push(base); // required base (± outerwear), no accessory
+-        if (a.maxAccessories > 0 && accessories.length) {
+-          combos.push([...base, accessories[0]]); // optional, capped accent
+-        }
++
++  // BREADTH-FIRST, not a nested product.
++  //
++  // This used to be three nested loops followed by `.slice(0, CAP)`. Because the
++  // loops were top-major, every combination of the FIRST top was generated
++  // before the second top was reached — so the cap was spent inside one top. A
++  // closet with 20 of each category reached 1 top and 5 bottoms out of 20, which
++  // is both reported symptoms at once: most of the wardrobe invisible to
++  // ranking, and every look sharing a garment because there was only one to
++  // share. Small closets stayed under the cap, which is why tests never saw it.
++  //
++  // Each pass `d` walks all tops once, pairing each with a different bottom and
++  // shoe, so pass 0 alone touches every top, bottom and shoe. Later passes add
++  // fresh pairings rather than exhausting one corner of the space. The offsets
++  // are coprime-ish (d and 2d) so pairings do not repeat early.
++  const passes = Math.max(bottoms.length, shoes.length);
++
++  build: for (let d = 0; d < passes; d++) {
++    for (let t = 0; t < tops.length; t++) {
++      const b = bottoms[(t + d) % bottoms.length];
++      const s = shoes[(t + d * 2) % shoes.length];
++
++      // Outerwear is a PREFERENCE, not a requirement: layer it in when the cold
++      // calls for it and the closet has one, but never refuse to dress someone
++      // who owns no coat — that silently killed every outfit below 15°.
++      // The weather strip's "Later" advice is what tells them to take a layer.
++      // The index rotates too: it was pinned to [0], so one coat was worn on
++      // every cold day and every other coat was unreachable.
++      const base =
++        needsOuterwear && outer.length
++          ? [tops[t], b, s, outer[(t + d) % outer.length]]
++          : [tops[t], b, s];
++
++      combos.push(base); // required base (± outerwear), no accessory
++      if (combos.length >= CAP) break build;
++
++      if (a.maxAccessories > 0 && accessories.length) {
++        combos.push([...base, accessories[(t + d) % accessories.length]]); // optional, capped accent
++        if (combos.length >= CAP) break build;
+       }
++    }
++  }
+ 
+   // Colour is deliberately NOT filtered here. The Refine palette is a lean, and
+   // leans are expressed by ranking (`scoreCombo`'s lean term), not by exclusion —
+   // the same soft-preference model outerwear moved to above.
+-  return combos.slice(0, CAP);
++  return combos;
+ }
+
+
+Investigate per the method in your instructions, then return the findings list.
