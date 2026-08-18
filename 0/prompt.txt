@@ -1,0 +1,285 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/calendar/page.tsx
+  - lib/diary/__tests__/logs.test.ts
+  - lib/diary/logs.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/calendar/page.tsx ===
+@@ -1,30 +1,114 @@
+ import { redirect } from "next/navigation";
+ import { createClient } from "@/lib/supabase/server";
++import { signItemImages, displayPath } from "@/lib/storage/signed";
++import { localDateFor } from "@/lib/outfits/local-date";
++import { buildMonth, monthLabel, type DayLog } from "@/lib/diary/month";
++import { currentStreak } from "@/lib/diary/streak";
++import { thumbnailPieces } from "@/lib/diary/thumbnail";
++import { parseMonth, monthBounds, shiftMonth, latestPerDay } from "@/lib/diary/logs";
++import { DiaryGrid } from "@/components/diary/diary-grid";
+ import { MobileNav } from "@/components/shell/mobile-nav";
+-import { Kicker } from "@/components/ui-fitcheck/kicker";
+ 
+-// Placeholder — Plan 08 builds the OOTD diary (daily wear log, streaks, no-repeat calendar).
+-export default async function CalendarPage() {
++type ItemRow = { category: string; image_url: string; cutout_url: string | null };
++
++/**
++ * The Fit Diary — a month of what was actually worn.
++ *
++ * A pure VIEW over `wear_logs`: it writes nothing. Everything on this screen
++ * arrives via the "Wear this today" button on an outfit.
++ */
++export default async function CalendarPage({
++  searchParams,
++}: {
++  searchParams: Promise<{ m?: string }>;
++}) {
++  const { m } = await searchParams;
+   const supabase = await createClient();
+   const {
+     data: { user },
+   } = await supabase.auth.getUser();
+   if (!user) redirect("/");
+ 
++  const { data: profile } = await supabase
++    .from("profiles")
++    .select("location_timezone")
++    .eq("id", user.id)
++    .single();
++  const today = localDateFor(new Date(), profile?.location_timezone ?? "UTC");
++
++  const { year, month } = parseMonth(m, today);
++  const { start, end } = monthBounds(year, month);
++
++  /**
++   * Two reads, deliberately.
++   *
++   * The streak is "as of today" and is computed from ALL of the user's wear
++   * dates — deriving it from the visible month would make it shrink as you page
++   * backwards, measuring the view instead of the habit. The grid only needs the
++   * month on screen.
++   */
++  const [{ data: allDates }, { data: monthRows }] = await Promise.all([
++    supabase.from("wear_logs").select("worn_on").eq("user_id", user.id),
++    supabase
++      .from("wear_logs")
++      .select("worn_on, outfit_id, created_at")
++      .eq("user_id", user.id)
++      .gte("worn_on", start)
++      .lte("worn_on", end),
++  ]);
++
++  const days = latestPerDay(monthRows ?? []);
++  const outfitIds = days.map((d) => d.outfit_id).filter((id): id is string => Boolean(id));
++
++  /**
++   * `wear_logs` and `outfit_items` are NOT directly related — both hang off
++   * `outfits` — so PostgREST cannot embed one in the other. That is the trap
++   * which silently returned zero rows for per-item wear counts; two explicit
++   * queries are obviously correct where the embed was quietly wrong.
++   */
++  const { data: links } = outfitIds.length
++    ? await supabase
++        .from("outfit_items")
++        .select("outfit_id, items(category, image_url, cutout_url)")
++        .in("outfit_id", outfitIds)
++    : { data: [] };
++
++  const piecesByOutfit = new Map<string, ItemRow[]>();
++  for (const l of links ?? []) {
++    const item = (Array.isArray(l.items) ? l.items[0] : l.items) as ItemRow | null;
++    if (!item) continue;
++    const held = piecesByOutfit.get(l.outfit_id) ?? [];
++    held.push(item);
++    piecesByOutfit.set(l.outfit_id, held);
++  }
++
++  // One signing round-trip for the whole month, not one per day.
++  const signed = await signItemImages([...piecesByOutfit.values()].flat().map(displayPath));
++
++  const logs: DayLog[] = days.map((d) => ({
++    worn_on: d.worn_on,
++    outfitId: d.outfit_id,
++    pieces: thumbnailPieces(
++      (piecesByOutfit.get(d.outfit_id ?? "") ?? []).map((i) => ({
++        category: i.category,
++        imageUrl: signed.get(displayPath(i)) ?? "",
++      })),
++    ),
++  }));
++
+   return (
+-    <div className="flex min-h-dvh flex-1 flex-col">
+-      <main className="flex flex-1 flex-col items-center justify-center gap-3 px-8 text-center">
+-        <Kicker>Diary</Kicker>
+-        <h1 className="font-serif text-3xl/[1.12] text-foreground">
+-          Your outfit diary
+-        </h1>
+-        <p className="max-w-[34ch] text-sm text-muted-foreground">
+-          Log what you wear each day, build streaks, and never repeat the same
+-          fit in a week.
+-        </p>
+-        <p className="mt-2 text-xs text-muted-dim">Coming soon</p>
+-      </main>
++    <>
++      <DiaryGrid
++        cells={buildMonth(year, month, today, logs)}
++        monthLabel={monthLabel(year, month)}
++        streak={currentStreak(
++          (allDates ?? []).map((r) => r.worn_on),
++          today,
++        )}
++        prevHref={`/calendar?m=${shiftMonth(year, month, -1)}`}
++        nextHref={`/calendar?m=${shiftMonth(year, month, 1)}`}
++      />
+       <MobileNav />
+-    </div>
++    </>
+   );
+ }
+
+
+=== DIFF: lib/diary/__tests__/logs.test.ts ===
+@@ -0,0 +1,85 @@
++import { parseMonth, monthBounds, latestPerDay, shiftMonth } from "../logs";
++
++describe("parseMonth", () => {
++  test("reads a well-formed ?m", () => {
++    expect(parseMonth("2026-03", "2026-07-24")).toEqual({ year: 2026, month: 3 });
++  });
++
++  test("falls back to today's month when absent", () => {
++    expect(parseMonth(undefined, "2026-07-24")).toEqual({ year: 2026, month: 7 });
++  });
++
++  // ?m is user-controlled; a bad value must show this month, never crash or
++  // render a grid for month 0.
++  test.each(["", "nonsense", "2026-13", "2026-00", "26-3", "2026-3", "0000-01"])(
++    "falls back on the malformed value %o",
++    (bad) => {
++      expect(parseMonth(bad, "2026-07-24")).toEqual({ year: 2026, month: 7 });
++    },
++  );
++});
++
++describe("monthBounds", () => {
++  test("covers the whole month inclusively", () => {
++    expect(monthBounds(2026, 7)).toEqual({ start: "2026-07-01", end: "2026-07-31" });
++  });
++
++  test("February in a leap year ends on the 29th", () => {
++    expect(monthBounds(2028, 2)).toEqual({ start: "2028-02-01", end: "2028-02-29" });
++  });
++
++  test("a 30-day month does not overrun", () => {
++    expect(monthBounds(2026, 6).end).toBe("2026-06-30");
++  });
++});
++
++describe("shiftMonth", () => {
++  test("steps back across a year boundary", () => {
++    expect(shiftMonth(2026, 1, -1)).toBe("2025-12");
++  });
++
++  test("steps forward across a year boundary", () => {
++    expect(shiftMonth(2026, 12, 1)).toBe("2027-01");
++  });
++
++  test("pads a single-digit month", () => {
++    expect(shiftMonth(2026, 8, -1)).toBe("2026-07");
++  });
++});
++
++describe("latestPerDay", () => {
++  // wear_logs permits several outfits on one date; the grid has room for one.
++  test("the most recent wear wins a day", () => {
++    const picked = latestPerDay([
++      { worn_on: "2026-07-09", outfit_id: "early", created_at: "2026-07-09T08:00:00Z" },
++      { worn_on: "2026-07-09", outfit_id: "late", created_at: "2026-07-09T19:00:00Z" },
++    ]);
++    expect(picked).toHaveLength(1);
++    expect(picked[0].outfit_id).toBe("late");
++  });
++
++  test("separate days each keep their own wear", () => {
++    const picked = latestPerDay([
++      { worn_on: "2026-07-09", outfit_id: "a", created_at: "2026-07-09T08:00:00Z" },
++      { worn_on: "2026-07-10", outfit_id: "b", created_at: "2026-07-10T08:00:00Z" },
++    ]);
++    expect(picked.map((r) => r.outfit_id).sort()).toEqual(["a", "b"]);
++  });
++
++  // created_at is nullable on wear_logs (it only has a default).
++  test("a row with no timestamp loses to one that has it, but still counts alone", () => {
++    expect(
++      latestPerDay([
++        { worn_on: "2026-07-09", outfit_id: "null-ts", created_at: null },
++        { worn_on: "2026-07-09", outfit_id: "stamped", created_at: "2026-07-09T08:00:00Z" },
++      ])[0].outfit_id,
++    ).toBe("stamped");
++    expect(
++      latestPerDay([{ worn_on: "2026-07-09", outfit_id: "only", created_at: null }]),
++    ).toHaveLength(1);
++  });
++
++  test("an empty list yields nothing", () => {
++    expect(latestPerDay([])).toEqual([]);
++  });
++});
+
+
+=== DIFF: lib/diary/logs.ts ===
+@@ -0,0 +1,48 @@
++export type WearRow = { worn_on: string; outfit_id: string | null; created_at: string | null };
++
++/**
++ * `?m=YYYY-MM` → a year and a 1-12 month, falling back to today's.
++ *
++ * The parameter is user-controlled and reaches a `Date` constructor, so anything
++ * that is not exactly a real month is rejected rather than coerced — `2026-13`
++ * would otherwise silently render January 2027.
++ */
++export function parseMonth(m: string | undefined, today: string): { year: number; month: number } {
++  const match = /^(\d{4})-(\d{2})$/.exec(m ?? "");
++  if (match) {
++    const year = Number(match[1]);
++    const month = Number(match[2]);
++    if (year > 0 && month >= 1 && month <= 12) return { year, month };
++  }
++  const [y, mo] = today.split("-").map(Number);
++  return { year: y, month: mo };
++}
++
++/** Inclusive date keys for a `worn_on BETWEEN` filter. */
++export function monthBounds(year: number, month: number): { start: string; end: string } {
++  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
++  const mm = String(month).padStart(2, "0");
++  return { start: `${year}-${mm}-01`, end: `${year}-${mm}-${String(lastDay).padStart(2, "0")}` };
++}
++
++/** The neighbouring month as a `?m` value, wrapping the year. */
++export function shiftMonth(year: number, month: number, delta: number): string {
++  const d = new Date(Date.UTC(year, month - 1 + delta, 1));
++  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
++}
++
++/**
++ * One wear per day — the most recently logged.
++ *
++ * `wear_logs` permits several outfits on a date (the unique index is per
++ * outfit, not per day) and a diary cell has room for one. `created_at` is
++ * nullable, so a row without one sorts oldest rather than winning by accident.
++ */
++export function latestPerDay(rows: WearRow[]): WearRow[] {
++  const byDay = new Map<string, WearRow>();
++  for (const row of rows) {
++    const held = byDay.get(row.worn_on);
++    if (!held || (row.created_at ?? "") > (held.created_at ?? "")) byDay.set(row.worn_on, row);
++  }
++  return [...byDay.values()];
++}
+
+
+Investigate per the method in your instructions, then return the findings list.
