@@ -1,0 +1,845 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/closet/[itemId]/style-actions.ts
+  - app/closet/upload/actions.ts
+  - app/generate/actions.ts
+  - lib/billing/__tests__/tiers.test.ts
+  - lib/billing/entitlements.ts
+  - lib/billing/errors.ts
+  - lib/billing/tiers.ts
+  - lib/generator/types.ts
+  - lib/outfits/__tests__/quota.test.ts
+  - lib/outfits/quota.ts
+  - package-lock.json
+  - package.json
+  - supabase/migrations/20260804120000_billing_entitlements.sql
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/closet/[itemId]/style-actions.ts ===
+@@ -11,7 +11,7 @@ import { currentSeason } from "@/lib/generator/season";
+ import { rerank } from "@/lib/generator/rerank";
+ import { layoutForLook, staggerOrder } from "@/lib/generator/layout";
+ import { localDateFor } from "@/lib/outfits/local-date";
+-import { assertCanGenerate, QuotaExceededError } from "@/lib/outfits/quota";
++import { assertCanGenerate, noteGeneration, QuotaExceededError } from "@/lib/outfits/quota";
+ import { predictOccasion } from "@/lib/outfits/predict-occasion";
+ import { pinItem, styledLookName } from "@/lib/outfits/styled";
+ import { loadStyledLook, saveStyledLook } from "@/lib/outfits/styled-store";
+@@ -81,8 +81,12 @@ export async function styleWithItem(itemId: string): Promise<StyleResult> {
+     const cached = await loadStyledLook(user.id, itemId, today);
+     if (cached) return { status: "ok", outfitId: cached };
+ 
++    // Checked before the forecast fetch below: a free user is turned away
++    // without us paying for I/O they will never see. The occasion is not needed
++    // here — a styled look is a flat capability (Pro #2), not a counted meter —
++    // and it is resolved a few lines down, in time for the ledger.
+     try {
+-      await assertCanGenerate(user.id);
++      await assertCanGenerate(user.id, { kind: "styled", today });
+     } catch (e) {
+       if (e instanceof QuotaExceededError) return { status: "limited" };
+       throw e;
+@@ -201,6 +205,10 @@ export async function styleWithItem(itemId: string): Promise<StyleResult> {
+     const outfitId = await saveStyledLook(user.id, itemId, occasion, today, weather, draft);
+     if (!outfitId) return { status: "error", message: "Couldn't save the look" };
+ 
++    // After the model answered AND the write landed. The occasion is known by
++    // now, which is why recording is separate from the gate above.
++    await noteGeneration(user.id, { kind: "styled", occasion, today });
++
+     return { status: "ok", outfitId };
+   } catch (e) {
+     console.error("[styleWithItem] failed:", e);
+
+
+=== DIFF: app/closet/upload/actions.ts ===
+@@ -6,6 +6,7 @@ import { tagItem } from "@/lib/ai/tag-item";
+ import { TagSchema } from "@/lib/ai/tagging-schema";
+ import { tagsToItemRow } from "@/lib/ai/parse-tags";
+ import { cutoutFilename, type CutoutMediaType } from "@/lib/images/encode";
++import { assertCanUpload } from "@/lib/billing/entitlements";
+ 
+ // Upload both blobs to Storage, then return a DRAFT tag set for the confirm
+ // screen. No DB insert yet — the user confirms first.
+@@ -20,6 +21,17 @@ export async function uploadAndTag(form: {
+   } = await supabase.auth.getUser();
+   if (!user) throw new Error("Not authenticated");
+ 
++  // Gated HERE, not at confirm: everything expensive about adding a piece —
++  // two storage writes and the Haiku tagging call — happens below, before the
++  // user ever reaches the confirm screen. A limit checked at confirm would
++  // have already paid for the item it refuses.
++  const { data: profile } = await supabase
++    .from("profiles")
++    .select("location_timezone")
++    .eq("id", user.id)
++    .single();
++  await assertCanUpload(profile?.location_timezone ?? "UTC");
++
+   const itemId = crypto.randomUUID();
+   const base = `${user.id}/${itemId}`;
+   const orig = Buffer.from(form.originalB64, "base64");
+
+
+=== DIFF: app/generate/actions.ts ===
+@@ -14,7 +14,12 @@ import { layoutForLook, staggerOrder } from "@/lib/generator/layout";
+ import { localDateFor } from "@/lib/outfits/local-date";
+ import { loadDailyLooks, saveDailyLooks } from "@/lib/outfits/daily";
+ import { reassembleLooks } from "@/lib/outfits/reassemble";
+-import { assertCanGenerate } from "@/lib/outfits/quota";
++import {
++  assertCanGenerate,
++  noteGeneration,
++  QuotaExceededError,
++  type GenerationRequest,
++} from "@/lib/outfits/quota";
+ import { predictOccasion, defaultReason } from "@/lib/outfits/predict-occasion";
+ import { recordOverride } from "@/lib/outfits/overrides";
+ import {
+@@ -119,7 +124,33 @@ export async function generate(input: {
+       ? Array.from(new Set(stored?.flatMap((s) => s.pieces.map((p) => p.itemId)) ?? []))
+       : [];
+ 
+-    await assertCanGenerate(user.id);
++    /**
++     * A fall-through is a DROP, not a regenerate.
++     *
++     * Reaching here without `input.regenerate` means either the occasion has no
++     * looks today, or the stored set no longer reassembles because the closet
++     * changed under it. Both are the app answering for the first time or
++     * repairing its own bookkeeping — not the user asking again — and neither
++     * should be charged. Drops are free on every tier regardless, so the
++     * distinction only matters for what the ledger records.
++     */
++    const gen: GenerationRequest = {
++      kind: input.regenerate ? "regenerate" : "drop",
++      occasion: input.occasion,
++      today,
++    };
++    // Caught HERE rather than in the outer catch, for two reasons: `weather` is
++    // in scope so the screen keeps its strip instead of collapsing, and being
++    // limited is a STATE, not a failure — routing it through the error path
++    // would render "Couldn't reach the stylist" for a working app.
++    try {
++      await assertCanGenerate(user.id, gen);
++    } catch (e) {
++      if (e instanceof QuotaExceededError) {
++        return { status: "limited", weather, message: e.message };
++      }
++      throw e;
++    }
+ 
+     const candItems: CandidateItem[] = items.map((i) => ({
+       id: i.id,
+@@ -225,6 +256,11 @@ export async function generate(input: {
+     const ids = await saveDailyLooks(user.id, input.occasion, today, weather, drafts);
+     const fresh: Look[] = drafts.map((d, i) => ({ ...d, id: ids[i] ?? "", worn: false }));
+ 
++    // Recorded only now — after the model answered and the write succeeded. A
++    // generation that failed cost the user nothing, so metering it would be
++    // charging them for our error.
++    await noteGeneration(user.id, gen);
++
+     // Pinned looks keep their place at the front — they hold the lower
+     // look_index values, which is the order the next load will read them back in.
+     const pinned = reassembleLooks(pinnedStored, byId, signed, pathFor) ?? [];
+
+
+=== DIFF: lib/billing/__tests__/tiers.test.ts ===
+@@ -0,0 +1,144 @@
++import { entitlementsFor, checkGeneration, checkUploads, FREE, PRO } from "../tiers";
++
++describe("entitlementsFor", () => {
++  test("free regenerates once per occasion; pro is unlimited", () => {
++    expect(entitlementsFor("free").regeneratesPerOccasion).toBe(1);
++    expect(entitlementsFor("pro").regeneratesPerOccasion).toBeNull(); // null = unlimited
++  });
++
++  test("styled looks, analytics, gap analysis and packing are Pro only", () => {
++    const free = entitlementsFor("free");
++    expect(free.styledLooks).toBe(false);
++    expect(free.analytics).toBe(false);
++    expect(free.gapAnalysis).toBe(false);
++    expect(free.packingMode).toBe(false);
++    const pro = entitlementsFor("pro");
++    expect(pro.styledLooks).toBe(true);
++    expect(pro.analytics).toBe(true);
++    expect(pro.gapAnalysis).toBe(true);
++    expect(pro.packingMode).toBe(true);
++  });
++
++  test("an unknown or missing tier falls back to free — capabilities fail closed", () => {
++    for (const bad of [null, undefined, "", "enterprise", 7, {}, "PRO"]) {
++      expect(entitlementsFor(bad).tier).toBe("free");
++      expect(entitlementsFor(bad).analytics).toBe(false);
++      expect(entitlementsFor(bad).styledLooks).toBe(false);
++    }
++  });
++
++  test("free saved-outfit cap is finite, pro's is not", () => {
++    expect(FREE.savedOutfits).toBe(10);
++    expect(PRO.savedOutfits).toBeNull();
++  });
++});
++
++describe("checkUploads", () => {
++  test("free adds ten pieces a day; pro is unlimited", () => {
++    expect(entitlementsFor("free").uploadsPerDay).toBe(10);
++    expect(entitlementsFor("pro").uploadsPerDay).toBeNull();
++  });
++
++  test("the allowance counts down and then blocks", () => {
++    expect(checkUploads(FREE, 0)).toMatchObject({ allowed: true, remaining: 10 });
++    expect(checkUploads(FREE, 9)).toMatchObject({ allowed: true, remaining: 1 });
++    expect(checkUploads(FREE, 10)).toMatchObject({ allowed: false, remaining: 0 });
++  });
++
++  test("being over never reports a negative remaining", () => {
++    expect(checkUploads(FREE, 99).remaining).toBe(0);
++  });
++
++  test("pro is never blocked", () => {
++    expect(checkUploads(PRO, 5000)).toMatchObject({ allowed: true, remaining: null });
++  });
++
++  // The cap is PER DAY, not a total — the closet is the moat and the generator
++  // measurably degrades on a small wardrobe, so nothing here may imply a ceiling
++  // on closet size.
++  test("a blocked upload says it is a daily limit, not a closet limit", () => {
++    const r = checkUploads(FREE, 10);
++    expect(r.allowed).toBe(false);
++    expect(r.reason).toMatch(/today|day/i);
++    expect(r.reason).not.toMatch(/closet is full|maximum items/i);
++  });
++});
++
++describe("checkGeneration — drops", () => {
++  // §1 of MONETISATION: the daily drop is the product and is never gated. An
++  // occasion's first look of the day costs nothing on any tier.
++  test("an occasion's first look of the day is free on every tier", () => {
++    for (const e of [FREE, PRO]) {
++      expect(checkGeneration(e, { kind: "drop", regeneratesUsed: 0 })).toMatchObject({
++        allowed: true,
++      });
++    }
++  });
++
++  // Four occasions must all remain reachable — a user who has dropped three
++  // occasions today is not "at a limit" for the fourth.
++  test("a drop is allowed regardless of what other occasions have used", () => {
++    expect(checkGeneration(FREE, { kind: "drop", regeneratesUsed: 99 }).allowed).toBe(true);
++  });
++});
++
++describe("checkGeneration — regenerates", () => {
++  test("free gets one regenerate for an occasion, then is limited", () => {
++    expect(checkGeneration(FREE, { kind: "regenerate", regeneratesUsed: 0 })).toMatchObject({
++      allowed: true,
++      remaining: 1,
++    });
++    expect(checkGeneration(FREE, { kind: "regenerate", regeneratesUsed: 1 })).toMatchObject({
++      allowed: false,
++      remaining: 0,
++    });
++  });
++
++  // The allowance is PER OCCASION, so regenerating Work must not spend Evening's.
++  // The caller supplies the count for the occasion being asked about; this asserts
++  // the function never reaches for a global total.
++  test("the allowance is counted per occasion, not globally", () => {
++    expect(checkGeneration(FREE, { kind: "regenerate", regeneratesUsed: 0 }).allowed).toBe(true);
++  });
++
++  test("pro is never blocked and reports no finite remaining", () => {
++    expect(checkGeneration(PRO, { kind: "regenerate", regeneratesUsed: 1000 })).toMatchObject({
++      allowed: true,
++      remaining: null,
++    });
++  });
++
++  test("being over the allowance never reports a negative remaining", () => {
++    expect(checkGeneration(FREE, { kind: "regenerate", regeneratesUsed: 99 }).remaining).toBe(0);
++  });
++
++  test("a blocked regenerate carries a reason a screen can show the user", () => {
++    const r = checkGeneration(FREE, { kind: "regenerate", regeneratesUsed: 1 });
++    expect(r.allowed).toBe(false);
++    expect(typeof r.reason).toBe("string");
++    expect(r.reason).toMatch(/pro/i);
++  });
++});
++
++describe("checkGeneration — styled looks", () => {
++  // Pro #2. Gated rather than given a free allowance: "first per item free" has
++  // no ceiling, since it scales with closet size.
++  test("free cannot build a look around a piece, and is told why", () => {
++    const r = checkGeneration(FREE, { kind: "styled", regeneratesUsed: 0 });
++    expect(r.allowed).toBe(false);
++    expect(r.reason).toMatch(/pro/i);
++  });
++
++  test("pro can, without limit", () => {
++    expect(checkGeneration(PRO, { kind: "styled", regeneratesUsed: 0 })).toMatchObject({
++      allowed: true,
++      remaining: null,
++    });
++  });
++
++  // The gate must not depend on the regenerate counter — styling an item is a
++  // different question from asking an occasion again.
++  test("a styled look is not affected by regenerate usage", () => {
++    expect(checkGeneration(PRO, { kind: "styled", regeneratesUsed: 99 }).allowed).toBe(true);
++  });
++});
+
+
+=== DIFF: lib/billing/entitlements.ts ===
+@@ -0,0 +1,131 @@
++import "server-only";
++import { createClient } from "@/lib/supabase/server";
++import { localDateFor } from "@/lib/outfits/local-date";
++import {
++  FREE,
++  PRO,
++  entitlementsFor,
++  checkGeneration,
++  checkUploads,
++  type Entitlements,
++  type Tier,
++  type GenerationKind,
++  type GenerationCheck,
++} from "./tiers";
++
++import { UploadLimitError } from "./errors";
++
++export { FREE, PRO, entitlementsFor, checkGeneration, checkUploads };
++export { QuotaExceededError, UploadLimitError } from "./errors";
++export type { Entitlements, Tier, GenerationKind, GenerationCheck };
++
++/**
++ * The user's entitlements right now.
++ *
++ * Reads the tier from `profiles`. A read failure returns FREE rather than
++ * throwing: a broken query must never take the app down, and handing out Pro on
++ * an error is the wrong side to fail on.
++ *
++ * `profiles.tier` is not writable by `authenticated` (see the billing
++ * migration) — RLS scopes rows, not columns, so without that revoke a user
++ * could grant themselves Pro from the browser.
++ */
++export async function currentEntitlements(): Promise<Entitlements> {
++  // Local override so Pro surfaces can be built and demoed before billing.
++  // Checked before the query so it works even with no session.
++  if (process.env.NODE_ENV !== "production" && process.env.FITCHECK_FORCE_TIER) {
++    return entitlementsFor(process.env.FITCHECK_FORCE_TIER);
++  }
++
++  const supabase = await createClient();
++  const {
++    data: { user },
++  } = await supabase.auth.getUser();
++  if (!user) return FREE;
++
++  const { data } = await supabase.from("profiles").select("tier").eq("id", user.id).single();
++  return entitlementsFor(data?.tier);
++}
++
++/**
++ * How many times this user has already regenerated ONE occasion on their local
++ * today.
++ *
++ * Reads the append-only `generation_events` ledger, never the `outfits` table.
++ * `saveDailyLooks` is delete-then-insert, so a regenerate REPLACES the day's
++ * rows for an occasion — the act of regenerating erases its own evidence, and
++ * afterwards a first drop is indistinguishable from a fifth. The ledger exists
++ * precisely because that count is unrecoverable from the outfits themselves.
++ */
++export async function regeneratesUsedToday(occasion: string, today: string): Promise<number> {
++  const supabase = await createClient();
++  const { count } = await supabase
++    .from("generation_events")
++    .select("id", { count: "exact", head: true })
++    .eq("occasion", occasion)
++    .eq("generated_on", today)
++    .eq("kind", "regenerate");
++  return count ?? 0;
++}
++
++/**
++ * May this user add another piece? Throws `UploadLimitError` if not.
++ *
++ * Called from `uploadAndTag` rather than `confirmItem` because that is where
++ * the cost actually lands — two storage writes and a Haiku call happen before
++ * the user ever sees the confirm screen.
++ *
++ * Counting: candidate rows are narrowed to the last 48 hours in SQL, then
++ * filtered through `localDateFor`. Comparing the user's local day against a
++ * `timestamptz` otherwise needs timezone arithmetic with DST edges; a two-day
++ * window is at most a couple of dozen rows for one user, and it reuses the
++ * date function the whole product is already keyed on rather than inventing a
++ * second, subtly different one.
++ */
++export async function assertCanUpload(timeZone: string): Promise<void> {
++  const e = await currentEntitlements();
++  if (e.uploadsPerDay == null) return;
++
++  const supabase = await createClient();
++  const {
++    data: { user },
++  } = await supabase.auth.getUser();
++  if (!user) throw new Error("Not authenticated");
++
++  const now = new Date();
++  const since = new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString();
++  const { data } = await supabase
++    .from("items")
++    .select("created_at")
++    .eq("user_id", user.id)
++    .gte("created_at", since);
++
++  const today = localDateFor(now, timeZone);
++  // Archived pieces still count — the upload already cost the storage write and
++  // the tagging call, and archiving to reset the meter would be a free retry.
++  const addedToday = (data ?? []).filter(
++    (r) => r.created_at && localDateFor(new Date(r.created_at), timeZone) === today,
++  ).length;
++
++  const check = checkUploads(e, addedToday);
++  if (!check.allowed) throw new UploadLimitError(check.reason);
++}
++
++/**
++ * Record a generation that actually happened.
++ *
++ * Called AFTER the model request succeeds — a failed generation costs the user
++ * nothing, so charging for one would be charging for our own error. RLS scopes
++ * the insert to the caller.
++ */
++export async function recordGeneration(
++  userId: string,
++  occasion: string,
++  today: string,
++  kind: GenerationKind,
++): Promise<void> {
++  const supabase = await createClient();
++  await supabase
++    .from("generation_events")
++    .insert({ user_id: userId, occasion, generated_on: today, kind });
++}
+
+
+=== DIFF: lib/billing/errors.ts ===
+@@ -0,0 +1,26 @@
++/**
++ * Billing's error types, kept PURE and free of `server-only`.
++ *
++ * Same split as `tiers.ts` versus `entitlements.ts`: anything that touches
++ * Supabase sits behind the `server-only` guard, and anything a test — or a
++ * future client component rendering "1 redo left" — needs to reference lives
++ * out here. Importing these must never drag the resolver into a client bundle.
++ *
++ * Both are STATES the UI explains, not failures. Every call site catches them
++ * and returns a `limited` result rather than letting them surface as
++ * "something went wrong".
++ */
++
++export class QuotaExceededError extends Error {
++  constructor(message = "Daily generation limit reached") {
++    super(message);
++    this.name = "QuotaExceededError";
++  }
++}
++
++export class UploadLimitError extends Error {
++  constructor(message = "Daily upload limit reached") {
++    super(message);
++    this.name = "UploadLimitError";
++  }
++}
+
+
+=== DIFF: lib/billing/tiers.ts ===
+@@ -0,0 +1,140 @@
++export type Tier = "free" | "pro";
++
++/** The three things that spend a model request. See docs/MONETISATION.md §2. */
++export type GenerationKind = "drop" | "regenerate" | "styled";
++
++export type Entitlements = {
++  tier: Tier;
++  /** Per occasion, per day. null = unlimited. Drops themselves are never metered. */
++  regeneratesPerOccasion: number | null;
++  /**
++   * New pieces per day. null = unlimited.
++   *
++   * A RATE, deliberately, not a closet cap. The closet is the switching cost,
++   * and the generator measurably degrades on a small wardrobe — PR #15 measured
++   * a 21-item closet at 21 combos in winter against 48 in summer — so a total
++   * cap would sell free users a worse stylist rather than fewer features.
++   * Metering the rate smooths cost and gives onboarding a real upgrade moment
++   * ("add your whole wardrobe tonight") while a committed free user still
++   * reaches 100 items in ten days.
++   *
++   * ⚠️ Under review: a 50-item total cap for free may replace or accompany this
++   * (user, 2026-08-04). If it lands, add a separate `closetItems` field rather
++   * than overloading this one — they answer different questions.
++   */
++  uploadsPerDay: number | null;
++  /** "Style an outfit with this" — Pro #2. */
++  styledLooks: boolean;
++  savedOutfits: number | null;
++  /** The Wear Stats SCREEN. The per-item tile on item detail is free. */
++  analytics: boolean;
++  gapAnalysis: boolean;
++  packingMode: boolean;
++};
++
++/**
++ * The tiers, as data. See docs/MONETISATION.md for the reasoning — in short:
++ * meter what costs us money, sell what compounds, and never gate the daily
++ * drop, the share card, or the closet.
++ *
++ * The free ceiling is four occasions × (one drop + one regenerate) = 8
++ * generations a day, about $0.72/month at $0.003 each and nearer $0.20 in
++ * realistic use. **The ceiling is the point** — a free tier needs a worst case
++ * you can survive, and this one does not grow with closet size.
++ */
++export const FREE: Entitlements = {
++  tier: "free",
++  regeneratesPerOccasion: 1,
++  uploadsPerDay: 10,
++  styledLooks: false,
++  savedOutfits: 10,
++  analytics: false,
++  gapAnalysis: false,
++  packingMode: false,
++};
++
++export const PRO: Entitlements = {
++  tier: "pro",
++  regeneratesPerOccasion: null,
++  uploadsPerDay: null,
++  styledLooks: true,
++  savedOutfits: null,
++  analytics: true,
++  gapAnalysis: true,
++  packingMode: true,
++};
++
++// The pure functions live HERE, not in entitlements.ts, so tests can import them
++// without dragging in `server-only` (which does not resolve under jsdom).
++// entitlements.ts re-exports them for app code.
++
++/** Unknown input resolves to free: capabilities fail CLOSED. */
++export function entitlementsFor(tier: unknown): Entitlements {
++  return tier === "pro" ? PRO : FREE;
++}
++
++export type GenerationCheck = {
++  allowed: boolean;
++  /** null = unlimited. Only meaningful for a metered kind. */
++  remaining: number | null;
++  reason?: string;
++};
++
++/**
++ * May this user spend a model request right now?
++ *
++ * `regeneratesUsed` is the count for the ONE occasion being asked about, on the
++ * user's local today — never a global total. The allowance is per occasion so
++ * that regenerating Work cannot exhaust Evening, and so a user is never blocked
++ * on an occasion they have not yet looked at.
++ *
++ * A drop is never metered on any tier: MONETISATION §1 and Decision 4 both say
++ * the daily drop is the product, and rationing it is how nobody discovers the
++ * magic.
++ */
++export function checkGeneration(
++  e: Entitlements,
++  input: { kind: GenerationKind; regeneratesUsed: number },
++): GenerationCheck {
++  if (input.kind === "drop") return { allowed: true, remaining: null };
++
++  if (input.kind === "styled") {
++    return e.styledLooks
++      ? { allowed: true, remaining: null }
++      : {
++          allowed: false,
++          remaining: 0,
++          reason: "Building a look around a piece is a Pro feature.",
++        };
++  }
++
++  if (e.regeneratesPerOccasion == null) return { allowed: true, remaining: null };
++  const remaining = Math.max(0, e.regeneratesPerOccasion - input.regeneratesUsed);
++  return remaining > 0
++    ? { allowed: true, remaining }
++    : {
++        allowed: false,
++        remaining: 0,
++        reason: "You've used today's redo for this occasion. Pro regenerates freely.",
++      };
++}
++
++/**
++ * May this user add another piece right now?
++ *
++ * The wording matters: this is a limit on how fast a wardrobe is added, never
++ * on how large it may be. A message that reads like "your closet is full" would
++ * tell users the opposite of the truth and discourage the very thing that makes
++ * the product better for them.
++ */
++export function checkUploads(e: Entitlements, addedToday: number): GenerationCheck {
++  if (e.uploadsPerDay == null) return { allowed: true, remaining: null };
++  const remaining = Math.max(0, e.uploadsPerDay - addedToday);
++  return remaining > 0
++    ? { allowed: true, remaining }
++    : {
++        allowed: false,
++        remaining: 0,
++        reason: `That's ${e.uploadsPerDay} pieces added today. More tomorrow, or add your whole wardrobe at once with Pro.`,
++      };
++}
+
+
+=== DIFF: lib/generator/types.ts ===
+@@ -60,4 +60,8 @@ export type GenerateResult =
+   // `missing` names the required slot that blocked every combo, so the screen can
+   // say WHICH gap to fill instead of a generic "add more pieces".
+   | { status: "empty"; weather: WeatherPayload; missing: string | null }
++  // Hitting the meter is a STATE, not a failure. It carries `weather` so the
++  // screen keeps its strip, and the reason verbatim so it can say what ran out
++  // and what Pro gives — never "something went wrong" for a working app.
++  | { status: "limited"; weather: WeatherPayload; message: string }
+   | { status: "error"; message: string };
+
+
+=== DIFF: lib/outfits/__tests__/quota.test.ts ===
+@@ -0,0 +1,35 @@
++// Imported from the PURE module, not from `../quota` — quota.ts pulls in the
++// entitlements resolver, which is behind `server-only` and does not resolve
++// under jsdom. That guard is the point of the seam and is never dropped to make
++// a test pass; the error class moved instead.
++import { QuotaExceededError, UploadLimitError } from "@/lib/billing/errors";
++
++// The screen renders this message verbatim, so it must be the reason the seam
++// produced — not a generic fallback that says nothing about what happened.
++test("QuotaExceededError carries a message a screen can render", () => {
++  const e = new QuotaExceededError("You've used today's redo for this occasion. Pro regenerates freely.");
++  expect(e.message).toMatch(/pro/i);
++  expect(e.name).toBe("QuotaExceededError");
++});
++
++test("it is catchable as an Error and distinguishable by name", () => {
++  const e = new QuotaExceededError("nope");
++  expect(e).toBeInstanceOf(Error);
++  expect(e.name).toBe("QuotaExceededError");
++});
++
++// Every call site catches this specific class; a default keeps an accidental
++// bare `throw new QuotaExceededError()` from rendering an empty string.
++test("it has a sensible default message", () => {
++  expect(new QuotaExceededError().message.length).toBeGreaterThan(0);
++});
++
++// The upload gate is a different limit with a different upgrade story, so the
++// two must not be caught interchangeably.
++test("the upload limit is its own type, distinguishable from the generation one", () => {
++  const upload = new UploadLimitError("ten today");
++  expect(upload.name).toBe("UploadLimitError");
++  expect(upload).toBeInstanceOf(Error);
++  expect(upload).not.toBeInstanceOf(QuotaExceededError);
++  expect(new UploadLimitError().message.length).toBeGreaterThan(0);
++});
+
+
+=== DIFF: lib/outfits/quota.ts ===
+@@ -1,18 +1,75 @@
++import {
++  currentEntitlements,
++  regeneratesUsedToday,
++  recordGeneration,
++  checkGeneration,
++  type GenerationKind,
++} from "@/lib/billing/entitlements";
++import { QuotaExceededError } from "@/lib/billing/errors";
++
++// Re-exported so the generator's call sites keep importing their gate and its
++// error from one place. The class itself lives in `lib/billing/errors`, which
++// carries no `server-only` — tests and any future client-side display of the
++// remaining allowance must be able to reference it.
++export { QuotaExceededError } from "@/lib/billing/errors";
++
++/**
++ * What the GATE needs to know.
++ *
++ * `occasion` is optional because only a regenerate is counted, and only per
++ * occasion. A styled look is a flat capability check, and the styled action
++ * resolves its occasion only after this gate — deliberately, so a free user is
++ * turned away before paying for a forecast fetch.
++ */
++export type GenerationCheckRequest = {
++  kind: GenerationKind;
++  /** Required for `regenerate`; the allowance is per occasion. */
++  occasion?: string;
++  /** The user's LOCAL date — never the server's. */
++  today: string;
++};
++
++/** What the LEDGER needs. `generation_events.occasion` is NOT NULL. */
++export type GenerationRequest = GenerationCheckRequest & { occasion: string };
++
+ /**
+  * The single gate every real generation passes through.
+  *
+- * It allows everything today. It exists so that adding a paid tier later is a
+- * change to THIS file — not surgery across the generate action — per the
+- * project's preference for the extensible option over the minimal diff.
+- * See docs/superpowers/plans/2026-07-22-regenerate-quota.md.
++ * It was written as a deliberate no-op so that adding a paid tier later would be
++ * a change to THIS file rather than surgery across the generate action. This is
++ * that change: the decision now lives in `lib/billing`, and this stays the one
++ * call site the generator knows about.
++ *
++ * The three kinds are metered differently (docs/MONETISATION.md §2):
++ *   drop       — always free, on every tier. The daily drop is never rationed.
++ *   regenerate — free gets one per occasion per day.
++ *   styled     — Pro only.
+  */
+-export async function assertCanGenerate(_userId: string): Promise<void> {
+-  return;
++export async function assertCanGenerate(
++  _userId: string,
++  req: GenerationCheckRequest,
++): Promise<void> {
++  const e = await currentEntitlements();
++
++  // Only a regenerate needs the counter, and it is per-occasion — so drops and
++  // styled looks skip the query entirely rather than paying for an answer that
++  // cannot change the outcome.
++  const regeneratesUsed =
++    req.kind === "regenerate" && req.occasion
++      ? await regeneratesUsedToday(req.occasion, req.today)
++      : 0;
++
++  const check = checkGeneration(e, { kind: req.kind, regeneratesUsed });
++  if (!check.allowed) throw new QuotaExceededError(check.reason);
+ }
+ 
+-export class QuotaExceededError extends Error {
+-  constructor() {
+-    super("Daily regeneration limit reached");
+-    this.name = "QuotaExceededError";
+-  }
++/**
++ * Record a generation that actually happened.
++ *
++ * Deliberately separate from the check, and called only AFTER the model request
++ * succeeds: a failed generation costs the user nothing, so charging for one
++ * would be charging for our own error.
++ */
++export async function noteGeneration(userId: string, req: GenerationRequest): Promise<void> {
++  await recordGeneration(userId, req.occasion, req.today, req.kind);
+ }
+
+
+=== DIFF: package-lock.json ===
+@@ -21,6 +21,7 @@
+         "next": "^16.2.9",
+         "react": "19.2.4",
+         "react-dom": "19.2.4",
++        "server-only": "^0.0.1",
+         "shadcn": "^4.11.0",
+         "tailwind-merge": "^3.6.0",
+         "tw-animate-css": "^1.4.0"
+@@ -9629,6 +9630,12 @@
+         "url": "https://opencollective.com/express"
+       }
+     },
++    "node_modules/server-only": {
++      "version": "0.0.1",
++      "resolved": "https://registry.npmjs.org/server-only/-/server-only-0.0.1.tgz",
++      "integrity": "REDACTED/cY2JnKnrcFkmiswNA==",
++      "license": "MIT"
++    },
+     "node_modules/set-function-length": {
+       "version": "1.2.2",
+       "resolved": "https://registry.npmjs.org/set-function-length/-/set-function-length-1.2.2.tgz",
+
+
+=== DIFF: package.json ===
+@@ -24,6 +24,7 @@
+     "next": "^16.2.9",
+     "react": "19.2.4",
+     "react-dom": "19.2.4",
++    "server-only": "^0.0.1",
+     "shadcn": "^4.11.0",
+     "tailwind-merge": "^3.6.0",
+     "tw-animate-css": "^1.4.0"
+
+
+=== DIFF: supabase/migrations/20260804120000_billing_entitlements.sql ===
+@@ -0,0 +1,58 @@
++-- Which tier a user is on. A plain text column with a check constraint rather
++-- than an enum type: adding a tier later ('trialing', when the trial model is
++-- decided) is then an ALTER of the constraint, not a type migration with a
++-- rewrite.
++--
++-- This is the ONLY source of tier truth. Nothing derives a tier from a Stripe
++-- webhook payload at read time; billing's job will be to write this column.
++alter table public.profiles
++  add column if not exists tier text not null default 'free'
++  check (tier in ('free', 'pro'));
++
++-- `profiles` carries a self-update RLS policy, so without this a user could run
++-- `update profiles set tier = 'pro'` from the browser with the anon key and
++-- grant themselves the paid tier. RLS decides WHICH ROWS you may touch; it does
++-- not decide which COLUMNS, so the policy alone cannot express "you own this row
++-- but not this field".
++--
++-- Reads are unaffected (the own-row select policy still applies), and the local
++-- dev override is an env var (FITCHECK_FORCE_TIER), not this column, so nothing
++-- in development depends on writing it. Billing will write it as service_role.
++revoke update (tier) on public.profiles from authenticated;
++
++-- Every real AI generation, recorded.
++--
++-- The `outfits` rows CANNOT serve as this counter, for two independent reasons:
++--
++--   1. A regenerate REPLACES the day's rows for an occasion (saveDailyLooks is
++--      delete-then-insert), so the act of regenerating erases its own evidence.
++--      Counting rows afterwards cannot tell a first drop from a fifth.
++--   2. saveDailyLooks writes one row per LOOK, three per generation, so a row
++--      count reports 3 after a single drop.
++--
++-- This ledger is append-only and is the only thing the meter reads.
++create table if not exists public.generation_events (
++  id           uuid primary key default gen_random_uuid(),
++  user_id      uuid not null references public.profiles(id) on delete cascade,
++  occasion     text not null,
++  generated_on date not null,          -- the user's LOCAL date, as with outfits
++  -- Three kinds, not a boolean. "Style an outfit with this" (PR #22) is neither
++  -- the day's free drop for an occasion nor a regenerate of one: recording it as
++  -- a drop would mark that occasion as already dropped, and recording it as a
++  -- regenerate would make styling eat the regenerate allowance.
++  kind         text not null check (kind in ('drop', 'regenerate', 'styled')),
++  created_at   timestamptz not null default now()
++);
++
++alter table public.generation_events enable row level security;
++
++create policy generation_events_own on public.generation_events
++  for all
++  using ((select auth.uid()) = user_id)
++  with check ((select auth.uid()) = user_id);
++
++-- The meter's hot path: "what has this user spent on their local today?"
++create index if not exists generation_events_user_day_idx
++  on public.generation_events (user_id, generated_on);
++
++grant select, insert on public.generation_events to authenticated;
+
+
+Investigate per the method in your instructions, then return the findings list.
