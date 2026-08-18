@@ -1,0 +1,216 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - lib/diary/__tests__/month.test.ts
+  - lib/diary/month.ts
+  - components/closet/__tests__/item-view.test.tsx
+  - components/closet/item-view.tsx
+
+Unified diff (only + lines are new):
+
+=== DIFF: lib/diary/__tests__/month.test.ts ===
+@@ -0,0 +1,63 @@
++import { buildMonth } from "../month";
++
++test("a month starts on Monday and pads the leading days", () => {
++  // 1 July 2026 is a Wednesday, so two blanks precede it.
++  const cells = buildMonth(2026, 7, "2026-07-24", []);
++  expect(cells[0].inMonth).toBe(false);
++  expect(cells[1].inMonth).toBe(false);
++  expect(cells[2]).toMatchObject({ day: 1, inMonth: true });
++});
++
++test("the grid is a whole number of weeks", () => {
++  expect(buildMonth(2026, 7, "2026-07-24", []).length % 7).toBe(0);
++});
++
++test("every day of the month is present exactly once", () => {
++  const days = buildMonth(2026, 7, "2026-07-24", [])
++    .filter((c) => c.inMonth)
++    .map((c) => c.day);
++  expect(days).toHaveLength(31);
++  expect(new Set(days).size).toBe(31);
++});
++
++test("February in a leap year has 29 days", () => {
++  const days = buildMonth(2028, 2, "2028-02-10", []).filter((c) => c.inMonth);
++  expect(days).toHaveLength(29);
++});
++
++// A month whose 1st IS a Monday must not gain a blank leading week.
++test("a month beginning on Monday has no leading pad", () => {
++  const cells = buildMonth(2026, 6, "2026-06-15", []);
++  expect(cells[0]).toMatchObject({ day: 1, inMonth: true });
++});
++
++test("today is marked, and only today", () => {
++  const cells = buildMonth(2026, 7, "2026-07-24", []);
++  expect(cells.filter((c) => c.isToday)).toHaveLength(1);
++  expect(cells.find((c) => c.isToday)?.day).toBe(24);
++});
++
++test("a month that is not the current one marks no day as today", () => {
++  expect(buildMonth(2026, 3, "2026-07-24", []).some((c) => c.isToday)).toBe(false);
++});
++
++test("a log attaches to its own day and no other", () => {
++  const log = { worn_on: "2026-07-09", outfitId: "o1", pieces: [] };
++  const cells = buildMonth(2026, 7, "2026-07-24", [log]);
++  expect(cells.find((c) => c.day === 9)?.log).toEqual(log);
++  expect(cells.filter((c) => c.log).length).toBe(1);
++});
++
++// A wear whose outfit was later deleted keeps its row (the FK is ON DELETE SET
++// NULL by design) — it must still mark the day, it simply cannot be a link.
++test("a log whose outfit is gone still attaches to its day", () => {
++  const log = { worn_on: "2026-07-09", outfitId: null, pieces: [] };
++  const cells = buildMonth(2026, 7, "2026-07-24", [log]);
++  expect(cells.find((c) => c.day === 9)?.log).toEqual(log);
++});
++
++// Cells are React keys; a duplicate key silently drops a day from the grid.
++test("every cell key is unique", () => {
++  const keys = buildMonth(2026, 7, "2026-07-24", []).map((c) => c.key);
++  expect(new Set(keys).size).toBe(keys.length);
++});
+
+
+=== DIFF: lib/diary/month.ts ===
+@@ -0,0 +1,75 @@
++import type { Slot } from "@/lib/generator/types";
++
++/** One cutout of a logged look, positioned by the flat-lay geometry. */
++export type DiaryPiece = { imageUrl: string; slot: Slot };
++
++/**
++ * A day's wear, as the diary needs it.
++ *
++ * `outfitId` is nullable because `wear_logs.outfit_id` is `ON DELETE SET NULL`
++ * (migration `20260730090000`) — deleting an outfit degrades to "wear kept,
++ * outfit forgotten" rather than a FK violation. Such a day still fills a cell;
++ * it just cannot link anywhere.
++ */
++export type DayLog = { worn_on: string; outfitId: string | null; pieces: DiaryPiece[] };
++
++export type Cell = {
++  key: string;
++  day: number | null;
++  inMonth: boolean;
++  isToday: boolean;
++  log?: DayLog;
++};
++
++/** Monday-first, matching the design's weekday header. */
++function mondayIndex(jsDay: number): number {
++  return (jsDay + 6) % 7;
++}
++
++function iso(year: number, month: number, day: number): string {
++  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
++}
++
++/**
++ * The month grid. `month` is 1-12, not JS's 0-11 — the off-by-one there is a
++ * classic and this boundary is the place to absorb it.
++ *
++ * `today` is passed in rather than read from the clock so the whole thing stays
++ * pure and testable, and so the caller can supply the user's LOCAL date. Every
++ * date in the diary is a local date key; comparing against a UTC one would
++ * highlight the wrong cell all evening for eastern users.
++ *
++ * `Date.UTC` is used purely as calendar arithmetic — these are date keys, not
++ * instants, so no timezone conversion is happening or wanted.
++ */
++export function buildMonth(year: number, month: number, today: string, logs: DayLog[]): Cell[] {
++  const byDate = new Map(logs.map((l) => [l.worn_on, l]));
++  const first = new Date(Date.UTC(year, month - 1, 1));
++  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
++  const lead = mondayIndex(first.getUTCDay());
++
++  const cells: Cell[] = [];
++  for (let i = 0; i < lead; i++) {
++    cells.push({ key: `lead-${i}`, day: null, inMonth: false, isToday: false });
++  }
++  for (let d = 1; d <= daysInMonth; d++) {
++    const date = iso(year, month, d);
++    cells.push({
++      key: date,
++      day: d,
++      inMonth: true,
++      isToday: date === today,
++      log: byDate.get(date),
++    });
++  }
++  while (cells.length % 7 !== 0) {
++    cells.push({ key: `trail-${cells.length}`, day: null, inMonth: false, isToday: false });
++  }
++  return cells;
++}
++
++/** `2026-07` → `July 2026`, for the header kicker. */
++export function monthLabel(year: number, month: number): string {
++  return new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" })
++    .format(new Date(Date.UTC(year, month - 1, 1)));
++}
+
+
+=== DIFF: components/closet/__tests__/item-view.test.tsx ===
+@@ -86,6 +86,23 @@ test("goes-with pieces link to their own detail", () => {
+   );
+ });
+ 
++// A pair whose storage object cannot be signed arrives here as "" — the page
++// maps a missing signed URL to the empty string, exactly as it does for the
++// hero. React treats `<img src="">` as an error ("may cause the browser to
++// download the whole page again"), which Next's dev overlay throws up as a red
++// screen over a working closet. The tile is its own placeholder; render that.
++test("a pair with no signed image renders its tile without a broken img", () => {
++  const err = vi.spyOn(console, "error").mockImplementation(() => {});
++  const { container } = renderView({
++    goesWith: [{ id: "i2", name: "Camel Overshirt", imageUrl: "" }],
++  });
++  expect(container.querySelector('img[src=""]')).toBeNull();
++  expect(err).not.toHaveBeenCalled();
++  err.mockRestore();
++  // The suggestion itself still stands — only its picture is missing.
++  expect(screen.getByRole("link", { name: /camel overshirt/i })).toBeInTheDocument();
++});
++
+ // An empty row is better than a fabricated one — a one-item closet has nothing
+ // to suggest, and the heading alone would read as a loading failure.
+ test("the goes-with section is absent when there is nothing to suggest", () => {
+
+
+=== DIFF: components/closet/item-view.tsx ===
+@@ -177,12 +177,22 @@ export function ItemView({
+                 {goesWith.map((g) => (
+                   <Link key={g.id} href={`/closet/${g.id}`} className="w-[92px] shrink-0">
+                     <div className="relative aspect-square rounded-[12px] bg-surface-2 shadow-[inset_0_0_0_1px_var(--hairline-2)]">
+-                      {/* eslint-disable-next-line @next/next/no-img-element */}
+-                      <img
+-                        src={g.imageUrl}
+-                        alt=""
+-                        className="absolute inset-0 size-full object-contain p-3"
+-                      />
++                      {/* An unsignable storage object arrives as "", and React
++                          errors on `<img src="">` rather than just showing a
++                          gap — in dev that is a red overlay over a working
++                          closet. The tile IS the placeholder, so render it bare
++                          and let the name carry the suggestion. Same guard as
++                          the hero above and the closet card. */}
++                      {g.imageUrl && (
++                        // eslint-disable-next-line @next/next/no-img-element
++                        <img
++                          src={g.imageUrl}
++                          alt=""
++                          loading="lazy"
++                          decoding="async"
++                          className="absolute inset-0 size-full object-contain p-3"
++                        />
++                      )}
+                     </div>
+                     <div className="mt-[6px] text-center text-[10.5px]/[1.2] text-muted-foreground">
+                       {g.name}
+
+
+Investigate per the method in your instructions, then return the findings list.
