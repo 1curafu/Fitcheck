@@ -1,0 +1,171 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - lib/closet/__tests__/normalize-material.test.ts
+  - lib/closet/normalize-material.ts
+  - scripts/backfill-item-tags.ts
+  - supabase/migrations/20260729090000_service_role_grants.sql
+
+Unified diff (only + lines are new):
+
+=== DIFF: lib/closet/__tests__/normalize-material.test.ts ===
+@@ -0,0 +1,45 @@
++import { normalizeMaterial } from "../normalize-material";
++
++test("maps legacy free text onto the vocabulary, case-insensitively", () => {
++  expect(normalizeMaterial("cotton")).toBe("Cotton");
++  expect(normalizeMaterial("MERINO WOOL")).toBe("Merino wool");
++});
++
++test("prefers the most specific match — 'merino wool' is not plain 'Wool'", () => {
++  expect(normalizeMaterial("merino wool blend")).toBe("Merino wool");
++});
++
++test("'faux leather' is not plain 'Leather'", () => {
++  // Same longest-match-first rule; getting this backwards would make every
++  // vegan piece claim to be leather.
++  expect(normalizeMaterial("faux leather")).toBe("Faux leather");
++});
++
++test("the fabrication written by the old save path becomes null, not a material", () => {
++  // item-detail.tsx used to write the literal string "Unknown".
++  expect(normalizeMaterial("Unknown")).toBeNull();
++});
++
++test("anything unrecognised falls back to Other rather than being dropped", () => {
++  expect(normalizeMaterial("bamboo jersey")).toBe("Other");
++  expect(normalizeMaterial(null)).toBeNull();
++});
++
++test("the real legacy values in this database all resolve", () => {
++  // Dumped from the development closet before the migration.
++  const legacy: Record<string, string> = {
++    cotton: "Cotton",
++    Cotton: "Cotton",
++    "Cotton knit": "Cotton",
++    knit: "Other",
++    leather: "Leather",
++    Linen: "Linen",
++    Lyocell: "Lyocell",
++    "Polyester, Viscose": "Polyester",
++    Viscose: "Viscose",
++    Wool: "Wool",
++  };
++  for (const [raw, want] of Object.entries(legacy)) {
++    expect(normalizeMaterial(raw), raw).toBe(want);
++  }
++});
+
+
+=== DIFF: lib/closet/normalize-material.ts ===
+@@ -0,0 +1,23 @@
++import { MATERIALS } from "./vocab";
++
++/**
++ * Maps a legacy free-text material onto the constrained vocabulary.
++ *
++ * Longest-match-first so "merino wool" wins over "wool" and "faux leather" over
++ * "leather" — the reverse would quietly downgrade every merino piece and turn
++ * every vegan one into leather. "Unknown" was a fabrication written by the old
++ * item-detail save path and is not a material, so it becomes null.
++ *
++ * A blend ("Polyester, Viscose") resolves to whichever listed fibre appears
++ * first in the string by this rule; a blend's behaviour generally follows its
++ * dominant fibre, and the vocabulary is single-select by design.
++ */
++export function normalizeMaterial(raw: string | null): string | null {
++  if (!raw) return null;
++  const s = raw.trim().toLowerCase();
++  if (!s || s === "unknown") return null;
++
++  const byLength = [...MATERIALS].sort((a, b) => b.length - a.length);
++  const hit = byLength.find((m) => m !== "Other" && s.includes(m.toLowerCase()));
++  return hit ?? "Other";
++}
+
+
+=== DIFF: scripts/backfill-item-tags.ts ===
+@@ -0,0 +1,57 @@
++/**
++ * One-off: normalise legacy materials and report missing `texture` for
++ * pre-existing items.
++ *
++ * Pass 1 is free (pure string mapping). Pass 2 — re-tagging via Haiku to fill
++ * `texture` — is deliberately NOT automatic: it costs roughly $0.002 per item,
++ * and running it accidentally on every developer machine is worse than leaving
++ * `texture` null, which every consumer already treats as "no opinion".
++ *
++ * Usage: npx tsx scripts/backfill-item-tags.ts [--dry-run]
++ * Requires SUPABASE_SERVICE_ROLE_KEY in the environment.
++ *
++ * This is the only place in the project that uses the service-role key — it
++ * crosses all users' rows, so it lives in scripts/ and must never be imported
++ * by app code.
++ */
++import { createClient } from "@supabase/supabase-js";
++import { normalizeMaterial } from "../lib/closet/normalize-material";
++
++const dryRun = process.argv.includes("--dry-run");
++const db = createClient(
++  process.env.NEXT_PUBLIC_SUPABASE_URL!,
++  process.env.SUPABASE_SERVICE_ROLE_KEY!,
++);
++
++async function main() {
++  // Archived rows are included on purpose: an archived item can be restored,
++  // and it would come back with a material the edit screen cannot offer.
++  const { data: items, error } = await db.from("items").select("id, material, texture");
++  if (error) throw error;
++
++  let normalised = 0;
++  for (const it of items ?? []) {
++    const next = normalizeMaterial(it.material);
++    if (next === it.material) continue;
++    normalised++;
++    console.log(`${it.id}: material ${JSON.stringify(it.material)} → ${JSON.stringify(next)}`);
++    if (!dryRun) {
++      const { error: e } = await db.from("items").update({ material: next }).eq("id", it.id);
++      if (e) throw e;
++    }
++  }
++
++  const missingTexture = (items ?? []).filter((i) => !i.texture).length;
++  console.log(
++    `\n${normalised} material${normalised === 1 ? "" : "s"} ${dryRun ? "would be" : ""} normalised of ${items?.length ?? 0} rows.`,
++  );
++  console.log(`${missingTexture} items still have no texture.`);
++  console.log(
++    "Texture backfill re-tags each item via Haiku — run that only when you want to spend it.",
++  );
++}
++
++main().catch((e) => {
++  console.error(e);
++  process.exit(1);
++});
+
+
+=== DIFF: supabase/migrations/20260729090000_service_role_grants.sql ===
+@@ -0,0 +1,19 @@
++-- Table-level DML grants for `service_role`, the counterpart to
++-- 20260721090000_authenticated_grants.sql.
++--
++-- `service_role` bypasses RLS but NOT table privileges, so without this it hits
++-- the same 42501 "permission denied" that `authenticated` did on newer Supabase
++-- DB images. Surfaced by scripts/backfill-item-tags.ts, which is the only thing
++-- in the project that uses this role: it crosses all users' rows to normalise
++-- legacy free-text materials onto the constrained vocabulary.
++--
++-- Nothing in the app runs as service_role — there is no service-role bypass in
++-- app code (CLAUDE.md), and this grant does not create one.
++
++grant usage on schema public to service_role;
++
++grant select, insert, update, delete on all tables in schema public to service_role;
++
++-- future tables in public inherit the same grants
++alter default privileges in schema public
++  grant select, insert, update, delete on tables to service_role;
+
+
+Investigate per the method in your instructions, then return the findings list.
