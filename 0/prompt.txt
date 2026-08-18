@@ -1,0 +1,18 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - supabase/migrations/20260724090000_item_texture.sql
+
+Unified diff (only + lines are new):
+
+=== DIFF: supabase/migrations/20260724090000_item_texture.sql ===
+@@ -0,0 +1,6 @@
++-- Knit structure / surface finish — a dimension `material` cannot express.
++-- A ribbed merino knit and a flat merino shirt share a material and differ in
++-- both warmth and formality; without this column that difference was lost at
++-- capture time and unrecoverable afterwards.
++-- Nullable: every existing row predates the field and is backfilled separately.
++alter table public.items add column if not exists texture text;
+
+
+Investigate per the method in your instructions, then return the findings list.
