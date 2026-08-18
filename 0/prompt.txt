@@ -1,0 +1,3 @@
+also if i choose in generator refine what colours i lean into, it shows nothing, so how we could fix it, its a
+  good question or just leave it now. Also a question are we using a next/images for optimization of images? Also for supabase WARN: config section
+  [inbucket] is deprecated. Please use [local_smtp] instead.
