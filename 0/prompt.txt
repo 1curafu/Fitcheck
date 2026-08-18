@@ -1,0 +1,476 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - components/closet/color-picker.tsx
+  - components/closet/item-edit-sheet.tsx
+  - lib/ai/__tests__/tagging-schema.test.ts
+  - lib/ai/tagging-schema.ts
+  - lib/closet/__tests__/vocab.test.ts
+  - lib/closet/vocab.ts
+  - lib/generator/__tests__/color.test.ts
+  - lib/generator/__tests__/score.test.ts
+  - lib/generator/color.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: components/closet/color-picker.tsx ===
+@@ -1,7 +1,7 @@
+ "use client";
+ 
+ import { useState } from "react";
+-import { COLORS } from "@/lib/closet/vocab";
++import { COLORS, type ColorName } from "@/lib/closet/vocab";
+ 
+ /**
+  * Colour was the one AI tag the user could never correct — and it feeds
+@@ -24,13 +24,13 @@ export function ColorPicker({
+   onChange,
+   max = 3,
+ }: {
+-  value: string[];
+-  onChange: (next: string[]) => void;
++  value: ColorName[];
++  onChange: (next: ColorName[]) => void;
+   max?: number;
+ }) {
+   const [open, setOpen] = useState(value.length === 0);
+ 
+-  function toggle(name: string) {
++  function toggle(name: ColorName) {
+     if (value.includes(name)) {
+       onChange(value.filter((c) => c !== name));
+       return;
+
+
+=== DIFF: components/closet/item-edit-sheet.tsx ===
+@@ -17,6 +17,8 @@ import {
+   MATERIALS,
+   TEXTURES,
+   PATTERNS,
++  COLOR_NAMES,
++  type ColorName,
+ } from "@/lib/closet/vocab";
+ 
+ // See the note in confirm-form.tsx — CATEGORIES carries Fragrance because it is
+@@ -48,7 +50,13 @@ export function ItemEditSheet({
+   const [category, setCategory] = useState<Tags["category"]>(item.category);
+   const [formality, setFormality] = useState(item.formality ?? 3);
+   const [seasons, setSeasons] = useState<string[]>(item.seasons);
+-  const [colors, setColors] = useState<string[]>(item.colors);
++  // Narrowed at the boundary, not by loosening ColorPicker: the DB column is
++  // text[], so a row written before TagSchema.colors became an enum could still
++  // hold a stray name. Anything off the palette is dropped rather than offered
++  // back for re-saving.
++  const [colors, setColors] = useState<ColorName[]>(
++    item.colors.filter((c): c is ColorName => (COLOR_NAMES as readonly string[]).includes(c)),
++  );
+   const [texture, setTexture] = useState(item.texture ?? "Flat");
+   const [pattern, setPattern] = useState(item.pattern ?? "solid");
+   const [subcategory, setSubcategory] = useState(item.subcategory ?? "");
+
+
+=== DIFF: lib/ai/__tests__/tagging-schema.test.ts ===
+@@ -1,4 +1,4 @@
+-import { TagSchema, taggingJsonSchema, MATERIALS, TEXTURES } from "../tagging-schema";
++import { TagSchema, taggingJsonSchema, MATERIALS, TEXTURES, COLOR_NAMES } from "../tagging-schema";
+ 
+ // The tagger now writes from a constrained vocabulary. Before this, `material`
+ // was a free-text string, so the AI could emit a value the edit screen could
+@@ -83,3 +83,33 @@ test("the vocabularies reach the model as enums", () => {
+   expect(props.material.enum).toEqual([...MATERIALS]);
+   expect(props.texture.enum).toEqual([...TEXTURES]);
+ });
++
++// ── Colours are a constrained vocabulary, like material and texture ──────────
++
++test("colors are constrained to the palette, not free text", () => {
++  // PR #19 converted material and texture to enums and left colors as
++  // z.array(z.string()), while adding a 21-colour picker in the same PR. The
++  // model could therefore emit a colour the user could not reselect and
++  // colorHex() could not render a swatch for.
++  const base = {
++    category: "Tops" as const,
++    subcategory: "Oxford shirt",
++    pattern: "solid" as const,
++    material: "Cotton" as const,
++    texture: "Flat" as const,
++    formality: 3,
++    seasons: ["Spring" as const],
++  };
++  expect(() => TagSchema.parse({ ...base, colors: ["navy"] })).not.toThrow();
++  expect(() => TagSchema.parse({ ...base, colors: ["chartreuse"] })).toThrow();
++  expect(() => TagSchema.parse({ ...base, colors: ["light blue"] })).toThrow();
++  expect(() => TagSchema.parse({ ...base, colors: ["burnt sienna"] })).toThrow();
++  expect(() => TagSchema.parse({ ...base, colors: ["off-white"] })).toThrow();
++});
++
++test("COLOR_NAMES is the palette the schema enforces", () => {
++  expect(COLOR_NAMES).toContain("navy");
++  expect(COLOR_NAMES).toContain("chocolate");
++  expect(COLOR_NAMES).not.toContain("chartreuse");
++  expect(new Set(COLOR_NAMES).size).toBe(COLOR_NAMES.length); // no duplicates
++});
+
+
+=== DIFF: lib/ai/tagging-schema.ts ===
+@@ -71,12 +71,43 @@ export const TEXTURES = [
+   "Other",
+ ] as const;
+ 
++/**
++ * The colour vocabulary — the ONE list, enforced on the model.
++ *
++ * This was `z.array(z.string())` until 2026-08-06, while the edit screens
++ * offered a 21-swatch picker: the model could write "khaki" or "off-white",
++ * which `colorHex()` could not render a swatch for and the user could not
++ * reselect. `lib/generator/color.ts` had meanwhile widened its families with
++ * ~23 free-form names (sand, oatmeal, cognac, terracotta, onyx…) to catch that
++ * output, so three vocabularies were drifting apart at once.
++ *
++ * Constrained here for the same reason MATERIALS and TEXTURES are: the model is
++ * constrained, not asked nicely. `lib/closet/vocab.ts` attaches the hex and the
++ * neutral flag to these names, and a test pins the two lists together.
++ */
++export const COLOR_NAMES = [
++  // Achromatic
++  "black", "charcoal", "grey", "silver", "white", "ivory", "cream",
++  // Warm neutrals / earths
++  "stone", "sand", "beige", "taupe", "khaki", "camel", "tan", "caramel", "chocolate", "brown",
++  // Blues
++  "navy", "indigo", "denim", "blue", "sky", "teal",
++  // Greens
++  "olive", "sage", "forest", "green", "mint",
++  // Reds / pinks
++  "burgundy", "maroon", "red", "rust", "terracotta", "coral", "pink",
++  // Purples
++  "purple", "lavender", "plum",
++  // Yellows / oranges
++  "mustard", "yellow", "gold", "orange",
++] as const;
++
+ // Categories + seasons match the prototype (Title case) so tags line up with
+ // the closet filters and the generator.
+ export const TagSchema = z.object({
+   category: z.enum(["Tops", "Bottoms", "Outerwear", "Shoes", "Accessories", "Fragrance"]),
+   subcategory: z.string().min(1),
+-  colors: z.array(z.string()).min(1).max(3),
++  colors: z.array(z.enum(COLOR_NAMES)).min(1).max(3),
+   pattern: z.enum(["solid", "striped", "check", "print", "other"]),
+   material: z.enum(MATERIALS),
+   texture: z.enum(TEXTURES),
+
+
+=== DIFF: lib/closet/__tests__/vocab.test.ts ===
+@@ -7,6 +7,7 @@ import {
+   TEXTURES,
+   PATTERNS,
+   COLORS,
++  COLOR_NAMES,
+   colorHex,
+ } from "../vocab";
+ import { TagSchema } from "@/lib/ai/tagging-schema";
+@@ -71,3 +72,15 @@ test("the closet vocabulary lives ONLY in vocab.ts", () => {
+     expect(src, f).not.toMatch(/const\s+(MATERIALS|CATEGORIES|SEASONS|FORMALITY_LABEL)\s*[:=]/);
+   }
+ });
++
++test("the palette and the schema's enum are the same list", () => {
++  // COLORS carries the hex and the neutral flag; COLOR_NAMES is what the model
++  // is constrained to. Adding a colour to one and not the other would let the
++  // tagger emit something with no swatch, or offer a swatch the tagger can
++  // never produce — the exact drift this module exists to prevent.
++  expect(COLORS.map((c) => c.name).sort()).toEqual([...COLOR_NAMES].sort());
++});
++
++test("every palette colour declares whether it is neutral", () => {
++  for (const c of COLORS) expect(typeof c.neutral).toBe("boolean");
++});
+
+
+=== DIFF: lib/closet/vocab.ts ===
+@@ -2,6 +2,7 @@ import {
+   TagSchema,
+   MATERIALS as AI_MATERIALS,
+   TEXTURES as AI_TEXTURES,
++  COLOR_NAMES,
+ } from "@/lib/ai/tagging-schema";
+ 
+ /**
+@@ -35,37 +36,83 @@ export const FORMALITY_LABEL = [
+  */
+ export const MATERIALS = AI_MATERIALS;
+ export const TEXTURES = AI_TEXTURES;
++export { COLOR_NAMES };
++
++/** The only colour values that may reach the database, on either write path. */
++export type ColorName = (typeof COLOR_NAMES)[number];
+ 
+ export const PATTERNS = ["solid", "striped", "check", "print", "other"] as const;
+ 
+ /**
+- * The palette the swatch picker offers. Names match what the tagger emits and
+- * what `lib/generator/color.ts` groups into families — a colour the generator
+- * cannot place is a colour that silently scores nothing.
++ * The palette the swatch picker offers, and the ONLY colours the tagger may
++ * emit — `TagSchema.colors` is `z.enum(COLOR_NAMES)`, so a colour the generator
++ * cannot place can no longer reach the database.
++ *
++ * `neutral` drives `colorHarmonyScore`, which gives an outfit ONE accent for
++ * free and charges 0.25 for each one after it. That asymmetry decides the
++ * borderline cases: mislabelling a foundation colour as an accent spends the
++ * free allowance and penalises an outfit that is actually restrained, whereas
++ * mislabelling an accent as neutral only fails to penalise. So the foundations
++ * of a menswear wardrobe — navy, brown, camel, tan, denim — count as neutral,
++ * and everything that reads as a deliberate colour choice does not.
++ *
++ * ⚠️ `camel` and `denim` are the two judgement calls. A camel coat is
++ * foundational, not a statement, and the design's own example is "camel knit /
++ * grey trousers / brown loafers"; indigo denim behaves as a neutral in every
++ * casual outfit it appears in. `silver` and `gold` stay accents: as garment
++ * colours they are deliberate, and as hardware they rarely reach the tag set.
+  */
+-export const COLORS = [
+-  { name: "black", hex: "#141414" },
+-  { name: "charcoal", hex: "#36353a" },
+-  { name: "grey", hex: "#8a8a8f" },
+-  { name: "white", hex: "#f4f1ea" },
+-  { name: "cream", hex: "#ece3d2" },
+-  { name: "stone", hex: "#cabfae" },
+-  { name: "beige", hex: "#d5c4a8" },
+-  { name: "camel", hex: "#b08d57" },
+-  { name: "tan", hex: "#a9784f" },
+-  { name: "brown", hex: "#6b4b32" },
+-  { name: "rust", hex: "#b86a47" },
+-  { name: "burgundy", hex: "#5e2733" },
+-  { name: "olive", hex: "#5e7256" },
+-  { name: "green", hex: "#3f6b4a" },
+-  { name: "navy", hex: "#242f45" },
+-  { name: "blue", hex: "#3d5a80" },
+-  { name: "denim", hex: "#5a7896" },
+-  { name: "pink", hex: "#d0a0a0" },
+-  { name: "yellow", hex: "#d6b756" },
+-  { name: "silver", hex: "#c0c0c8" },
+-  { name: "gold", hex: "#c9a227" },
+-] as const;
++export const COLORS: readonly { name: ColorName; hex: string; neutral: boolean }[] = [
++  // Achromatic
++  { name: "black", hex: "#141414", neutral: true },
++  { name: "charcoal", hex: "#36353a", neutral: true },
++  { name: "grey", hex: "#8a8a8f", neutral: true },
++  { name: "silver", hex: "#c0c0c8", neutral: false },
++  { name: "white", hex: "#f4f1ea", neutral: true },
++  { name: "ivory", hex: "#efe8dc", neutral: true },
++  { name: "cream", hex: "#ece3d2", neutral: true },
++  // Warm neutrals / earths
++  { name: "stone", hex: "#cabfae", neutral: true },
++  { name: "sand", hex: "#e0d3b4", neutral: true },
++  { name: "beige", hex: "#d5c4a8", neutral: true },
++  { name: "taupe", hex: "#9c8f82", neutral: true },
++  { name: "khaki", hex: "#b3a475", neutral: true },
++  { name: "camel", hex: "#b08d57", neutral: true },
++  { name: "tan", hex: "#a9784f", neutral: true },
++  { name: "caramel", hex: "#96652f", neutral: true },
++  { name: "chocolate", hex: "#4a3225", neutral: true },
++  { name: "brown", hex: "#6b4b32", neutral: true },
++  // Blues
++  { name: "navy", hex: "#242f45", neutral: true },
++  { name: "indigo", hex: "#35406b", neutral: true },
++  { name: "denim", hex: "#5a7896", neutral: true },
++  { name: "blue", hex: "#3d5a80", neutral: false },
++  { name: "sky", hex: "#8fb3cf", neutral: false },
++  { name: "teal", hex: "#2f6b6b", neutral: false },
++  // Greens
++  { name: "olive", hex: "#5e7256", neutral: true },
++  { name: "sage", hex: "#9aa88f", neutral: false },
++  { name: "forest", hex: "#2f4a35", neutral: false },
++  { name: "green", hex: "#3f6b4a", neutral: false },
++  { name: "mint", hex: "#a8c9b4", neutral: false },
++  // Reds / pinks
++  { name: "burgundy", hex: "#5e2733", neutral: false },
++  { name: "maroon", hex: "#6e2f2f", neutral: false },
++  { name: "red", hex: "#a8342f", neutral: false },
++  { name: "rust", hex: "#b86a47", neutral: false },
++  { name: "terracotta", hex: "#c07a55", neutral: false },
++  { name: "coral", hex: "#cf7f6a", neutral: false },
++  { name: "pink", hex: "#d0a0a0", neutral: false },
++  // Purples
++  { name: "purple", hex: "#5b4b7a", neutral: false },
++  { name: "lavender", hex: "#a99ac0", neutral: false },
++  { name: "plum", hex: "#4f2f45", neutral: false },
++  // Yellows / oranges
++  { name: "mustard", hex: "#c39a2b", neutral: false },
++  { name: "yellow", hex: "#d6b756", neutral: false },
++  { name: "gold", hex: "#c9a227", neutral: false },
++  { name: "orange", hex: "#c8703a", neutral: false },
++];
+ 
+ export function colorHex(name: string): string | undefined {
+   const n = name.toLowerCase();
+
+
+=== DIFF: lib/generator/__tests__/color.test.ts ===
+@@ -1,4 +1,5 @@
+-import { isNeutral, colorHarmonyScore, inFamily, leanScore } from "../color";
++import { isNeutral, colorHarmonyScore, inFamily, leanScore, NEUTRAL_NAMES, COLOR_FAMILIES } from "../color";
++import { COLORS } from "@/lib/closet/vocab";
+ 
+ test("classifies neutrals vs accents", () => {
+   expect(isNeutral("navy")).toBe(true);
+@@ -6,8 +7,10 @@ test("classifies neutrals vs accents", () => {
+   expect(isNeutral("rust")).toBe(false);
+ });
+ test("an all-neutral outfit scores higher than a multi-accent one", () => {
++  // `olive` and `camel` are NEUTRALS now (both foundational menswear), so the
++  // old fixture ["rust","olive","camel"] carried a single accent and tied.
+   expect(colorHarmonyScore(["navy", "cream", "brown"])).toBeGreaterThan(
+-    colorHarmonyScore(["rust", "olive", "camel"]),
++    colorHarmonyScore(["rust", "green", "pink"]),
+   );
+ });
+ test("a single accent on neutrals is fine (>= 0.8)", () => {
+@@ -28,8 +31,8 @@ test("score is clamped to 0..1", () => {
+ test("a family matches the tag words Haiku actually emits", () => {
+   expect(inFamily("beige", "neutral")).toBe(true);
+   expect(inFamily("charcoal", "dark")).toBe(true);
+-  expect(inFamily("khaki", "olive")).toBe(true);
+-  expect(inFamily("chocolate", "camel")).toBe(true);
++  expect(inFamily("olive", "olive")).toBe(true);
++  expect(inFamily("brown", "camel")).toBe(true);
+   expect(inFamily("denim", "navy")).toBe(true);
+ });
+ test("family matching is case- and whitespace-insensitive", () => {
+@@ -52,3 +55,43 @@ test("leanScore is 0 when no requested family is present", () => {
+ test("leanScore is 1 when nothing was requested (no lean = no penalty)", () => {
+   expect(leanScore(["rust"], [])).toBe(1);
+ });
++
++// ── The three colour vocabularies must be ONE vocabulary ────────────────────
++
++test("every neutral is a real palette colour", () => {
++  // NEUTRALS used to carry khaki, ecru and gray — none of which the picker can
++  // produce — while omitting camel, brown's closest neighbour and the canonical
++  // menswear neutral.
++  for (const n of NEUTRAL_NAMES) {
++    expect(COLORS.map((c) => c.name)).toContain(n);
++  }
++});
++
++test("every colour family member is a real palette colour", () => {
++  // The families were widened to catch Haiku's free-form output (sand, oatmeal,
++  // taupe, cognac, terracotta, cobalt, sage, onyx…). With the schema
++  // constrained, a family entry the picker cannot produce is dead weight that
++  // silently never matches.
++  const palette = COLORS.map((c) => c.name);
++  for (const [family, members] of Object.entries(COLOR_FAMILIES)) {
++    for (const m of members) {
++      expect(palette, `${family} → ${m}`).toContain(m);
++    }
++  }
++});
++
++test("the family ids are exactly the Refine sheet's five swatches", () => {
++  expect(Object.keys(COLOR_FAMILIES).sort()).toEqual(
++    ["camel", "dark", "navy", "neutral", "olive"].sort(),
++  );
++});
++
++test("camel counts as a neutral", () => {
++  // A camel coat is foundational menswear, not an accent. colorHarmonyScore
++  // gives one accent for free, so miscounting a foundation piece spends that
++  // allowance and penalises the outfit the design itself uses as its example
++  // ("camel knit / grey trousers / brown loafers").
++  expect(isNeutral("camel")).toBe(true);
++  expect(isNeutral("brown")).toBe(true);
++  expect(isNeutral("navy")).toBe(true);
++});
+
+
+=== DIFF: lib/generator/__tests__/score.test.ts ===
+@@ -48,10 +48,13 @@ test("an unmatched lean still scores above zero — it never eliminates a combo"
+   expect(scoreCombo(noOlive, { ...ctx, lean: ["olive"] })).toBeGreaterThan(0);
+ });
+ test("the lean matches by family, not by literal tag word", () => {
+-  const khaki = [{ category: "top", colors: ["khaki"], formality: 3, style_tags: [] }];
++  // `green` is in the olive family without being the word "olive". This used to
++  // use "khaki", which the tagger can no longer emit now that TagSchema.colors
++  // is a z.enum over the palette.
++  const green = [{ category: "top", colors: ["green"], formality: 3, style_tags: [] }];
+   const rust = [{ category: "top", colors: ["rust"], formality: 3, style_tags: [] }];
+   const leaning = { ...ctx, lean: ["olive"] };
+-  expect(scoreCombo(khaki, leaning)).toBeGreaterThan(scoreCombo(rust, leaning));
++  expect(scoreCombo(green, leaning)).toBeGreaterThan(scoreCombo(rust, leaning));
+ });
+ test("no lean leaves scoring exactly as it was", () => {
+   expect(scoreCombo(good, { ...ctx, lean: [] })).toBe(scoreCombo(good, ctx));
+
+
+=== DIFF: lib/generator/color.ts ===
+@@ -1,7 +1,17 @@
+-const NEUTRALS = new Set([
+-  "navy", "grey", "gray", "beige", "white", "black", "brown", "cream", "tan", "stone",
+-  "charcoal", "khaki", "ecru",
+-]);
++import { COLORS } from "@/lib/closet/vocab";
++
++/**
++ * Derived from the palette, never hand-listed.
++ *
++ * The old literal set carried `khaki`, `ecru` and `gray` — none of which the
++ * picker can produce — and omitted `camel`, `denim` and `silver`, which it can.
++ * With `TagSchema.colors` now a `z.enum`, the palette is the only vocabulary
++ * that exists, so both lists here are computed from it and a test pins that
++ * every name they contain is a real colour.
++ */
++export const NEUTRAL_NAMES: string[] = COLORS.filter((c) => c.neutral).map((c) => c.name);
++
++const NEUTRALS = new Set<string>(NEUTRAL_NAMES);
+ 
+ export function isNeutral(color: string): boolean {
+   return NEUTRALS.has(color.trim().toLowerCase());
+@@ -15,25 +25,28 @@ export function colorHarmonyScore(colors: string[]): number {
+ }
+ 
+ /**
+- * The Refine "Lean into" palette, as FAMILIES of tag words.
++ * The Refine "Lean into" palette — the five swatches in `refine-sheet.tsx`.
++ *
++ * The swatches are families, not literal tag values: `neutral` and `dark` are
++ * categories, and matching a swatch id verbatim would find nothing for them.
+  *
+- * The swatches are five families, not five literal tag values. Item colours come
+- * from Haiku as free-form common names ("charcoal", "beige", "khaki" — see
+- * `lib/ai/tag-item.ts`), so matching a swatch id verbatim found almost nothing,
+- * and `neutral`/`dark` found *nothing at all* — they are categories, not colours.
++ * These lists used to carry ~23 free-form names (sand, oatmeal, taupe, cognac,
++ * terracotta, cobalt, sage, onyx…) because Haiku emitted colours off any
++ * vocabulary. That was the right answer while `colors` was `z.string()`; now the
++ * schema is a `z.enum` over the palette, so any name outside it is dead weight
++ * that can never match. A test asserts every member is a real palette colour.
+  *
+- * Families overlap on purpose (tan is both a neutral and a camel); membership is
+- * a per-family lookup, not a partition.
++ * NOT a partition, on purpose. Families overlap (`tan` is both neutral and
++ * camel), and `pink` and `yellow` belong to none — leaning on "camel" simply
++ * does not favour a pink shirt, which is correct. `leanScore` is a weighted
++ * term, never a filter, so an unfamilied colour is not excluded from anything.
+  */
+ export const COLOR_FAMILIES: Record<string, string[]> = {
+-  neutral: [
+-    "beige", "cream", "stone", "tan", "ecru", "sand", "oatmeal", "taupe",
+-    "white", "off-white", "ivory", "grey", "gray", "greige",
+-  ],
+-  camel: ["camel", "tan", "caramel", "cognac", "brown", "chocolate", "toffee", "rust", "terracotta"],
+-  navy: ["navy", "blue", "indigo", "denim", "cobalt", "midnight"],
+-  olive: ["olive", "khaki", "green", "sage", "forest", "moss", "army"],
+-  dark: ["black", "charcoal", "graphite", "onyx", "jet"],
++  neutral: ["white", "ivory", "cream", "stone", "sand", "beige", "taupe", "grey", "silver"],
++  camel: ["camel", "tan", "caramel", "chocolate", "brown", "rust", "terracotta", "gold"],
++  navy: ["navy", "indigo", "denim", "blue", "sky", "teal"],
++  olive: ["olive", "khaki", "sage", "forest", "green", "mint"],
++  dark: ["black", "charcoal", "burgundy", "maroon", "plum"],
+ };
+ 
+ export function inFamily(color: string, family: string): boolean {
+
+
+Investigate per the method in your instructions, then return the findings list.
