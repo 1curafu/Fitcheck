@@ -1,0 +1,107 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - lib/generator/__tests__/rerank.test.ts
+  - lib/generator/rerank.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: lib/generator/__tests__/rerank.test.ts ===
+@@ -1,4 +1,4 @@
+-import { dedupePicks, RERANK_VARIETY_RULE } from "../rerank";
++import { dedupePicks, finalisePicks, RERANK_VARIETY_RULE } from "../rerank";
+ import { describeCombos, RerankSchema, rerankJsonSchema, NAME_MAX } from "../rerank";
+ 
+ test("describes each combo as one indexed line with subcategory + colours", () => {
+@@ -20,9 +20,36 @@ test("schema ACCEPTS exactly 3 valid picks with index + name + why", () => {
+   expect(ok.picks).toHaveLength(3);
+   expect(ok.picks[0].name).toBe("Look 0");
+ });
+-test("schema REJECTS the wrong pick count (pins 'exactly 3')", () => {
+-  expect(() => RerankSchema.parse({ picks: [pick(0)] })).toThrow();
+-  expect(() => RerankSchema.parse({ picks: [pick(0), pick(1), pick(2), pick(3)] })).toThrow();
++// A closet too small for three looks must still get its looks. `.length(3)`
++// was never enforced ON the model — forStructuredOutput strips minItems/maxItems
++// (they 400 the API), so it existed only as a post-hoc throw, and a closet with
++// one viable combo failed the WHOLE generation as "Couldn't reach the stylist".
++// Measured on a 3-item closet: the screen showed the error state, not the look.
++// Same stance as clampName above — repair, don't reject.
++
++test("a closet with only one viable look does not fail the generation", () => {
++  const out = RerankSchema.parse({ picks: [pick(0)] });
++  expect(out.picks).toHaveLength(1);
++});
++
++test("two looks are accepted too", () => {
++  expect(RerankSchema.parse({ picks: [pick(0), pick(1)] }).picks).toHaveLength(2);
++});
++
++test("zero picks is still an error — there is nothing to show", () => {
++  expect(() => RerankSchema.parse({ picks: [] })).toThrow();
++});
++
++test("more than three picks are capped rather than thrown away wholesale", () => {
++  expect(finalisePicks([pick(0), pick(1), pick(2), pick(3)]).map((p) => p.combo_index)).toEqual([
++    0, 1, 2,
++  ]);
++});
++
++test("finalisePicks still drops duplicates and out-of-range indices", () => {
++  expect(finalisePicks([pick(0), pick(0), pick(99), pick(1)], 20).map((p) => p.combo_index)).toEqual(
++    [0, 1],
++  );
+ });
+ test("schema REJECTS a pick missing a name entirely", () => {
+   expect(() => RerankSchema.parse({ picks: [{ combo_index: 0, why: "x" }, pick(1), pick(2)] })).toThrow();
+
+
+=== DIFF: lib/generator/rerank.ts ===
+@@ -55,9 +55,21 @@ export const rerankJsonSchema = forStructuredOutput(
+   z.toJSONSchema(z.object({ picks: z.array(PickShape).length(3) })),
+ ) as Record<string, unknown>;
+ 
++/** The most looks a daily drop ever shows. */
++export const MAX_PICKS = 3;
++
+ // The PARSE shape — same fields, plus the name repair.
++//
++// `.min(1)`, NOT `.length(3)`. The count is never enforced ON the model —
++// `forStructuredOutput` strips minItems/maxItems because the API 400s on them —
++// so an exact-3 rule existed only as a post-hoc throw, and a closet with fewer
++// than three viable combos failed the ENTIRE generation as "Couldn't reach the
++// stylist". That is a lie: the stylist answered, with everything the wardrobe
++// could give. It bites hardest right after onboarding's "capture your first
++// five", which is the magic moment. Repair, don't reject — the same stance as
++// `clampName`. An empty array is still an error; there is nothing to show.
+ export const RerankSchema = z.object({
+-  picks: z.array(PickShape.extend({ name: z.string().min(1).transform(clampName) })).length(3),
++  picks: z.array(PickShape.extend({ name: z.string().min(1).transform(clampName) })).min(1),
+ });
+ export type RerankResult = z.infer<typeof RerankSchema>;
+ 
+@@ -99,6 +111,15 @@ export function dedupePicks(picks: Pick[], comboCount?: number): Pick[] {
+   });
+ }
+ 
++/**
++ * Everything that stands between the model's answer and the screen: drop
++ * repeats and out-of-range indices, then cap at MAX_PICKS. The cap lives here
++ * rather than in the schema so an over-eager model costs the user nothing.
++ */
++export function finalisePicks(picks: Pick[], comboCount?: number): Pick[] {
++  return dedupePicks(picks, comboCount).slice(0, MAX_PICKS);
++}
++
+ export async function rerank(args: {
+   combos: DescItem[][];
+   aesthetic: string[];
+@@ -127,5 +148,5 @@ For each return: its combo_index; a short evocative NAME (≤4 words and at most
+   const parsed = RerankSchema.parse(JSON.parse(text));
+   // The prompt asks for distinct picks; this guarantees it. A model that repeats
+   // an index costs the user one look, not a duplicated outfit on the screen.
+-  return { ...parsed, picks: dedupePicks(parsed.picks, args.combos.length) };
++  return { ...parsed, picks: finalisePicks(parsed.picks, args.combos.length) };
+ }
+
+
+Investigate per the method in your instructions, then return the findings list.
