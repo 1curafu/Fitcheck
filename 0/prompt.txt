@@ -1,0 +1,355 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/closet/[itemId]/style-actions.ts
+  - app/generate/actions.ts
+  - lib/weather/__tests__/map.test.ts
+  - lib/weather/__tests__/planning.test.ts
+  - lib/weather/open-meteo.ts
+  - lib/weather/planning.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/closet/[itemId]/style-actions.ts ===
+@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
+ import { signItemImages, displayPath } from "@/lib/storage/signed";
+ import { fetchForecast } from "@/lib/weather/open-meteo";
+ import { laterAdvice } from "@/lib/weather/advice";
++import { planningTempFor } from "@/lib/weather/planning";
+ import { readPreferences } from "@/lib/profile/preferences";
+ import { personalBand, planningTemp } from "@/lib/generator/rules";
+ import { buildCandidates, type CandidateItem } from "@/lib/generator/candidates";
+@@ -155,7 +156,9 @@ export async function styleWithItem(
+         tempC: f.tempC,
+         rain: f.hourly.some((h) => h.isNow && h.rain),
+         // The look is built for the day, not for this minute.
+-        highC: f.highC,
++        // Same rule on the styled path: the look is built for the window the
++        // chosen occasion is worn in, not for whenever the user tapped.
++        highC: planningTempFor(occasion, f.restOfDay, f.tempC),
+         lowC: f.lowC,
+       },
+       season: currentSeason(now),
+
+
+=== DIFF: app/generate/actions.ts ===
+@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
+ import { signItemImages, displayPath } from "@/lib/storage/signed";
+ import { fetchForecast } from "@/lib/weather/open-meteo";
+ import { laterAdvice } from "@/lib/weather/advice";
++import { planningTempFor } from "@/lib/weather/planning";
+ import { readPreferences } from "@/lib/profile/preferences";
+ import { personalBand, applyFormalityOverride, planningTemp } from "@/lib/generator/rules";
+ import { buildCandidates, missingCategory, type CandidateItem } from "@/lib/generator/candidates";
+@@ -203,7 +204,9 @@ export async function generate(input: {
+         tempC: f.tempC,
+         rain: f.hourly.some((h) => h.isNow && h.rain),
+         // The look is built for the day, not for this minute.
+-        highC: f.highC,
++        // The peak of the window this occasion is actually WORN in. An Evening
++        // look chosen at 14:00 must not be built for the afternoon.
++        highC: planningTempFor(input.occasion, f.restOfDay, f.tempC),
+         lowC: f.lowC,
+       },
+       season: currentSeason(now),
+
+
+=== DIFF: lib/weather/__tests__/map.test.ts ===
+@@ -86,23 +86,25 @@ test("fetchForecast asks for timezone=auto and ROUNDS coords so the 30-min cache
+ // day that reached 34.8°C. The drop is generated once and worn all day, so the
+ // generator needs the day's high, not the temperature at the moment it ran.
+ 
+-test("the day's high and low come through", () => {
++test("the hours still ahead beat the calendar day's block", () => {
++  // The daily block is midnight-to-midnight. When there are real hours left,
++  // they are the better answer — a 34.8° max that happened at 15:00 says
++  // nothing about an outfit chosen at 18:00.
+   const withDaily = {
+     ...raw,
+     daily: { temperature_2m_max: [34.8], temperature_2m_min: [8.2] },
+   };
+   const w = mapForecast(withDaily, "2026-01-14T18:00");
+-  expect(w.highC).toBe(35);
+-  expect(w.lowC).toBe(8);
++  const ahead = w.restOfDay.map((h) => h.tempC);
++  expect(w.highC).toBe(Math.max(...ahead));
++  expect(w.lowC).toBe(Math.min(...ahead));
+   expect(w.tempC).toBe(Math.round(raw.current.temperature_2m)); // display is still NOW
+ });
+ 
+-test("no daily block falls back to the current temperature", () => {
+-  // A cached response from before this shipped must still map, and must behave
+-  // exactly as it did then.
++test("with no daily block the range still comes from the remaining hours", () => {
+   const w = mapForecast(raw, "2026-01-14T18:00");
+-  expect(w.highC).toBe(w.tempC);
+-  expect(w.lowC).toBe(w.tempC);
++  expect(w.highC).toBe(w.tempC); // 14 now, and it only falls from here
++  expect(w.lowC).toBe(10); // 22:00
+ });
+ 
+ test("the range can never contradict the temperature on screen", () => {
+@@ -117,3 +119,55 @@ test("the range can never contradict the temperature on screen", () => {
+   expect(w.highC).toBeGreaterThanOrEqual(w.tempC);
+   expect(w.lowC).toBeLessThanOrEqual(w.tempC);
+ });
++
++// ── The rest of today ───────────────────────────────────────────────────────
++// `daily.temperature_2m_max` is midnight-to-midnight, so opening the app at
++// 20:00 would plan against a 17:00 peak already lived through. `restOfDay` is
++// the hours still ahead, and the high/low now come from it.
++
++test("restOfDay holds only the hours still ahead, and only today's", () => {
++  const spanning = {
++    ...raw,
++    hourly: {
++      time: [
++        "2026-01-14T16:00", "2026-01-14T17:00", "2026-01-14T18:00",
++        "2026-01-14T22:00", "2026-01-15T08:00", "2026-01-15T18:00",
++      ],
++      temperature_2m: [16, 15, 14, 9, 3, 30],
++      weather_code: [3, 3, 3, 3, 3, 3],
++      precipitation_probability: [5, 5, 5, 5, 5, 5],
++    },
++  };
++  const w = mapForecast(spanning, "2026-01-14T18:00");
++  expect(w.restOfDay.map((h) => h.hh)).toEqual(["18:00", "22:00"]);
++  // Tomorrow's 30° must never reach the planning temperature.
++  expect(w.highC).toBeLessThan(30);
++});
++
++test("the high and low describe what is left of the day, not the calendar day", () => {
++  const eveningNow = {
++    ...raw,
++    current: { ...raw.current, time: "2026-01-14T20:00", temperature_2m: 9 },
++    hourly: {
++      time: ["2026-01-14T08:00", "2026-01-14T14:00", "2026-01-14T20:00", "2026-01-14T22:00"],
++      temperature_2m: [4, 18, 9, 6], // the 18° peak is already gone
++      weather_code: [3, 3, 3, 3],
++      precipitation_probability: [5, 5, 5, 5],
++    },
++    daily: { temperature_2m_max: [18], temperature_2m_min: [4] },
++  };
++  const w = mapForecast(eveningNow, "2026-01-14T20:00");
++  expect(w.highC).toBe(9); // NOT 18
++  expect(w.lowC).toBe(6);
++});
++
++test("with no hourly hours left, the daily block is the fallback", () => {
++  const exhausted = {
++    ...raw,
++    hourly: { time: [], temperature_2m: [], weather_code: [], precipitation_probability: [] },
++    daily: { temperature_2m_max: [21], temperature_2m_min: [2] },
++  };
++  const w = mapForecast(exhausted, "2026-01-14T18:00");
++  expect(w.highC).toBe(21);
++  expect(w.lowC).toBe(2);
++});
+
+
+=== DIFF: lib/weather/__tests__/planning.test.ts ===
+@@ -0,0 +1,61 @@
++import { planningTempFor, occasionWindow } from "../planning";
++import type { HourCell } from "@/lib/generator/types";
++
++/** Hours from `h` onward at the given temperatures. */
++const from = (h: number, temps: number[]): HourCell[] =>
++  temps.map((t, k) => ({
++    hh: `${String(h + k).padStart(2, "0")}:00`,
++    tempC: t,
++    rain: false,
++    isNow: k === 0,
++  }));
++
++// An autumn day: peaks at 18° mid-afternoon, 7° by the time anyone goes out.
++// This is the shape that makes the whole module necessary — in August the
++// difference is nearly free, because the evening is still as hot as the peak.
++const autumnDay = from(9, [11, 13, 15, 17, 18, 17, 15, 12, 10, 8, 7, 7, 7]); // 09:00 → 21:00
++
++test("an Evening look is built for the evening, not the afternoon peak", () => {
++  expect(planningTempFor("evening", autumnDay, 11)).toBe(8);
++  expect(planningTempFor("everyday", autumnDay, 11)).toBe(18);
++});
++
++test("a Work look stops at the end of the working day", () => {
++  // 18:00 is 8° here; including the evening would not change the max, so use a
++  // day that rises late to prove the boundary actually bites.
++  const oddDay = from(9, [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 25]); // 19:00 = 25°
++  expect(planningTempFor("work", oddDay, 10)).toBe(10);
++  expect(planningTempFor("everyday", oddDay, 10)).toBe(25);
++});
++
++test("the hours already gone never set the temperature", () => {
++  // `restOfDay` only ever contains hours still ahead, so an app opened at 20:00
++  // plans against 20:00 onward — the mirror of the bug that dressed the user
++  // for a peak they had already lived through.
++  const evening = from(20, [12, 10, 9]);
++  expect(planningTempFor("everyday", evening, 12)).toBe(12);
++  expect(planningTempFor("evening", evening, 12)).toBe(12);
++});
++
++test("an occasion whose window has passed falls back to the hours that remain", () => {
++  // Work asked for at 21:00. Dressing for a working day that is over would be
++  // absurd; dressing for the rest of tonight is the only useful answer.
++  const lateNight = from(21, [9, 8, 7]);
++  expect(planningTempFor("work", lateNight, 9)).toBe(9);
++});
++
++test("no hours at all falls back to the current reading", () => {
++  expect(planningTempFor("work", [], 17)).toBe(17);
++});
++
++test("the windows are ordered as the day is", () => {
++  expect(occasionWindow("work")[1]).toBeLessThanOrEqual(occasionWindow("everyday")[1]);
++  expect(occasionWindow("evening")[0]).toBeGreaterThanOrEqual(occasionWindow("work")[1] - 1);
++});
++
++test("the warmest hour wins, not the average", () => {
++  // Over-dressed at the peak is the failure users feel; the cool end is
++  // laterAdvice's job. A mean would split the difference and satisfy neither.
++  const spiky = from(12, [10, 10, 28, 10, 10]);
++  expect(planningTempFor("everyday", spiky, 10)).toBe(28);
++});
+
+
+=== DIFF: lib/weather/open-meteo.ts ===
+@@ -51,6 +51,8 @@ export function mapForecast(
+   condition: string;
+   timezone: string;
+   hourly: HourCell[];
++  /** Every remaining hour of TODAY — what the look is planned against. */
++  restOfDay: HourCell[];
+   highC: number;
+   lowC: number;
+ } {
+@@ -69,13 +71,43 @@ export function mapForecast(
+     });
+   }
+ 
+-  // The look is built for the day's HIGH, not for the minute the app was
+-  // opened — the daily drop is generated once and worn all day. Falls back to
+-  // the current temperature when the API response carries no daily block, which
+-  // is exactly the behaviour that shipped before.
+   const now = Math.round(raw.current.temperature_2m);
+-  const max = raw.daily?.temperature_2m_max?.[0];
+-  const min = raw.daily?.temperature_2m_min?.[0];
++
++  /**
++   * The rest of TODAY, hour by hour.
++   *
++   * Restricted to the current local date on purpose: `forecast_hours=24` runs
++   * past midnight, and an "evening" window matched on hour-of-day alone would
++   * happily plan against TOMORROW's 19:00. Comparing the date part of the ISO
++   * string is enough — `timezone=auto` puts `current.time` and `hourly.time` on
++   * the same local clock.
++   */
++  const today = nowIso.slice(0, 10);
++  const restOfDay: HourCell[] = [];
++  for (let i = 0; i < times.length; i++) {
++    if (times[i] < nowIso || times[i].slice(0, 10) !== today) continue;
++    restOfDay.push({
++      hh: hhmm(times[i]),
++      tempC: Math.round(raw.hourly.temperature_2m[i]),
++      rain: RAIN_CODES.has(raw.hourly.weather_code[i]),
++      isNow: restOfDay.length === 0,
++    });
++  }
++
++  /**
++   * The peak and trough STILL AHEAD, not the calendar day's.
++   *
++   * `daily.temperature_2m_max` covers midnight to midnight, so opening the app
++   * at 20:00 would otherwise plan against a 17:00 peak that has already been
++   * and gone — the mirror of the bug that put a sweater on a 34.8°C day. The
++   * daily block is the fallback for when hourly data is unavailable, and the
++   * current reading is the fallback for that.
++   */
++  const ahead = restOfDay.map((h) => h.tempC);
++  const dailyMax = raw.daily?.temperature_2m_max?.[0];
++  const dailyMin = raw.daily?.temperature_2m_min?.[0];
++  const high = ahead.length ? Math.max(...ahead) : dailyMax == null ? now : Math.round(dailyMax);
++  const low = ahead.length ? Math.min(...ahead) : dailyMin == null ? now : Math.round(dailyMin);
+ 
+   return {
+     tempC: now,
+@@ -83,9 +115,10 @@ export function mapForecast(
+     condition: conditionFor(raw.current.weather_code),
+     timezone: raw.timezone,
+     hourly,
++    restOfDay,
+     // Never let the range contradict the reading the user can see on screen.
+-    highC: max == null ? now : Math.max(now, Math.round(max)),
+-    lowC: min == null ? now : Math.min(now, Math.round(min)),
++    highC: Math.max(now, high),
++    lowC: Math.min(now, low),
+   };
+ }
+ 
+
+
+=== DIFF: lib/weather/planning.ts ===
+@@ -0,0 +1,61 @@
++import type { HourCell, UiOccasion } from "@/lib/generator/types";
++
++/**
++ * Which hours of the day each occasion actually covers.
++ *
++ * The look is built for the peak of the window it will be WORN in, not for the
++ * calendar day's maximum. Without this, an Evening drop generated at 14:00 is
++ * planned against the 17:00 afternoon peak — free in August, when 19:00 is
++ * still 34°, and badly wrong in October, when a day peaking at 18° is 7° by
++ * the time the user goes out.
++ *
++ * Half-open on the right: `[from, to)`. Hours are local, because the forecast
++ * is fetched with `timezone=auto`.
++ */
++const WINDOWS: Record<UiOccasion, [number, number]> = {
++  // The working day, ending when people head home. Beyond it they are dressing
++  // for the evening, which has its own occasion.
++  work: [0, 19],
++  // Out in it for as long as the day lasts.
++  everyday: [0, 22],
++  weekend: [0, 22],
++  // Deliberately does NOT start at 18: an Evening look chosen at 14:00 is worn
++  // later, so the afternoon must not set its temperature.
++  evening: [18, 24],
++};
++
++/** Exported for tests and for anything that needs to explain the choice. */
++export function occasionWindow(occasion: UiOccasion): [number, number] {
++  return WINDOWS[occasion];
++}
++
++function hourOf(cell: HourCell): number {
++  return Number(cell.hh.slice(0, 2));
++}
++
++/**
++ * The temperature this occasion's look should be built for: the warmest hour
++ * still ahead that the occasion covers.
++ *
++ * Warmest rather than mean, for the same reason the day's high beat the current
++ * reading — being over-dressed at the peak is the failure users actually feel,
++ * and the cool end is handled by `laterAdvice` telling them to take a layer.
++ *
++ * @param restOfDay today's remaining hours, from `mapForecast`.
++ * @param fallbackC used when the window has no hours left at all — a Work look
++ * asked for at 21:00, say. Pass the current temperature: planning against an
++ * empty window would otherwise be planning against nothing.
++ */
++export function planningTempFor(
++  occasion: UiOccasion,
++  restOfDay: HourCell[],
++  fallbackC: number,
++): number {
++  const [from, to] = WINDOWS[occasion];
++  const inWindow = restOfDay.filter((h) => hourOf(h) >= from && hourOf(h) < to);
++  // An occasion whose window has passed still has to dress the user for the
++  // hours that remain — never for a peak that is already behind them.
++  const hours = inWindow.length ? inWindow : restOfDay;
++  if (!hours.length) return fallbackC;
++  return Math.max(...hours.map((h) => h.tempC));
++}
+
+
+Investigate per the method in your instructions, then return the findings list.
