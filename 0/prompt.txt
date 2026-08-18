@@ -1,0 +1,1 @@
+also in generator it define colors that doesnt exist in our list
