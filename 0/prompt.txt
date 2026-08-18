@@ -1,0 +1,56 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - lib/outfits/overrides.ts
+  - supabase/migrations/20260723100000_occasion_overrides.sql
+
+Unified diff (only + lines are new):
+
+=== DIFF: lib/outfits/overrides.ts ===
+@@ -0,0 +1,19 @@
++import { createClient } from "@/lib/supabase/server";
++
++/**
++ * Append one override. The only writer of `occasion_overrides`.
++ *
++ * Fire-and-forget from the caller's side (a failed insert must never disturb the
++ * looks), so this swallows errors rather than throwing.
++ */
++export async function recordOverride(
++  userId: string,
++  generatedOn: string,
++  predicted: string,
++  chosen: string,
++): Promise<void> {
++  const supabase = await createClient();
++  await supabase
++    .from("occasion_overrides")
++    .insert({ user_id: userId, generated_on: generatedOn, predicted, chosen });
++}
+
+
+=== DIFF: supabase/migrations/20260723100000_occasion_overrides.sql ===
+@@ -0,0 +1,20 @@
++-- Every time the user picks an occasion different from the predicted default.
++-- Written from day 1, consumed by nothing yet: this is the fuel for the future
++-- occasion learner (docs/superpowers/specs/2026-07-23-smart-default-occasion-design.md),
++-- and override history is impossible to backfill — so it must exist now.
++create table if not exists public.occasion_overrides (
++  id            uuid primary key default gen_random_uuid(),
++  user_id       uuid not null references public.profiles(id) on delete cascade,
++  generated_on  date not null,          -- user's LOCAL date; day-of-week is derivable
++  predicted     text not null,
++  chosen        text not null,
++  created_at    timestamptz default now()
++);
++
++create index if not exists occasion_overrides_user
++  on public.occasion_overrides (user_id, generated_on);
++
++alter table public.occasion_overrides enable row level security;
++
++create policy occasion_overrides_own on public.occasion_overrides
++  for all using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+
+
+Investigate per the method in your instructions, then return the findings list.
