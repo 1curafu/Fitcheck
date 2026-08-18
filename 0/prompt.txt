@@ -1,0 +1,224 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/generate/actions.ts
+  - lib/generator/__tests__/rank.test.ts
+  - lib/generator/rank.ts
+  - lib/generator/score.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/generate/actions.ts ===
+@@ -89,28 +89,38 @@ export async function generate(input: {
+     // The daily drop (Decision 5): today's looks are generated once and then
+     // read back. Only an explicit regenerate spends an AI call on a day the
+     // stylist has already answered.
+-    if (!input.regenerate) {
+-      const stored = await loadDailyLooks(user.id, input.occasion, today);
+-      if (stored?.length) {
+-        const paths = Array.from(
+-          new Set(
+-            stored
+-              .flatMap((s) => s.pieces.map((p) => byId.get(p.itemId)))
+-              .filter((it): it is NonNullable<typeof it> => Boolean(it))
+-              .map((it) => displayPath(it)),
+-          ),
+-        );
+-        const signed = await signItemImages(paths);
+-        const looks = reassembleLooks(stored, byId, signed, (id) => {
+-          const it = byId.get(id);
+-          return it ? displayPath(it) : undefined;
+-        });
+-        // null = the closet changed under the stored set; fall through and
+-        // regenerate rather than showing an outfit with a hole in it.
+-        if (looks) return { status: "ok", weather, looks };
+-      }
++    //
++    // The stored set is read on BOTH paths. On a normal load it IS the answer;
++    // on a regenerate it is the recency signal — the pieces the user just
++    // rejected, which ranking will sink without ever filtering them out.
++    const stored = await loadDailyLooks(user.id, input.occasion, today);
++
++    if (!input.regenerate && stored?.length) {
++      const paths = Array.from(
++        new Set(
++          stored
++            .flatMap((s) => s.pieces.map((p) => byId.get(p.itemId)))
++            .filter((it): it is NonNullable<typeof it> => Boolean(it))
++            .map((it) => displayPath(it)),
++        ),
++      );
++      const signed = await signItemImages(paths);
++      const looks = reassembleLooks(stored, byId, signed, (id) => {
++        const it = byId.get(id);
++        return it ? displayPath(it) : undefined;
++      });
++      // null = the closet changed under the stored set; fall through and
++      // regenerate rather than showing an outfit with a hole in it.
++      if (looks) return { status: "ok", weather, looks };
+     }
+ 
++    // Only a deliberate regenerate carries the signal. A fall-through from a
++    // stale stored set is the app fixing itself, not the user asking for
++    // something else — penalising those pieces would be arbitrary.
++    const recentlyShown = input.regenerate
++      ? Array.from(new Set(stored?.flatMap((s) => s.pieces.map((p) => p.itemId)) ?? []))
++      : [];
++
+     await assertCanGenerate(user.id);
+ 
+     const candItems: CandidateItem[] = items.map((i) => ({
+@@ -149,7 +159,11 @@ export async function generate(input: {
+     // top harmonises with everything, so it occupies most of the list, and "the
+     // best 3" of a clustered list is three versions of one outfit. Diversifying
+     // the INPUT makes the model's three distinct by construction.
+-    const ranked = rankTopN(combos, { aesthetic, band, lean: input.lean }, combos.length);
++    const ranked = rankTopN(
++      combos,
++      { aesthetic, band, lean: input.lean, recentlyShown },
++      combos.length,
++    );
+     const top = diversify(ranked, 20);
+ 
+     const { picks } = await rerank({
+
+
+=== DIFF: lib/generator/__tests__/rank.test.ts ===
+@@ -1,17 +1,17 @@
+-import { rankTopN } from "../rank";
++import { rankTopN, RECENT_WEIGHT } from "../rank";
+ const ctx = { aesthetic: ["smart_casual"], band: [2.5, 4] as [number, number] };
+ 
+ test("returns at most N, best-first, each with a score", () => {
+   const combos = [
+     [
+-      { category: "top", colors: ["rust"], formality: 1 },
+-      { category: "bottom", colors: ["olive"], formality: 5 },
+-      { category: "shoes", colors: ["camel"], formality: 2 },
++      { id: "t1", category: "top", colors: ["rust"], formality: 1 },
++      { id: "b1", category: "bottom", colors: ["olive"], formality: 5 },
++      { id: "s1", category: "shoes", colors: ["camel"], formality: 2 },
+     ],
+     [
+-      { category: "top", colors: ["cream"], formality: 3 },
+-      { category: "bottom", colors: ["navy"], formality: 3 },
+-      { category: "shoes", colors: ["brown"], formality: 4 },
++      { id: "t2", category: "top", colors: ["cream"], formality: 3 },
++      { id: "b2", category: "bottom", colors: ["navy"], formality: 3 },
++      { id: "s2", category: "shoes", colors: ["brown"], formality: 4 },
+     ],
+   ];
+   const ranked = rankTopN(combos, ctx, 1);
+@@ -19,3 +19,57 @@ test("returns at most N, best-first, each with a score", () => {
+   expect(ranked[0].items[0].colors).toContain("cream"); // the coherent neutral combo wins
+   expect(ranked[0].score).toBeGreaterThan(0);
+ });
++
++// ── the recency preference ────────────────────────────────────────────────────
++// A regenerate sinks the pieces the user just rejected. It is a PREFERENCE, not
++// a filter: a closet with one valid combo must return that combo again rather
++// than an empty screen.
++
++const item = (id: string, category: string, color: string) => ({
++  id,
++  category,
++  colors: [color],
++  formality: 3,
++});
++
++// Two combos of identical scoring quality — same colours, same formality — so
++// the ONLY thing that can separate them is the recency penalty.
++const comboA = [item("top-a", "Tops", "navy"), item("bot-a", "Bottoms", "cream")];
++const comboB = [item("top-b", "Tops", "navy"), item("bot-b", "Bottoms", "cream")];
++const plain = { aesthetic: [], band: [1.5, 3] as [number, number], lean: [] };
++
++test("with no recentlyShown, ranking is unchanged", () => {
++  const out = rankTopN([comboA, comboB], plain, 2);
++  expect(out[0].score).toBe(out[1].score);
++});
++
++test("a combo made entirely of just-shown pieces sinks below a fresh one", () => {
++  const out = rankTopN([comboA, comboB], { ...plain, recentlyShown: ["top-a", "bot-a"] }, 2);
++  expect(out[0].items[0].id).toBe("top-b");
++});
++
++test("the penalty is proportional — one shared piece sinks less than two", () => {
++  const half = rankTopN([comboA], { ...plain, recentlyShown: ["top-a"] }, 1)[0].score;
++  const all = rankTopN([comboA], { ...plain, recentlyShown: ["top-a", "bot-a"] }, 1)[0].score;
++  const none = rankTopN([comboA], plain, 1)[0].score;
++  expect(all).toBeLessThan(half);
++  expect(half).toBeLessThan(none);
++});
++
++test("a fully-repeated combo is still RANKED, never removed", () => {
++  // The whole point of a soft preference: on a closet with one valid combo,
++  // Regenerate returns that combo again rather than "Nothing to style yet".
++  const out = rankTopN([comboA], { ...plain, recentlyShown: ["top-a", "bot-a"] }, 20);
++  expect(out).toHaveLength(1);
++});
++
++test("the penalty cannot drive a score below zero", () => {
++  const out = rankTopN([comboA], { ...plain, recentlyShown: ["top-a", "bot-a"] }, 1);
++  expect(out[0].score).toBeGreaterThanOrEqual(0);
++});
++
++test("RECENT_WEIGHT is small enough that quality still wins", () => {
++  // A genuinely better outfit that repeats a piece must still be able to beat
++  // a poor fresh one — the penalty reorders near-ties, it does not dominate.
++  expect(RECENT_WEIGHT).toBeLessThan(0.5);
++});
+
+
+=== DIFF: lib/generator/rank.ts ===
+@@ -1,8 +1,29 @@
+ import { scoreCombo, type ScoreItem, type Ctx } from "./score";
+ 
+-export function rankTopN<T extends ScoreItem>(combos: T[][], ctx: Ctx, n = 20) {
++/**
++ * How much of the score a fully-repeated combo gives up on a regenerate.
++ *
++ * Sized like LEAN_WEIGHT in score.ts and for the same reason: big enough to
++ * decisively reorder near-ties (which is what the top of a ranked shortlist
++ * is), small enough that a genuinely better outfit repeating one piece still
++ * beats a mediocre fresh one. It is a preference, never an eliminator.
++ */
++export const RECENT_WEIGHT = 0.25;
++
++/** Fraction of a combo's pieces the user was just shown, 0..1. */
++function recencyPenalty(items: { id: string }[], recent: Set<string>): number {
++  if (!recent.size || !items.length) return 0;
++  const hits = items.filter((i) => recent.has(i.id)).length;
++  return RECENT_WEIGHT * (hits / items.length);
++}
++
++export function rankTopN<T extends ScoreItem & { id: string }>(combos: T[][], ctx: Ctx, n = 20) {
++  const recent = new Set(ctx.recentlyShown ?? []);
+   return combos
+-    .map((items) => ({ items, score: scoreCombo(items, ctx) }))
++    .map((items) => ({
++      items,
++      score: Math.max(0, scoreCombo(items, ctx) - recencyPenalty(items, recent)),
++    }))
+     .sort((a, b) => b.score - a.score)
+     .slice(0, n);
+ }
+
+
+=== DIFF: lib/generator/score.ts ===
+@@ -11,6 +11,13 @@ export type Ctx = {
+   band: [number, number];
+   /** Refine "Lean into" colour families. Empty = no preference. */
+   lean?: string[];
++  /**
++   * Item ids from the set a regenerate is replacing. A SOFT preference applied
++   * in `rankTopN`, never a filter: pieces sink in the ranking but are never
++   * removed from the closet, so a small wardrobe still returns its one good
++   * outfit instead of an empty screen.
++   */
++  recentlyShown?: string[];
+ };
+ 
+ /**
+
+
+Investigate per the method in your instructions, then return the findings list.
