@@ -1,0 +1,93 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - components/closet/item-card.tsx
+  - components/ui-fitcheck/__tests__/surface.test.tsx
+  - components/ui-fitcheck/surface.tsx
+
+Unified diff (only + lines are new):
+
+=== DIFF: components/closet/item-card.tsx ===
+@@ -17,7 +17,10 @@ export function ItemCard({
+   return (
+     <Link href={`/closet/${id}`} className="mb-3 block break-inside-avoid">
+       <Surface className="overflow-hidden">
+-        <div style={{ height }} className="bg-surface-2">
++        {/* No fill of its own — the cutout floats on the card's gradient, as in
++            the design (Fitcheck.dc.html:181, where this div carries only the
++            image). A flat panel here covered most of that gradient. */}
++        <div style={{ height }}>
+           {imageUrl ? (
+             // Not next/image on purpose: `imageUrl` is a short-lived signed
+             // Supabase URL, and the optimizer caches by URL — a rotating
+@@ -40,7 +43,10 @@ export function ItemCard({
+               {brand}
+             </p>
+           )}
+-          <p className="font-serif text-[15px] text-foreground">{name}</p>
++          {/* --color-value (#cfc8ba), the middle of the cream ramp. The design
++              gives every label/value pair's VALUE this step; at --foreground it
++              read too loud against the brand kicker above it. */}
++          <p className="font-serif text-[15px] text-value">{name}</p>
+         </div>
+       </Surface>
+     </Link>
+
+
+=== DIFF: components/ui-fitcheck/__tests__/surface.test.tsx ===
+@@ -1,8 +1,29 @@
+ import { render, screen } from "@testing-library/react";
+ import { Surface } from "../surface";
+ 
+-test("applies surface background and the inset hairline ring", () => {
++test("applies the design's card gradient and keeps the card radius", () => {
+   render(<Surface data-testid="s">x</Surface>);
+   const el = screen.getByTestId("s");
+-  expect(el).toHaveClass("bg-surface-1", "rounded-[14px]");
++  expect(el).toHaveClass("surface-card", "rounded-[14px]");
++});
++
++test("no flat fill — the design never fills a raised surface with a solid colour", () => {
++  // `.surface-card` (globals.css @layer components) carries BOTH the gradient
++  // and its inset hairline. A `bg-*` utility alongside it would win on layer
++  // order — utilities come after components in Tailwind v4 — and silently
++  // restore the flat fill this replaced.
++  render(<Surface data-testid="s">x</Surface>);
++  const el = screen.getByTestId("s");
++  expect(el.className).not.toMatch(/\bbg-surface-1\b/);
++  expect(el.className).not.toMatch(/shadow-\[inset/);
++});
++
++test("callers can still add layout classes without losing the surface", () => {
++  render(
++    <Surface data-testid="s" className="overflow-hidden">
++      x
++    </Surface>,
++  );
++  const el = screen.getByTestId("s");
++  expect(el).toHaveClass("surface-card", "overflow-hidden");
+ });
+
+
+=== DIFF: components/ui-fitcheck/surface.tsx ===
+@@ -4,7 +4,16 @@ export function Surface({ className, ...props }: React.ComponentProps<"div">) {
+   return (
+     <div
+       className={cn(
+-        "bg-surface-1 rounded-[14px] shadow-[inset_0_0_0_1px_rgba(237,230,216,0.07)]",
++        // `.surface-card` (globals.css @layer components) carries the design's
++        // card gradient AND its inset hairline. It replaced a flat
++        // `bg-surface-1` + a hard-coded 0.07 ring: the design never fills a
++        // raised surface with a solid colour, and drawing one flattened the
++        // depth that the directional gradient provides.
++        //
++        // Do not re-add a `bg-*` utility here or at a call site — utilities sit
++        // after components in Tailwind v4's layer order, so it would win and
++        // silently restore the flat fill.
++        "surface-card rounded-[14px]",
+         className,
+       )}
+       {...props}
+
+
+Investigate per the method in your instructions, then return the findings list.
