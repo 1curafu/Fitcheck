@@ -1,0 +1,608 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/closet/[itemId]/style-actions.ts
+  - app/generate/actions.ts
+  - lib/generator/__tests__/candidates.test.ts
+  - lib/generator/__tests__/rules.test.ts
+  - lib/generator/candidates.ts
+  - lib/generator/rules.ts
+  - lib/weather/__tests__/advice.test.ts
+  - lib/weather/__tests__/map.test.ts
+  - lib/weather/advice.ts
+  - lib/weather/open-meteo.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/closet/[itemId]/style-actions.ts ===
+@@ -5,7 +5,7 @@ import { signItemImages, displayPath } from "@/lib/storage/signed";
+ import { fetchForecast } from "@/lib/weather/open-meteo";
+ import { laterAdvice } from "@/lib/weather/advice";
+ import { readPreferences } from "@/lib/profile/preferences";
+-import { personalBand } from "@/lib/generator/rules";
++import { personalBand, planningTemp } from "@/lib/generator/rules";
+ import { buildCandidates, type CandidateItem } from "@/lib/generator/candidates";
+ import { rankTopN } from "@/lib/generator/rank";
+ import { currentSeason } from "@/lib/generator/season";
+@@ -109,7 +109,7 @@ export async function styleWithItem(
+     const loc = resolveLocation({ profile });
+     const f = await fetchForecast(loc.lat, loc.lon);
+     const prefs = readPreferences(profile?.preferences);
+-    const advice = laterAdvice(f.hourly, prefs.tempUnit);
++    const advice = laterAdvice(f.hourly, prefs.tempUnit, f.highC);
+     const weather: WeatherPayload = {
+       tempC: f.tempC,
+       feelsLikeC: f.feelsLikeC,
+@@ -151,7 +151,13 @@ export async function styleWithItem(
+     }));
+ 
+     const args = {
+-      weather: { tempC: f.tempC, rain: f.hourly.some((h) => h.isNow && h.rain) },
++      weather: {
++        tempC: f.tempC,
++        rain: f.hourly.some((h) => h.isNow && h.rain),
++        // The look is built for the day, not for this minute.
++        highC: f.highC,
++        lowC: f.lowC,
++      },
+       season: currentSeason(now),
+       excludeItemIds: [],
+       maxAccessories: 1,
+@@ -187,7 +193,7 @@ export async function styleWithItem(
+         // Styling a chosen piece is weather-aware too: the plan only names the
+         // daily path, but a look built around your favourite jumper still has
+         // to be wearable at today's temperature.
+-        { aesthetic, band, lean: [], recentlyShown, season: args.season, tempC: f.tempC },
++        { aesthetic, band, lean: [], recentlyShown, season: args.season, tempC: planningTemp(args.weather) },
+         combos.length,
+       );
+       pinned = pinItem(ranked, itemId);
+
+
+=== DIFF: app/generate/actions.ts ===
+@@ -5,7 +5,7 @@ import { signItemImages, displayPath } from "@/lib/storage/signed";
+ import { fetchForecast } from "@/lib/weather/open-meteo";
+ import { laterAdvice } from "@/lib/weather/advice";
+ import { readPreferences } from "@/lib/profile/preferences";
+-import { personalBand, applyFormalityOverride } from "@/lib/generator/rules";
++import { personalBand, applyFormalityOverride, planningTemp } from "@/lib/generator/rules";
+ import { buildCandidates, missingCategory, type CandidateItem } from "@/lib/generator/candidates";
+ import { rankTopN } from "@/lib/generator/rank";
+ import { diversify } from "@/lib/generator/diversity";
+@@ -79,7 +79,7 @@ export async function generate(input: {
+     const now = new Date();
+     const f = await fetchForecast(loc.lat, loc.lon);
+     const prefs = readPreferences(profile?.preferences);
+-    const advice = laterAdvice(f.hourly, prefs.tempUnit);
++    const advice = laterAdvice(f.hourly, prefs.tempUnit, f.highC);
+     const weather: WeatherPayload = {
+       tempC: f.tempC,
+       feelsLikeC: f.feelsLikeC,
+@@ -199,7 +199,13 @@ export async function generate(input: {
+     );
+     const candidateArgs = {
+       band,
+-      weather: { tempC: f.tempC, rain: f.hourly.some((h) => h.isNow && h.rain) },
++      weather: {
++        tempC: f.tempC,
++        rain: f.hourly.some((h) => h.isNow && h.rain),
++        // The look is built for the day, not for this minute.
++        highC: f.highC,
++        lowC: f.lowC,
++      },
+       season: currentSeason(now),
+       excludeItemIds: [],
+       maxAccessories: 1,
+@@ -231,7 +237,9 @@ export async function generate(input: {
+         lean: input.lean,
+         recentlyShown,
+         season: candidateArgs.season,
+-        tempC: f.tempC,
++        // The day's high, not the current reading — the drop is generated once
++        // and worn all day. `planningTemp` is the single definition of that.
++        tempC: planningTemp(candidateArgs.weather),
+       },
+       combos.length,
+     );
+
+
+=== DIFF: lib/generator/__tests__/candidates.test.ts ===
+@@ -273,3 +273,64 @@ test("shoe coverage holds across awkward list sizes", () => {
+     expect(reached.size, `shoeCount=${shoeCount}`).toBe(shoeCount);
+   }
+ });
++
++// ── The sweltering-day warmth bar ───────────────────────────────────────────
++// Above 28° a garment's computed warmth stops being a preference. Reported
++// 2026-08-14: a cotton cable-knit sweater reached a 34.8°C day, because
++// `HOT_MATERIALS` only catches insulation by FIBRE and a soft score cannot keep
++// anything out when `diversify` fills 20 shortlist slots from 66 combos.
++
++const hotDay = {
++  ...base,
++  season: "Summer",
++  weather: { tempC: 22, rain: false, highC: 34, lowC: 20 },
++};
++
++test("a heavy knit is barred on a sweltering day even though its fibre is cotton", () => {
++  const closet = [
++    { id: "t-knit", category: "Tops", colors: ["black"], formality: 3, seasons: ["Autumn", "Winter"], material: "Cotton", texture: "Cable knit", pattern: "solid" },
++    { id: "t-linen", category: "Tops", colors: ["white"], formality: 3, seasons: ["Summer"], material: "Linen", texture: "Flat", pattern: "solid" },
++    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "Lyocell", texture: "Twill", pattern: "solid" },
++    { id: "s1", category: "Shoes", colors: ["white"], formality: 3, seasons: ["Summer"], material: "Leather", texture: "Flat", pattern: "solid" },
++  ];
++  const ids = buildCandidates(closet, hotDay).flat().map((i) => i.id);
++  expect(ids).not.toContain("t-knit");
++  expect(ids).toContain("t-linen");
++});
++
++test("the SAME garment survives when the wearer tags it for Summer", () => {
++  // The reason the bar reads `itemWarmth` and not a material list: both of these
++  // are Cotton / Cable knit, and only the wearer can tell them apart.
++  const summerKnit = [
++    { id: "t-knit", category: "Tops", colors: ["navy"], formality: 3, seasons: ["Spring", "Summer"], material: "Cotton", texture: "Cable knit", pattern: "solid" },
++    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "Lyocell", texture: "Twill", pattern: "solid" },
++    { id: "s1", category: "Shoes", colors: ["white"], formality: 3, seasons: ["Summer"], material: "Leather", texture: "Flat", pattern: "solid" },
++  ];
++  expect(buildCandidates(summerKnit, hotDay).flat().map((i) => i.id)).toContain("t-knit");
++});
++
++test("the bar can NARROW a required slot but can never empty one", () => {
++  // The relief rule, and the reason a hard filter is safe here at all. A closet
++  // whose every top is heavy knitwear must still be dressable at 34° — "better
++  // a slightly-wrong outfit than an empty screen" is the rule this project has
++  // now protected four times.
++  const allHeavy = [
++    { id: "t1", category: "Tops", colors: ["black"], formality: 3, seasons: ["Winter"], material: "Wool", texture: "Chunky knit", pattern: "solid" },
++    { id: "t2", category: "Tops", colors: ["grey"], formality: 3, seasons: ["Winter"], material: "Cashmere", texture: "Cable knit", pattern: "solid" },
++    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "Lyocell", texture: "Twill", pattern: "solid" },
++    { id: "s1", category: "Shoes", colors: ["white"], formality: 3, seasons: ["Summer"], material: "Leather", texture: "Flat", pattern: "solid" },
++  ];
++  const combos = buildCandidates(allHeavy, hotDay);
++  expect(combos.length).toBeGreaterThan(0);
++  expect(missingCategory(allHeavy, hotDay)).toBeNull();
++});
++
++test("a merely warm day leaves the bar off entirely", () => {
++  const warmNotHot = { ...base, season: "Summer", weather: { tempC: 22, rain: false, highC: 26 } };
++  const closet = [
++    { id: "t-knit", category: "Tops", colors: ["black"], formality: 3, seasons: ["Autumn", "Winter"], material: "Cotton", texture: "Cable knit", pattern: "solid" },
++    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "Lyocell", texture: "Twill", pattern: "solid" },
++    { id: "s1", category: "Shoes", colors: ["white"], formality: 3, seasons: ["Summer"], material: "Leather", texture: "Flat", pattern: "solid" },
++  ];
++  expect(buildCandidates(closet, warmNotHot).flat().map((i) => i.id)).toContain("t-knit");
++});
+
+
+=== DIFF: lib/generator/__tests__/rules.test.ts ===
+@@ -1,5 +1,5 @@
+ import { occasionBand, applyFormalityOverride, personalBand, weatherRules } from "../rules";
+-import { warmthFit } from "../texture";
++import { itemWarmth, warmthFit } from "../texture";
+ 
+ test("occasion is CONTEXT, not a dress code — each band spans its real-world spread", () => {
+   // Work runs from a creative office in sneakers to a suit; Evening from a
+@@ -179,3 +179,57 @@ test("rain guard does not reach the heat exclusions", () => {
+ test("rain guard does not reach the outerwear rule", () => {
+   expect(weatherRules({ tempC: 12, rain: true }, { rainGuard: false }).needsOuterwear).toBe(true);
+ });
++
++// ── The look is built for the day's HIGH, not for this minute ────────────────
++// Reported 2026-08-14: at 07:45, 20°C, the drop offered a cable-knit sweater
++// for a day that reached 34.8°C. The daily drop is generated ONCE and worn all
++// day, so scoring against `tempC` optimises for the minute the app happened to
++// be opened. `planningTemp` is the fix.
++
++test("the heat rules read the day's high, not the current temperature", () => {
++  const morningOfAHotDay = { tempC: 20, rain: false, highC: 34, lowC: 20 };
++  expect(weatherRules(morningOfAHotDay).excludeMaterials).toEqual(
++    expect.arrayContaining(["fleece", "down", "shearling"]),
++  );
++  expect(weatherRules(morningOfAHotDay).maxWarmth).toBe(0.6);
++});
++
++test("outerwear follows the high too, so a coat never lands in a 30° flat-lay", () => {
++  // The cold end of the day is handled by ADVICE, not by putting a coat in the
++  // look. A 9°-morning / 22°-afternoon day must not dress you in a jacket.
++  expect(weatherRules({ tempC: 9, rain: false, highC: 22, lowC: 9 }).needsOuterwear).toBe(false);
++  // A day that stays cold still gets one.
++  expect(weatherRules({ tempC: 2, rain: false, highC: 6, lowC: -1 }).needsOuterwear).toBe(true);
++});
++
++test("with no day range the rules fall back to the current temperature", () => {
++  // Every existing caller and fixture passes only tempC; behaviour must be
++  // byte-identical for them.
++  expect(weatherRules({ tempC: 30, rain: false }).excludeMaterials).toEqual(
++    weatherRules({ tempC: 30, rain: false, highC: 30 }).excludeMaterials,
++  );
++  expect(weatherRules({ tempC: 10, rain: false }).needsOuterwear).toBe(true);
++});
++
++test("rain still reads the hour you step outside, not the day", () => {
++  // Wet materials are about the pavement now; heat is about the afternoon.
++  const hotAndRainy = { tempC: 20, rain: true, highC: 34 };
++  expect(weatherRules(hotAndRainy).excludeMaterials).toEqual(
++    expect.arrayContaining(["suede", "canvas", "fleece"]),
++  );
++});
++
++test("warmth becomes a hard bar only on a genuinely sweltering day", () => {
++  expect(weatherRules({ tempC: 25, rain: false }).maxWarmth).toBeNull();
++  expect(weatherRules({ tempC: 28, rain: false }).maxWarmth).toBeNull();
++  expect(weatherRules({ tempC: 29, rain: false }).maxWarmth).toBe(0.6);
++});
++
++test("the sweltering bar separates the wearer's own cable knits", () => {
++  // The whole reason it reads itemWarmth rather than a keyword list: a cable
++  // knit tagged Summer clears the bar, the same garment tagged Autumn/Winter
++  // does not. A material list cannot express that — both are Cotton.
++  const bar = weatherRules({ tempC: 24, rain: false, highC: 34 }).maxWarmth!;
++  expect(itemWarmth("Cotton", "Cable knit", ["Spring", "Summer"])).toBeLessThan(bar);
++  expect(itemWarmth("Cotton", "Cable knit", ["Autumn", "Winter"])).toBeGreaterThanOrEqual(bar);
++});
+
+
+=== DIFF: lib/generator/candidates.ts ===
+@@ -1,5 +1,6 @@
+ import { weatherRules, type Weather } from "./rules";
+ import { inSeason } from "./season";
++import { itemWarmth } from "./texture";
+ 
+ export type CandidateItem = {
+   id: string;
+@@ -77,11 +78,24 @@ function materialExcluded(material: string | null, excludeMaterials: string[]):
+   return excludeMaterials.some((x) => m.includes(x));
+ }
+ 
+-function isEligible(i: CandidateItem, a: CandidateArgs, excludeMaterials: string[]): boolean {
++/**
++ * The weather bars, held together so the relief rule can drop ALL of them at
++ * once. Splitting them let a later bar survive relief and empty a slot anyway.
++ */
++type WeatherBars = { excludeMaterials: string[]; maxWarmth: number | null };
++const NO_BARS: WeatherBars = { excludeMaterials: [], maxWarmth: null };
++
++function isEligible(i: CandidateItem, a: CandidateArgs, bars: WeatherBars): boolean {
+   const [lo, hi] = a.band;
+   if (i.category === "Fragrance") return false; // D11: fragrances are never slotted
+   if (a.excludeItemIds.includes(i.id)) return false;
+-  if (materialExcluded(i.material, excludeMaterials)) return false;
++  if (materialExcluded(i.material, bars.excludeMaterials)) return false;
++  // On a genuinely sweltering day warmth stops being a preference. Reads the
++  // wearer's season tags, so a cable knit they wear in July survives and one
++  // they only wear in November does not — see lib/generator/texture.ts.
++  if (bars.maxWarmth != null && itemWarmth(i.material, i.texture, i.seasons) >= bars.maxWarmth) {
++    return false;
++  }
+   // Season is deliberately NOT filtered here — see ./season.ts. It orders the
+   // lists below and weights the score instead. Filtering ran against every
+   // required slot, so one narrowly-tagged category zeroed the whole result:
+@@ -122,7 +136,8 @@ export function eligibleByCategory(
+   items: CandidateItem[],
+   a: CandidateArgs,
+ ): Record<string, CandidateItem[]> {
+-  const { excludeMaterials } = weatherRules(a.weather, { rainGuard: a.rainGuard });
++  const { excludeMaterials, maxWarmth } = weatherRules(a.weather, { rainGuard: a.rainGuard });
++  const bars: WeatherBars = { excludeMaterials, maxWarmth };
+   const cats = new Set<string>(items.map((i) => i.category));
+   for (const c of REQUIRED_CATEGORIES) cats.add(c);
+   cats.add("Outerwear");
+@@ -130,8 +145,8 @@ export function eligibleByCategory(
+   const out: Record<string, CandidateItem[]> = {};
+   for (const c of cats) {
+     const inCat = items.filter((i) => i.category === c);
+-    let list = inCat.filter((i) => isEligible(i, a, excludeMaterials));
+-    if (!list.length && isRequired(c)) list = inCat.filter((i) => isEligible(i, a, []));
++    let list = inCat.filter((i) => isEligible(i, a, bars));
++    if (!list.length && isRequired(c)) list = inCat.filter((i) => isEligible(i, a, NO_BARS));
+     out[c] = bySeasonFirst(list, a.season);
+   }
+   return out;
+
+
+=== DIFF: lib/generator/rules.ts ===
+@@ -1,6 +1,29 @@
+ import type { UiOccasion } from "./types";
+ 
+-export type Weather = { tempC: number; rain: boolean };
++export type Weather = {
++  /** The temperature RIGHT NOW. Display, and the fallback when no day range exists. */
++  tempC: number;
++  rain: boolean;
++  /**
++   * Today's high and low.
++   *
++   * The daily drop is generated once and worn all day, so scoring against
++   * `tempC` optimises for the minute the user happened to open the app. On
++   * 2026-08-14 that produced a cable-knit sweater at 07:45 for a day that
++   * reached 34.8°C. **The look is built for the HIGH; the cold end of the day is
++   * handled by advice, not by the outfit** — otherwise a 22°-afternoon /
++   * 9°-morning day puts a coat in every flat-lay you see at 3pm.
++   *
++   * Optional: fixtures and any caller without a forecast fall back to `tempC`.
++   */
++  highC?: number;
++  lowC?: number;
++};
++
++/** The temperature the LOOK is built for. */
++export function planningTemp(w: Weather): number {
++  return w.highC ?? w.tempC;
++}
+ 
+ // v2 UI occasions → formality bands (Decision D9, widened — see below).
+ //
+@@ -112,6 +135,25 @@ const HOT_C = 25;
+ /** Materials rain ruins. Turned off by the rain-guard preference, nothing else. */
+ const WET_MATERIALS = ["suede", "canvas"];
+ 
++/**
++ * Above this, a garment's computed warmth stops being a penalty and becomes a bar.
++ *
++ * `HOT_MATERIALS` only catches insulation by FIBRE, which is why a cotton
++ * cable-knit sweater reached a 34.8°C day on 2026-08-14. Measured on the real
++ * 21-item closet: the warmth term demoted that combo from #13 to #22 of 66, but
++ * `diversify` fills 20 shortlist slots out of 66 combos — so 30% of everything
++ * reaches the model and a demotion changes nothing. This is the hole the plan
++ * named: *"a soft term demotes, and diversify still fills 20 slots."*
++ *
++ * Safe as a hard rule because it reads `itemWarmth`, which now respects the
++ * wearer's own season tags — a Summer-tagged cable knit is 0.55 and survives,
++ * an Autumn/Winter one is 0.65 and does not — and because
++ * `eligibleByCategory`'s relief rule guarantees it can narrow a required slot
++ * but never empty one.
++ */
++const SWELTERING_C = 28;
++const SWELTERING_MAX_WARMTH = 0.6;
++
+ /**
+  * @param prefs `rainGuard` is the settings toggle. It defaults ON: the
+  * protective behaviour shipped before the switch existed, so an absent
+@@ -120,14 +162,21 @@ const WET_MATERIALS = ["suede", "canvas"];
+  * The toggle reaches the WET list only. The heat exclusions are about comfort
+  * at 30°, not about keeping shoes dry, and `needsOuterwear` is about cold — a
+  * switch labelled "never suede in the rain" has no business touching either.
++ *
++ * Everything thermal here reads `planningTemp` — the day's HIGH — not the
++ * current temperature. Rain is the exception: it is read from `rain`, which is
++ * about the hour you step outside.
+  */
+ export function weatherRules(w: Weather, prefs?: { rainGuard?: boolean }) {
+   const rainGuard = prefs?.rainGuard ?? true;
++  const planning = planningTemp(w);
+   return {
+-    needsOuterwear: w.tempC < 15,
++    needsOuterwear: planning < 15,
+     excludeMaterials: [
+       ...(w.rain && rainGuard ? WET_MATERIALS : []),
+-      ...(w.tempC > HOT_C ? HOT_MATERIALS : []),
++      ...(planning > HOT_C ? HOT_MATERIALS : []),
+     ],
++    /** null = warmth is a preference today, as it is on all but the hottest days. */
++    maxWarmth: planning > SWELTERING_C ? SWELTERING_MAX_WARMTH : null,
+   };
+ }
+
+
+=== DIFF: lib/weather/__tests__/advice.test.ts ===
+@@ -72,3 +72,51 @@ test("the advice clause is unchanged by the unit — the rust binding depends on
+   expect(f.adviceClause).toBe("carry a jacket.");
+   expect(f.sentence.includes(f.adviceClause)).toBe(true);
+ });
++
++// ── The day still to come ───────────────────────────────────────────────────
++// The generator builds the look for the day's HIGH (see lib/generator/rules.ts,
++// `planningTemp`), so on a morning that climbs the outfit is deliberately
++// lighter than right now justifies. This sentence is the only thing that
++// explains that, and it is the half of the decision that makes dressing for the
++// peak honest rather than just wrong in the other direction.
++
++test("a steep climb is announced, so a light look at 20° makes sense", () => {
++  const morning = [
++    { hh: "08:00", tempC: 20, rain: false, isNow: true },
++    { hh: "09:00", tempC: 22, rain: false, isNow: false },
++  ];
++  const { sentence, adviceClause } = laterAdvice(morning, "C", 35);
++  expect(sentence).toContain("35");
++  expect(sentence).toContain("this afternoon");
++  expect(adviceClause).toBe("you're dressed for it.");
++});
++
++test("a day that is not going anywhere says nothing about the climb", () => {
++  const flat = [
++    { hh: "14:00", tempC: 22, rain: false, isNow: true },
++    { hh: "15:00", tempC: 23, rain: false, isNow: false },
++  ];
++  expect(laterAdvice(flat, "C", 24).sentence).not.toContain("this afternoon");
++});
++
++test("rain still outranks the climb — a shell is the more urgent instruction", () => {
++  const hotAndWet = [
++    { hh: "08:00", tempC: 20, rain: false, isNow: true },
++    { hh: "10:00", tempC: 24, rain: true, isNow: false },
++  ];
++  expect(laterAdvice(hotAndWet, "C", 35).adviceClause).toBe("take a shell.");
++});
++
++test("the climb is rendered in the user's unit", () => {
++  const morning = [{ hh: "08:00", tempC: 20, rain: false, isNow: true }];
++  expect(laterAdvice(morning, "F", 35).sentence).toContain("95"); // 35C = 95F
++});
++
++test("omitting the high leaves the sentence exactly as it was", () => {
++  const evening = [
++    { hh: "18:00", tempC: 18, rain: false, isNow: true },
++    { hh: "22:00", tempC: 11, rain: false, isNow: false },
++  ];
++  expect(laterAdvice(evening, "C")).toEqual(laterAdvice(evening, "C", undefined));
++  expect(laterAdvice(evening, "C").adviceClause).toBe("carry a jacket.");
++});
+
+
+=== DIFF: lib/weather/__tests__/map.test.ts ===
+@@ -80,3 +80,40 @@ test("fetchForecast asks for timezone=auto and ROUNDS coords so the 30-min cache
+ 
+   vi.unstubAllGlobals();
+ });
++
++// ── Today's range — what the LOOK is built for ──────────────────────────────
++// Reported 2026-08-14: a cable-knit sweater was offered at 07:45 in 20°C for a
++// day that reached 34.8°C. The drop is generated once and worn all day, so the
++// generator needs the day's high, not the temperature at the moment it ran.
++
++test("the day's high and low come through", () => {
++  const withDaily = {
++    ...raw,
++    daily: { temperature_2m_max: [34.8], temperature_2m_min: [8.2] },
++  };
++  const w = mapForecast(withDaily, "2026-01-14T18:00");
++  expect(w.highC).toBe(35);
++  expect(w.lowC).toBe(8);
++  expect(w.tempC).toBe(Math.round(raw.current.temperature_2m)); // display is still NOW
++});
++
++test("no daily block falls back to the current temperature", () => {
++  // A cached response from before this shipped must still map, and must behave
++  // exactly as it did then.
++  const w = mapForecast(raw, "2026-01-14T18:00");
++  expect(w.highC).toBe(w.tempC);
++  expect(w.lowC).toBe(w.tempC);
++});
++
++test("the range can never contradict the temperature on screen", () => {
++  // A stale daily block against a fresh `current` could otherwise report a high
++  // BELOW the number the user is reading, which would look like a bug and would
++  // dress them for a colder day than they are standing in.
++  const contradictory = {
++    ...raw,
++    daily: { temperature_2m_max: [-40], temperature_2m_min: [99] },
++  };
++  const w = mapForecast(contradictory, "2026-01-14T18:00");
++  expect(w.highC).toBeGreaterThanOrEqual(w.tempC);
++  expect(w.lowC).toBeLessThanOrEqual(w.tempC);
++});
+
+
+=== DIFF: lib/weather/advice.ts ===
+@@ -1,6 +1,13 @@
+ import type { HourCell } from "@/lib/generator/types";
+ import { formatTemp, type TempUnit } from "./format";
+ 
++/**
++ * How far the day must still climb before it is worth mentioning. Matches the
++ * 5° the evening-drop branch uses — the same "enough to change what you'd wear"
++ * threshold, and Celsius on both sides because it is physics, not a preference.
++ */
++const RISE_C = 5;
++
+ /**
+  * The single dressing-advice voice on the screen (README §2). Deterministic:
+  * rain later → shell; a big evening drop → jacket; else reassuring.
+@@ -12,10 +19,14 @@ import { formatTemp, type TempUnit } from "./format";
+  * render boundary with everything else. The 5° drop that triggers it is still
+  * measured in Celsius — the threshold is physics, only the printed number is a
+  * preference.
++ *
++ * @param dayHighC today's high. The generator builds the look for THIS, not for
++ * the current temperature, so a steep climb needs saying out loud.
+  */
+ export function laterAdvice(
+   hourly: HourCell[],
+   unit: TempUnit = "C",
++  dayHighC?: number,
+ ): { sentence: string; adviceClause: string } {
+   const rainHour = hourly.find((h) => h.rain);
+   if (rainHour) {
+@@ -24,6 +35,20 @@ export function laterAdvice(
+   }
+ 
+   const now = hourly[0]?.tempC ?? 0;
++
++  // The look is built for the day's HIGH, so on a morning that climbs steeply it
++  // will look lighter than the thermometer currently justifies. Say so — this
++  // sentence is the ONLY thing that explains why, and without it a light outfit
++  // at 20°C reads as the stylist getting it wrong. It is also the other half of
++  // the decision: dress for the peak, and be told about the cool start.
++  if (dayHighC != null && dayHighC - now >= RISE_C) {
++    const adviceClause = "you're dressed for it.";
++    return {
++      sentence: `Up to ${formatTemp(dayHighC, unit)} this afternoon — ${adviceClause}`,
++      adviceClause,
++    };
++  }
++
+   const last = hourly[hourly.length - 1]?.tempC ?? now;
+   if (now - last >= 5) {
+     const adviceClause = "carry a jacket.";
+
+
+=== DIFF: lib/weather/open-meteo.ts ===
+@@ -17,6 +17,12 @@ type Raw = {
+     weather_code: number[];
+     precipitation_probability: number[];
+   };
++  /**
++   * Today's range. Optional so older fixtures and any cached response without it
++   * still map — callers fall back to the current temperature, which is the
++   * behaviour that shipped before.
++   */
++  daily?: { temperature_2m_max?: number[]; temperature_2m_min?: number[] };
+ };
+ 
+ function conditionFor(code: number): string {
+@@ -39,7 +45,15 @@ function hhmm(iso: string): string {
+ export function mapForecast(
+   raw: Raw,
+   nowIso: string = raw.current.time,
+-): { tempC: number; feelsLikeC: number; condition: string; timezone: string; hourly: HourCell[] } {
++): {
++  tempC: number;
++  feelsLikeC: number;
++  condition: string;
++  timezone: string;
++  hourly: HourCell[];
++  highC: number;
++  lowC: number;
++} {
+   const times = raw.hourly.time;
+   let nowIdx = times.findIndex((t) => t >= nowIso); // first hour at/after now
+   if (nowIdx < 0) nowIdx = 0;
+@@ -55,12 +69,23 @@ export function mapForecast(
+     });
+   }
+ 
++  // The look is built for the day's HIGH, not for the minute the app was
++  // opened — the daily drop is generated once and worn all day. Falls back to
++  // the current temperature when the API response carries no daily block, which
++  // is exactly the behaviour that shipped before.
++  const now = Math.round(raw.current.temperature_2m);
++  const max = raw.daily?.temperature_2m_max?.[0];
++  const min = raw.daily?.temperature_2m_min?.[0];
++
+   return {
+-    tempC: Math.round(raw.current.temperature_2m),
++    tempC: now,
+     feelsLikeC: Math.round(raw.current.apparent_temperature),
+     condition: conditionFor(raw.current.weather_code),
+     timezone: raw.timezone,
+     hourly,
++    // Never let the range contradict the reading the user can see on screen.
++    highC: max == null ? now : Math.max(now, Math.round(max)),
++    lowC: min == null ? now : Math.min(now, Math.round(min)),
+   };
+ }
+ 
+@@ -74,7 +99,9 @@ export async function fetchForecast(lat: number, lon: number, nowIso?: string) {
+     `https://api.open-meteo.com/v1/forecast?latitude=${la}&longitude=${lo}` +
+     `&current=temperature_2m,apparent_temperature,weather_code` +
+     `&hourly=temperature_2m,weather_code,precipitation_probability` +
+-    `&forecast_hours=24&timezone=auto`;
++    // `daily` is what the LOOK is built for; `current` is what the screen shows.
++    `&daily=temperature_2m_max,temperature_2m_min` +
++    `&forecast_hours=24&forecast_days=1&timezone=auto`;
+   const res = await fetch(url, { next: { revalidate: 1800 } });
+   return mapForecast(await res.json(), nowIso);
+ }
+
+
+Investigate per the method in your instructions, then return the findings list.
