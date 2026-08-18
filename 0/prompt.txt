@@ -1,0 +1,3 @@
+i would propose u that "**Always read the TL;DR section of `docs/STATE.md` before writing any code** — it
+carries the in-flight branch, superseded plans, rejected approaches, and known-broken
+things that the code cannot tell you. The history below the fold is optional.". Are u agreed with that?
