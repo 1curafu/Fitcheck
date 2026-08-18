@@ -1,0 +1,161 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - lib/profile/__tests__/identity.test.ts
+  - lib/profile/identity.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: lib/profile/__tests__/identity.test.ts ===
+@@ -0,0 +1,78 @@
++import { initials, handleFrom, paletteFor } from "../identity";
++
++describe("initials", () => {
++  test("initials come from the display name", () => {
++    expect(initials("Mykhailo Khimich", "m@x.com")).toBe("MK");
++    expect(initials("Cher", "c@x.com")).toBe("C");
++  });
++
++  test("a missing name falls back to the email, never to an empty circle", () => {
++    expect(initials(null, "icurafu333@gmail.com")).toBe("I");
++    expect(initials("", "icurafu333@gmail.com")).toBe("I");
++  });
++
++  test("initials are at most two characters even for long names", () => {
++    expect(initials("Ana Maria Sofia Ferreira", "a@x.com")).toHaveLength(2);
++  });
++
++  test("extra whitespace does not produce blank initials", () => {
++    expect(initials("  Mykhailo   Khimich  ", "m@x.com")).toBe("MK");
++  });
++
++  // The avatar is a 62px circle with nothing else in it — an empty one reads as
++  // a broken image rather than a person.
++  test("a name of only whitespace still yields a letter", () => {
++    expect(initials("   ", "icurafu333@gmail.com")).toBe("I");
++  });
++
++  test("initials are upper-cased however the name was typed", () => {
++    expect(initials("mykhailo khimich", "m@x.com")).toBe("MK");
++  });
++});
++
++describe("handleFrom", () => {
++  test("the handle derives from the email local-part", () => {
++    expect(handleFrom("icurafu333@gmail.com")).toBe("@icurafu333");
++  });
++
++  // A handle is shown on screen and will eventually reach a share card, so it
++  // must not carry characters that read as punctuation noise.
++  test("dots and plus-addressing are stripped", () => {
++    expect(handleFrom("first.last+fitcheck@gmail.com")).toBe("@firstlast");
++  });
++
++  test("it never returns a bare @", () => {
++    expect(handleFrom("@weird.com").length).toBeGreaterThan(1);
++    expect(handleFrom("")).toMatch(/^@\w+/);
++  });
++});
++
++describe("paletteFor", () => {
++  test("a known archetype has a palette; an unknown one still returns swatches", () => {
++    expect(paletteFor("Old Money").length).toBeGreaterThan(0);
++    expect(paletteFor(null).length).toBeGreaterThan(0);
++  });
++
++  test("every palette entry is a renderable hex", () => {
++    for (const c of paletteFor("Streetwear")) expect(c).toMatch(/^#[0-9a-f]{6}$/i);
++    for (const c of paletteFor(null)) expect(c).toMatch(/^#[0-9a-f]{6}$/i);
++  });
++
++  // Every archetype the onboarding quiz can produce must resolve to something
++  // deliberate rather than silently falling back.
++  test.each(["Old Money", "Smart Casual", "Preppy", "Streetwear"])(
++    "%s — the quiz's own archetype — has its own palette",
++    (a) => {
++      expect(paletteFor(a).length).toBeGreaterThan(0);
++    },
++  );
++
++  // These are the --color-dna-* tokens in globals.css. Hard-coding a second set
++  // here is how the hub and the Style DNA card drift apart.
++  test("palettes are drawn from the DNA tokens", () => {
++    const DNA = ["#ede6d8", "#2c3a4c", "#b89a6a", "#6e6f52", "#b86a47"];
++    for (const a of ["Old Money", "Preppy", null]) {
++      for (const c of paletteFor(a)) expect(DNA).toContain(c.toLowerCase());
++    }
++  });
++});
+
+
+=== DIFF: lib/profile/identity.ts ===
+@@ -0,0 +1,66 @@
++/**
++ * The DNA swatch tokens, mirrored from `--color-dna-*` in `app/globals.css`.
++ *
++ * Kept as one named set so the profile hub and the Style DNA card cannot drift
++ * apart — a second hard-coded palette somewhere else is exactly how two screens
++ * end up disagreeing about what an archetype looks like.
++ */
++const DNA = {
++  cream: "#ede6d8",
++  navy: "#2c3a4c",
++  camel: "#b89a6a",
++  olive: "#6e6f52",
++  rust: "#b86a47",
++} as const;
++
++/** The four archetypes the onboarding quiz can produce (`lib/onboarding/questions.ts`). */
++const PALETTES: Record<string, string[]> = {
++  "Old Money": [DNA.cream, DNA.navy, DNA.camel],
++  "Smart Casual": [DNA.camel, DNA.olive, DNA.cream],
++  Preppy: [DNA.navy, DNA.cream, DNA.rust],
++  Streetwear: [DNA.olive, DNA.navy, DNA.rust],
++};
++
++/** The full set, for a profile that has not answered the quiz. */
++const FALLBACK = Object.values(DNA);
++
++/**
++ * One or two letters for the avatar circle.
++ *
++ * Falls back to the email rather than rendering an empty circle, which reads as
++ * a broken image rather than as a person.
++ */
++export function initials(name: string | null, email: string): string {
++  const words = (name ?? "").trim().split(/\s+/).filter(Boolean);
++  if (words.length > 0) {
++    return words
++      .slice(0, 2)
++      .map((w) => w[0]!.toUpperCase())
++      .join("");
++  }
++  const first = email.replace(/[^a-z0-9]/gi, "")[0];
++  return (first ?? "F").toUpperCase();
++}
++
++/**
++ * A display handle derived from the email's local-part.
++ *
++ * `profiles` has no `handle` column and adding one needs an edit flow and a
++ * uniqueness rule, which belong with the Settings account row rather than here.
++ * Isolated in this one function so replacing it later is a one-line change.
++ *
++ * Plus-addressing and dots are stripped: `first.last+fitcheck@…` reading as
++ * `@first.last+fitcheck` looks like a bug, and the suffix leaks that the address
++ * was tagged.
++ */
++export function handleFrom(email: string): string {
++  const local = email.split("@")[0] ?? "";
++  const cleaned = local.split("+")[0]!.replace(/[^a-z0-9_]/gi, "").toLowerCase();
++  return `@${cleaned || "fitcheck"}`;
++}
++
++/** Swatches for an archetype; the full DNA set when there is no answer yet. */
++export function paletteFor(archetype: string | null): string[] {
++  if (!archetype) return FALLBACK;
++  return PALETTES[archetype] ?? FALLBACK;
++}
+
+
+Investigate per the method in your instructions, then return the findings list.
