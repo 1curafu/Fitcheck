@@ -1,0 +1,1 @@
+material, texture and pattern should be as drop down menu, cause it takes too much space, also a picture doesnt fit in image container, check it
