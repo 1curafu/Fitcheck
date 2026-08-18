@@ -1,0 +1,113 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - lib/images/__tests__/encode.test.ts
+  - lib/images/encode.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: lib/images/__tests__/encode.test.ts ===
+@@ -0,0 +1,43 @@
++import { encodeCutout, cutoutFilename } from "../encode";
++
++const blobOf = (bytes: number, type: string) => new Blob([new Uint8Array(bytes)], { type });
++
++const png = blobOf(1000, "image/png");
++
++test("uses WebP when the encoder produces a smaller WebP", async () => {
++  const out = await encodeCutout(png, async () => blobOf(200, "image/webp"));
++  expect(out.mediaType).toBe("image/webp");
++  expect(out.blob.size).toBe(200);
++});
++
++// Safari and older WebKit silently hand back a PNG when asked for WebP, rather
++// than failing. Trusting the request instead of the result would upload a PNG
++// labelled image/webp — broken in Storage and rejected by the tagger.
++test("falls back to PNG when the encoder returns some other format", async () => {
++  const out = await encodeCutout(png, async () => blobOf(200, "image/png"));
++  expect(out.mediaType).toBe("image/png");
++  expect(out.blob).toBe(png);
++});
++test("falls back to PNG when the encoder returns nothing", async () => {
++  const out = await encodeCutout(png, async () => null);
++  expect(out.mediaType).toBe("image/png");
++  expect(out.blob).toBe(png);
++});
++
++// A flat cutout with large uniform transparent areas can encode LARGER as WebP
++// than as PNG. Keeping whichever is smaller means this can never make things worse.
++test("keeps the PNG when the WebP would be bigger", async () => {
++  const out = await encodeCutout(png, async () => blobOf(1500, "image/webp"));
++  expect(out.mediaType).toBe("image/png");
++});
++test("survives an encoder that throws", async () => {
++  const out = await encodeCutout(png, async () => {
++    throw new Error("canvas unavailable");
++  });
++  expect(out.mediaType).toBe("image/png");
++});
++
++test("the stored filename follows the format actually produced", () => {
++  expect(cutoutFilename("image/webp")).toBe("cutout.webp");
++  expect(cutoutFilename("image/png")).toBe("cutout.png");
++});
+
+
+=== DIFF: lib/images/encode.ts ===
+@@ -0,0 +1,53 @@
++export type CutoutMediaType = "image/webp" | "image/png";
++export type EncodedCutout = { blob: Blob; mediaType: CutoutMediaType };
++
++/**
++ * Quality for the single WebP pass.
++ *
++ * One pass at 0.85 is visually indistinguishable at closet-grid and flat-lay
++ * sizes. It is deliberately not lower: this same blob is sent to Haiku for
++ * tagging, and Anthropic's vision guidance warns that heavy compression
++ * introduces artefacts that hurt model accuracy.
++ */
++const WEBP_QUALITY = 0.85;
++
++/** Browser-only. Preserves alpha — the canvas is never filled. */
++async function canvasWebp(source: Blob): Promise<Blob | null> {
++  const bitmap = await createImageBitmap(source);
++  const canvas = document.createElement("canvas");
++  canvas.width = bitmap.width;
++  canvas.height = bitmap.height;
++  const ctx = canvas.getContext("2d");
++  if (!ctx) return null;
++  ctx.drawImage(bitmap, 0, 0);
++  bitmap.close?.();
++  return new Promise((resolve) => canvas.toBlob((b) => resolve(b), "image/webp", WEBP_QUALITY));
++}
++
++/**
++ * Re-encode a cutout to WebP, falling back to the original PNG whenever WebP
++ * is unavailable, unsupported, or simply not smaller.
++ *
++ * The cutout is the image users actually see — `displayPath()` prefers it — yet
++ * it was the one blob in the pipeline never compressed, arriving larger than
++ * the JPEG original it came from.
++ */
++export async function encodeCutout(
++  png: Blob,
++  encode: (b: Blob) => Promise<Blob | null> = canvasWebp,
++): Promise<EncodedCutout> {
++  try {
++    const webp = await encode(png);
++    // Trust the RESULT, not the request: some engines return PNG regardless.
++    if (webp && webp.type === "image/webp" && webp.size < png.size) {
++      return { blob: webp, mediaType: "image/webp" };
++    }
++  } catch {
++    // fall through — a cutout that cannot be re-encoded is still a valid cutout
++  }
++  return { blob: png, mediaType: "image/png" };
++}
++
++export function cutoutFilename(mediaType: CutoutMediaType): string {
++  return mediaType === "image/webp" ? "cutout.webp" : "cutout.png";
++}
+
+
+Investigate per the method in your instructions, then return the findings list.
