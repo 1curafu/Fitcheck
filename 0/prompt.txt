@@ -1,0 +1,260 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - lib/generator/__tests__/candidates.test.ts
+  - lib/generator/__tests__/rules.test.ts
+  - lib/generator/candidates.ts
+  - lib/generator/rules.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: lib/generator/__tests__/candidates.test.ts ===
+@@ -153,3 +153,58 @@ test("rain still excludes suede even when the suede shoe is the in-season one",
+   const c = buildCandidates(items, { ...base, weather: { tempC: 16, rain: true } });
+   expect(c.flat().some((i) => i.id === "s2")).toBe(false);
+ });
++
++// --- a weather exclusion may narrow a required slot, never empty it ---------
++// Same principle as season above, applied to materials. This also fixes a
++// pre-existing dead end: a closet whose only shoes were suede returned zero
++// outfits in the rain, with the empty screen blaming "Shoes".
++
++const suedeOnly = [
++  { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["Spring"], material: "cotton" },
++  { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Spring"], material: "cotton" },
++  { id: "s1", category: "Shoes", colors: ["tan"], formality: 3, seasons: ["Spring"], material: "suede" },
++];
++
++test("rain with suede-only shoes still dresses you — the exclusion cannot empty a slot", () => {
++  const wet = { ...base, season: "Spring", weather: { tempC: 16, rain: true } };
++  const c = buildCandidates(suedeOnly, wet);
++  expect(c.length).toBeGreaterThan(0);
++  expect(c.flat().some((i) => i.id === "s1")).toBe(true);
++  expect(missingCategory(suedeOnly, wet)).toBeNull();
++});
++
++test("relief applies only when the slot is empty — a dry alternative still wins", () => {
++  const withAlternative = [
++    ...suedeOnly,
++    { id: "s2", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["Spring"], material: "leather" },
++  ];
++  const wet = { ...base, season: "Spring", weather: { tempC: 16, rain: true } };
++  expect(buildCandidates(withAlternative, wet).flat().some((i) => i.id === "s1")).toBe(false);
++});
++
++test("heat with wool-only bottoms still dresses you", () => {
++  const woolOnly = [
++    { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["Summer"], material: "linen" },
++    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "merino wool" },
++    { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["Summer"], material: "leather" },
++  ];
++  const hot = { ...base, season: "Summer", weather: { tempC: 30, rain: false } };
++  expect(buildCandidates(woolOnly, hot).length).toBeGreaterThan(0);
++});
++
++test("materials match by substring, so 'merino wool' is excluded when there is an alternative", () => {
++  const hotCloset = [
++    { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["Summer"], material: "linen" },
++    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "merino wool" },
++    { id: "b2", category: "Bottoms", colors: ["stone"], formality: 3, seasons: ["Summer"], material: "cotton" },
++    { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["Summer"], material: "leather" },
++  ];
++  const hot = { ...base, season: "Summer", weather: { tempC: 30, rain: false } };
++  expect(buildCandidates(hotCloset, hot).flat().some((i) => i.id === "b1")).toBe(false);
++});
++
++test("relief does NOT rescue a formality gap — only weather exclusions are relieved", () => {
++  // sneakerCloset's f=2 shoe genuinely cannot reach Evening; that is a real
++  // wardrobe gap the empty screen should still name.
++  expect(missingCategory(sneakerCloset, { ...summer, band: [3.5, 5] })).toBe("Shoes");
++});
+
+
+=== DIFF: lib/generator/__tests__/rules.test.ts ===
+@@ -94,3 +94,23 @@ test("rain excludes suede + canvas", () => {
+   );
+   expect(weatherRules({ tempC: 16, rain: false }).excludeMaterials).toEqual([]);
+ });
++
++test("real heat excludes warm materials — the measured version of the old season filter", () => {
++  const hot = weatherRules({ tempC: 30, rain: false }).excludeMaterials;
++  expect(hot).toEqual(expect.arrayContaining(["wool", "fleece", "cashmere"]));
++});
++
++test("a pleasant day excludes nothing — the threshold is properly hot, not merely warm", () => {
++  expect(weatherRules({ tempC: 24, rain: false }).excludeMaterials).toEqual([]);
++  expect(weatherRules({ tempC: 25, rain: false }).excludeMaterials).toEqual([]);
++});
++
++test("a hot rainy day excludes both sets", () => {
++  const both = weatherRules({ tempC: 30, rain: true }).excludeMaterials;
++  expect(both).toEqual(expect.arrayContaining(["suede", "canvas", "wool"]));
++});
++
++test("cold days are unaffected by the heat rule", () => {
++  expect(weatherRules({ tempC: 5, rain: false }).excludeMaterials).toEqual([]);
++  expect(weatherRules({ tempC: 5, rain: false }).needsOuterwear).toBe(true);
++});
+
+
+=== DIFF: lib/generator/candidates.ts ===
+@@ -37,11 +37,19 @@ function floorTolerance(category: string): number {
+   return category === "Shoes" ? 1 : 0.5;
+ }
+ 
++function materialExcluded(material: string | null, excludeMaterials: string[]): boolean {
++  if (!material) return false;
++  const m = material.toLowerCase();
++  // Substring, not equality: the tagger writes free text, so "merino wool" and
++  // "suede leather" are real values that an exact match silently let through.
++  return excludeMaterials.some((x) => m.includes(x));
++}
++
+ function isEligible(i: CandidateItem, a: CandidateArgs, excludeMaterials: string[]): boolean {
+   const [lo, hi] = a.band;
+   if (i.category === "Fragrance") return false; // D11: fragrances are never slotted
+   if (a.excludeItemIds.includes(i.id)) return false;
+-  if (i.material && excludeMaterials.includes(i.material.toLowerCase())) return false;
++  if (materialExcluded(i.material, excludeMaterials)) return false;
+   // Season is deliberately NOT filtered here — see ./season.ts. It orders the
+   // lists below and weights the score instead. Filtering ran against every
+   // required slot, so one narrowly-tagged category zeroed the whole result:
+@@ -52,16 +60,56 @@ function isEligible(i: CandidateItem, a: CandidateArgs, excludeMaterials: string
+   return f >= lo - floorTolerance(i.category) && f <= hi + 0.5;
+ }
+ 
++function bySeasonFirst(list: CandidateItem[], season: string | undefined): CandidateItem[] {
++  return [...list].sort(
++    (x, y) => Number(inSeason(y.seasons, season)) - Number(inSeason(x.seasons, season)),
++  );
++}
++
++function isRequired(c: string): c is RequiredCategory {
++  return (REQUIRED_CATEGORIES as readonly string[]).includes(c);
++}
++
++/**
++ * The eligible items of every category, in-season first.
++ *
++ * Two soft rules live here, and `eligibility`, `missingCategory` and
++ * `buildCandidates` all read from this one function so they can never disagree
++ * about what the closet can do:
++ *
++ * 1. Season ORDERS, never excludes. The CAP in `buildCandidates` truncates the
++ *    combo list, so in-season pieces must come first or a large off-season
++ *    closet could push the good combos past the cap.
++ * 2. Material RELIEF: a weather exclusion may narrow a REQUIRED slot but must
++ *    never empty it. A closet whose only shoes are suede should get its suede
++ *    shoes on a wet day, not an empty screen blaming "Shoes". Relief is scoped
++ *    to weather exclusions — a formality gap is a real wardrobe gap and is still
++ *    reported.
++ */
++export function eligibleByCategory(
++  items: CandidateItem[],
++  a: CandidateArgs,
++): Record<string, CandidateItem[]> {
++  const { excludeMaterials } = weatherRules(a.weather);
++  const cats = new Set<string>(items.map((i) => i.category));
++  for (const c of REQUIRED_CATEGORIES) cats.add(c);
++  cats.add("Outerwear");
++
++  const out: Record<string, CandidateItem[]> = {};
++  for (const c of cats) {
++    const inCat = items.filter((i) => i.category === c);
++    let list = inCat.filter((i) => isEligible(i, a, excludeMaterials));
++    if (!list.length && isRequired(c)) list = inCat.filter((i) => isEligible(i, a, []));
++    out[c] = bySeasonFirst(list, a.season);
++  }
++  return out;
++}
++
+ /** Per-category counts of what survived filtering — lets an empty result explain itself. */
+ export function eligibility(items: CandidateItem[], a: CandidateArgs): Record<string, number> {
+-  const { excludeMaterials } = weatherRules(a.weather);
++  const by = eligibleByCategory(items, a);
+   const counts: Record<string, number> = {};
+-  for (const i of items) {
+-    if (!isEligible(i, a, excludeMaterials)) continue;
+-    counts[i.category] = (counts[i.category] ?? 0) + 1;
+-  }
+-  for (const c of REQUIRED_CATEGORIES) counts[c] ??= 0;
+-  counts.Outerwear ??= 0;
++  for (const c of Object.keys(by)) counts[c] = by[c].length;
+   return counts;
+ }
+ 
+@@ -76,27 +124,20 @@ export function missingCategory(items: CandidateItem[], a: CandidateArgs): Requi
+ }
+ 
+ export function buildCandidates(items: CandidateItem[], a: CandidateArgs): CandidateItem[][] {
+-  const { needsOuterwear, excludeMaterials } = weatherRules(a.weather);
+-
+-  const eligible = items.filter((i) => isEligible(i, a, excludeMaterials));
+-
+-  // Season ORDERS, it does not exclude. This matters because the CAP below
+-  // truncates the combo list: with a large off-season closet, the good combos
+-  // could otherwise fall past the cap and never reach scoring at all. The
+-  // breadth-first walk indexes outerwear and accessories modulo their list
+-  // length, so ordering in-season-first also means the earliest passes reach
+-  // the seasonally right coat and accessory.
+-  const bySeasonFirst = (list: CandidateItem[]) =>
+-    [...list].sort(
+-      (x, y) => Number(inSeason(y.seasons, a.season)) - Number(inSeason(x.seasons, a.season)),
+-    );
+-
+-  const byCat = (c: string) => bySeasonFirst(eligible.filter((i) => i.category === c));
+-  const tops = byCat("Tops");
+-  const bottoms = byCat("Bottoms");
+-  const shoes = byCat("Shoes");
+-  const outer = byCat("Outerwear");
+-  const accessories = byCat("Accessories");
++  const { needsOuterwear } = weatherRules(a.weather);
++
++  // Season ordering and material relief both live in `eligibleByCategory`, so
++  // this function, `eligibility` and `missingCategory` can never disagree about
++  // what the closet can do. Ordering in-season-first matters because the CAP
++  // below truncates the combo list, and the breadth-first walk indexes outerwear
++  // and accessories modulo their list length — so the earliest passes reach the
++  // seasonally right coat and accessory.
++  const by = eligibleByCategory(items, a);
++  const tops = by.Tops ?? [];
++  const bottoms = by.Bottoms ?? [];
++  const shoes = by.Shoes ?? [];
++  const outer = by.Outerwear ?? [];
++  const accessories = by.Accessories ?? [];
+ 
+   // A combo needs all three required slots; without one there is nothing to build.
+   if (!tops.length || !bottoms.length || !shoes.length) return [];
+
+
+=== DIFF: lib/generator/rules.ts ===
+@@ -67,9 +67,25 @@ export function applyFormalityOverride(
+   return [Math.max(1, f - 1), Math.min(5, f + 1)];
+ }
+ 
++/**
++ * Materials that make a properly hot day unpleasant. This is the MEASURED
++ * replacement for the season tag's incidental thermal protection: season used to
++ * be a hard filter, so a wool sweater tagged {Autumn,Winter} could never reach a
++ * July outfit. Season is now a preference (see ./season.ts), so the guard moved
++ * here — to the temperature we already fetch, which is a real reading of the day
++ * rather than a label derived from the calendar month.
++ */
++const HOT_MATERIALS = ["wool", "cashmere", "fleece", "shearling", "tweed", "corduroy", "down"];
++
++/** Strictly above 25: 24° is pleasant, 26° is hot. */
++const HOT_C = 25;
++
+ export function weatherRules(w: Weather) {
+   return {
+     needsOuterwear: w.tempC < 15,
+-    excludeMaterials: w.rain ? ["suede", "canvas"] : [],
++    excludeMaterials: [
++      ...(w.rain ? ["suede", "canvas"] : []),
++      ...(w.tempC > HOT_C ? HOT_MATERIALS : []),
++    ],
+   };
+ }
+
+
+Investigate per the method in your instructions, then return the findings list.
