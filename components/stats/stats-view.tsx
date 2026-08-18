@@ -36,7 +36,7 @@ export type DustRow = { id: string; name: string; days: number | null };
  * unchanged wardrobe. A number that moves when an internal constant changes
  * cannot be defended to a customer. See `lib/stats/gap.ts`.
  */
-export type Gap = { label: string; share: number; reason: string };
+export type Gap = { label: string; share: number | null; reason: string };
 
 /**
  * The claim, in plain words.
@@ -45,7 +45,16 @@ export type Gap = { label: string; share: number; reason: string };
  * sentence that argues against itself, and a piece that genuinely moves nothing
  * never reaches this card (`biggestGap` only reports a positive unlock).
  */
-function sharePhrase(share: number): string {
+function sharePhrase(share: number | null): string {
+  /**
+   * ⚠️ `null` means the wardrobe can build NOTHING right now — a missing
+   * required slot, or a closet straight out of onboarding. A proportion of zero
+   * is undefined, not 0%, and printing it as a percentage produced the app's
+   * worst message at the moment it mattered most: going from zero buildable
+   * outfits to 344 rendered as "Adds 1% more outfits". Found by the plan's own
+   * Task 4 Step 2, which is the reason that step exists.
+   */
+  if (share == null) return "Your closet can't build a look without one";
   const pct = Math.max(1, Math.round(share * 100));
   return `Adds ${pct}% more outfits`;
 }

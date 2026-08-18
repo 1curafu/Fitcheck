@@ -165,11 +165,11 @@ export function slotCounts(
 export function biggestGap(
   closet: CandidateItem[],
   occasions: UiOccasion[],
-): { candidate: GapCandidate; unlocks: number; share: number } | null {
+): { candidate: GapCandidate; unlocks: number; share: number | null } | null {
   if (!closet.length) return null;
 
   const before = countCombos(closet, occasions);
-  let best: { candidate: GapCandidate; unlocks: number; share: number } | null = null;
+  let best: { candidate: GapCandidate; unlocks: number; share: number | null } | null = null;
 
   for (const c of GAP_CANDIDATES) {
     const hypothetical: CandidateItem = {
@@ -188,7 +188,16 @@ export function biggestGap(
     };
     const unlocks = countCombos([...closet, hypothetical], occasions) - before;
     if (unlocks > 0 && (!best || unlocks > best.unlocks)) {
-      best = { candidate: c, unlocks, share: before > 0 ? unlocks / before : 0 };
+      /**
+       * ⚠️ `share` is NULL when the wardrobe can currently build nothing at all
+       * — a closet with no bottoms, or a user straight out of onboarding's
+       * "capture your first five". A proportion of zero is not 0%, it is
+       * undefined, and rendering it as a percentage produced the worst message
+       * in the app at the moment it mattered most: going from ZERO buildable
+       * outfits to 344 was displayed as "Adds 1% more outfits". The screen says
+       * something else entirely for this case.
+       */
+      best = { candidate: c, unlocks, share: before > 0 ? unlocks / before : null };
     }
   }
   return best;
