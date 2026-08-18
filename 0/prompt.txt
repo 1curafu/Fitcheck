@@ -1,0 +1,122 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - lib/generator/__tests__/score.test.ts
+  - lib/generator/score.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: lib/generator/__tests__/score.test.ts ===
+@@ -56,3 +56,53 @@ test("the lean matches by family, not by literal tag word", () => {
+ test("no lean leaves scoring exactly as it was", () => {
+   expect(scoreCombo(good, { ...ctx, lean: [] })).toBe(scoreCombo(good, ctx));
+ });
++
++// --- Season ----------------------------------------------------------------
++// Season is SCORED, not filtered — the same soft-preference model as outerwear
++// and the colour lean. Filtering on it made a narrowly-tagged category a silent
++// dead-end: measured on a wearable 10-top/4-bottom/4-shoe closet whose trousers
++// simply lacked a Winter tag, the same wardrobe gave 40 combos in summer and 0
++// in winter.
++
++const winterReady = [
++  { category: "top", colors: ["cream"], formality: 3, style_tags: [], seasons: ["Winter"] },
++  { category: "bottom", colors: ["navy"], formality: 3, style_tags: [], seasons: ["Winter"] },
++  { category: "shoes", colors: ["brown"], formality: 3, style_tags: [], seasons: ["Winter"] },
++];
++const summerOnly = [
++  { category: "top", colors: ["cream"], formality: 3, style_tags: [], seasons: ["Summer"] },
++  { category: "bottom", colors: ["navy"], formality: 3, style_tags: [], seasons: ["Summer"] },
++  { category: "shoes", colors: ["brown"], formality: 3, style_tags: [], seasons: ["Summer"] },
++];
++
++test("an in-season combo outranks an otherwise identical off-season one", () => {
++  const winter = { ...ctx, season: "Winter" };
++  expect(scoreCombo(winterReady, winter)).toBeGreaterThan(scoreCombo(summerOnly, winter));
++});
++
++test("a fully off-season combo still scores above zero — season never eliminates", () => {
++  expect(scoreCombo(summerOnly, { ...ctx, season: "Winter" })).toBeGreaterThan(0);
++});
++
++test("a partly in-season combo lands between the two", () => {
++  const mixed = [winterReady[0], winterReady[1], summerOnly[2]];
++  const winter = { ...ctx, season: "Winter" };
++  expect(scoreCombo(mixed, winter)).toBeGreaterThan(scoreCombo(summerOnly, winter));
++  expect(scoreCombo(mixed, winter)).toBeLessThan(scoreCombo(winterReady, winter));
++});
++
++test("untagged items are not penalised by the season term", () => {
++  const untagged = winterReady.map((i) => ({ ...i, seasons: [] }));
++  const winter = { ...ctx, season: "Winter" };
++  expect(scoreCombo(untagged, winter)).toBe(scoreCombo(winterReady, winter));
++});
++
++test("no season in the context leaves scoring exactly as it was", () => {
++  expect(scoreCombo(good, { ...ctx, season: undefined })).toBe(scoreCombo(good, ctx));
++});
++
++test("season and lean can both apply without pushing the score out of 0..1", () => {
++  const both = { ...ctx, season: "Winter", lean: ["olive"] };
++  expect(scoreCombo(winterReady, both)).toBeLessThanOrEqual(1);
++  expect(scoreCombo(winterReady, both)).toBeGreaterThanOrEqual(0);
++});
+
+
+=== DIFF: lib/generator/score.ts ===
+@@ -1,10 +1,12 @@
+ import { colorHarmonyScore, leanScore } from "./color";
++import { seasonFit } from "./season";
+ 
+ export type ScoreItem = {
+   category: string;
+   colors: string[];
+   formality: number | null;
+   style_tags?: string[];
++  seasons?: string[];
+ };
+ export type Ctx = {
+   aesthetic: string[];
+@@ -18,6 +20,8 @@ export type Ctx = {
+    * outfit instead of an empty screen.
+    */
+   recentlyShown?: string[];
++  /** The current season ("Winter"). Absent = no season preference at all. */
++  season?: string;
+ };
+ 
+ /**
+@@ -28,6 +32,14 @@ export type Ctx = {
+  */
+ const LEAN_WEIGHT = 0.3;
+ 
++/**
++ * The same bargain for season. Slightly lower than the lean because a lean is an
++ * explicit request the user just made, while season is inferred from the month.
++ * Both together cap at 0.5, so coherence and colour harmony always keep half the
++ * score — an off-season combo that actually works still beats an in-season mess.
++ */
++const SEASON_WEIGHT = 0.2;
++
+ /** 1.0 = identical formality; falls off with spread. */
+ export function formalityCoherence(formalities: number[]): number {
+   const f = formalities.filter((x) => typeof x === "number");
+@@ -44,7 +56,12 @@ export function scoreCombo(items: ScoreItem[], ctx: Ctx): number {
+   const dna = items.length ? dnaHits / items.length : 0;
+   const base = 0.45 * harmony + 0.35 * coherence + 0.2 * dna;
+ 
+-  // With no lean the weight is 0, so scoring is byte-identical to before.
+-  const w = ctx.lean?.length ? LEAN_WEIGHT : 0;
+-  return Math.min(1, base * (1 - w) + w * leanScore(colors, ctx.lean ?? []));
++  // Each preference claims its weight only when it applies, so with neither one
++  // set the score is byte-identical to what it was before either landed.
++  const wl = ctx.lean?.length ? LEAN_WEIGHT : 0;
++  const ws = ctx.season ? SEASON_WEIGHT : 0;
++  return Math.min(
++    1,
++    base * (1 - wl - ws) + wl * leanScore(colors, ctx.lean ?? []) + ws * seasonFit(items, ctx.season),
++  );
+ }
+
+
+Investigate per the method in your instructions, then return the findings list.
