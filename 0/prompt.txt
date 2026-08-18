@@ -1,0 +1,7 @@
+branches, is fine — that was a paste artifact on my end, keep your version.
+
+One thing to correct, though: you wrote that "the old check would have fired today on a file that was entirely accurate." It wouldn't have. _Last updated:_ was 2026-07-26 and the last commit is Fri Jul 24 — no commit is newer, so the old check passed today. Your own output two lines above says "commits since 2026-07-26: none," which contradicts the claim.
+
+The real argument for the change is narrower and still holds: the old check would have fired on the next implementation commit, and on every one after that, without any of them touching what the TL;DR tracks. Make that the claim.
+
+Flagging it because it's the same failure mode you just committed to avoiding — a confident assertion that the evidence in front of you doesn't support. Narrowing "all gates green" to "tests only" was that discipline working; this was it slipping one paragraph later.
