@@ -1,0 +1,40 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/outfits/[id]/actions.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/outfits/[id]/actions.ts ===
+@@ -162,7 +162,27 @@ export async function answerWearConfirmation(
+   const next = { ...readPreferences(profile?.preferences), wearAskedOn: today };
+   await supabase.from("profiles").update({ preferences: next }).eq("id", user.id);
+ 
+-  if (wore) await toggleWear(outfitId);
++  if (wore) {
++    /**
++     * ⚠️ Idempotent by construction — `toggleWear` is a TOGGLE, and "Yes" is
++     * not. Calling it against an outfit already logged today would REMOVE the
++     * wear the user just confirmed.
++     *
++     * Unreachable through the sheet, because `shouldAsk` refuses to ask once a
++     * wear exists — but a Server Action is a public endpoint and this is a
++     * loaded gun otherwise: a double-submit, a retry, or any future caller
++     * would silently delete real data. A confirmation sets; it never unsets.
++     */
++    const { data: already } = await supabase
++      .from("wear_logs")
++      .select("id")
++      .eq("user_id", user.id)
++      .eq("outfit_id", outfitId)
++      .eq("worn_on", today)
++      .limit(1);
++
++    if (!already?.length) await toggleWear(outfitId);
++  }
+ 
+   revalidatePath("/generate");
+ }
+
+
+Investigate per the method in your instructions, then return the findings list.
