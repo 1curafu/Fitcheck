@@ -1,0 +1,6 @@
+1curafu@Mykhailos-MacBook-Pro Fitcheck % gh pr merge 28 --merge --admin
+GraphQL: Repository rule violations found
+
+Required status check "verify" is expected.
+
+ (mergePullRequest)
