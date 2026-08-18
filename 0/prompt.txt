@@ -1,0 +1,231 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - lib/generator/rules.ts
+  - lib/weather/__tests__/advice.test.ts
+  - lib/weather/advice.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: lib/generator/rules.ts ===
+@@ -132,6 +132,16 @@ const HOT_MATERIALS = ["fleece", "shearling", "down"];
+ /** Strictly above 25: 24° is pleasant, 26° is hot. */
+ const HOT_C = 25;
+ 
++/**
++ * Below this the LOOK carries outerwear.
++ *
++ * Exported because `laterAdvice` needs the same number: the advice strip must
++ * never tell you to take a layer the flat-lay already contains. Two copies of
++ * 15 would drift, and the drift would be invisible — the sentence would simply
++ * start disagreeing with the picture beside it.
++ */
++export const OUTERWEAR_C = 15;
++
+ /** Materials rain ruins. Turned off by the rain-guard preference, nothing else. */
+ const WET_MATERIALS = ["suede", "canvas"];
+ 
+@@ -171,7 +181,7 @@ export function weatherRules(w: Weather, prefs?: { rainGuard?: boolean }) {
+   const rainGuard = prefs?.rainGuard ?? true;
+   const planning = planningTemp(w);
+   return {
+-    needsOuterwear: planning < 15,
++    needsOuterwear: planning < OUTERWEAR_C,
+     excludeMaterials: [
+       ...(w.rain && rainGuard ? WET_MATERIALS : []),
+       ...(planning > HOT_C ? HOT_MATERIALS : []),
+
+
+=== DIFF: lib/weather/__tests__/advice.test.ts ===
+@@ -120,3 +120,70 @@ test("omitting the high leaves the sentence exactly as it was", () => {
+   expect(laterAdvice(evening, "C")).toEqual(laterAdvice(evening, "C", undefined));
+   expect(laterAdvice(evening, "C").adviceClause).toBe("carry a jacket.");
+ });
++
++// ── The advice must match the look beside it ────────────────────────────────
++// Measured 2026-08-14, after the day-planning change shipped: on a −2°C day the
++// strip read "Up to 3° this afternoon — you're dressed for it." The rise branch
++// fired on any 5° climb, so it printed a sentence written for heat AND
++// suppressed the evening-drop message, in the season where advice matters most.
++// And on a 6°→18° spring morning it said "you're dressed for it" while the look
++// was a linen shirt with no coat — the LAYER instruction was never built.
++//
++// The rule that resolves both: the strip never tells you to carry something the
++// look already includes, and never reassures you about a day you are not yet
++// dressed for. `OUTERWEAR_C` is shared with the generator so the two cannot drift.
++
++const cells = (temps: number[], startHour = 8) =>
++  temps.map((t, k) => ({
++    hh: `${String(startHour + k).padStart(2, "0")}:00`,
++    tempC: t,
++    rain: false,
++    isNow: k === 0,
++  }));
++
++test("a freezing day does not get a sentence written for heat", () => {
++  const { sentence, adviceClause } = laterAdvice(cells([-2, -1, 0, 1]), "C", 3);
++  expect(sentence).not.toContain("dressed for it");
++  expect(sentence).not.toContain("Up to");
++  expect(adviceClause).toBe("the coat earns its place.");
++});
++
++test("a cold evening is told about the drop, and not to carry what it is wearing", () => {
++  // The look already has outerwear below 15°, so "carry a jacket" would be
++  // describing the flat-lay back at the user.
++  const { sentence, adviceClause } = laterAdvice(cells([8, 6, 4, 2], 18), "C", 9);
++  expect(sentence).toContain("2");
++  expect(adviceClause).toBe("keep the coat on.");
++});
++
++test("a cold morning of a warm day gets the LAYER instruction", () => {
++  // The look is built for 18° and carries no coat, so at 6° the user needs to
++  // be told. This is the half of "dress for the peak plus advice" that was
++  // missing, and the reason this file changed at all.
++  const { sentence, adviceClause } = laterAdvice(cells([6, 8, 10, 12]), "C", 18);
++  expect(sentence).toContain("18");
++  expect(adviceClause).toBe("take a layer for now.");
++});
++
++test("once it is already warm, the climb is reassurance rather than an instruction", () => {
++  const { adviceClause } = laterAdvice(cells([23, 26, 29, 31]), "C", 35);
++  expect(adviceClause).toBe("you're dressed for it.");
++});
++
++test("rain still outranks every temperature branch, cold or hot", () => {
++  const wetAndFreezing = [
++    { hh: "08:00", tempC: -2, rain: false, isNow: true },
++    { hh: "10:00", tempC: 0, rain: true, isNow: false },
++  ];
++  expect(laterAdvice(wetAndFreezing, "C", 3).adviceClause).toBe("take a shell.");
++});
++
++test("the layer instruction is rendered in the user's unit", () => {
++  expect(laterAdvice(cells([6, 8]), "F", 18).sentence).toContain("64"); // 18C = 64F
++});
++
++test("with no day high, behaviour is exactly what it was before any of this", () => {
++  const evening = cells([18, 15, 13, 11], 18);
++  expect(laterAdvice(evening, "C")).toEqual(laterAdvice(evening, "C", undefined));
++  expect(laterAdvice(evening, "C").adviceClause).toBe("carry a jacket.");
++});
+
+
+=== DIFF: lib/weather/advice.ts ===
+@@ -1,60 +1,85 @@
+ import type { HourCell } from "@/lib/generator/types";
++import { OUTERWEAR_C } from "@/lib/generator/rules";
+ import { formatTemp, type TempUnit } from "./format";
+ 
+ /**
+- * How far the day must still climb before it is worth mentioning. Matches the
+- * 5° the evening-drop branch uses — the same "enough to change what you'd wear"
+- * threshold, and Celsius on both sides because it is physics, not a preference.
++ * How far the day must move before it is worth mentioning. One number for both
++ * directions — the same "enough to change what you'd wear" threshold — and
++ * Celsius on both sides because it is physics, not a preference.
+  */
+-const RISE_C = 5;
++const SWING_C = 5;
+ 
+ /**
+- * The single dressing-advice voice on the screen (README §2). Deterministic:
+- * rain later → shell; a big evening drop → jacket; else reassuring.
++ * The single dressing-advice voice on the screen (README §2). Deterministic.
+  * Returns the full `sentence` and the `adviceClause` on its own so the UI can
+  * render the clause in rust (README wraps it in #D69873/600).
+  *
++ * Two rules hold across every branch, and both were learned by getting them
++ * wrong on 2026-08-14:
++ *
++ * 1. **Never tell the user to carry something the look already includes.**
++ *    Below `OUTERWEAR_C` the flat-lay has a coat in it, so "carry a jacket"
++ *    is the app describing its own picture back at them. The threshold is
++ *    IMPORTED from the generator rather than repeated here: two copies of 15
++ *    would drift, and the drift would be invisible — the sentence would simply
++ *    start disagreeing with the image beside it.
++ * 2. **Never reassure the user about a day they are not yet dressed for.** The
++ *    look is built for the day's HIGH, so on a cold morning it is deliberately
++ *    lighter than the thermometer justifies. That needs an INSTRUCTION ("take a
++ *    layer"), not a pat on the back — the reassurance branch shipped first and
++ *    was wrong on exactly the mornings the layer advice exists for.
++ *
+  * @param unit the user's display unit. This sentence is the ONE place a
+  * temperature is baked into prose server-side, so it cannot be converted at the
+- * render boundary with everything else. The 5° drop that triggers it is still
++ * render boundary with everything else. The 5° swing that triggers it is still
+  * measured in Celsius — the threshold is physics, only the printed number is a
+  * preference.
+  *
+  * @param dayHighC today's high. The generator builds the look for THIS, not for
+- * the current temperature, so a steep climb needs saying out loud.
++ * the current temperature (see `planningTemp`), so the gap needs saying out loud.
++ * Omitted → every day-aware branch is skipped and the behaviour is exactly what
++ * it was before the day-planning change.
+  */
+ export function laterAdvice(
+   hourly: HourCell[],
+   unit: TempUnit = "C",
+   dayHighC?: number,
+ ): { sentence: string; adviceClause: string } {
++  const say = (sentence: string, adviceClause: string) => ({
++    sentence: `${sentence} — ${adviceClause}`,
++    adviceClause,
++  });
++
++  // Rain outranks temperature in both directions: wet is the more urgent
++  // instruction whether the day is freezing or sweltering.
+   const rainHour = hourly.find((h) => h.rain);
+-  if (rainHour) {
+-    const adviceClause = "take a shell.";
+-    return { sentence: `Rain from ${rainHour.hh} — ${adviceClause}`, adviceClause };
+-  }
++  if (rainHour) return say(`Rain from ${rainHour.hh}`, "take a shell.");
+ 
+   const now = hourly[0]?.tempC ?? 0;
++  const last = hourly[hourly.length - 1]?.tempC ?? now;
++  const drop = now - last;
++  const rise = dayHighC == null ? 0 : dayHighC - now;
+ 
+-  // The look is built for the day's HIGH, so on a morning that climbs steeply it
+-  // will look lighter than the thermometer currently justifies. Say so — this
+-  // sentence is the ONLY thing that explains why, and without it a light outfit
+-  // at 20°C reads as the stylist getting it wrong. It is also the other half of
+-  // the decision: dress for the peak, and be told about the cool start.
+-  if (dayHighC != null && dayHighC - now >= RISE_C) {
+-    const adviceClause = "you're dressed for it.";
+-    return {
+-      sentence: `Up to ${formatTemp(dayHighC, unit)} this afternoon — ${adviceClause}`,
+-      adviceClause,
+-    };
++  // The look carries a coat, so every clause below is about the cold itself.
++  const lookHasCoat = dayHighC != null && dayHighC < OUTERWEAR_C;
++  if (lookHasCoat) {
++    if (drop >= SWING_C) return say(`Down to ${formatTemp(last, unit)} tonight`, "keep the coat on.");
++    return say("Cold through the day", "the coat earns its place.");
+   }
+ 
+-  const last = hourly[hourly.length - 1]?.tempC ?? now;
+-  if (now - last >= 5) {
+-    const adviceClause = "carry a jacket.";
+-    return { sentence: `Down to ${formatTemp(last, unit)} tonight — ${adviceClause}`, adviceClause };
++  // No coat in the look, and the day still has to climb into what it was built
++  // for. This is the instruction half of "dress for the peak" — without it a
++  // linen shirt at 6°C reads as the stylist getting it wrong.
++  if (rise >= SWING_C && now < OUTERWEAR_C) {
++    return say(`Up to ${formatTemp(dayHighC!, unit)} later`, "take a layer for now.");
++  }
++
++  // Already warm and climbing: the look is right and the user is in it.
++  if (rise >= SWING_C) {
++    return say(`Up to ${formatTemp(dayHighC!, unit)} this afternoon`, "you're dressed for it.");
+   }
+ 
+-  const adviceClause = "no extra layer.";
+-  return { sentence: `Dry through the evening — ${adviceClause}`, adviceClause };
++  if (drop >= SWING_C) return say(`Down to ${formatTemp(last, unit)} tonight`, "carry a jacket.");
++
++  return say("Dry through the evening", "no extra layer.");
+ }
+
+
+Investigate per the method in your instructions, then return the findings list.
