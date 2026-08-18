@@ -1,0 +1,8 @@
+<task-notification>
+<task-id>a04c4a82b85f0a9a8</task-id>
+<tool-use-id>toolu_0194fkWCAPKDKn5qC7g5C4jS</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-1curafu-Desktop-Fitcheck-Fitcheck/a74ed374-5dfb-4a32-9c56-dcee92dcf8c9/tasks/a04c4a82b85f0a9a8.output</output-file>
+<status>failed</status>
+<summary>Agent "Implement Task 3: ConfirmForm" failed: Agent terminated early due to an API error: You've hit your session limit · resets 12:50am (Europe/Zurich)</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+</task-notification>
