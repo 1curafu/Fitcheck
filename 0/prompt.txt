@@ -1,0 +1,100 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - components/diary/__tests__/diary-grid.test.tsx
+  - components/diary/diary-grid.tsx
+
+Unified diff (only + lines are new):
+
+=== DIFF: components/diary/__tests__/diary-grid.test.tsx ===
+@@ -47,6 +47,14 @@ test("the streak is shown with its unit", () => {
+   expect(within(pill).getByText(/days/i)).toBeInTheDocument();
+ });
+ 
++// The design's template hard-codes "days"; a first-day streak read "1 days".
++test("a one-day streak is singular", () => {
++  renderGrid({ streak: 1 });
++  const pill = screen.getByTestId("streak-pill");
++  expect(within(pill).getByText("day")).toBeInTheDocument();
++  expect(within(pill).queryByText("days")).not.toBeInTheDocument();
++});
++
+ test("a zero streak is not rendered as a boast", () => {
+   renderGrid({ streak: 0 });
+   expect(screen.queryByTestId("streak-pill")).not.toBeInTheDocument();
+
+
+=== DIFF: components/diary/diary-grid.tsx ===
+@@ -69,10 +69,16 @@ function DayCell({ cell }: { cell: Cell }) {
+   const body = (
+     <>
+       {cell.log && <Thumbnail pieces={cell.log.pieces} />}
+-      {/* Positioned inline, not by utility class, for the same reason the
++      {/* EVERY day sits in the same corner at the same size, logged or not.
++          The design centres the number on an empty cell and corners it on a
++          full one, but in a real month most cells are empty, so the few logged
++          days read as the ones that are misaligned — the grid looks unsettled
++          rather than composed. One position, one size; only the colour changes.
++
++          Positioned inline, not by utility class, for the same reason the
+           cutouts are: the offsets must land whatever the CSS pipeline does.
+           A bare `absolute` with no resolved offset falls back to its static
+-          position — which inside this centring flex box is the middle of the
++          position — which inside a centring flex box was the middle of the
+           cell, straight across the look.
+ 
+           `zIndex` is load-bearing too: the cutouts carry their own z (1-3), so
+@@ -80,18 +86,15 @@ function DayCell({ cell }: { cell: Cell }) {
+           reserved by THUMB_SLOTS, so it never lands on a garment; the shadow
+           only insures it against a pale piece drifting under it. */}
+       <span
+-        className={worn ? "text-[9px] text-foreground/70" : "text-[12px] text-muted-dim"}
+-        style={
+-          worn
+-            ? {
+-                position: "absolute",
+-                bottom: 4,
+-                right: 5,
+-                zIndex: 10,
+-                textShadow: "0 1px 3px rgba(0,0,0,0.95)",
+-              }
+-            : undefined
+-        }
++        className={worn ? "text-foreground/70" : "text-muted-dim"}
++        style={{
++          position: "absolute",
++          bottom: 4,
++          right: 5,
++          zIndex: 10,
++          fontSize: 10,
++          textShadow: worn ? "0 1px 3px rgba(0,0,0,0.95)" : undefined,
++        }}
+       >
+         {cell.day}
+       </span>
+@@ -101,7 +104,10 @@ function DayCell({ cell }: { cell: Cell }) {
+   // Today is ringed in rust — the screen's one rust element besides the streak
+   // flame, both of which are the same "you, now" signal.
+   const shell = [
+-    "relative flex aspect-[0.82] items-center justify-center overflow-hidden rounded-[10px]",
++    // No flex: every child is absolutely positioned now, and a centring flex
++    // box is what the day number silently fell back into when its offsets
++    // failed to resolve.
++    "relative block aspect-[0.82] overflow-hidden rounded-[10px]",
+     worn ? "bg-surface-2" : "bg-surface-1",
+     cell.isToday
+       ? "shadow-[inset_0_0_0_1.5px_var(--color-brand)]"
+@@ -183,7 +189,9 @@ export function DiaryGrid({
+               <Flame />
+               <div>
+                 <span className="font-serif text-[18px] text-foreground">{streak}</span>
+-                <span className="ml-1 text-[11px] text-muted-foreground">days</span>
++                <span className="ml-1 text-[11px] text-muted-foreground">
++                  {streak === 1 ? "day" : "days"}
++                </span>
+               </div>
+             </div>
+           )}
+
+
+Investigate per the method in your instructions, then return the findings list.
