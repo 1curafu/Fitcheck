@@ -1,0 +1,531 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/profile/page.tsx
+  - app/stats/page.tsx
+  - components/stats/__tests__/stats-view.test.tsx
+  - components/stats/stats-view.tsx
+  - lib/stats/gap.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/profile/page.tsx ===
+@@ -16,7 +16,7 @@ import { entitlementsFor } from "@/lib/billing/tiers";
+ const LINKS: HubLink[] = [
+   { href: "/style-dna", label: "Style DNA", desc: "Your archetype, shareable", icon: "dna", ready: false },
+   { href: "/outfits", label: "Saved Outfits", desc: "Looks you kept", icon: "saved", ready: false },
+-  { href: "/stats", label: "Wear Stats", desc: "What you actually wear", icon: "stats", ready: false },
++  { href: "/stats", label: "Wear Stats", desc: "What you actually wear", icon: "stats", ready: true },
+   { href: "/settings", label: "Settings", desc: "Preferences and account", icon: "settings", ready: true },
+ ];
+ 
+
+
+=== DIFF: app/stats/page.tsx ===
+@@ -0,0 +1,116 @@
++import { redirect } from "next/navigation";
++import { createClient } from "@/lib/supabase/server";
++import { MobileNav } from "@/components/shell/mobile-nav";
++import { localDateFor } from "@/lib/outfits/local-date";
++import { entitlementsFor } from "@/lib/billing/tiers";
++import { closetStats, mostWorn, gatheringDust } from "@/lib/stats/aggregate";
++import { biggestGap } from "@/lib/stats/gap";
++import { StatsView } from "@/components/stats/stats-view";
++import type { CandidateItem } from "@/lib/generator/candidates";
++import type { UiOccasion } from "@/lib/generator/types";
++
++/** All four, so the gap answers "what should I buy", not "what suits Tuesday". */
++const ALL_OCCASIONS: UiOccasion[] = ["everyday", "work", "weekend", "evening"];
++
++const TOP_N = 3;
++
++export default async function StatsPage() {
++  const supabase = await createClient();
++  const {
++    data: { user },
++  } = await supabase.auth.getUser();
++  if (!user) redirect("/");
++
++  const [{ data: profile }, { data: itemsRaw }, { data: logs }, { data: pieces }] =
++    await Promise.all([
++      supabase.from("profiles").select("tier, location_timezone").eq("id", user.id).single(),
++      supabase.from("items").select("*").eq("user_id", user.id).eq("archived", false),
++      supabase.from("wear_logs").select("outfit_id, worn_on").eq("user_id", user.id),
++      /**
++       * ⚠️ `wear_logs` and `outfit_items` are NOT directly related — both hang
++       * off `outfits`. A `wear_logs → outfit_items!inner(...)` embed returns
++       * ZERO rows SILENTLY, which is how every item once read "0 times worn"
++       * while SQL said otherwise (PR #22). Two explicit queries, joined below.
++       */
++      supabase.from("outfit_items").select("outfit_id, item_id"),
++    ]);
++
++  const items = itemsRaw ?? [];
++  const wears = logs ?? [];
++
++  // outfit_id → the items in it, so a wear can be attributed to each piece.
++  const itemsByOutfit = new Map<string, string[]>();
++  for (const p of pieces ?? []) {
++    const list = itemsByOutfit.get(p.outfit_id) ?? [];
++    list.push(p.item_id);
++    itemsByOutfit.set(p.outfit_id, list);
++  }
++
++  const wearsById: Record<string, number> = {};
++  const lastWornById: Record<string, string> = {};
++  for (const w of wears) {
++    for (const itemId of itemsByOutfit.get(w.outfit_id) ?? []) {
++      wearsById[itemId] = (wearsById[itemId] ?? 0) + 1;
++      if (!lastWornById[itemId] || w.worn_on > lastWornById[itemId]) {
++        lastWornById[itemId] = w.worn_on;
++      }
++    }
++  }
++
++  const today = localDateFor(new Date(), profile?.location_timezone ?? "UTC");
++  const byId = new Map(items.map((i) => [i.id, i]));
++  const nameOf = (id: string) => byId.get(id)?.name ?? "That piece";
++
++  const stats = closetStats(items, wears.flatMap((w) => (itemsByOutfit.get(w.outfit_id) ?? []).map((item_id) => ({ item_id }))));
++  const entitlements = entitlementsFor(profile?.tier);
++
++  const closet: CandidateItem[] = items.map((i) => ({
++    id: i.id,
++    category: i.category,
++    colors: i.colors ?? [],
++    formality: i.formality,
++    seasons: i.seasons ?? [],
++    material: i.material,
++    texture: i.texture,
++    pattern: i.pattern,
++  }));
++  // Skipped entirely for a user who cannot see it — a few dozen passes over the
++  // closet is cheap, but computing an answer nobody is shown is still waste.
++  const gap = entitlements.gapAnalysis ? biggestGap(closet, ALL_OCCASIONS) : null;
++
++  return (
++    <div className="flex min-h-dvh flex-1 flex-col">
++      <StatsView
++        value={stats.value}
++        // Wears are logged against an OUTFIT, so the headline is the number of
++        // logged outfits — not the sum of per-item attributions, which counts a
++        // five-piece look five times.
++        totalWears={wears.length}
++        avgCostPerWear={stats.avgCostPerWear}
++        mostWorn={mostWorn(items, wearsById, TOP_N).map((id) => ({
++          id,
++          name: nameOf(id),
++          sub: `Worn ${wearsById[id]} times`,
++        }))}
++        dust={gatheringDust(items, lastWornById, today, TOP_N).map((d) => ({
++          id: d.id,
++          name: nameOf(d.id),
++          days: d.days,
++        }))}
++        gap={
++          gap && {
++            label: gap.candidate.label,
++            unlocks: gap.unlocks,
++            reason: `It pairs with more of your closet than anything else you're missing.`,
++          }
++        }
++        entitlements={{
++          analytics: entitlements.analytics,
++          gapAnalysis: entitlements.gapAnalysis,
++        }}
++        isPro={entitlements.tier === "pro"}
++      />
++      <MobileNav />
++    </div>
++  );
++}
+
+
+=== DIFF: components/stats/__tests__/stats-view.test.tsx ===
+@@ -0,0 +1,117 @@
++import { render, screen } from "@testing-library/react";
++import userEvent from "@testing-library/user-event";
++import { StatsView } from "../stats-view";
++
++const base = {
++  value: "€1,240.00",
++  totalWears: 47,
++  avgCostPerWear: "€26.38",
++  mostWorn: [
++    { id: "i1", name: "Brushed Oxford", sub: "Worn 12 times" },
++    { id: "i2", name: "Wool Trousers", sub: "Worn 9 times" },
++  ],
++  dust: [
++    { id: "i3", name: "Linen Blazer", days: null },
++    { id: "i4", name: "Suede Loafers", days: 204 },
++  ],
++  gap: { label: "A camel overcoat", unlocks: 14, reason: "You have no outerwear for cold days." },
++  entitlements: { analytics: true, gapAnalysis: true },
++  isPro: true,
++};
++
++// Typed from the component, not from `base` — `Partial<typeof base>` infers
++// `gap` as non-nullable from the fixture and rejects the `gap: null` case the
++// component explicitly supports.
++type Props = React.ComponentProps<typeof StatsView>;
++const renderStats = (over: Partial<Props> = {}) => render(<StatsView {...base} {...over} />);
++
++test("the headline trio renders value, wears and average", () => {
++  renderStats();
++  expect(screen.getByText(/closet value/i)).toBeInTheDocument();
++  expect(screen.getByText(/total wears/i)).toBeInTheDocument();
++  expect(screen.getByText("€1,240.00")).toBeInTheDocument();
++  expect(screen.getByText("47")).toBeInTheDocument();
++});
++
++test("the gap card states the piece, the unlock count and the reason", () => {
++  renderStats();
++  expect(screen.getByText(/a camel overcoat/i)).toBeInTheDocument();
++  expect(screen.getByText(/unlocks 14 new outfits/i)).toBeInTheDocument();
++});
++
++test("no gap card is shown when there is no gap", () => {
++  renderStats({ gap: null });
++  expect(screen.queryByText(/unlocks/i)).not.toBeInTheDocument();
++});
++
++test("there is no shopping CTA — that decision has not been made", () => {
++  renderStats();
++  expect(screen.queryByText(/curated picks/i)).not.toBeInTheDocument();
++});
++
++test("most-worn and idle rows link to their items", () => {
++  renderStats();
++  expect(screen.getByRole("link", { name: /brushed oxford/i })).toHaveAttribute(
++    "href",
++    "/closet/i1",
++  );
++});
++
++test("a never-worn piece says so rather than counting days", () => {
++  // `days: null` exists precisely so this line is not "∞ days ago".
++  renderStats();
++  expect(screen.getByText(/never worn/i)).toBeInTheDocument();
++  expect(screen.getByText(/204 days/i)).toBeInTheDocument();
++});
++
++test("a closet with no wears explains itself instead of showing zeroes", () => {
++  renderStats({ totalWears: 0, avgCostPerWear: null, mostWorn: [], dust: [] });
++  expect(screen.getByText(/wear a look/i)).toBeInTheDocument();
++});
++
++test("the average is hidden rather than shown as zero when nothing is priced", () => {
++  renderStats({ avgCostPerWear: null });
++  expect(screen.queryByText(/cost per wear/i)).not.toBeInTheDocument();
++});
++
++// --- The Pro line: facts free, analysis Pro (user decision, 2026-08-17) ------
++
++const free = { entitlements: { analytics: false, gapAnalysis: false }, isPro: false };
++
++test("a free user still sees their own headline numbers", () => {
++  // The whole argument for this shape: MONETISATION.md sells month three, when
++  // the data is theirs. The pitch is made WITH their numbers, not instead of them.
++  renderStats(free);
++  expect(screen.getByText("€1,240.00")).toBeInTheDocument();
++  expect(screen.getByText("47")).toBeInTheDocument();
++});
++
++test("a free user does not see the analysis itself", () => {
++  renderStats(free);
++  expect(screen.queryByText(/brushed oxford/i)).not.toBeInTheDocument();
++  expect(screen.queryByText(/linen blazer/i)).not.toBeInTheDocument();
++  expect(screen.queryByText(/a camel overcoat/i)).not.toBeInTheDocument();
++  expect(screen.queryByText(/unlocks 14/i)).not.toBeInTheDocument();
++});
++
++test("the gated sections are still named, so the user knows what is behind them", () => {
++  // Not a blank screen: nobody buys a feature they have never reached for.
++  renderStats(free);
++  expect(screen.getByText(/most worn/i)).toBeInTheDocument();
++  expect(screen.getByText(/gathering dust/i)).toBeInTheDocument();
++  expect(screen.getByText(/biggest gap/i)).toBeInTheDocument();
++});
++
++test("tapping a locked section opens the upgrade sheet, not a dead end", async () => {
++  renderStats(free);
++  await userEvent.click(screen.getByRole("button", { name: /biggest gap/i }));
++  expect(screen.getByRole("dialog")).toBeInTheDocument();
++});
++
++test("the two flags gate independently", () => {
++  // They exist as separate entitlements; if one always implied the other they
++  // would be one flag. Analytics on, gap off is a real state.
++  renderStats({ entitlements: { analytics: true, gapAnalysis: false }, isPro: false });
++  expect(screen.getByText(/brushed oxford/i)).toBeInTheDocument();
++  expect(screen.queryByText(/a camel overcoat/i)).not.toBeInTheDocument();
++});
+
+
+=== DIFF: components/stats/stats-view.tsx ===
+@@ -0,0 +1,231 @@
++"use client";
++
++import { useState } from "react";
++import Link from "next/link";
++import { Kicker } from "@/components/ui-fitcheck/kicker";
++import { UpgradeSheet } from "@/components/billing/upgrade-sheet";
++
++/**
++ * Wear Stats (Fitcheck.dc.html:737-780).
++ *
++ * Four sections: the headline trio, Most worn, Your biggest gap, Gathering
++ * dust. The design's "See curated picks" CTA under the gap card is
++ * DELIBERATELY absent — it leads to a shoppable/affiliate surface with no
++ * product, legal or partner decision behind it anywhere in this project, and a
++ * dead button is worse than no button.
++ *
++ * **The Pro line: facts are free, analysis is Pro** (user decision, 2026-08-17).
++ * A free user sees their own closet value, total wears and average
++ * cost-per-wear; Most worn, Gathering dust and the gap card sit behind the
++ * upgrade sheet. That mirrors the rule already settled on item detail — a fact
++ * about the piece in your hand is free, the screen that analyses the whole
++ * wardrobe is Pro — and it is the only shape where the pitch is made with the
++ * user's OWN numbers, which is `MONETISATION.md`'s entire argument for why
++ * anyone pays in month three.
++ */
++
++export type StatRow = { id: string; name: string; sub: string };
++export type DustRow = { id: string; name: string; days: number | null };
++export type Gap = { label: string; unlocks: number; reason: string };
++
++/** `days: null` means never worn — see `gatheringDust`. Never "∞ days ago". */
++function idleLabel(days: number | null): string {
++  if (days == null) return "Never worn";
++  if (days === 0) return "Worn today";
++  return days === 1 ? "1 day ago" : `${days} days ago`;
++}
++
++function Section({ title, children }: { title: string; children: React.ReactNode }) {
++  return (
++    <section className="mt-[26px]">
++      <Kicker>{title}</Kicker>
++      <div className="mt-[11px]">{children}</div>
++    </section>
++  );
++}
++
++/**
++ * A gated section names itself and stays tappable.
++ *
++ * The control is never a fence: nobody buys a feature they have never reached
++ * for, so the sheet is the answer to the tap (the rule PR #25 established after
++ * a muted caption read as a validation error).
++ */
++function LockedSection({
++  title,
++  pitch,
++  onOpen,
++}: {
++  title: string;
++  pitch: string;
++  onOpen: (title: string) => void;
++}) {
++  return (
++    <Section title={title}>
++      <button
++        type="button"
++        aria-label={title}
++        onClick={() => onOpen(title)}
++        className="flex w-full items-center justify-between rounded-[14px] bg-surface-1 px-[15px] py-[15px] text-left shadow-[inset_0_0_0_1px_var(--hairline-2)]"
++      >
++        <span className="text-[13.5px] text-muted-foreground">{pitch}</span>
++        <span className="text-[18px] text-muted-dim" aria-hidden="true">
++          ›
++        </span>
++      </button>
++    </Section>
++  );
++}
++
++function ItemRow({ href, name, sub }: { href: string; name: string; sub: string }) {
++  return (
++    <Link
++      href={href}
++      className="flex items-center justify-between border-b border-[var(--hairline-2)] py-[13px] last:border-b-0"
++    >
++      <span className="text-[14.5px] text-value">{name}</span>
++      <span className="text-[12.5px] text-muted-foreground">{sub}</span>
++    </Link>
++  );
++}
++
++export function StatsView({
++  value,
++  totalWears,
++  avgCostPerWear,
++  mostWorn,
++  dust,
++  gap,
++  entitlements,
++  isPro,
++}: {
++  value: string;
++  totalWears: number;
++  /** Null when nothing is priced or nothing is worn — the tile is HIDDEN, not zeroed. */
++  avgCostPerWear: string | null;
++  mostWorn: StatRow[];
++  dust: DustRow[];
++  gap: Gap | null;
++  entitlements: { analytics: boolean; gapAnalysis: boolean };
++  isPro: boolean;
++}) {
++  const [gateTitle, setGateTitle] = useState<string | null>(null);
++  const empty = totalWears === 0;
++
++  return (
++    <div className="flex min-h-dvh flex-1 flex-col">
++      <div className="flex items-center gap-3 px-[22px] screen-top">
++        <Link
++          href="/profile"
++          aria-label="Back"
++          className="grid size-[34px] shrink-0 place-items-center rounded-full bg-[#19181b] text-[18px] text-foreground shadow-[inset_0_0_0_1px_var(--hairline-5)]"
++        >
++          ‹
++        </Link>
++        <h1 className="font-serif text-[30px] text-foreground">Wear Stats</h1>
++      </div>
++
++      <div className="flex-1 overflow-y-auto px-[22px] pb-[120px] pt-[18px]">
++      <div
++        data-testid="stat-trio"
++        className="flex overflow-hidden rounded-[14px] bg-surface-1 shadow-[inset_0_0_0_1px_var(--hairline-2)]"
++      >
++        <div className="flex-1 px-[6px] py-4 text-center">
++          <div className="font-serif text-[24px] text-foreground">{value}</div>
++          <div className="mt-[5px] text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
++            Closet value
++          </div>
++        </div>
++        <div className="flex-1 px-[6px] py-4 text-center">
++          <div className="font-serif text-[24px] text-foreground">{totalWears}</div>
++          <div className="mt-[5px] text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
++            Total wears
++          </div>
++        </div>
++        {/* Hidden rather than "€0.00": an average of an unpriced closet, or of
++            zero wears, states something false. Same stance as `itemWearStats`. */}
++        {avgCostPerWear && (
++          <div className="flex-1 px-[6px] py-4 text-center">
++            <div className="font-serif text-[24px] text-foreground">{avgCostPerWear}</div>
++            <div className="mt-[5px] text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
++              Cost per wear
++            </div>
++          </div>
++        )}
++      </div>
++
++      {empty ? (
++        <p className="mt-[26px] text-[14px] leading-[1.5] text-muted-foreground">
++          Wear a look and log it, and this screen starts telling you what your wardrobe actually
++          costs you.
++        </p>
++      ) : (
++        <>
++          {entitlements.analytics ? (
++            <Section title="Most worn">
++              {mostWorn.map((m) => (
++                <ItemRow key={m.id} href={`/closet/${m.id}`} name={m.name} sub={m.sub} />
++              ))}
++            </Section>
++          ) : (
++            <LockedSection
++              title="Most worn"
++              pitch="See which pieces earn their place"
++              onOpen={setGateTitle}
++            />
++          )}
++
++          {entitlements.gapAnalysis ? (
++            gap && (
++              <Section title="Your biggest gap">
++                <div className="rounded-[16px] bg-surface-1 p-5 shadow-[inset_0_0_0_1px_var(--hairline-2)]">
++                  <div className="font-serif text-[24px] text-foreground">{gap.label}</div>
++                  {/* The screen's single rust spend — the One Rust Rule. */}
++                  <div className="mt-[6px] text-[13px] font-semibold text-brand">
++                    Unlocks {gap.unlocks} new outfits
++                  </div>
++                  <p className="mt-[10px] text-[13.5px] leading-[1.5] text-muted-foreground">
++                    {gap.reason}
++                  </p>
++                </div>
++              </Section>
++            )
++          ) : (
++            <LockedSection
++              title="Your biggest gap"
++              pitch="The one piece that unlocks the most"
++              onOpen={setGateTitle}
++            />
++          )}
++
++          {entitlements.analytics ? (
++            <Section title="Gathering dust">
++              {dust.map((d) => (
++                <ItemRow
++                  key={d.id}
++                  href={`/closet/${d.id}`}
++                  name={d.name}
++                  sub={idleLabel(d.days)}
++                />
++              ))}
++            </Section>
++          ) : (
++            <LockedSection
++              title="Gathering dust"
++              pitch="What you own and never reach for"
++              onOpen={setGateTitle}
++            />
++          )}
++        </>
++      )}
++
++        <UpgradeSheet
++          open={gateTitle != null}
++          title={gateTitle ?? ""}
++          isPro={isPro}
++          onClose={() => setGateTitle(null)}
++        />
++      </div>
++    </div>
++  );
++}
+
+
+=== DIFF: lib/stats/gap.ts ===
+@@ -32,6 +32,18 @@ export const GAP_CANDIDATES: GapCandidate[] = [
+   { label: "Clean white sneakers", category: "Shoes", colors: ["white"], formality: 2 },
+ ];
+ 
++/**
++ * The weather the simulation runs against: mild and dry.
++ *
++ * Deliberately NOT today's forecast. This screen answers "what should I buy",
++ * and that answer must not change because it happens to be raining — a user who
++ * checks on Tuesday and again on Thursday would be told to buy two different
++ * things. Mild and dry also means no exclusion rule fires, so the count
++ * measures the WARDROBE rather than the week. It is also why this screen makes
++ * no network call of any kind.
++ */
++export const NEUTRAL_WEATHER: Weather = { tempC: 16, rain: false };
++
+ /**
+  * ⚠️ `buildCandidates` stops at `CAP = 200` (lib/generator/candidates.ts). Any
+  * closet big enough to exceed that returns 200 both BEFORE and AFTER the
+@@ -70,7 +82,7 @@ function countCombos(closet: CandidateItem[], occasions: UiOccasion[], weather:
+ export function biggestGap(
+   closet: CandidateItem[],
+   occasions: UiOccasion[],
+-  weather: Weather,
++  weather: Weather = NEUTRAL_WEATHER,
+ ): { candidate: GapCandidate; unlocks: number } | null {
+   if (!closet.length) return null;
+ 
+
+
+Investigate per the method in your instructions, then return the findings list.
