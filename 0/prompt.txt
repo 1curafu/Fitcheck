@@ -1,0 +1,1 @@
+why claude.md in github, all file that reference to ai shouldnt be in github
