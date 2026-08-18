@@ -3,7 +3,7 @@ import {
   REQUIRED_CATEGORIES,
   type CandidateItem,
 } from "@/lib/generator/candidates";
-import { personalBand, type Weather } from "@/lib/generator/rules";
+import { personalBand, weatherRules, type Weather } from "@/lib/generator/rules";
 import type { UiOccasion } from "@/lib/generator/types";
 
 /**
@@ -33,16 +33,27 @@ export const GAP_CANDIDATES: GapCandidate[] = [
 ];
 
 /**
- * The weather the simulation runs against: mild and dry.
+ * The conditions the simulation runs against — a cold day and a mild one.
  *
  * Deliberately NOT today's forecast. This screen answers "what should I buy",
- * and that answer must not change because it happens to be raining — a user who
+ * and that answer must not change because it happens to be raining: a user who
  * checks on Tuesday and again on Thursday would be told to buy two different
- * things. Mild and dry also means no exclusion rule fires, so the count
- * measures the WARDROBE rather than the week. It is also why this screen makes
- * no network call of any kind.
+ * things. Both are dry, so no wet-material rule fires and the count measures
+ * the WARDROBE rather than the week. It is also why this screen makes no
+ * network call of any kind.
+ *
+ * ⚠️ **The cold pass is what lets outerwear compete at all.** A single mild
+ * temperature was the first implementation, and `needsOuterwear` is false above
+ * 15° — so no simulated combination ever contained a coat, every outerwear
+ * candidate scored exactly 0, and "A camel overcoat unlocks 14 new outfits",
+ * the design's own headline example, was unreachable for every user forever.
+ * Measured on the 21-item dev closet: a camel overcoat scored +0 while white
+ * sneakers scored +258.
  */
-export const NEUTRAL_WEATHER: Weather = { tempC: 16, rain: false };
+export const SIMULATED_CONDITIONS: Weather[] = [
+  { tempC: 5, rain: false },
+  { tempC: 20, rain: false },
+];
 
 /**
  * ⚠️ `buildCandidates` stops at `CAP = 200` (lib/generator/candidates.ts). Any
@@ -54,40 +65,107 @@ export const NEUTRAL_WEATHER: Weather = { tempC: 16, rain: false };
  * which is what the cap is truncating, and is the number the claim actually
  * means: how many outfits become buildable.
  */
-function countCombos(closet: CandidateItem[], occasions: UiOccasion[], weather: Weather): number {
-  return occasions.reduce((total, o) => {
-    const args = {
-      band: personalBand(o, null),
-      weather,
-      // No season preference: the gap is about what the wardrobe can BUILD, and
-      // season only ever orders and scores (see lib/generator/season.ts). A
-      // recommendation should not change because it is currently March.
-      season: undefined,
-      excludeItemIds: [],
-      maxAccessories: 0,
-    };
-    const by = eligibleByCategory(closet, args);
-    const slots = REQUIRED_CATEGORIES.map((c) => (by[c] ?? []).length);
-    // A missing required slot means zero buildable outfits, not a partial count.
-    return total + (slots.some((n) => n === 0) ? 0 : slots.reduce((a, b) => a * b, 1));
-  }, 0);
+function argsFor(o: UiOccasion, weather: Weather) {
+  return {
+    band: personalBand(o, null),
+    weather,
+    // No season preference: the gap is about what the wardrobe can BUILD, and
+    // season only ever orders and scores (see lib/generator/season.ts). A
+    // recommendation should not change because it is currently March.
+    season: undefined,
+    excludeItemIds: [],
+    maxAccessories: 0,
+  };
+}
+
+function countCombos(closet: CandidateItem[], occasions: UiOccasion[]): number {
+  let total = 0;
+  for (const weather of SIMULATED_CONDITIONS) {
+    const { needsOuterwear } = weatherRules(weather);
+    for (const o of occasions) {
+      const by = eligibleByCategory(closet, argsFor(o, weather));
+      const slots = REQUIRED_CATEGORIES.map((c) => (by[c] ?? []).length);
+      // A missing required slot means zero buildable outfits, not a partial count.
+      if (slots.some((n) => n === 0)) continue;
+      const base = slots.reduce((a, b) => a * b, 1);
+      /**
+       * ⚠️ On the COLD pass outerwear counts as a required slot, so a closet
+       * with no coat scores ZERO cold-weather outfits.
+       *
+       * This is a deliberate departure from `buildCandidates`, which never lets
+       * outerwear block — a coatless user still gets looks at 5°, correctly,
+       * because an imperfect outfit beats an empty screen. But the question
+       * THIS screen answers is different: "what should I buy?" And a plain slot
+       * product cannot answer it, because going from 0 coats to 1 leaves the
+       * number of combinations unchanged (one variant either way), so the first
+       * coat — the single most valuable purchase a coatless person can make —
+       * would score exactly 0 and never be recommended. Counting it as required
+       * says the true thing: without a coat you cannot properly dress for half
+       * the year, and buying one opens all of it.
+       */
+      const coats = (by["Outerwear"] ?? []).length;
+      if (needsOuterwear) total += base * coats;
+      else total += base;
+    }
+  }
+  return total;
 }
 
 /**
- * Which single hypothetical piece would unlock the most outfits.
+ * The slot holding the wardrobe back, and the one that is deepest.
  *
- * The number is produced by the SAME code that builds real outfits, so "unlocks
- * 14 new outfits" means exactly that — not a heuristic that resembles it.
+ * This is what the simulation actually discovers. A wardrobe is a PRODUCT of
+ * its slots, so the marginal value of one more piece is the product of all the
+ * others — which means the winner is always the smallest slot, and the size of
+ * the win is exactly `1 / (size of that slot)`. Saying "3 pairs of shoes
+ * against 11 tops" is therefore not a decoration on the number; it IS the
+ * finding, in units the user can verify by counting.
+ */
+export function bottleneck(
+  closet: CandidateItem[],
+  occasions: UiOccasion[],
+): { category: string; count: number; deepest: string; deepestCount: number } | null {
+  const by = eligibleByCategory(closet, argsFor(occasions[0] ?? "everyday", SIMULATED_CONDITIONS[1]));
+  const counts = REQUIRED_CATEGORIES.map((c) => ({ category: c, count: (by[c] ?? []).length }));
+  if (!counts.length) return null;
+  const low = counts.reduce((a, b) => (b.count < a.count ? b : a));
+  const high = counts.reduce((a, b) => (b.count > a.count ? b : a));
+  return {
+    category: low.category,
+    count: low.count,
+    deepest: high.category,
+    deepestCount: high.count,
+  };
+}
+
+/**
+ * Which single hypothetical piece would unlock the most outfits, and by how
+ * much — **as a share of what the wardrobe can already do.**
+ *
+ * ⚠️ The raw count is deliberately NOT what the screen shows, and this is the
+ * decision most worth preserving here. Measured on the 21-item dev closet it
+ * came out at **258 new outfits**, which is arithmetically exact and completely
+ * uncredible — the design's own example was 14. Worse, the count scales with
+ * parameters we invented: four occasions rather than one, two simulated
+ * conditions rather than one. Adding the cold pass doubled it overnight for an
+ * unchanged wardrobe. **A number that moves when an internal constant changes
+ * cannot be defended to a customer.**
+ *
+ * `share` is invariant to all of it. Because a wardrobe is a product of its
+ * slots, adding one piece to a slot of size `s` multiplies the total by
+ * `(s+1)/s` — so the share is exactly `1/s`, independent of every other slot
+ * and of how many occasions or conditions we sum over. It also self-regulates:
+ * it only gets small when that slot is genuinely deep, which is precisely when
+ * the honest answer is "you do not need another one".
  */
 export function biggestGap(
   closet: CandidateItem[],
   occasions: UiOccasion[],
-  weather: Weather = NEUTRAL_WEATHER,
-): { candidate: GapCandidate; unlocks: number } | null {
+): { candidate: GapCandidate; unlocks: number; share: number } | null {
   if (!closet.length) return null;
 
-  const before = countCombos(closet, occasions, weather);
-  let best: { candidate: GapCandidate; unlocks: number } | null = null;
+  const before = countCombos(closet, occasions);
+  let best: { candidate: GapCandidate; unlocks: number; share: number } | null = null;
 
   for (const c of GAP_CANDIDATES) {
     const hypothetical: CandidateItem = {
@@ -104,8 +182,10 @@ export function biggestGap(
       pattern: "solid",
       texture: null,
     };
-    const unlocks = countCombos([...closet, hypothetical], occasions, weather) - before;
-    if (unlocks > 0 && (!best || unlocks > best.unlocks)) best = { candidate: c, unlocks };
+    const unlocks = countCombos([...closet, hypothetical], occasions) - before;
+    if (unlocks > 0 && (!best || unlocks > best.unlocks)) {
+      best = { candidate: c, unlocks, share: before > 0 ? unlocks / before : 0 };
+    }
   }
   return best;
 }

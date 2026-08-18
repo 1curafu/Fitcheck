@@ -53,3 +53,5 @@ design_handoff_stylist_generator/
 # `npm run build` with errors in a file nobody edited.
 * 2.*
 * [0-9].*
+
+.entire/

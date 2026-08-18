@@ -4,7 +4,7 @@ import { MobileNav } from "@/components/shell/mobile-nav";
 import { localDateFor } from "@/lib/outfits/local-date";
 import { entitlementsFor } from "@/lib/billing/tiers";
 import { closetStats, mostWorn, gatheringDust } from "@/lib/stats/aggregate";
-import { biggestGap } from "@/lib/stats/gap";
+import { biggestGap, bottleneck } from "@/lib/stats/gap";
 import { StatsView } from "@/components/stats/stats-view";
 import type { CandidateItem } from "@/lib/generator/candidates";
 import type { UiOccasion } from "@/lib/generator/types";
@@ -77,6 +77,21 @@ export default async function StatsPage() {
   // Skipped entirely for a user who cannot see it — a few dozen passes over the
   // closet is cheap, but computing an answer nobody is shown is still waste.
   const gap = entitlements.gapAnalysis ? biggestGap(closet, ALL_OCCASIONS) : null;
+  const neck = entitlements.gapAnalysis ? bottleneck(closet, ALL_OCCASIONS) : null;
+
+  /**
+   * The reason line names the bottleneck in the user's OWN counts.
+   *
+   * This is not decoration on the number — it IS what the simulation found. A
+   * wardrobe is a product of its slots, so the piece worth buying is always the
+   * one in the shallowest slot, and "3 pairs of shoes against 11 tops" is a
+   * claim the user can check by counting. That is the kind of "why" this app
+   * sells; a bare percentage is not.
+   */
+  const reason =
+    neck && neck.count < neck.deepestCount
+      ? `You have ${neck.count} ${neck.category.toLowerCase()} against ${neck.deepestCount} ${neck.deepest.toLowerCase()} — that's what's holding the rest back.`
+      : "It pairs with more of your closet than anything else you're missing.";
 
   return (
     <div className="flex min-h-dvh flex-1 flex-col">
@@ -98,11 +113,7 @@ export default async function StatsPage() {
           days: d.days,
         }))}
         gap={
-          gap && {
-            label: gap.candidate.label,
-            unlocks: gap.unlocks,
-            reason: `It pairs with more of your closet than anything else you're missing.`,
-          }
+          gap && { label: gap.candidate.label, share: gap.share, reason }
         }
         entitlements={{
           analytics: entitlements.analytics,

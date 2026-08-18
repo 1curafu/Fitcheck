@@ -14,7 +14,7 @@ const base = {
     { id: "i3", name: "Linen Blazer", days: null },
     { id: "i4", name: "Suede Loafers", days: 204 },
   ],
-  gap: { label: "A camel overcoat", unlocks: 14, reason: "You have no outerwear for cold days." },
+  gap: { label: "A camel overcoat", share: 1 / 3, reason: "You have 3 shoes against 11 tops." },
   entitlements: { analytics: true, gapAnalysis: true },
   isPro: true,
 };
@@ -36,12 +36,12 @@ test("the headline trio renders value, wears and average", () => {
 test("the gap card states the piece, the unlock count and the reason", () => {
   renderStats();
   expect(screen.getByText(/a camel overcoat/i)).toBeInTheDocument();
-  expect(screen.getByText(/unlocks 14 new outfits/i)).toBeInTheDocument();
+  expect(screen.getByText(/adds 33% more outfits/i)).toBeInTheDocument();
 });
 
 test("no gap card is shown when there is no gap", () => {
   renderStats({ gap: null });
-  expect(screen.queryByText(/unlocks/i)).not.toBeInTheDocument();
+  expect(screen.queryByText(/more outfits/i)).not.toBeInTheDocument();
 });
 
 test("there is no shopping CTA — that decision has not been made", () => {
@@ -91,7 +91,7 @@ test("a free user does not see the analysis itself", () => {
   expect(screen.queryByText(/brushed oxford/i)).not.toBeInTheDocument();
   expect(screen.queryByText(/linen blazer/i)).not.toBeInTheDocument();
   expect(screen.queryByText(/a camel overcoat/i)).not.toBeInTheDocument();
-  expect(screen.queryByText(/unlocks 14/i)).not.toBeInTheDocument();
+  expect(screen.queryByText(/more outfits/i)).not.toBeInTheDocument();
 });
 
 test("the gated sections are still named, so the user knows what is behind them", () => {

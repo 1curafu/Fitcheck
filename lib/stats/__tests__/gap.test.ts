@@ -1,7 +1,7 @@
-import { biggestGap, GAP_CANDIDATES } from "../gap";
+import { biggestGap, bottleneck, GAP_CANDIDATES } from "../gap";
 import type { CandidateItem } from "@/lib/generator/candidates";
 
-const base = { weather: { tempC: 16, rain: false }, occasions: ["everyday", "work"] as const };
+const base = { occasions: ["everyday", "work"] as const };
 
 const piece = (id: string, category: string, extra: Partial<CandidateItem> = {}): CandidateItem => ({
   id,
@@ -17,15 +17,104 @@ const piece = (id: string, category: string, extra: Partial<CandidateItem> = {})
 
 test("a closet with no bottoms is told a bottom unlocks the most", () => {
   const closet = [piece("t1", "Tops"), piece("s1", "Shoes", { colors: ["brown"], material: "Leather" })];
-  const gap = biggestGap(closet, [...base.occasions], base.weather);
+  const gap = biggestGap(closet, [...base.occasions]);
   expect(gap?.candidate.category).toBe("Bottoms");
   expect(gap?.unlocks).toBeGreaterThan(0);
 });
 
 test("the count is real — it equals the increase in buildable combinations", () => {
   const closet = [piece("t1", "Tops"), piece("s1", "Shoes", { colors: ["brown"], material: "Leather" })];
-  // One top × one hypothetical bottom × one shoe = 1 new combo per occasion.
-  expect(biggestGap(closet, ["everyday"], base.weather)?.unlocks).toBe(1);
+  // One top × one hypothetical bottom × one shoe = 1 combo on the MILD pass.
+  // The cold pass scores 0 because this closet owns no coat — see the
+  // outerwear rule in `countCombos`.
+  expect(biggestGap(closet, ["everyday"])?.unlocks).toBe(1);
+});
+
+// ⚠️ THE reason the screen shows `share` and not `unlocks`. The raw count scales
+// with parameters we invented — four occasions rather than one, two simulated
+// conditions rather than one. Adding the cold pass doubled it overnight for an
+// unchanged wardrobe, and a number that moves when an internal constant changes
+// cannot be defended to a customer. The share does not move.
+
+test("the raw count scales with our parameters and the share does not", () => {
+  // A coat, so the cold pass is non-zero and the slot structure is the same on
+  // both passes; formality 3 throughout, so every occasion admits every piece.
+  const closet = [
+    ...Array.from({ length: 4 }, (_, i) => piece(`t${i}`, "Tops")),
+    ...Array.from({ length: 3 }, (_, i) => piece(`b${i}`, "Bottoms")),
+    ...Array.from({ length: 2 }, (_, i) => piece(`s${i}`, "Shoes")),
+    piece("o1", "Outerwear"),
+  ];
+  const one = biggestGap(closet, ["everyday"])!;
+  const four = biggestGap(closet, ["everyday", "work", "weekend", "evening"])!;
+  expect(four.unlocks).toBe(one.unlocks * 4); // the COUNT scales exactly
+  expect(four.share).toBeCloseTo(one.share, 10); // the SHARE is untouched
+});
+
+test("the share reflects the size of the slot, not the size of the closet", () => {
+  // A wardrobe is a PRODUCT of its slots, so adding one piece to a slot of size
+  // s multiplies that pass by (s+1)/s. The share therefore depends on the
+  // BOTTLENECK's depth and not on how big the rest of the wardrobe is — which
+  // is why it never becomes absurd, and why it shrinks only when that slot is
+  // genuinely deep and the honest answer is "you don't need another one".
+  const shallow = [
+    ...Array.from({ length: 9 }, (_, i) => piece(`t${i}`, "Tops")),
+    ...Array.from({ length: 6 }, (_, i) => piece(`b${i}`, "Bottoms")),
+    ...Array.from({ length: 2 }, (_, i) => piece(`s${i}`, "Shoes")),
+    piece("o1", "Outerwear"),
+  ];
+  const deep = [
+    ...Array.from({ length: 9 }, (_, i) => piece(`t${i}`, "Tops")),
+    ...Array.from({ length: 6 }, (_, i) => piece(`b${i}`, "Bottoms")),
+    ...Array.from({ length: 8 }, (_, i) => piece(`s${i}`, "Shoes")),
+    ...Array.from({ length: 8 }, (_, i) => piece(`o${i}`, "Outerwear")),
+  ];
+  expect(biggestGap(shallow, ["everyday"])!.share).toBeGreaterThan(
+    biggestGap(deep, ["everyday"])!.share,
+  );
+});
+
+test("outerwear can win — the design's own example must be reachable", () => {
+  // ⚠️ It could not be, for weeks. A single mild simulated temperature meant
+  // `needsOuterwear` was always false, so no combination ever contained a coat
+  // and every outerwear candidate scored exactly 0. Measured on the real dev
+  // closet: camel overcoat +0, white sneakers +258. The cold pass is what makes
+  // "A camel overcoat unlocks 14 new outfits" — the design's headline — possible.
+  //
+  // Occasions matter here: the camel overcoat is formality 4, which the
+  // *everyday* band [1.5, 3] excludes. It can only win where it is wearable.
+  const noCoat = [
+    ...Array.from({ length: 8 }, (_, i) => piece(`t${i}`, "Tops")),
+    ...Array.from({ length: 8 }, (_, i) => piece(`b${i}`, "Bottoms")),
+    ...Array.from({ length: 8 }, (_, i) => piece(`s${i}`, "Shoes")),
+  ];
+  const gap = biggestGap(noCoat, ["work"])!;
+  expect(gap.candidate.category).toBe("Outerwear");
+});
+
+test("a coatless closet is told to buy a coat before anything else", () => {
+  // The failure this rule exists to prevent: with a plain slot product, going
+  // from 0 coats to 1 leaves the combination count unchanged, so the single
+  // most valuable purchase a coatless person can make scored exactly zero.
+  const noCoat = [
+    ...Array.from({ length: 3 }, (_, i) => piece(`t${i}`, "Tops")),
+    ...Array.from({ length: 3 }, (_, i) => piece(`b${i}`, "Bottoms")),
+    ...Array.from({ length: 3 }, (_, i) => piece(`s${i}`, "Shoes")),
+  ];
+  expect(biggestGap(noCoat, ["work"])!.candidate.category).toBe("Outerwear");
+});
+
+test("the bottleneck is named in the user's own counts", () => {
+  const closet = [
+    ...Array.from({ length: 9 }, (_, i) => piece(`t${i}`, "Tops")),
+    ...Array.from({ length: 6 }, (_, i) => piece(`b${i}`, "Bottoms")),
+    ...Array.from({ length: 2 }, (_, i) => piece(`s${i}`, "Shoes")),
+  ];
+  const b = bottleneck(closet, ["everyday"])!;
+  expect(b.category).toBe("Shoes");
+  expect(b.count).toBe(2);
+  expect(b.deepest).toBe("Tops");
+  expect(b.deepestCount).toBe(9);
 });
 
 // NOT `expect(gap === null || gap.unlocks > 0)` — `biggestGap` only ever sets
@@ -34,7 +123,7 @@ test("the count is real — it equals the increase in buildable combinations", (
 // positive unlock count.
 test("a gap is only ever reported with a real, positive unlock count", () => {
   const rich = GAP_CANDIDATES.map((c, n) => piece(`x${n}`, c.category, { colors: ["navy"] }));
-  const gap = biggestGap([...rich, ...rich], ["everyday"], base.weather);
+  const gap = biggestGap([...rich, ...rich], ["everyday"]);
   if (gap) {
     expect(gap.unlocks).toBeGreaterThan(0);
     expect(GAP_CANDIDATES).toContain(gap.candidate);
@@ -42,7 +131,7 @@ test("a gap is only ever reported with a real, positive unlock count", () => {
 });
 
 test("an empty closet is not offered a gap — it is offered onboarding", () => {
-  expect(biggestGap([], ["everyday"], base.weather)).toBeNull();
+  expect(biggestGap([], ["everyday"])).toBeNull();
 });
 
 // --- Beyond the plan --------------------------------------------------------
@@ -57,7 +146,7 @@ test("the claim survives a closet past the candidate CAP", () => {
     ...Array.from({ length: 12 }, (_, i) => piece(`b${i}`, "Bottoms")),
     ...Array.from({ length: 12 }, (_, i) => piece(`s${i}`, "Shoes")),
   ];
-  const gap = biggestGap(big, ["everyday"], base.weather);
+  const gap = biggestGap(big, ["everyday"]);
   expect(gap).not.toBeNull();
   expect(gap!.unlocks).toBeGreaterThan(0);
 });
@@ -71,7 +160,7 @@ test("a closet already holding everything still names its weakest slot", () => {
     piece("s1", "Shoes"),
     piece("o1", "Outerwear"),
   ];
-  expect(biggestGap(complete, ["everyday"], base.weather)).not.toBeNull();
+  expect(biggestGap(complete, ["everyday"])).not.toBeNull();
 });
 
 test("the candidates are all placeable by the generator", () => {

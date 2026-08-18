@@ -26,7 +26,29 @@ import { UpgradeSheet } from "@/components/billing/upgrade-sheet";
 
 export type StatRow = { id: string; name: string; sub: string };
 export type DustRow = { id: string; name: string; days: number | null };
-export type Gap = { label: string; unlocks: number; reason: string };
+/**
+ * `share` — the proportional increase — NOT a raw count.
+ *
+ * Measured on the 21-item dev closet, the count came out at 258, which is
+ * arithmetically exact and completely uncredible; the design's own example was
+ * 14. Worse, the count scales with parameters we invented (four occasions, two
+ * simulated conditions), so adding a cold pass doubled it overnight for an
+ * unchanged wardrobe. A number that moves when an internal constant changes
+ * cannot be defended to a customer. See `lib/stats/gap.ts`.
+ */
+export type Gap = { label: string; share: number; reason: string };
+
+/**
+ * The claim, in plain words.
+ *
+ * Rounded to whole percent and floored at 1: "adds 0% more outfits" is a
+ * sentence that argues against itself, and a piece that genuinely moves nothing
+ * never reaches this card (`biggestGap` only reports a positive unlock).
+ */
+function sharePhrase(share: number): string {
+  const pct = Math.max(1, Math.round(share * 100));
+  return `Adds ${pct}% more outfits`;
+}
 
 /** `days: null` means never worn — see `gatheringDust`. Never "∞ days ago". */
 function idleLabel(days: number | null): string {
@@ -182,7 +204,7 @@ export function StatsView({
                   <div className="font-serif text-[24px] text-foreground">{gap.label}</div>
                   {/* The screen's single rust spend — the One Rust Rule. */}
                   <div className="mt-[6px] text-[13px] font-semibold text-brand">
-                    Unlocks {gap.unlocks} new outfits
+                    {sharePhrase(gap.share)}
                   </div>
                   <p className="mt-[10px] text-[13.5px] leading-[1.5] text-muted-foreground">
                     {gap.reason}
