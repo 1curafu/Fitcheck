@@ -1,0 +1,514 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/closet/[itemId]/page.tsx
+  - app/closet/[itemId]/style-actions.ts
+  - components/closet/style-cta.tsx
+  - lib/outfits/__tests__/styled.test.ts
+  - lib/outfits/daily.ts
+  - lib/outfits/styled-store.ts
+  - lib/outfits/styled.ts
+  - supabase/migrations/20260731090000_outfits_styled_item.sql
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/closet/[itemId]/page.tsx ===
+@@ -6,6 +6,7 @@ import { itemWearStats } from "@/lib/closet/wear-stats";
+ import { goesWith } from "@/lib/closet/goes-with";
+ import { ItemDetail, type DetailItem } from "@/components/closet/item-detail";
+ import type { GoesWithCard } from "@/components/closet/item-view";
++import { StyleCta } from "@/components/closet/style-cta";
+ 
+ export default async function ItemPage({
+   params,
+@@ -82,6 +83,7 @@ export default async function ItemPage({
+       brandSuggestions={brandSuggestions}
+       stats={stats}
+       goesWith={goesWithCards}
++      styleCta={<StyleCta itemId={item.id} />}
+     />
+   );
+ }
+
+
+=== DIFF: app/closet/[itemId]/style-actions.ts ===
+@@ -0,0 +1,205 @@
++"use server";
++
++import { createClient } from "@/lib/supabase/server";
++import { signItemImages, displayPath } from "@/lib/storage/signed";
++import { fetchForecast } from "@/lib/weather/open-meteo";
++import { laterAdvice } from "@/lib/weather/advice";
++import { personalBand } from "@/lib/generator/rules";
++import { buildCandidates, type CandidateItem } from "@/lib/generator/candidates";
++import { rankTopN } from "@/lib/generator/rank";
++import { currentSeason } from "@/lib/generator/season";
++import { rerank } from "@/lib/generator/rerank";
++import { layoutForLook, staggerOrder } from "@/lib/generator/layout";
++import { localDateFor } from "@/lib/outfits/local-date";
++import { assertCanGenerate, QuotaExceededError } from "@/lib/outfits/quota";
++import { predictOccasion } from "@/lib/outfits/predict-occasion";
++import { pinItem, styledLookName } from "@/lib/outfits/styled";
++import { loadStyledLook, saveStyledLook } from "@/lib/outfits/styled-store";
++import { resolveLocation } from "@/lib/weather/location";
++import type { LookDraft, LookPiece, WeatherPayload } from "@/lib/generator/types";
++
++export type StyleResult =
++  | { status: "ok"; outfitId: string }
++  | { status: "limited" }
++  | { status: "empty"; message: string }
++  | { status: "error"; message: string };
++
++/**
++ * "Style an outfit with this" (Fitcheck.dc.html:654).
++ *
++ * Pins the piece, runs the deterministic pipeline, spends ONE text call to name
++ * and explain the result, then persists it keyed by (user, item, local day) so a
++ * second tap the same day is a free read.
++ *
++ * This does not contradict Decision 5. That decision says never pay twice for a
++ * question already answered — which is why the daily drop caches. "What goes
++ * with this piece?" is a different question from "what should I wear today?",
++ * so it gets its own answer, cached the same way.
++ *
++ * The alternative readings were measured and rejected; see the plan
++ * `todo/2026-07-24-item-detail-rebuild.md`.
++ */
++export async function styleWithItem(itemId: string): Promise<StyleResult> {
++  try {
++    const supabase = await createClient();
++    const {
++      data: { user },
++    } = await supabase.auth.getUser();
++    if (!user) return { status: "error", message: "Not signed in" };
++
++    const { data: profile } = await supabase
++      .from("profiles")
++      .select(
++        "archetype, formality_min, formality_max, occasions, location_lat, location_lon, location_label, location_source, location_timezone",
++      )
++      .eq("id", user.id)
++      .single();
++
++    const { data: itemsRaw } = await supabase
++      .from("items")
++      .select("*")
++      .eq("user_id", user.id)
++      .eq("archived", false);
++    const items = itemsRaw ?? [];
++    const subject = items.find((i) => i.id === itemId);
++    if (!subject) return { status: "error", message: "Piece not found" };
++
++    // Fragrance occupies no slot in a look, so there is nothing to build around.
++    if (subject.category === "Fragrance") {
++      return { status: "empty", message: "Fragrance finishes a look rather than forming one." };
++    }
++
++    const loc = resolveLocation({ profile });
++    const now = new Date();
++    const f = await fetchForecast(loc.lat, loc.lon);
++    const today = localDateFor(now, f.timezone);
++
++    // THE CACHE. Checked before the quota is touched — re-opening an answer you
++    // already have must never cost anything.
++    const cached = await loadStyledLook(user.id, itemId, today);
++    if (cached) return { status: "ok", outfitId: cached };
++
++    try {
++      await assertCanGenerate(user.id);
++    } catch (e) {
++      if (e instanceof QuotaExceededError) return { status: "limited" };
++      throw e;
++    }
++
++    const advice = laterAdvice(f.hourly);
++    const weather: WeatherPayload = {
++      tempC: f.tempC,
++      feelsLikeC: f.feelsLikeC,
++      condition: f.condition,
++      cityLabel: loc.label,
++      timezone: f.timezone,
++      locationOrigin: loc.origin,
++      laterSentence: advice.sentence,
++      adviceClause: advice.adviceClause,
++      laterLabel: "Later",
++      hourly: f.hourly,
++    };
++
++    // The occasion the app already believes you are dressing for today — the CTA
++    // has no picker, and a look styled for the wrong context is worse than one
++    // that simply agrees with the rest of the day.
++    const occasion = predictOccasion(now, f.timezone, profile?.occasions ?? []);
++
++    /**
++     * Pinning, done BEFORE candidate building rather than after.
++     *
++     * Dropping every rival in the subject's own category means any combo using
++     * that category uses THIS piece. Filtering the built list instead would have
++     * to survive the 200-combo CAP, and a piece that never made the cut would
++     * silently produce "no looks" — the same class of bug as the coverage
++     * defect fixed in PR #14.
++     */
++    const pool = items.filter((i) => i.category !== subject.category || i.id === itemId);
++    const candItems: CandidateItem[] = pool.map((i) => ({
++      id: i.id,
++      colors: i.colors ?? [],
++      category: i.category,
++      formality: i.formality,
++      seasons: i.seasons ?? [],
++      material: i.material,
++    }));
++
++    const args = {
++      weather: { tempC: f.tempC, rain: f.hourly.some((h) => h.isNow && h.rain) },
++      season: currentSeason(now),
++      excludeItemIds: [],
++      maxAccessories: 1,
++    };
++    const aesthetic = profile?.archetype ? [profile.archetype] : [];
++
++    // Try the day's own formality band first, then the full scale. A piece
++    // dressier or more casual than today's context is still stylable — refusing
++    // would be the "hard filter empties a required slot" trap again.
++    let pinned: ReturnType<typeof rankTopN> = [];
++    for (const band of [personalBand(occasion, profile), [1, 5] as [number, number]]) {
++      const combos = buildCandidates(candItems, { ...args, band });
++      const ranked = rankTopN(
++        combos,
++        { aesthetic, band, lean: [], recentlyShown: [], season: args.season },
++        combos.length,
++      );
++      pinned = pinItem(ranked, itemId);
++      if (pinned.length) break;
++    }
++
++    if (!pinned.length) {
++      return {
++        status: "empty",
++        message: "Not enough other pieces to build a look around this one yet.",
++      };
++    }
++
++    const byId = new Map(items.map((i) => [i.id, i]));
++    const shortlist = pinned.slice(0, 20);
++
++    const { picks } = await rerank({
++      want: 1,
++      combos: shortlist.map((t) =>
++        t.items.map((ci) => {
++          const it = byId.get(ci.id)!;
++          return { category: it.category, subcategory: it.subcategory, colors: it.colors ?? [] };
++        }),
++      ),
++      aesthetic,
++      occasion,
++      weatherLabel: f.condition,
++      tempC: f.tempC,
++    });
++
++    const chosen = shortlist[picks[0]?.combo_index ?? 0] ?? shortlist[0];
++    const dbItems = chosen.items.map((ci) => byId.get(ci.id)!);
++    const paths = dbItems.map(displayPath);
++    const signed = await signItemImages(paths);
++    const slots = layoutForLook(dbItems.map((d) => ({ category: d.category })));
++    const pieces: LookPiece[] = dbItems.map((d, idx) => ({
++      itemId: d.id,
++      category: d.category,
++      subcategory: d.subcategory ?? null,
++      brand: d.brand ?? null,
++      name: d.name ?? null,
++      colors: d.colors ?? [],
++      cutoutUrl: signed.get(displayPath(d)) ?? "",
++      slot: slots[idx],
++    }));
++
++    const draft: LookDraft = {
++      name: picks[0]?.name || styledLookName(subject),
++      why: picks[0]?.why ?? "",
++      pieces,
++      anchorIndex: staggerOrder(slots)[0],
++    };
++
++    const outfitId = await saveStyledLook(user.id, itemId, occasion, today, weather, draft);
++    if (!outfitId) return { status: "error", message: "Couldn't save the look" };
++
++    return { status: "ok", outfitId };
++  } catch (e) {
++    console.error("[styleWithItem] failed:", e);
++    return { status: "error", message: e instanceof Error ? e.message : "Couldn't style this" };
++  }
++}
+
+
+=== DIFF: components/closet/style-cta.tsx ===
+@@ -0,0 +1,45 @@
++"use client";
++
++import { useState, useTransition } from "react";
++import { useRouter } from "next/navigation";
++import { styleWithItem } from "@/app/closet/[itemId]/style-actions";
++
++/**
++ * The one primary action on item detail (Fitcheck.dc.html:654).
++ *
++ * The outcome is a STATE, not an exception: "you have used today's stylings" and
++ * "there is not enough else in your closet yet" are both real answers, and a
++ * thrown error would render as a dead button with no explanation.
++ */
++export function StyleCta({ itemId }: { itemId: string }) {
++  const router = useRouter();
++  const [pending, start] = useTransition();
++  const [message, setMessage] = useState<string | null>(null);
++
++  return (
++    <div className="flex flex-1 flex-col">
++      <button
++        type="button"
++        disabled={pending}
++        onClick={() =>
++          start(async () => {
++            setMessage(null);
++            const res = await styleWithItem(itemId);
++            if (res.status === "ok") router.push(`/outfits/${res.outfitId}`);
++            else if (res.status === "limited")
++              setMessage("That's today's stylings used — back tomorrow.");
++            else setMessage(res.message);
++          })
++        }
++        className="min-h-[54px] w-full rounded-[14px] bg-foreground text-[15.5px] font-semibold text-canvas disabled:opacity-70"
++      >
++        {pending ? "Styling…" : "Style an outfit with this"}
++      </button>
++      {message && (
++        <p role="status" className="mt-2 text-center text-xs text-muted-foreground">
++          {message}
++        </p>
++      )}
++    </div>
++  );
++}
+
+
+=== DIFF: lib/outfits/__tests__/styled.test.ts ===
+@@ -0,0 +1,34 @@
++import { pinItem, styledLookName } from "../styled";
++
++const combo = (...ids: string[]) => ({ items: ids.map((id) => ({ id })) });
++
++test("keeps only the combos that actually contain the piece", () => {
++  const combos = [combo("a", "b"), combo("b", "c"), combo("a", "c")];
++  expect(pinItem(combos, "a")).toHaveLength(2);
++  expect(pinItem(combos, "a").every((c) => c.items.some((i) => i.id === "a"))).toBe(true);
++});
++
++test("preserves the ranked order it was given", () => {
++  const combos = [combo("a", "x"), combo("q"), combo("a", "y")];
++  expect(pinItem(combos, "a").map((c) => c.items[1].id)).toEqual(["x", "y"]);
++});
++
++// The caller uses this to decide whether to widen the formality band before
++// giving up — an empty array is a real answer, not a failure.
++test("a piece that fits no combo returns empty rather than throwing", () => {
++  expect(pinItem([combo("a"), combo("b")], "zzz")).toEqual([]);
++  expect(pinItem([], "a")).toEqual([]);
++});
++
++// The model names the look, but a name must exist even if that call is skipped
++// or the schema repair drops the pick.
++test("the fallback name is built from the piece, never left blank", () => {
++  expect(styledLookName({ name: "Brushed Oxford", subcategory: "Oxford shirt", category: "Tops" }))
++    .toBe("Around the Brushed Oxford");
++  expect(styledLookName({ name: null, subcategory: "Oxford shirt", category: "Tops" })).toBe(
++    "Around the Oxford shirt",
++  );
++  expect(styledLookName({ name: null, subcategory: null, category: "Tops" })).toBe(
++    "Around the Tops",
++  );
++});
+
+
+=== DIFF: lib/outfits/daily.ts ===
+@@ -19,6 +19,10 @@ export async function loadDailyLooks(
+     .eq("user_id", userId)
+     .eq("occasion", occasion)
+     .eq("generated_on", generatedOn)
++    // A "Style an outfit with this" look is dated and carries an occasion too,
++    // so it matches this filter — without the guard it shows up as an extra
++    // look in the day's set.
++    .is("styled_item_id", null)
+     .order("look_index", { ascending: true });
+ 
+   if (!data || data.length === 0) return null;
+@@ -68,7 +72,8 @@ export async function saveDailyLooks(
+     .select("id, look_index, wear_logs(worn_on)")
+     .eq("user_id", userId)
+     .eq("occasion", occasion)
+-    .eq("generated_on", generatedOn);
++    .eq("generated_on", generatedOn)
++    .is("styled_item_id", null);
+ 
+   // Any wear log pins the row — not just today's. The point is that nothing
+   // referenced by wear_logs is ever deleted here.
+@@ -79,7 +84,10 @@ export async function saveDailyLooks(
+     .delete()
+     .eq("user_id", userId)
+     .eq("occasion", occasion)
+-    .eq("generated_on", generatedOn);
++    .eq("generated_on", generatedOn)
++    // Never delete a styled look: it is a cached answer to a different
++    // question, and a regenerate has no business invalidating it.
++    .is("styled_item_id", null);
+   if (pinned.length) del = del.not("id", "in", `(${pinned.map((r) => r.id).join(",")})`);
+   await del;
+ 
+
+
+=== DIFF: lib/outfits/styled-store.ts ===
+@@ -0,0 +1,72 @@
++import { createClient } from "@/lib/supabase/server";
++import type { LookDraft, WeatherPayload } from "@/lib/generator/types";
++
++/**
++ * The cache read for "Style an outfit with this".
++ *
++ * `outfits_styled_unique (user_id, styled_item_id, generated_on)` means there is
++ * at most one row per piece per local day, so this is the whole cache: a hit
++ * costs one indexed lookup and NO model call.
++ */
++export async function loadStyledLook(
++  userId: string,
++  itemId: string,
++  generatedOn: string,
++): Promise<string | null> {
++  const supabase = await createClient();
++  const { data } = await supabase
++    .from("outfits")
++    .select("id")
++    .eq("user_id", userId)
++    .eq("styled_item_id", itemId)
++    .eq("generated_on", generatedOn)
++    .maybeSingle();
++  return data?.id ?? null;
++}
++
++/**
++ * Persist a styled look and return its id.
++ *
++ * `look_index` is deliberately left NULL: `outfits_daily_unique` covers
++ * (user_id, occasion, generated_on, look_index), and Postgres treats NULLs as
++ * distinct, so two pieces styled on the same day for the same occasion cannot
++ * collide. `loadDailyLooks`/`saveDailyLooks` filter these rows out entirely.
++ */
++export async function saveStyledLook(
++  userId: string,
++  itemId: string,
++  occasion: string,
++  generatedOn: string,
++  weather: WeatherPayload,
++  look: LookDraft,
++): Promise<string | null> {
++  const supabase = await createClient();
++
++  const { data: row } = await supabase
++    .from("outfits")
++    .insert({
++      user_id: userId,
++      occasion,
++      generated_on: generatedOn,
++      styled_item_id: itemId,
++      look_name: look.name,
++      ai_reasoning: look.why,
++      weather_snapshot: weather,
++      layout: {
++        anchorIndex: look.anchorIndex,
++        pieces: look.pieces.map((p) => ({ itemId: p.itemId, slot: p.slot })),
++      },
++    })
++    .select("id")
++    .single();
++  if (!row) return null;
++
++  const links = look.pieces.map((p) => ({
++    outfit_id: row.id,
++    item_id: p.itemId,
++    slot: p.category,
++  }));
++  if (links.length) await supabase.from("outfit_items").insert(links);
++
++  return row.id;
++}
+
+
+=== DIFF: lib/outfits/styled.ts ===
+@@ -0,0 +1,38 @@
++/**
++ * "Style an outfit with this" — the pure parts.
++ *
++ * Deliberately free of any Supabase import so it stays testable under jsdom;
++ * the persistence lives in `styled-store.ts`.
++ */
++
++/**
++ * Narrow a ranked candidate list to the combos containing one piece.
++ *
++ * This is the whole of "pin the item": the generator already builds every valid
++ * combination and ranks it, so styling around a chosen piece is a filter over
++ * that work, not a second algorithm. Order is preserved, so the best combo
++ * containing the piece stays the best.
++ *
++ * Returns empty when the piece fits nothing under the current band — the caller
++ * widens the formality band and tries again rather than treating that as an
++ * error, the same "a hard filter must never empty a required slot" rule the
++ * generator already follows.
++ */
++export function pinItem<T extends { items: { id: string }[] }>(combos: T[], itemId: string): T[] {
++  return combos.filter((c) => c.items.some((i) => i.id === itemId));
++}
++
++/**
++ * The name to fall back to when the model does not supply one.
++ *
++ * A look with no name renders a blank headline on both the detail screen and
++ * the index tabs, so there is always a name — built from the piece the look was
++ * styled around, which is also the honest description of it.
++ */
++export function styledLookName(item: {
++  name: string | null;
++  subcategory: string | null;
++  category: string;
++}): string {
++  return `Around the ${item.name ?? item.subcategory ?? item.category}`;
++}
+
+
+=== DIFF: supabase/migrations/20260731090000_outfits_styled_item.sql ===
+@@ -0,0 +1,26 @@
++-- "Style an outfit with this" (item detail, Fitcheck.dc.html:654).
++--
++-- A styled look is an ordinary `outfits` row, so /outfits/[id] renders it with
++-- no second screen — it just answers a different question: not "what should I
++-- wear today?" but "what goes with THIS?".
++--
++-- Decision 5 is not bypassed. That decision says never pay twice for a question
++-- already answered, which is why the daily drop caches; styling around a
++-- specific piece is a NEW question, and this column is what lets its answer be
++-- cached the same way.
++alter table public.outfits
++  add column if not exists styled_item_id uuid references public.items(id) on delete cascade;
++
++-- The cache key: one styled look per item per local day. A second tap on the
++-- same piece is a read, not a generation.
++create unique index if not exists outfits_styled_unique
++  on public.outfits (user_id, styled_item_id, generated_on)
++  where styled_item_id is not null;
++
++-- NOTE for whoever touches the daily drop next: styled rows carry
++-- `generated_on` (so they expire daily) but leave `look_index` NULL. Postgres
++-- treats NULLs as distinct in a unique index, so `outfits_daily_unique`
++-- (user_id, occasion, generated_on, look_index) cannot collide across two
++-- styled looks on the same day. loadDailyLooks/saveDailyLooks additionally
++-- filter `styled_item_id is null`, or a styled look would appear as a fourth
++-- look in the drop and be deleted by the next regenerate.
+
+
+Investigate per the method in your instructions, then return the findings list.
