@@ -1,0 +1,1 @@
+'/Users/1curafu/Desktop/Fitcheck/Fitcheck/DESIGN.md''/Users/1curafu/Desktop/Fitcheck/Fitcheck/PRODUCT.md''/Users/1curafu/Desktop/Fitcheck/Fitcheck/docs' also in git ignore
