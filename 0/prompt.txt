@@ -1,0 +1,1 @@
+.impeccable/design.json, .impeccable/live/config.json i mean in git ignore
