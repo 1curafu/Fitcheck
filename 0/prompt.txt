@@ -1,0 +1,336 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/generate/actions.ts
+  - components/generate/__tests__/flat-lay.test.tsx
+  - components/generate/__tests__/stylist-view.test.tsx
+  - lib/generator/types.ts
+  - lib/outfits/__tests__/reassemble.test.ts
+  - lib/outfits/daily.ts
+  - lib/outfits/reassemble.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/generate/actions.ts ===
+@@ -26,6 +26,7 @@ import {
+ import type {
+   GenerateResult,
+   Look,
++  LookDraft,
+   LookPiece,
+   UiOccasion,
+   WeatherPayload,
+@@ -61,6 +62,10 @@ export async function generate(input: {
+       .eq("archived", false);
+     const items = itemsRaw ?? [];
+     const byId = new Map(items.map((i) => [i.id, i]));
++    const pathFor = (id: string) => {
++      const it = byId.get(id);
++      return it ? displayPath(it) : undefined;
++    };
+ 
+     const loc = resolveLocation({ input: input.city, profile });
+ 
+@@ -101,10 +106,7 @@ export async function generate(input: {
+         ),
+       );
+       const signed = await signItemImages(paths);
+-      const looks = reassembleLooks(stored, byId, signed, (id) => {
+-        const it = byId.get(id);
+-        return it ? displayPath(it) : undefined;
+-      });
++      const looks = reassembleLooks(stored, byId, signed, pathFor);
+       // null = the closet changed under the stored set; fall through and
+       // regenerate rather than showing an outfit with a hole in it.
+       if (looks) return { status: "ok", weather, looks };
+@@ -178,8 +180,18 @@ export async function generate(input: {
+       tempC: f.tempC,
+     });
+ 
++    // A look the user has already worn today is PINNED: saveDailyLooks leaves it
++    // in place, so it has to survive in what we hand back to the screen too —
++    // otherwise the day's set silently loses it until the next page load.
++    const pinnedStored = (stored ?? []).filter((s) => s.worn);
++
+     const paths = Array.from(
+-      new Set(top.flatMap((t) => t.items.map((ci) => displayPath(byId.get(ci.id)!)))),
++      new Set([
++        ...top.flatMap((t) => t.items.map((ci) => displayPath(byId.get(ci.id)!))),
++        ...pinnedStored.flatMap((s) =>
++          s.pieces.map((p) => pathFor(p.itemId)).filter((p): p is string => Boolean(p)),
++        ),
++      ]),
+     );
+     const signed = await signItemImages(paths);
+ 
+@@ -187,7 +199,7 @@ export async function generate(input: {
+     // shortlist, so every index here resolves. It previously fell back to
+     // `top[0]` for an unknown index, which turned a bad index into a duplicate
+     // of the first look rather than into one fewer look.
+-    const looks: Look[] = picks.map((p) => {
++    const drafts: LookDraft[] = picks.map((p) => {
+       const combo = top[p.combo_index].items;
+       const dbItems = combo.map((ci) => byId.get(ci.id)!);
+       const slots = layoutForLook(dbItems.map((d) => ({ category: d.category })));
+@@ -205,10 +217,16 @@ export async function generate(input: {
+     });
+ 
+     // Fire-and-forget would be simpler, but a failed write means the user pays
+-    // for another AI call on their next tap — worth awaiting.
+-    await saveDailyLooks(user.id, input.occasion, today, weather, looks);
++    // for another AI call on their next tap — worth awaiting. The insert also
++    // hands back the row ids, which are the detail screen's address.
++    const ids = await saveDailyLooks(user.id, input.occasion, today, weather, drafts);
++    const fresh: Look[] = drafts.map((d, i) => ({ ...d, id: ids[i] ?? "", worn: false }));
++
++    // Pinned looks keep their place at the front — they hold the lower
++    // look_index values, which is the order the next load will read them back in.
++    const pinned = reassembleLooks(pinnedStored, byId, signed, pathFor) ?? [];
+ 
+-    return { status: "ok", weather, looks };
++    return { status: "ok", weather, looks: [...pinned, ...fresh] };
+   } catch (e) {
+     console.error("[generate] failed:", e);
+     return { status: "error", message: e instanceof Error ? e.message : "Generation failed" };
+
+
+=== DIFF: components/generate/__tests__/flat-lay.test.tsx ===
+@@ -15,9 +15,11 @@ const piece = (over: Partial<LookPiece>): LookPiece => ({
+ });
+ 
+ const look: Look = {
++  id: "o1",
+   name: "The Camel",
+   why: "why",
+   anchorIndex: 3,
++  worn: false,
+   pieces: [
+     piece({ itemId: "a", cutoutUrl: "/a.png", slot: { xPct: 56, yPct: 10, wPct: 36, hPct: 34, rotationDeg: 4, z: 2 } }),
+     piece({ itemId: "b", cutoutUrl: "/b.png", slot: { xPct: 58, yPct: 46, wPct: 34, hPct: 44, rotationDeg: -3, z: 2 } }),
+
+
+=== DIFF: components/generate/__tests__/stylist-view.test.tsx ===
+@@ -17,9 +17,11 @@ const weather: WeatherPayload = {
+ };
+ 
+ const look: Look = {
++  id: "o1",
+   name: "The Camel",
+   why: "the camel coat does the talking",
+   anchorIndex: 0,
++  worn: false,
+   pieces: [
+     {
+       itemId: "i1",
+
+
+=== DIFF: lib/generator/types.ts ===
+@@ -24,13 +24,20 @@ export type LookPiece = {
+ };
+ 
+ export type Look = {
++  /** The `outfits` row this look was persisted as — the detail screen's address. */
++  id: string;
+   name: string;
+   why: string;
+   pieces: LookPiece[];
+   anchorIndex: number;
++  /** Logged as worn today. A worn look is pinned: a Regenerate leaves it alone. */
++  worn: boolean;
+ };
+ 
+-export type HourCell = { hh: string; tempC: number; rain: boolean; isNow: boolean };
++/** A look before it has been persisted — it has no row id and cannot be worn yet. */
++export type LookDraft = Omit<Look, "id" | "worn">;
++
++export type HourCell ={ hh: string; tempC: number; rain: boolean; isNow: boolean };
+ 
+ export type WeatherPayload = {
+   tempC: number;
+
+
+=== DIFF: lib/outfits/__tests__/reassemble.test.ts ===
+@@ -3,9 +3,11 @@ import { reassembleLooks, type StoredLook, type ItemRow } from "../reassemble";
+ const slot = { xPct: 10, yPct: 20, wPct: 30, hPct: 40, rotationDeg: -3, z: 2 };
+ const stored: StoredLook[] = [
+   {
++    id: "o1",
+     lookName: "The Off-Duty Camel",
+     why: "the camel knit warms the grey trousers",
+     anchorIndex: 1,
++    worn: false,
+     pieces: [
+       { itemId: "t1", slot },
+       { itemId: "b1", slot },
+@@ -35,6 +37,17 @@ test("preserves the stored geometry and anchor exactly, so the flat-lay re-rende
+   expect(looks[0].anchorIndex).toBe(1);
+ });
+ 
++// The stored row's identity has to survive reassembly, or a look on the stylist
++// screen has nowhere to go — until now loadDailyLooks never even selected the id.
++test("carries the outfit id and its worn state through, so the look can be opened and badged", () => {
++  const looks = reassembleLooks(stored, items, signed, pathFor)!;
++  expect(looks[0].id).toBe("o1");
++  expect(looks[0].worn).toBe(false);
++
++  const worn = reassembleLooks([{ ...stored[0], worn: true }], items, signed, pathFor)!;
++  expect(worn[0].worn).toBe(true);
++});
++
+ // A stored look is only as valid as the closet behind it. Rather than render a
+ // look with a hole in it, we declare the day's set stale and let the caller
+ // regenerate — the user sees a complete outfit or a fresh one, never a gap.
+
+
+=== DIFF: lib/outfits/daily.ts ===
+@@ -1,6 +1,7 @@
+ import { createClient } from "@/lib/supabase/server";
+-import type { Look, WeatherPayload } from "@/lib/generator/types";
++import type { LookDraft, WeatherPayload } from "@/lib/generator/types";
+ import type { StoredLook } from "./reassemble";
++import { freshIndexStart, isWornToday } from "./wear";
+ 
+ /** Today's stored set for one occasion, in the order the stylist chose. */
+ export async function loadDailyLooks(
+@@ -11,7 +12,10 @@ export async function loadDailyLooks(
+   const supabase = await createClient();
+   const { data } = await supabase
+     .from("outfits")
+-    .select("look_name, ai_reasoning, layout, look_index")
++    // `wear_logs(worn_on)` is the reverse of wear_logs.outfit_id. A look the
++    // user has already worn today stays in the set and is badged, rather than
++    // disappearing the moment they tap the button.
++    .select("id, look_name, ai_reasoning, layout, look_index, wear_logs(worn_on)")
+     .eq("user_id", userId)
+     .eq("occasion", occasion)
+     .eq("generated_on", generatedOn)
+@@ -25,10 +29,12 @@ export async function loadDailyLooks(
+       pieces?: StoredLook["pieces"];
+     };
+     return {
++      id: row.id,
+       lookName: row.look_name ?? "",
+       why: row.ai_reasoning ?? "",
+       anchorIndex: layout.anchorIndex ?? 0,
+       pieces: layout.pieces ?? [],
++      worn: isWornToday(row.wear_logs ?? [], generatedOn),
+     };
+   });
+ }
+@@ -37,28 +43,52 @@ export async function loadDailyLooks(
+  * Replace today's set for one occasion. Delete-then-insert rather than upsert:
+  * a regenerate may return a different NUMBER of looks, and leftovers from the
+  * previous set must not survive alongside the new one.
++ *
++ * One exception, and it is the reason this function can be called at all after
++ * a wear: an outfit with a wear log is PINNED. `wear_logs.outfit_id` used to
++ * have no ON DELETE action, so deleting a worn outfit raised a foreign-key
++ * violation and the whole regeneration failed. Pinning is also the honest
++ * product behaviour — what you actually wore today is not a suggestion to be
++ * thrown away, so it keeps its place in the day's set and the fresh looks are
++ * numbered past it (`outfits_daily_unique` covers `look_index`).
++ *
++ * Returns the new outfit ids, aligned with the `looks` array.
+  */
+ export async function saveDailyLooks(
+   userId: string,
+   occasion: string,
+   generatedOn: string,
+   weather: WeatherPayload,
+-  looks: Look[],
+-): Promise<void> {
++  looks: LookDraft[],
++): Promise<string[]> {
+   const supabase = await createClient();
+ 
+-  await supabase
++  const { data: existing } = await supabase
++    .from("outfits")
++    .select("id, look_index, wear_logs(worn_on)")
++    .eq("user_id", userId)
++    .eq("occasion", occasion)
++    .eq("generated_on", generatedOn);
++
++  // Any wear log pins the row — not just today's. The point is that nothing
++  // referenced by wear_logs is ever deleted here.
++  const pinned = (existing ?? []).filter((r) => (r.wear_logs ?? []).length > 0);
++
++  let del = supabase
+     .from("outfits")
+     .delete()
+     .eq("user_id", userId)
+     .eq("occasion", occasion)
+     .eq("generated_on", generatedOn);
++  if (pinned.length) del = del.not("id", "in", `(${pinned.map((r) => r.id).join(",")})`);
++  await del;
+ 
++  const start = freshIndexStart(pinned.map((r) => r.look_index));
+   const rows = looks.map((look, i) => ({
+     user_id: userId,
+     occasion,
+     generated_on: generatedOn,
+-    look_index: i,
++    look_index: start + i,
+     look_name: look.name,
+     ai_reasoning: look.why,
+     weather_snapshot: weather,
+@@ -72,12 +102,12 @@ export async function saveDailyLooks(
+     .from("outfits")
+     .insert(rows)
+     .select("id, look_index");
+-  if (!inserted) return;
++  if (!inserted) return [];
+ 
+   // outfit_items is the relational record — it is what wear_logs and future
+   // analytics join against. The renderable geometry lives in outfits.layout.
+   const links = inserted.flatMap((row) => {
+-    const look = looks[row.look_index];
++    const look = looks[row.look_index - start];
+     return (look?.pieces ?? []).map((p) => ({
+       outfit_id: row.id,
+       item_id: p.itemId,
+@@ -85,4 +115,9 @@ export async function saveDailyLooks(
+     }));
+   });
+   if (links.length) await supabase.from("outfit_items").insert(links);
++
++  // Insert order is not guaranteed — place each id at its look's position.
++  const ids: string[] = [];
++  for (const row of inserted) ids[row.look_index - start] = row.id;
++  return ids;
+ }
+
+
+=== DIFF: lib/outfits/reassemble.ts ===
+@@ -2,10 +2,12 @@ import type { Look, LookPiece, Slot } from "@/lib/generator/types";
+ 
+ export type StoredPiece = { itemId: string; slot: Slot };
+ export type StoredLook = {
++  id: string;
+   lookName: string;
+   why: string;
+   anchorIndex: number;
+   pieces: StoredPiece[];
++  worn: boolean;
+ };
+ export type ItemRow = {
+   id: string;
+@@ -55,7 +57,14 @@ export function reassembleLooks(
+         slot: p.slot,
+       });
+     }
+-    looks.push({ name: s.lookName, why: s.why, pieces, anchorIndex: s.anchorIndex });
++    looks.push({
++      id: s.id,
++      name: s.lookName,
++      why: s.why,
++      pieces,
++      anchorIndex: s.anchorIndex,
++      worn: s.worn,
++    });
+   }
+ 
+   return looks;
+
+
+Investigate per the method in your instructions, then return the findings list.
