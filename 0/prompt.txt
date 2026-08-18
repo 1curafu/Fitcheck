@@ -1,0 +1,228 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/generate/actions.ts
+  - app/settings/actions.ts
+  - lib/weather/__tests__/location.test.ts
+  - lib/weather/location.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/generate/actions.ts ===
+@@ -27,6 +27,7 @@ import {
+   resolveLocation,
+   roundCoord,
+   locationColumns,
++  locationMoved,
+   LocationInputSchema,
+   type LocationSource,
+ } from "@/lib/weather/location";
+@@ -105,7 +106,30 @@ export async function generate(input: {
+     // rejected, which ranking will sink without ever filtering them out.
+     const stored = await loadDailyLooks(user.id, input.occasion, today);
+ 
+-    if (!input.regenerate && stored?.length) {
++    /**
++     * Today's looks were composed for wherever the user was when they were
++     * generated. Moving invalidates them: Decision 5 caches the drop, but
++     * caching does not make a 26°C Manila outfit correct under a 12°C
++     * Reykjavik sky.
++     *
++     * Compared against the RESOLVED previous location, so the first move a
++     * user makes — away from DEFAULT_LOCATION, with nothing stored yet — counts.
++     *
++     * Falling through here is deliberately how this is implemented: the block
++     * below already records a fall-through as a `drop`, never a `regenerate`,
++     * so the rebuild is free on every tier. The user changed where they are;
++     * they did not ask for another look.
++     *
++     * The Settings path clears the stored rows outright in `setLocation`. This
++     * covers the OTHER door — the Stylist's weather pill, which writes through
++     * `saveLocation` AFTER this action has already run, and so cannot clear
++     * anything without deleting the looks this very call just stored.
++     */
++    const movedAway = input.city
++      ? locationMoved(input.city, resolveLocation({ profile }))
++      : false;
++
++    if (!input.regenerate && !movedAway && stored?.length) {
+       const paths = Array.from(
+         new Set(
+           stored
+
+
+=== DIFF: app/settings/actions.ts ===
+@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
+ import { createClient } from "@/lib/supabase/server";
+ import { PreferencesSchema, readPreferences } from "@/lib/profile/preferences";
+ import { fetchForecast } from "@/lib/weather/open-meteo";
+-import { locationColumns, locationChanged } from "@/lib/weather/location";
++import { locationColumns, locationMoved, resolveLocation } from "@/lib/weather/location";
+ import { localDateFor } from "@/lib/outfits/local-date";
+ 
+ /**
+@@ -77,7 +77,7 @@ export async function setLocation(input: unknown): Promise<void> {
+ 
+   const { data: profile } = await supabase
+     .from("profiles")
+-    .select("location_lat, location_lon, location_timezone")
++    .select("location_lat, location_lon, location_label, location_source, location_timezone")
+     .eq("id", user.id)
+     .single();
+ 
+@@ -85,7 +85,11 @@ export async function setLocation(input: unknown): Promise<void> {
+   // location survives — better than storing one with a null timezone.
+   const forecast = await fetchForecast(picked.lat, picked.lon);
+ 
+-  const moved = locationChanged(picked, profile);
++  // The SAME predicate the Stylist path uses, against the RESOLVED previous
++  // location. Two doors to one setting must agree on what counts as a move, and
++  // resolving means the first move away from DEFAULT_LOCATION counts even
++  // though nothing is stored yet.
++  const moved = locationMoved(picked, resolveLocation({ profile }));
+ 
+   const { error } = await supabase
+     .from("profiles")
+
+
+=== DIFF: lib/weather/__tests__/location.test.ts ===
+@@ -4,7 +4,8 @@ import {
+   DEFAULT_LOCATION,
+   LocationInputSchema,
+   locationColumns,
+-  locationChanged,
++  locationMoved,
++  distanceKm,
+ } from "../location";
+ 
+ test("roundCoord snaps to 2dp (~1.1km) so neighbours share one cached forecast URL", () => {
+@@ -114,19 +115,6 @@ test("locationColumns rounds coordinates the same way resolveLocation reads them
+   expect(c.location_updated_at).toBe("2026-08-06T12:00:00.000Z");
+ });
+ 
+-test("locationChanged compares ROUNDED coordinates, not raw ones", () => {
+-  const profile = { location_lat: 14.6, location_lon: 120.98, location_label: "Manila" };
+-  // Same place to 2dp — re-picking your own city must not count as a change,
+-  // because a change throws away today's drop.
+-  expect(locationChanged({ lat: 14.6012, lon: 120.9799 }, profile)).toBe(false);
+-  expect(locationChanged({ lat: 64.15, lon: -21.94 }, profile)).toBe(true);
+-});
+-
+-test("locationChanged is true when nothing is stored yet", () => {
+-  expect(locationChanged({ lat: 14.6, lon: 120.98 }, null)).toBe(true);
+-  expect(locationChanged({ lat: 14.6, lon: 120.98 }, { location_lat: null, location_lon: null })).toBe(true);
+-});
+-
+ test("a city saved from Settings suppresses the Stylist's silent GPS refresh", () => {
+   // setLocation always writes source 'city'. resolveLocation surfaces that as
+   // the origin, and stylist.tsx gates its silent refresh on exactly this value
+@@ -144,3 +132,38 @@ test("a city saved from Settings suppresses the Stylist's silent GPS refresh", (
+   expect(r.origin).toBe("city");
+   expect(r.label).toBe("Manila");
+ });
++
++// ── Has the user moved far enough for today's looks to be wrong? ─────────────
++
++test("distanceKm is roughly right on known city pairs", () => {
++  expect(distanceKm({ lat: 52.52, lon: 13.41 }, { lat: 47.37, lon: 8.55 })).toBeGreaterThan(650);
++  expect(distanceKm({ lat: 52.52, lon: 13.41 }, { lat: 47.37, lon: 8.55 })).toBeLessThan(720);
++  expect(distanceKm({ lat: 52.52, lon: 13.41 }, { lat: 52.52, lon: 13.41 })).toBe(0);
++});
++
++test("a deliberate city change is a move", () => {
++  expect(locationMoved({ lat: 59.91, lon: 10.75 }, { lat: 47.37, lon: 8.55 })).toBe(true);
++});
++
++test("a commute is NOT a move", () => {
++  // The silent GPS refresh runs on every load. If any coordinate change threw
++  // today's looks away, someone travelling 10km to work would pay for a fresh
++  // generation every morning — and the forecast 10km away is the same forecast,
++  // so the looks were never actually wrong.
++  const home = { lat: 52.52, lon: 13.41 };
++  const office = { lat: 52.55, lon: 13.5 }; // ~7km
++  expect(distanceKm(home, office)).toBeLessThan(25);
++  expect(locationMoved(office, home)).toBe(false);
++});
++
++test("GPS jitter is nowhere near a move", () => {
++  expect(locationMoved({ lat: 52.5203, lon: 13.4102 }, { lat: 52.52, lon: 13.41 })).toBe(false);
++});
++
++test("the threshold is about weather, not about precision", () => {
++  // 25km is the scale at which a forecast genuinely differs. Below it the
++  // stored looks are still right for the conditions they were built for.
++  const berlin = { lat: 52.52, lon: 13.41 };
++  expect(locationMoved({ lat: 52.7, lon: 13.41 }, berlin)).toBe(false); // ~20km
++  expect(locationMoved({ lat: 53.0, lon: 13.41 }, berlin)).toBe(true); // ~53km
++});
+
+
+=== DIFF: lib/weather/location.ts ===
+@@ -87,25 +87,50 @@ export function locationColumns(d: LocationInput, nowIso: string) {
+   };
+ }
+ 
++/** Great-circle distance in kilometres. */
++export function distanceKm(
++  a: { lat: number; lon: number },
++  b: { lat: number; lon: number },
++): number {
++  const R = 6371;
++  const rad = (d: number) => (d * Math.PI) / 180;
++  const dLat = rad(b.lat - a.lat);
++  const dLon = rad(b.lon - a.lon);
++  const h =
++    Math.sin(dLat / 2) ** 2 +
++    Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLon / 2) ** 2;
++  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
++}
++
++/**
++ * How far the user must move before today's looks are wrong.
++ *
++ * This is a WEATHER threshold, not a precision one. Below ~25km the forecast is
++ * effectively identical, so the stored looks are still right for the conditions
++ * they were composed for, and throwing them away would spend a model call to
++ * produce the same answer.
++ *
++ * It has to be this coarse because the Stylist's silent GPS refresh runs on
++ * every load: at a tighter threshold, anyone who commutes would pay for a fresh
++ * generation every morning.
++ */
++export const STALE_LOCATION_KM = 25;
++
+ /**
+- * Is this a genuinely different place from what is stored?
++ * Has the user moved far enough that today's stored drop no longer describes
++ * where they are?
+  *
+- * Compared at STORED precision (2dp), not raw: re-picking your own city, or a
+- * GPS fix that drifted 50 metres, is not a move. This matters because a real
+- * change throws away today's drop — the looks were composed for the old city's
+- * weather — and rebuilding costs a model call.
++ * `previous` is the RESOLVED location the looks were built for — pass
++ * `resolveLocation({ profile })`, not the raw columns. A profile with no
++ * location still generated its drop against `DEFAULT_LOCATION`, so comparing
++ * against a null column would miss the very first move a user makes.
+  */
+-export function locationChanged(
++export function locationMoved(
+   next: { lat: number; lon: number },
+-  // Only the coordinates are read, so only those are required — callers that
+-  // select a narrow column set should not have to fetch a label they ignore.
+-  profile?: Pick<ProfileLocation, "location_lat" | "location_lon"> | null,
++  previous: { lat: number; lon: number },
++  minKm: number = STALE_LOCATION_KM,
+ ): boolean {
+-  if (profile?.location_lat == null || profile.location_lon == null) return true;
+-  return (
+-    roundCoord(next.lat) !== roundCoord(profile.location_lat) ||
+-    roundCoord(next.lon) !== roundCoord(profile.location_lon)
+-  );
++  return distanceKm(next, previous) > minKm;
+ }
+ 
+ /**
+
+
+Investigate per the method in your instructions, then return the findings list.
