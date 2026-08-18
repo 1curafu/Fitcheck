@@ -1,0 +1,316 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - lib/weather/__tests__/location.test.ts
+  - app/settings/page.tsx
+  - components/settings/__tests__/settings-view.test.tsx
+  - components/settings/settings-view.tsx
+
+Unified diff (only + lines are new):
+
+=== DIFF: lib/weather/__tests__/location.test.ts ===
+@@ -126,3 +126,21 @@ test("locationChanged is true when nothing is stored yet", () => {
+   expect(locationChanged({ lat: 14.6, lon: 120.98 }, null)).toBe(true);
+   expect(locationChanged({ lat: 14.6, lon: 120.98 }, { location_lat: null, location_lon: null })).toBe(true);
+ });
++
++test("a city saved from Settings suppresses the Stylist's silent GPS refresh", () => {
++  // setLocation always writes source 'city'. resolveLocation surfaces that as
++  // the origin, and stylist.tsx gates its silent refresh on exactly this value
++  // (`geoAllowedRef.current = res.weather.locationOrigin !== "city"`). If this
++  // ever came back as "profile", GPS would overwrite a deliberate choice on the
++  // next load — the bug PR #21 fixed.
++  const r = resolveLocation({
++    profile: {
++      location_lat: 14.6,
++      location_lon: 120.98,
++      location_label: "Manila",
++      location_source: "city",
++    },
++  });
++  expect(r.origin).toBe("city");
++  expect(r.label).toBe("Manila");
++});
+
+
+=== DIFF: app/settings/page.tsx ===
+@@ -5,7 +5,7 @@ import { initials } from "@/lib/profile/identity";
+ import { readPreferences } from "@/lib/profile/preferences";
+ import { resolveLocation } from "@/lib/weather/location";
+ import { SettingsView } from "@/components/settings/settings-view";
+-import { updatePreferences } from "./actions";
++import { updatePreferences, setLocation } from "./actions";
+ 
+ export default async function SettingsPage() {
+   const supabase = await createClient();
+@@ -35,6 +35,7 @@ export default async function SettingsPage() {
+         locationLabel={location.label}
+         preferences={readPreferences(profile?.preferences)}
+         onSaveAction={updatePreferences}
++        onSetLocationAction={setLocation}
+       />
+       <MobileNav />
+     </div>
+
+
+=== DIFF: components/settings/__tests__/settings-view.test.tsx ===
+@@ -1,6 +1,14 @@
+ import { render, screen, within } from "@testing-library/react";
+ import userEvent from "@testing-library/user-event";
+ import { vi } from "vitest";
++
++// SettingsView drives the shared useLocationPicker hook, which would otherwise
++// hit Open-Meteo's geocoder.
++vi.mock("@/lib/weather/geocode", () => ({
++  searchCities: vi
++    .fn()
++    .mockResolvedValue([{ name: "Manila", country: "PH", lat: 14.6, lon: 120.98 }]),
++}));
+ import { SettingsView } from "../settings-view";
+ import type { Preferences } from "@/lib/profile/preferences";
+ 
+@@ -18,8 +26,19 @@ const props: {
+   preferences: { rainGuard: true, tempUnit: "C" },
+ };
+ 
+-function renderSettings(over: Partial<typeof props> = {}, onSaveAction = vi.fn()) {
+-  render(<SettingsView {...props} {...over} onSaveAction={onSaveAction} />);
++function renderSettings(
++  over: Partial<typeof props> = {},
++  onSaveAction = vi.fn(),
++  onSetLocationAction = vi.fn().mockResolvedValue(undefined),
++) {
++  render(
++    <SettingsView
++      {...props}
++      {...over}
++      onSaveAction={onSaveAction}
++      onSetLocationAction={onSetLocationAction}
++    />,
++  );
+   return onSaveAction;
+ }
+ 
+@@ -100,18 +119,17 @@ test("the Pro card is NOT duplicated here", () => {
+   expect(screen.queryByText(/go pro/i)).not.toBeInTheDocument();
+ });
+ 
+-test("location is shown read-only, with no control implying otherwise", () => {
++test("the location row is a control, and says whether it is open", async () => {
++  // It was read-only until 2026-08-06 and this test asserted the opposite. The
++  // user chose a real picker here, sharing one component with the Stylist's
++  // weather pill, so the row is now the affordance rather than a dead end.
+   renderSettings();
+   const row = screen.getByTestId("location-row");
+   expect(within(row).getByText("Berlin")).toBeInTheDocument();
+-  expect(within(row).queryByRole("button")).not.toBeInTheDocument();
+-});
+-
+-test("the location row says where to change it, rather than being a dead end", () => {
+-  renderSettings();
+-  // The picker lives on the Stylist screen. A value with no affordance and no
+-  // hint is the question this row kept prompting.
+-  expect(within(screen.getByTestId("location-row")).getByText(/stylist/i)).toBeInTheDocument();
++  const control = within(row).getByRole("button", { name: /location/i });
++  expect(control).toHaveAttribute("aria-expanded", "false");
++  await userEvent.click(control);
++  expect(control).toHaveAttribute("aria-expanded", "true");
+ });
+ 
+ test("location falls back to a plain phrase when the profile has none", () => {
+@@ -125,3 +143,54 @@ test("sign out is present and posts to the sign-out route", () => {
+   expect(button).toBeInTheDocument();
+   expect(button.closest("form")).toHaveAttribute("action", "/auth/signout");
+ });
++
++// ── Location, now a real control ────────────────────────────────────────────
++
++test("the location row opens a picker", async () => {
++  renderSettings();
++  expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
++  await userEvent.click(screen.getByRole("button", { name: /location/i }));
++  expect(screen.getByRole("listbox", { name: /choose a city/i })).toBeInTheDocument();
++});
++
++test("the interim 'change it on the Stylist' hint is gone", () => {
++  // It was copy for a read-only row. Beside a working picker it would point
++  // users away from the control they are already looking at.
++  renderSettings();
++  expect(screen.queryByText(/change it on the stylist/i)).not.toBeInTheDocument();
++});
++
++test("picking a city saves it and shows it immediately", async () => {
++  const onSetLocationAction = vi.fn().mockResolvedValue(undefined);
++  renderSettings({}, undefined, onSetLocationAction);
++  await userEvent.click(screen.getByRole("button", { name: /location/i }));
++  await userEvent.type(screen.getByLabelText(/search a city/i), "Man");
++  await userEvent.click(await screen.findByRole("option", { name: /manila/i }));
++
++  expect(onSetLocationAction).toHaveBeenCalledWith(
++    expect.objectContaining({ lat: 14.6, lon: 120.98, label: "Manila" }),
++  );
++  // Optimistic, like the toggles: a control that waits for a round trip reads
++  // as broken.
++  expect(within(screen.getByTestId("location-row")).getByText("Manila")).toBeInTheDocument();
++  // And it closes, so you can see the value you just chose.
++  expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
++});
++
++test("a failed save reverts the location rather than lying about it", async () => {
++  const onSetLocationAction = vi.fn().mockRejectedValue(new Error("offline"));
++  renderSettings({}, undefined, onSetLocationAction);
++  await userEvent.click(screen.getByRole("button", { name: /location/i }));
++  await userEvent.type(screen.getByLabelText(/search a city/i), "Man");
++  await userEvent.click(await screen.findByRole("option", { name: /manila/i }));
++
++  expect(await screen.findByRole("status")).toHaveTextContent(/couldn.t save/i);
++  expect(within(screen.getByTestId("location-row")).getByText("Berlin")).toBeInTheDocument();
++});
++
++test("the row still shows the EFFECTIVE location", () => {
++  // PR #28 fixed this: a null location_label used to read "Not set" here while
++  // the Stylist showed Berlin.
++  renderSettings();
++  expect(within(screen.getByTestId("location-row")).getByText("Berlin")).toBeInTheDocument();
++});
+
+
+=== DIFF: components/settings/settings-view.tsx ===
+@@ -3,6 +3,9 @@
+ import { useState } from "react";
+ import Link from "next/link";
+ import type { Preferences } from "@/lib/profile/preferences";
++import { useLocationPicker } from "@/lib/weather/use-location-picker";
++import { LocationPicker } from "@/components/weather/location-picker";
++import type { City } from "@/lib/weather/geocode";
+ 
+ const CARD =
+   "rounded-[14px] bg-surface-1 shadow-[inset_0_0_0_1px_var(--hairline-2)]";
+@@ -95,6 +98,7 @@ export function SettingsView({
+   locationLabel,
+   preferences,
+   onSaveAction,
++  onSetLocationAction,
+ }: {
+   name: string;
+   email: string;
+@@ -102,9 +106,17 @@ export function SettingsView({
+   locationLabel: string | null;
+   preferences: Preferences;
+   onSaveAction: (patch: Partial<Preferences>) => Promise<void>;
++  onSetLocationAction: (city: { lat: number; lon: number; label: string }) => Promise<void>;
+ }) {
+   const [prefs, setPrefs] = useState(preferences);
+-  const [error, setError] = useState<string | null>(null);
++  const [location, setLocation] = useState(locationLabel);
++  const [pickerOpen, setPickerOpen] = useState(false);
++  /**
++   * One error slot with a discriminator, rather than two independent ones.
++   * Two `role="status"` nodes can be live at once, and then "the status" is
++   * ambiguous to a screen reader and to a test alike.
++   */
++  const [error, setError] = useState<{ where: "prefs" | "location"; message: string } | null>(null);
+ 
+   /**
+    * Optimistic, and reverted on failure.
+@@ -121,10 +133,28 @@ export function SettingsView({
+       await onSaveAction(next);
+     } catch {
+       setPrefs(previous);
+-      setError("Couldn't save that — check your connection.");
++      setError({ where: "prefs", message: "Couldn't save that — check your connection." });
+     }
+   }
+ 
++  /** Same optimistic-then-revert contract as the toggles. */
++  async function pickCity(c: City) {
++    const previous = location;
++    setLocation(c.name);
++    setPickerOpen(false);
++    setError(null);
++    try {
++      await onSetLocationAction({ lat: c.lat, lon: c.lon, label: c.name });
++    } catch {
++      setLocation(previous);
++      setError({ where: "location", message: "Couldn't save that — check your connection." });
++    }
++  }
++
++  const picker = useLocationPicker({
++    onPick: (p) => pickCity({ name: p.label, country: "", lat: p.lat, lon: p.lon }),
++  });
++
+   return (
+     <div className="flex min-h-dvh flex-1 flex-col">
+       <div className="flex items-center gap-3 px-[22px] screen-top">
+@@ -166,9 +196,9 @@ export function SettingsView({
+           />
+         </div>
+ 
+-        {error && (
++        {error?.where === "prefs" && (
+           <p role="status" className="mt-3 text-[12.5px] text-brand-high">
+-            {error}
++            {error.message}
+           </p>
+         )}
+ 
+@@ -211,19 +241,42 @@ export function SettingsView({
+           </button>
+         </div>
+ 
+-        {/* Read-only for now, and it says where to change it rather than being a
+-            dead end. The picker itself lives on the Stylist screen's weather
+-            pill; moving it here properly is its own plan, because it carries
+-            geolocation permission, the saved-city-beats-GPS precedence rule and
+-            the silent-refresh race that PR #21 fixed — duplicating that logic is
+-            how it drifts. `locationLabel` is the EFFECTIVE location, not the
+-            stored column, so this row cannot disagree with the Stylist. */}
+-        <div data-testid="location-row" className={`${CARD} mt-3 p-4`}>
+-          <div className="flex items-center justify-between">
+-            <div className="text-[14.5px] text-foreground">Location</div>
+-            <div className="text-[13.5px] text-muted-foreground">{locationLabel ?? "Not set"}</div>
+-          </div>
+-          <div className="mt-[3px] text-[12px] text-muted-dim">Change it on the Stylist screen</div>
++        {/* The same picker the Stylist's weather pill opens — one component, so
++            the two entry points cannot offer different ways to change one
++            setting. The value shown is the EFFECTIVE location, not the stored
++            column, so this row cannot disagree with the Stylist either. */}
++        <div data-testid="location-row" className={`${CARD} mt-3`}>
++          <button
++            type="button"
++            aria-expanded={pickerOpen}
++            onClick={() => setPickerOpen((o) => !o)}
++            className="flex w-full items-center justify-between p-4 text-left"
++          >
++            <span className="text-[14.5px] text-foreground">Location</span>
++            <span className="flex items-center gap-2">
++              <span className="text-[13.5px] text-muted-foreground">{location ?? "Not set"}</span>
++              <span aria-hidden className="text-muted-dim">
++                {pickerOpen ? "▴" : "▾"}
++              </span>
++            </span>
++          </button>
++
++          {picker.locating || picker.geoError || error?.where === "location" ? (
++            <p role="status" className="px-4 pb-3 text-[12px] text-muted-foreground">
++              {picker.locating ? "Locating…" : (error?.message ?? picker.geoError)}
++            </p>
++          ) : null}
++
++          {pickerOpen && (
++            <LocationPicker
++              className="px-3 pb-3"
++              cities={picker.cities}
++              currentLabel={location ?? undefined}
++              onSearch={picker.search}
++              onPick={pickCity}
++              onUseMyLocation={picker.geoSupported ? picker.useMyLocation : undefined}
++            />
++          )}
+         </div>
+ 
+         <form action="/auth/signout" method="post" className="mt-6">
+
+
+Investigate per the method in your instructions, then return the findings list.
