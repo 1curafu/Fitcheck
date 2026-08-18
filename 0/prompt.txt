@@ -1,0 +1,93 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/settings/page.tsx
+  - components/settings/__tests__/settings-view.test.tsx
+  - components/settings/settings-view.tsx
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/settings/page.tsx ===
+@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
+ import { MobileNav } from "@/components/shell/mobile-nav";
+ import { initials } from "@/lib/profile/identity";
+ import { readPreferences } from "@/lib/profile/preferences";
++import { resolveLocation } from "@/lib/weather/location";
+ import { SettingsView } from "@/components/settings/settings-view";
+ import { updatePreferences } from "./actions";
+ 
+@@ -15,17 +16,23 @@ export default async function SettingsPage() {
+ 
+   const { data: profile } = await supabase
+     .from("profiles")
+-    .select("display_name, location_label, preferences")
++    .select("display_name, location_label, location_lat, location_lon, location_source, preferences")
+     .eq("id", user.id)
+     .single();
+ 
++  // The EFFECTIVE location, not the stored column. A null `location_label`
++  // used to render "Not set" here while the Stylist screen was happily showing
++  // Berlin — two screens describing the same thing differently. resolveLocation
++  // is the same function the generator uses, so they cannot disagree.
++  const location = resolveLocation({ profile });
++
+   return (
+     <div className="flex min-h-dvh flex-1 flex-col">
+       <SettingsView
+         name={profile?.display_name ?? "You"}
+         email={user.email ?? ""}
+         initials={initials(profile?.display_name ?? null, user.email ?? "")}
+-        locationLabel={profile?.location_label ?? null}
++        locationLabel={location.label}
+         preferences={readPreferences(profile?.preferences)}
+         onSaveAction={updatePreferences}
+       />
+
+
+=== DIFF: components/settings/__tests__/settings-view.test.tsx ===
+@@ -107,6 +107,13 @@ test("location is shown read-only, with no control implying otherwise", () => {
+   expect(within(row).queryByRole("button")).not.toBeInTheDocument();
+ });
+ 
++test("the location row says where to change it, rather than being a dead end", () => {
++  renderSettings();
++  // The picker lives on the Stylist screen. A value with no affordance and no
++  // hint is the question this row kept prompting.
++  expect(within(screen.getByTestId("location-row")).getByText(/stylist/i)).toBeInTheDocument();
++});
++
+ test("location falls back to a plain phrase when the profile has none", () => {
+   renderSettings({ locationLabel: null });
+   expect(within(screen.getByTestId("location-row")).getByText(/not set/i)).toBeInTheDocument();
+
+
+=== DIFF: components/settings/settings-view.tsx ===
+@@ -193,12 +193,19 @@ export function SettingsView({
+           </button>
+         </div>
+ 
+-        <div
+-          data-testid="location-row"
+-          className={`${CARD} mt-3 flex items-center justify-between p-4`}
+-        >
+-          <div className="text-[14.5px] text-foreground">Location</div>
+-          <div className="text-[13.5px] text-muted-foreground">{locationLabel ?? "Not set"}</div>
++        {/* Read-only for now, and it says where to change it rather than being a
++            dead end. The picker itself lives on the Stylist screen's weather
++            pill; moving it here properly is its own plan, because it carries
++            geolocation permission, the saved-city-beats-GPS precedence rule and
++            the silent-refresh race that PR #21 fixed — duplicating that logic is
++            how it drifts. `locationLabel` is the EFFECTIVE location, not the
++            stored column, so this row cannot disagree with the Stylist. */}
++        <div data-testid="location-row" className={`${CARD} mt-3 p-4`}>
++          <div className="flex items-center justify-between">
++            <div className="text-[14.5px] text-foreground">Location</div>
++            <div className="text-[13.5px] text-muted-foreground">{locationLabel ?? "Not set"}</div>
++          </div>
++          <div className="mt-[3px] text-[12px] text-muted-dim">Change it on the Stylist screen</div>
+         </div>
+ 
+         <form action="/auth/signout" method="post" className="mt-6">
+
+
+Investigate per the method in your instructions, then return the findings list.
