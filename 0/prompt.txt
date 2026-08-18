@@ -1,0 +1,442 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - lib/closet/__tests__/vocab.test.ts
+  - lib/generator/__tests__/rules.test.ts
+  - lib/generator/__tests__/texture.test.ts
+  - lib/generator/rules.ts
+  - lib/generator/texture.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: lib/closet/__tests__/vocab.test.ts ===
+@@ -50,9 +50,10 @@ test("the materials the generator's heat rule names all exist in the vocabulary"
+   // `HOT_MATERIALS` in lib/generator/rules.ts is matched against `material`.
+   // Once material is a constrained enum, any term missing from this list
+   // silently stops matching — which is how the rule half-broke before.
+-  // `quilted` is deliberately absent: it is a TEXTURE, and the heat rule must
+-  // read texture for it (see item-signals-in-generator, queue #12).
+-  for (const m of ["Fleece", "Shearling", "Down", "Tweed"]) expect(MATERIALS).toContain(m);
++  // The list is now insulation ONLY: `Tweed` moved to scoring (MATERIAL_WARMTH)
++  // and `quilted`/`puffer` were removed as dead. The warmth tables have their
++  // own, exhaustive version of this guard in generator/__tests__/texture.test.ts.
++  for (const m of ["Fleece", "Shearling", "Down"]) expect(MATERIALS).toContain(m);
+   expect(TEXTURES).toContain("Quilted");
+ });
+ 
+
+
+=== DIFF: lib/generator/__tests__/rules.test.ts ===
+@@ -1,4 +1,5 @@
+ import { occasionBand, applyFormalityOverride, personalBand, weatherRules } from "../rules";
++import { warmthFit } from "../texture";
+ 
+ test("occasion is CONTEXT, not a dress code — each band spans its real-world spread", () => {
+   // Work runs from a creative office in sneakers to a suit; Evening from a
+@@ -97,7 +98,28 @@ test("rain excludes suede + canvas", () => {
+ 
+ test("real heat excludes insulation — the measured version of the old season filter", () => {
+   const hot = weatherRules({ tempC: 30, rain: false }).excludeMaterials;
+-  expect(hot).toEqual(expect.arrayContaining(["fleece", "down", "shearling", "tweed"]));
++  expect(hot).toEqual(expect.arrayContaining(["fleece", "down", "shearling"]));
++});
++
++test("heat no longer excludes tweed — it is scored down instead", () => {
++  // Tweed left the hard list when warmth became a scored signal: its warmth is
++  // in the cloth, `MATERIAL_WARMTH` reads it, and the same argument that keeps
++  // wool out of this list applies to it. Both halves are asserted together on
++  // purpose — dropping the exclusion without the scoring term would be a
++  // regression, and this is the test that would catch it.
++  const hot = weatherRules({ tempC: 32, rain: false }).excludeMaterials;
++  expect(hot).not.toContain("tweed");
++  expect(warmthFit([{ material: "Tweed", texture: "Twill" }], 32)).toBeLessThan(
++    warmthFit([{ material: "Linen", texture: "Flat" }], 32),
++  );
++});
++
++test("the dead keywords are gone — they stopped matching when material became an enum", () => {
++  // `Quilted` is a TEXTURE, and `puffer` is in neither vocabulary, so both had
++  // been matching nothing since item-data-completeness shipped.
++  const hot = weatherRules({ tempC: 32, rain: false }).excludeMaterials;
++  expect(hot).not.toContain("quilted");
++  expect(hot).not.toContain("puffer");
+ });
+ 
+ test("heat does NOT exclude wool — weight and weave decide that, and we store neither", () => {
+@@ -150,7 +172,7 @@ test("rain guard does not reach the heat exclusions", () => {
+   // water. A switch labelled "never suede in the rain" must not silently also
+   // put a shearling coat back into a July outfit.
+   const hot = weatherRules({ tempC: 30, rain: true }, { rainGuard: false }).excludeMaterials;
+-  expect(hot).toEqual(expect.arrayContaining(["fleece", "down", "shearling", "tweed"]));
++  expect(hot).toEqual(expect.arrayContaining(["fleece", "down", "shearling"]));
+   expect(hot).not.toContain("suede");
+ });
+ 
+
+
+=== DIFF: lib/generator/__tests__/texture.test.ts ===
+@@ -0,0 +1,161 @@
++import { MATERIALS, TEXTURES } from "@/lib/ai/tagging-schema";
++import { MATERIAL_WARMTH, TEXTURE_WARMTH, itemWarmth, warmthFit } from "../texture";
++
++test("chunky structures read warm, fine ones read light", () => {
++  expect(itemWarmth("Cotton", "Chunky knit")).toBeGreaterThan(itemWarmth("Cotton", "Fine knit"));
++  expect(itemWarmth("Cotton", "Fleece-back")).toBeGreaterThan(itemWarmth("Cotton", "Flat"));
++});
++
++test("the same fibre reads differently by construction — the merino case", () => {
++  // The distinction the whole signal exists for: a chunky merino sweater and a
++  // fine merino tee share a material and are a season apart.
++  expect(itemWarmth("Merino wool", "Fine knit")).toBeLessThan(0.5);
++  expect(itemWarmth("Merino wool", "Chunky knit")).toBeGreaterThan(0.7);
++});
++
++test("the same construction reads differently by fibre — the tweed case", () => {
++  // Texture alone would miss this: tweed's warmth is in the cloth, and its
++  // weave (Twill/Herringbone) is one a linen shirt also uses.
++  expect(itemWarmth("Tweed", "Twill")).toBeGreaterThan(itemWarmth("Linen", "Twill"));
++});
++
++test("insulation reads warm whatever the weave", () => {
++  for (const t of ["Flat", "Quilted", "Pile", null]) {
++    expect(itemWarmth("Down", t)).toBeGreaterThan(0.7);
++    expect(itemWarmth("Fleece", t)).toBeGreaterThan(0.7);
++  }
++});
++
++test("an untagged item is neutral, never a penalty", () => {
++  expect(itemWarmth(null, null)).toBe(0.5);
++  expect(itemWarmth("", "")).toBe(0.5);
++});
++
++test("an unknown value is neutral rather than an error", () => {
++  expect(itemWarmth("unobtanium", "sparkly")).toBe(0.5);
++});
++
++// A vocabulary value the warmth tables do not name falls through to 0.5 —
++// silently, with no error anywhere. The signal simply stops working for that
++// garment. This is the exact failure mode `HOT_MATERIALS` had when `material`
++// became an enum and `shearling`/`puffer` quietly stopped matching, so it is
++// pinned from the VOCABULARY side: add a material to the enum without scoring
++// it and this test names it.
++
++/** Neutral on purpose — hardware and a fabric the tagger could not identify. */
++const INTENTIONALLY_NEUTRAL = ["Stainless steel", "Gold", "Silver", "Rubber", "Other"];
++
++// Membership, not the number: `Denim`, `Canvas`, `Nylon` and `Polyester` are
++// genuinely worth 0.5, so a missing entry cannot be detected by its value.
++
++test("every material the tagger may emit is scored, or deliberately neutral", () => {
++  const unscored = MATERIALS.filter(
++    (m) => !(m in MATERIAL_WARMTH) && !INTENTIONALLY_NEUTRAL.includes(m),
++  );
++  expect(unscored).toEqual([]);
++  for (const m of INTENTIONALLY_NEUTRAL) expect(itemWarmth(m, null)).toBe(0.5);
++});
++
++test("every texture the tagger may emit is scored, or deliberately neutral", () => {
++  const unscored = TEXTURES.filter((t) => !(t in TEXTURE_WARMTH) && t !== "Other");
++  expect(unscored).toEqual([]);
++  expect(itemWarmth(null, "Other")).toBe(0.5);
++});
++
++test("suede reads warmer than smooth leather", () => {
++  // Nap traps air, and it is a cold-season shoe. Both are shoes, so the
++  // difference is small by design — but it is the right direction.
++  expect(itemWarmth("Suede", "Flat")).toBeGreaterThan(itemWarmth("Leather", "Flat"));
++});
++
++test("warm pieces fit a cold day better than light ones", () => {
++  const chunky = [{ material: "Cotton", texture: "Chunky knit" }];
++  const fine = [{ material: "Cotton", texture: "Fine knit" }];
++  expect(warmthFit(chunky, 2)).toBeGreaterThan(warmthFit(fine, 2));
++});
++
++test("and the reverse on a hot day", () => {
++  const chunky = [{ material: "Cotton", texture: "Chunky knit" }];
++  const fine = [{ material: "Cotton", texture: "Fine knit" }];
++  expect(warmthFit(fine, 30)).toBeGreaterThan(warmthFit(chunky, 30));
++});
++
++test("a tropical wool trouser is not penalised in heat the way a fleece is", () => {
++  // The user's correction, pinned: fibre alone never decides. This is the
++  // scoring-side counterpart to the guard in lib/generator/__tests__/rules.test.ts.
++  const wool = [{ material: "Wool", texture: "Flat" }];
++  const fleece = [{ material: "Fleece", texture: "Fleece-back" }];
++  expect(warmthFit(wool, 30)).toBeGreaterThan(warmthFit(fleece, 30));
++});
++
++// The gap between a chunky and a fine knit must SHRINK as the weather turns
++// mild, not vanish. A bare `1 - |want - have|` does NOT deliver this: once
++// `want` sits outside the two warmth values the gap between them is constant,
++// so 18° and 0° discriminate identically. The confidence damping in the
++// implementation is what makes this test pass, and this test is why it exists.
++test("the warmth signal discriminates less in mild weather than in the cold", () => {
++  const chunky = [{ material: "Cotton", texture: "Chunky knit" }];
++  const fine = [{ material: "Cotton", texture: "Fine knit" }];
++  const mild = Math.abs(warmthFit(chunky, 18) - warmthFit(fine, 18));
++  const cold = Math.abs(warmthFit(chunky, 0) - warmthFit(fine, 0));
++  expect(mild).toBeLessThan(cold);
++});
++
++test("around 12°C the term has no opinion at all", () => {
++  // Neither a knit nor a shirt is wrong at 12°: the honest answer is silence,
++  // so warmth stops voting and colour, formality and DNA decide.
++  const chunky = [{ material: "Cotton", texture: "Chunky knit" }];
++  const linen = [{ material: "Linen", texture: "Flat" }];
++  expect(warmthFit(chunky, 12.5)).toBeCloseTo(0.5, 5);
++  expect(warmthFit(linen, 12.5)).toBeCloseTo(0.5, 5);
++});
++
++test("warmthFit stays inside 0..1 at both extremes", () => {
++  for (const t of [-10, 0, 18, 40]) {
++    const v = warmthFit(
++      [
++        { material: "Cotton", texture: "Chunky knit" },
++        { material: "Linen", texture: "Flat" },
++      ],
++      t,
++    );
++    expect(v).toBeGreaterThanOrEqual(0);
++    expect(v).toBeLessThanOrEqual(1);
++  }
++});
++
++// --- What actually keeps you warm -------------------------------------------
++// Averaging every piece equally lets a watch and a pair of shoes dilute the
++// signal exactly when it should be loudest. The layers on your torso decide.
++
++test("a watch does not dilute the warmth of a winter outfit", () => {
++  const withWatch = [
++    { category: "Tops", material: "Merino wool", texture: "Chunky knit" },
++    { category: "Bottoms", material: "Wool", texture: "Flat" },
++    { category: "Accessories", material: "Stainless steel", texture: null },
++  ];
++  const without = withWatch.slice(0, 2);
++  expect(Math.abs(warmthFit(withWatch, 0) - warmthFit(without, 0))).toBeLessThan(0.05);
++});
++
++test("a coat moves the reading more than shoes do", () => {
++  const base = [
++    { category: "Tops", material: "Cotton", texture: "Flat" },
++    { category: "Bottoms", material: "Cotton", texture: "Flat" },
++  ];
++  const withCoat = [...base, { category: "Outerwear", material: "Down", texture: "Quilted" }];
++  const withBoots = [...base, { category: "Shoes", material: "Down", texture: "Quilted" }];
++  expect(warmthFit(withCoat, 0)).toBeGreaterThan(warmthFit(withBoots, 0));
++});
++
++test("category weighting reads DB TitleCase and test-style lowercase alike", () => {
++  const title = [{ category: "Shoes", material: "Down", texture: "Quilted" }];
++  const lower = [{ category: "shoes", material: "Down", texture: "Quilted" }];
++  expect(warmthFit(title, 0)).toBe(warmthFit(lower, 0));
++});
++
++test("an uncategorised item still counts", () => {
++  // The score fixtures and any future caller may omit it; a missing category
++  // must never silently zero a piece out of the average.
++  expect(warmthFit([{ material: "Cotton", texture: "Chunky knit" }], 0)).toBeGreaterThan(0.5);
++});
+
+
+=== DIFF: lib/generator/rules.ts ===
+@@ -89,14 +89,22 @@ export function applyFormalityOverride(
+  * on evidence rather than eliminated on a guess — the same argument this module
+  * makes about season itself.
+  *
+- * The real fix is data, not a longer list. `item-data-completeness` (queue #3)
+- * adds an `items.texture` column — Flat / Fine knit / Chunky knit / Brushed /
+- * Fleece-back — and constrains `material` to a vocabulary that separates "Wool"
+- * from "Merino wool". `item-signals-in-generator` (queue #12) then feeds
+- * material × texture into SCORING. Warmth belongs there, as a weighted signal,
+- * not here as a veto.
++ * That fix has now landed. Warmth is a SCORED signal — `lib/generator/texture.ts`
++ * reads material × texture against the real temperature — so this list is no
++ * longer where warmth is decided. What remains is only what must never reach a
++ * hot day at all: a soft term demotes, and `diversify` still fills 20 shortlist
++ * slots, so without this a down jacket can surface at 32°C. There is a real
++ * difference between *slightly off-season*, which this project deliberately
++ * accepts, and *physically wrong*. `eligibleByCategory`'s relief rule keeps it
++ * safe — this can narrow a required slot but can never empty one.
++ *
++ * `tweed` left with that change: its warmth now lives in `MATERIAL_WARMTH`, so
++ * a tweed jacket is scored down in heat rather than banned outright — the same
++ * treatment wool already gets, and for the same reason. `quilted` and `puffer`
++ * left because neither ever matched: `Quilted` is a TEXTURE, and `puffer` is in
++ * no vocabulary at all. They had been dead since `material` became an enum.
+  */
+-const HOT_MATERIALS = ["fleece", "shearling", "down", "quilted", "puffer", "tweed"];
++const HOT_MATERIALS = ["fleece", "shearling", "down"];
+ 
+ /** Strictly above 25: 24° is pleasant, 26° is hot. */
+ const HOT_C = 25;
+
+
+=== DIFF: lib/generator/texture.ts ===
+@@ -0,0 +1,163 @@
++/**
++ * Warmth — the signal that decides whether a garment suits today's temperature.
++ *
++ * The tagger has always written `pattern`, and `texture` arrived with
++ * `item-data-completeness`; the generator read neither, so a chunky knit and a
++ * fine knit were interchangeable in February. Until now the only thermal read
++ * in the product was `seasonFit`, which knows the MONTH, not the weather, and
++ * `HOT_MATERIALS`, a keyword list. This module is where warmth becomes real:
++ * actual temperature against actual cloth.
++ *
++ * It is a PREFERENCE. It shifts ranking and can never eliminate a candidate —
++ * the same model as outerwear, the colour lean and season, each of which was a
++ * hard filter that silently emptied a wardrobe.
++ */
++
++/**
++ * How the fabric is BUILT.
++ *
++ * Exported for the vocabulary-drift guard in `__tests__/texture.test.ts`: a
++ * value the tagger may emit that is missing here scores 0.5 — indistinguishable
++ * from the mid-warmth fabrics genuinely worth 0.5 — so the test checks
++ * membership, not the number.
++ */
++export const TEXTURE_WARMTH: Record<string, number> = {
++  "Open knit": 0.15,
++  Seersucker: 0.2,
++  "Fine knit": 0.25,
++  Flat: 0.4,
++  Twill: 0.45,
++  Herringbone: 0.55,
++  Waffle: 0.6,
++  Ribbed: 0.6,
++  Terry: 0.65,
++  Brushed: 0.7,
++  "Cable knit": 0.8,
++  Quilted: 0.85,
++  Pile: 0.85,
++  "Chunky knit": 0.9,
++  "Fleece-back": 0.9,
++};
++
++/**
++ * What the fabric IS. Carries the warmth a weave cannot express — tweed is warm
++ * however it is woven, linen is cool however it is knitted.
++ *
++ * `Stainless steel`, `Gold`, `Silver`, `Rubber` and `Other` are deliberately
++ * ABSENT: hardware has no thermal opinion, and a value here would make a watch
++ * argue about the weather. They fall through to neutral, which is the truth.
++ */
++export const MATERIAL_WARMTH: Record<string, number> = {
++  Linen: 0.15,
++  Silk: 0.3,
++  Viscose: 0.35,
++  Lyocell: 0.35,
++  Modal: 0.35,
++  Cotton: 0.45,
++  Denim: 0.5,
++  Canvas: 0.5,
++  Nylon: 0.5,
++  Polyester: 0.5,
++  Leather: 0.55,
++  "Faux leather": 0.55,
++  Acrylic: 0.6,
++  "Merino wool": 0.6,
++  // Nap traps air, and it is a cold-season shoe. A small margin over smooth
++  // leather on purpose — both are shoes, which barely move the reading anyway.
++  Suede: 0.6,
++  Wool: 0.65,
++  Corduroy: 0.7,
++  Cashmere: 0.75,
++  Tweed: 0.85,
++  Fleece: 0.9,
++  Down: 0.95,
++  Shearling: 0.95,
++};
++
++/**
++ * Insulation: warm no matter how it is built, so construction cannot argue it
++ * down. This is the set `HOT_MATERIALS` in lib/generator/rules.ts keeps as a
++ * hard exclusion; here it also pins the floor of the soft signal.
++ */
++const INSULATION = new Set(["Fleece", "Down", "Shearling"]);
++
++/** Texture leads, material grounds it. */
++const TEXTURE_SHARE = 0.65;
++
++/**
++ * 0 = coolest, 1 = warmest, 0.5 = no opinion (untagged or unknown).
++ *
++ * Reads BOTH dimensions on purpose. Texture alone misses tweed, whose warmth is
++ * in the cloth and whose weave a linen shirt also uses. Material alone misses
++ * the merino case — a chunky merino knit and a fine merino tee share a fibre and
++ * are a season apart. Texture carries the larger share because construction is
++ * the stronger signal where both are known, but material sets the floor.
++ */
++export function itemWarmth(material: string | null, texture: string | null): number {
++  const m = material ? MATERIAL_WARMTH[material] : undefined;
++  const t = texture ? TEXTURE_WARMTH[texture] : undefined;
++  if (m === undefined && t === undefined) return 0.5; // no opinion, never a penalty
++  if (t === undefined) return m!;
++  if (m === undefined) return t;
++  const blended = TEXTURE_SHARE * t + (1 - TEXTURE_SHARE) * m;
++  // A fine-knit fleece is still a fleece.
++  return material && INSULATION.has(material) ? Math.max(blended, m) : blended;
++}
++
++/**
++ * How much each slot actually decides whether you are warm.
++ *
++ * A flat average lets a steel watch and a pair of shoes pull every outfit
++ * toward neutral — exactly when the signal should be loudest. Matched by
++ * prefix on the lowercased category so DB TitleCase plurals (`Tops`) and the
++ * singular fixtures used in scoring tests (`top`) both land.
++ */
++const CATEGORY_WEIGHT: [string, number][] = [
++  ["outerwear", 1.5],
++  ["top", 1.2],
++  ["bottom", 1],
++  ["shoe", 0.6],
++  ["accessor", 0.2],
++  ["fragrance", 0],
++];
++
++function categoryWeight(category?: string | null): number {
++  if (!category) return 1; // uncategorised still counts; never silently zeroed
++  const c = category.toLowerCase();
++  return CATEGORY_WEIGHT.find(([prefix]) => c.startsWith(prefix))?.[1] ?? 1;
++}
++
++/**
++ * How well a combo's warmth suits the temperature. 0..1, 0.5 = no opinion.
++ *
++ * `want` maps 25°+ → 0 (want the lightest) and 0° → 1 (want the warmest), and
++ * passes through 0.5 at 12.5°.
++ *
++ * `confidence` is the part that matters and the part a plain `1 - |want - have|`
++ * cannot express: that formula's gap between two garments is CONSTANT once
++ * `want` sits outside them, so 18° would discriminate exactly as hard as 0°.
++ * Fading the whole term toward neutral as the temperature approaches 12.5°
++ * gives the intended shape — hardest at the extremes, silent in the middle,
++ * where a ribbed knit and a flat shirt are both simply correct and colour,
++ * formality and DNA should decide instead.
++ */
++export function warmthFit(
++  items: { category?: string | null; material?: string | null; texture?: string | null }[],
++  tempC: number,
++): number {
++  if (!items.length) return 0.5;
++  const want = Math.min(1, Math.max(0, (25 - tempC) / 25));
++
++  let weighted = 0;
++  let total = 0;
++  for (const i of items) {
++    const w = categoryWeight(i.category);
++    weighted += w * itemWarmth(i.material ?? null, i.texture ?? null);
++    total += w;
++  }
++  if (total === 0) return 0.5; // nothing in the combo has a thermal say
++  const have = weighted / total;
++
++  const confidence = Math.abs(want - 0.5) * 2;
++  return 0.5 + confidence * (1 - Math.abs(want - have) - 0.5);
++}
+
+
+Investigate per the method in your instructions, then return the findings list.
