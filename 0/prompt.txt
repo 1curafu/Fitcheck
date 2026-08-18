@@ -1,0 +1,279 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - lib/closet/wear-stats.ts
+  - lib/format/days.ts
+  - lib/format/money.ts
+  - lib/stats/__tests__/aggregate.test.ts
+  - lib/stats/aggregate.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: lib/closet/wear-stats.ts ===
+@@ -6,28 +6,8 @@
+  * logged outfits contained it".
+  */
+ 
+-/**
+- * Euro, formatted for the English UI — "€50.00", not "50,00 €".
+- *
+- * `en-IE` is the euro locale whose conventions match the rest of the interface;
+- * the German content the spec plans will want `de-DE` here. One hard-coded
+- * currency beats a fake one until Settings owns the choice.
+- */
+-const MONEY = new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" });
+-
+-/**
+- * Whole calendar days between two `YYYY-MM-DD` keys.
+- *
+- * Built from the date parts via `Date.UTC` rather than parsing the strings as
+- * local timestamps: `worn_on` is a DATE in the user's local calendar, and
+- * subtracting two local timestamps across a DST change yields 23 or 25 hours,
+- * which rounds to the wrong number of days.
+- */
+-function daysBetween(from: string, to: string): number {
+-  const a = Date.UTC(+from.slice(0, 4), +from.slice(5, 7) - 1, +from.slice(8, 10));
+-  const b = Date.UTC(+to.slice(0, 4), +to.slice(5, 7) - 1, +to.slice(8, 10));
+-  return Math.round((b - a) / 86_400_000);
+-}
++import { formatMoney } from "@/lib/format/money";
++import { daysBetween } from "@/lib/format/days";
+ 
+ /**
+  * Cost-per-wear is null rather than 0 or "—" when there is no price or no
+@@ -40,7 +20,7 @@ export function itemWearStats(
+   today: string,
+ ): { wears: number; costPerWear: string | null; lastWorn: string } {
+   const wears = logs.length;
+-  const costPerWear = price != null && wears > 0 ? MONEY.format(price / wears) : null;
++  const costPerWear = price != null && wears > 0 ? formatMoney(price / wears) : null;
+ 
+   if (!wears) return { wears, costPerWear, lastWorn: "Never" };
+ 
+
+
+=== DIFF: lib/format/days.ts ===
+@@ -0,0 +1,18 @@
++/**
++ * Whole calendar days between two `YYYY-MM-DD` keys.
++ *
++ * Built from the date parts via `Date.UTC` rather than parsing the strings as
++ * local timestamps: `worn_on` is a DATE in the user's local calendar, and
++ * subtracting two local timestamps across a DST change yields 23 or 25 hours,
++ * which rounds to the wrong number of days.
++ *
++ * Shared by the item-detail tiles ("14 days ago") and the stats screen's
++ * gathering-dust list. It was written once for the former and must not be
++ * written a second time for the latter — the DST care above is exactly the kind
++ * of detail a re-implementation loses.
++ */
++export function daysBetween(from: string, to: string): number {
++  const a = Date.UTC(+from.slice(0, 4), +from.slice(5, 7) - 1, +from.slice(8, 10));
++  const b = Date.UTC(+to.slice(0, 4), +to.slice(5, 7) - 1, +to.slice(8, 10));
++  return Math.round((b - a) / 86_400_000);
++}
+
+
+=== DIFF: lib/format/money.ts ===
+@@ -0,0 +1,19 @@
++/**
++ * Euro, formatted for the English UI — "€50.00", not "50,00 €".
++ *
++ * `en-IE` is the euro locale whose conventions match the rest of the interface;
++ * the German content the spec plans will want `de-DE` here. One hard-coded
++ * currency beats a fake one until Settings owns the choice.
++ *
++ * Lives here rather than in `lib/closet/wear-stats.ts` because two screens now
++ * print money — the item-detail tiles and the stats screen — and two
++ * `Intl.NumberFormat` declarations are two places for the currency to drift.
++ * The design prices Pro at £5; the app is EU-region and every other price
++ * renders in euro, so the £ was settled as a design-file artefact on 2026-08-05
++ * (`docs/MONETISATION.md`).
++ */
++const MONEY = new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" });
++
++export function formatMoney(amount: number): string {
++  return MONEY.format(amount);
++}
+
+
+=== DIFF: lib/stats/__tests__/aggregate.test.ts ===
+@@ -0,0 +1,100 @@
++import { closetStats, mostWorn, gatheringDust } from "../aggregate";
++
++const items = [
++  { id: "a", price: 100 },
++  { id: "b", price: 50 },
++  { id: "c", price: null },
++];
++
++test("closet value sums known prices and ignores unpriced pieces", () => {
++  expect(closetStats(items, []).value).toBe("€150.00");
++});
++
++test("average cost per wear divides total value by total wears", () => {
++  const s = closetStats(items, [{ item_id: "a" }, { item_id: "a" }, { item_id: "b" }]);
++  expect(s.totalWears).toBe(3);
++  expect(s.avgCostPerWear).toBe("€50.00");
++});
++
++test("no wears means no average, not a division by zero", () => {
++  expect(closetStats(items, []).avgCostPerWear).toBeNull();
++});
++
++test("an entirely unpriced closet reports zero value and no average", () => {
++  // €0.00 is the honest reading of "we know of no value"; an average would be
++  // stating something false about pieces whose price nobody has entered.
++  const s = closetStats([{ id: "c", price: null }], [{ item_id: "c" }]);
++  expect(s.value).toBe("€0.00");
++  expect(s.avgCostPerWear).toBeNull();
++});
++
++test("most worn ranks by count, highest first", () => {
++  expect(mostWorn(items, { a: 9, b: 3, c: 1 }, 2)).toEqual(["a", "b"]);
++});
++
++test("gathering dust surfaces the longest-idle pieces with their age", () => {
++  // ⚠️ The plan asserted `idle[0]` was `b` at 204 days — but its own `items`
++  // fixture contains `c`, which has NO wear record at all, and never-worn
++  // outranks merely-idle. Two of the plan's tests contradicted each other; this
++  // is the one that was wrong. The 204 arithmetic it was really checking is
++  // preserved on the second row.
++  const idle = gatheringDust(items, { a: "2026-07-20", b: "2026-01-01" }, "2026-07-24", 2);
++  expect(idle[0]).toEqual({ id: "c", days: null });
++  expect(idle[1]).toEqual({ id: "b", days: 204 });
++});
++
++test("a never-worn item counts as idle, not as missing", () => {
++  // The whole point of the section: the pieces you never reach for are exactly
++  // the ones with no wear rows, so treating "no data" as "nothing to report"
++  // would hide the answer.
++  const idle = gatheringDust([{ id: "z", price: null }], {}, "2026-07-24", 5);
++  expect(idle.map((i) => i.id)).toContain("z");
++});
++
++// --- Beyond the plan: the shapes a real closet actually produces -------------
++
++test("a never-worn piece outranks a long-idle one", () => {
++  // Both are "gathering dust", but one has never been worn at all. Ordering
++  // them by days-since means the never-worn piece needs a sortable age, not a
++  // null that drops it to the end of the list.
++  const idle = gatheringDust(
++    [
++      { id: "worn-long-ago", price: null },
++      { id: "never", price: null },
++    ],
++    { "worn-long-ago": "2026-01-01" },
++    "2026-07-24",
++    5,
++  );
++  expect(idle[0].id).toBe("never");
++  // null, never Infinity — the screen has to be able to say "Never worn"
++  // rather than "∞ days ago".
++  expect(idle[0].days).toBeNull();
++  expect(idle[1].days).toBe(204);
++});
++
++test("the list is capped at n", () => {
++  const many = Array.from({ length: 10 }, (_, i) => ({ id: `i${i}`, price: null }));
++  expect(gatheringDust(many, {}, "2026-07-24", 3)).toHaveLength(3);
++  expect(mostWorn(many, Object.fromEntries(many.map((m, i) => [m.id, i])), 3)).toHaveLength(3);
++});
++
++test("an item worn today is not gathering dust at zero days", () => {
++  const idle = gatheringDust([{ id: "a", price: null }], { a: "2026-07-24" }, "2026-07-24", 5);
++  expect(idle[0]).toEqual({ id: "a", days: 0 });
++});
++
++test("most worn ignores pieces with no wears at all", () => {
++  // A closet where two items have been worn should report two, not pad the
++  // list with zeroes — "most worn: a piece you have never worn" is nonsense.
++  expect(mostWorn(items, { a: 2, b: 1 }, 3)).toEqual(["a", "b"]);
++});
++
++test("an empty closet reports zero, not a crash", () => {
++  const s = closetStats([], []);
++  expect(s.value).toBe("€0.00");
++  expect(s.totalWears).toBe(0);
++  expect(s.avgCostPerWear).toBeNull();
++  expect(mostWorn([], {}, 3)).toEqual([]);
++  expect(gatheringDust([], {}, "2026-07-24", 3)).toEqual([]);
++});
+
+
+=== DIFF: lib/stats/aggregate.ts ===
+@@ -0,0 +1,71 @@
++import { formatMoney } from "@/lib/format/money";
++import { daysBetween } from "@/lib/format/days";
++
++/**
++ * The aggregates behind `/stats` (Fitcheck.dc.html:737-780).
++ *
++ * Pure functions over rows the caller has already fetched — no Supabase here,
++ * so every number on that screen is testable without a database. There is no AI
++ * call anywhere on this screen, including the gap analysis (see ./gap.ts).
++ */
++
++type PricedItem = { id: string; price: number | null };
++
++/**
++ * `price` is nullable and most closets are mostly null: the tagger cannot read
++ * a price off a photograph, so it is only ever there because the user typed it.
++ * Every total therefore has to mean "of the pieces we know about", and the
++ * screen has to be honest that it is not the whole wardrobe.
++ */
++export function closetStats(
++  items: PricedItem[],
++  logs: { item_id: string }[],
++): { value: string; totalWears: number; avgCostPerWear: string | null } {
++  const total = items.reduce((sum, i) => sum + (i.price ?? 0), 0);
++  const totalWears = logs.length;
++  return {
++    value: formatMoney(total),
++    totalWears,
++    // Null rather than 0 or "€0.00" on either empty branch. Dividing by zero
++    // wears prints €Infinity, and €0.00 for an unpriced closet states something
++    // false — the UI hides the tile instead. Same stance as `itemWearStats`.
++    avgCostPerWear: totalWears > 0 && total > 0 ? formatMoney(total / totalWears) : null,
++  };
++}
++
++/** The n most-worn item ids, highest first. Pieces with no wears are excluded. */
++export function mostWorn(items: PricedItem[], wearsById: Record<string, number>, n: number): string[] {
++  return items
++    .map((i) => ({ id: i.id, wears: wearsById[i.id] ?? 0 }))
++    .filter((i) => i.wears > 0)
++    .sort((a, b) => b.wears - a.wears)
++    .slice(0, n)
++    .map((i) => i.id);
++}
++
++/**
++ * The n longest-idle pieces, with how many days it has been.
++ *
++ * A never-worn item is the whole point of the section, not a gap in the data —
++ * the pieces you never reach for are exactly the ones with no wear rows. They
++ * sort FIRST, above anything merely worn a long time ago, because "you have
++ * never worn this" is the stronger version of the same statement.
++ *
++ * ⚠️ `days` is `null` for those, not `Infinity`. Infinity sorts correctly and
++ * then reaches the screen as "∞ days ago"; null forces the UI to say "Never
++ * worn", which is both true and the more damning line.
++ */
++export function gatheringDust(
++  items: PricedItem[],
++  lastWornById: Record<string, string>,
++  today: string,
++  n: number,
++): { id: string; days: number | null }[] {
++  return items
++    .map((i) => {
++      const last = lastWornById[i.id];
++      return { id: i.id, days: last ? daysBetween(last, today) : null };
++    })
++    .sort((a, b) => (b.days ?? Number.POSITIVE_INFINITY) - (a.days ?? Number.POSITIVE_INFINITY))
++    .slice(0, n);
++}
+
+
+Investigate per the method in your instructions, then return the findings list.
