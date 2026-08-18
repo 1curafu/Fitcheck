@@ -1,0 +1,194 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/generate/actions.ts
+  - lib/generator/__tests__/diversity.test.ts
+  - lib/generator/diversity.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/generate/actions.ts ===
+@@ -7,6 +7,7 @@ import { laterAdvice } from "@/lib/weather/advice";
+ import { personalBand, applyFormalityOverride } from "@/lib/generator/rules";
+ import { buildCandidates, missingCategory, type CandidateItem } from "@/lib/generator/candidates";
+ import { rankTopN } from "@/lib/generator/rank";
++import { diversify } from "@/lib/generator/diversity";
+ import { rerank } from "@/lib/generator/rerank";
+ import { layoutForLook, staggerOrder } from "@/lib/generator/layout";
+ import { localDateFor } from "@/lib/outfits/local-date";
+@@ -142,7 +143,14 @@ export async function generate(input: {
+     // The Refine colour pick lands here, in ranking — not in candidate building.
+     // It reorders the shortlist toward the requested families and is dropped
+     // silently when the closet cannot honour it.
+-    const top = rankTopN(combos, { aesthetic, band, lean: input.lean }, 20);
++    //
++    // Rank everything, then spread the shortlist across the wardrobe before the
++    // re-ranker sees it. Taking the top 20 by score alone clusters — a neutral
++    // top harmonises with everything, so it occupies most of the list, and "the
++    // best 3" of a clustered list is three versions of one outfit. Diversifying
++    // the INPUT makes the model's three distinct by construction.
++    const ranked = rankTopN(combos, { aesthetic, band, lean: input.lean }, combos.length);
++    const top = diversify(ranked, 20);
+ 
+     const { picks } = await rerank({
+       combos: top.map((t) =>
+
+
+=== DIFF: lib/generator/__tests__/diversity.test.ts ===
+@@ -0,0 +1,85 @@
++import { diversify } from "../diversity";
++
++const combo = (id: string, top: string, bottom: string, score: number) => ({
++  id,
++  score,
++  items: [
++    { id: top, category: "Tops" },
++    { id: bottom, category: "Bottoms" },
++    { id: "shoe", category: "Shoes" },
++  ],
++});
++
++// Score order, but the first three all share the cream top — which is exactly
++// what a ranked list looks like when one neutral piece harmonises with
++// everything. Handing that to the re-ranker guarantees repeats no matter what
++// the prompt asks for.
++const ranked = [
++  combo("a", "cream", "navy", 0.9),
++  combo("b", "cream", "stone", 0.89),
++  combo("c", "cream", "navy", 0.88),
++  combo("d", "navy-top", "stone", 0.8),
++  combo("e", "olive-top", "black", 0.7),
++];
++
++test("the best-scoring combo is always kept, and kept first", () => {
++  expect(diversify(ranked, 3)[0].id).toBe("a");
++});
++
++test("no two of the returned looks share a top", () => {
++  const tops = diversify(ranked, 3).map((r) => r.items.find((i) => i.category === "Tops")!.id);
++  expect(new Set(tops).size).toBe(3);
++});
++
++test("no two of the returned looks share a bottom", () => {
++  const bottoms = diversify(ranked, 3).map(
++    (r) => r.items.find((i) => i.category === "Bottoms")!.id,
++  );
++  expect(new Set(bottoms).size).toBe(3);
++});
++
++test("the diverse set stays in score order", () => {
++  const scores = diversify(ranked, 3).map((r) => r.score);
++  expect(scores).toEqual([...scores].sort((x, y) => y - x));
++});
++
++test("a closet that cannot diversify still returns n, rather than dropping looks", () => {
++  // Two tops, two bottoms — three distinct looks are impossible. Repeating a
++  // garment beats showing fewer looks, so the shortlist is backfilled.
++  const cramped = [
++    combo("a", "cream", "navy", 0.9),
++    combo("b", "cream", "navy", 0.8),
++    combo("c", "cream", "navy", 0.7),
++  ];
++  expect(diversify(cramped, 3)).toHaveLength(3);
++  expect(diversify(cramped, 3)[0].id).toBe("a");
++});
++
++test("backfill comes in score order too", () => {
++  const cramped = [
++    combo("a", "cream", "navy", 0.9),
++    combo("b", "cream", "navy", 0.8),
++    combo("c", "cream", "navy", 0.7),
++  ];
++  expect(diversify(cramped, 3).map((r) => r.id)).toEqual(["a", "b", "c"]);
++});
++
++test("returns at most n", () => {
++  expect(diversify(ranked, 2)).toHaveLength(2);
++});
++
++test("asking for more than exists returns everything, without padding", () => {
++  expect(diversify(ranked, 99)).toHaveLength(ranked.length);
++});
++
++test("an empty ranking returns empty rather than throwing", () => {
++  expect(diversify([], 3)).toEqual([]);
++});
++
++test("a combo missing a category is not treated as sharing one", () => {
++  const shoesOnly = [
++    { id: "x", score: 0.9, items: [{ id: "shoe1", category: "Shoes" }] },
++    { id: "y", score: 0.8, items: [{ id: "shoe2", category: "Shoes" }] },
++  ];
++  expect(diversify(shoesOnly, 2)).toHaveLength(2);
++});
+
+
+=== DIFF: lib/generator/diversity.ts ===
+@@ -0,0 +1,64 @@
++type Keyed = { id: string; category: string };
++
++function slotId(items: Keyed[], category: string): string | undefined {
++  return items.find((i) => i.category === category)?.id;
++}
++
++/**
++ * Spread the shortlist across the wardrobe before the re-ranker sees it.
++ *
++ * Ranking alone clusters: a neutral top harmonises with everything, so combos
++ * containing it occupy most of the top of the list. Hand that to the model and
++ * it returns three variations of one outfit — not because it ignored the
++ * instruction, but because that is what "the best 3" of a clustered list is.
++ *
++ * Constraining the INPUT is stronger than asking the model for variety in the
++ * prompt: whichever three it picks from a diversified shortlist are distinct by
++ * construction, with no compliance required.
++ *
++ * Greedy and score-ordered: walk the ranking, take a combo whose top and bottom
++ * are both still unused, then backfill from the remainder. The best-scoring
++ * combo is always kept and always first — diversity reorders what comes after
++ * it, it never overrides the winner.
++ *
++ * Backfill matters: with two eligible tops, three distinct looks are impossible,
++ * and repeating a garment is better than returning fewer candidates and starving
++ * the re-ranker.
++ */
++export function diversify<T extends { items: Keyed[]; score: number }>(
++  ranked: T[],
++  n: number,
++): T[] {
++  const usedTops = new Set<string>();
++  const usedBottoms = new Set<string>();
++  const picked: T[] = [];
++  const rest: T[] = [];
++
++  for (const r of ranked) {
++    if (picked.length >= n) {
++      rest.push(r);
++      continue;
++    }
++    const top = slotId(r.items, "Tops");
++    const bottom = slotId(r.items, "Bottoms");
++    // A missing slot cannot collide — an accessory-only or shoes-only combo is
++    // not "sharing" a top with anything.
++    const fresh =
++      (top === undefined || !usedTops.has(top)) &&
++      (bottom === undefined || !usedBottoms.has(bottom));
++
++    if (!fresh) {
++      rest.push(r);
++      continue;
++    }
++    picked.push(r);
++    if (top !== undefined) usedTops.add(top);
++    if (bottom !== undefined) usedBottoms.add(bottom);
++  }
++
++  for (const r of rest) {
++    if (picked.length >= n) break;
++    picked.push(r);
++  }
++  return picked;
++}
+
+
+Investigate per the method in your instructions, then return the findings list.
