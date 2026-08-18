@@ -1,0 +1,144 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - lib/generator/__tests__/candidates.test.ts
+  - lib/generator/__tests__/rules.test.ts
+  - lib/generator/rules.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: lib/generator/__tests__/candidates.test.ts ===
+@@ -182,20 +182,20 @@ test("relief applies only when the slot is empty — a dry alternative still win
+   expect(buildCandidates(withAlternative, wet).flat().some((i) => i.id === "s1")).toBe(false);
+ });
+ 
+-test("heat with wool-only bottoms still dresses you", () => {
+-  const woolOnly = [
++test("heat with fleece-only bottoms still dresses you", () => {
++  const fleeceOnly = [
+     { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["Summer"], material: "linen" },
+-    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "merino wool" },
++    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "polar fleece" },
+     { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["Summer"], material: "leather" },
+   ];
+   const hot = { ...base, season: "Summer", weather: { tempC: 30, rain: false } };
+-  expect(buildCandidates(woolOnly, hot).length).toBeGreaterThan(0);
++  expect(buildCandidates(fleeceOnly, hot).length).toBeGreaterThan(0);
+ });
+ 
+-test("materials match by substring, so 'merino wool' is excluded when there is an alternative", () => {
++test("materials match by substring, so 'polar fleece' is excluded when there is an alternative", () => {
+   const hotCloset = [
+     { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["Summer"], material: "linen" },
+-    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "merino wool" },
++    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "polar fleece" },
+     { id: "b2", category: "Bottoms", colors: ["stone"], formality: 3, seasons: ["Summer"], material: "cotton" },
+     { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["Summer"], material: "leather" },
+   ];
+@@ -203,6 +203,21 @@ test("materials match by substring, so 'merino wool' is excluded when there is a
+   expect(buildCandidates(hotCloset, hot).flat().some((i) => i.id === "b1")).toBe(false);
+ });
+ 
++test("a wool trouser survives real heat — fibre alone never decides", () => {
++  // The counterpart to the rules-level guard: weight and weave decide whether
++  // wool suits 30°C, and `material` records neither. A summer-weight wool
++  // trouser must reach a hot-day outfit; seasonFit demotes it if it is tagged
++  // for winter, but nothing here eliminates it.
++  const hotCloset = [
++    { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["Summer"], material: "linen" },
++    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "tropical wool" },
++    { id: "b2", category: "Bottoms", colors: ["stone"], formality: 3, seasons: ["Summer"], material: "cotton" },
++    { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["Summer"], material: "leather" },
++  ];
++  const hot = { ...base, season: "Summer", weather: { tempC: 32, rain: false } };
++  expect(buildCandidates(hotCloset, hot).flat().some((i) => i.id === "b1")).toBe(true);
++});
++
+ test("relief does NOT rescue a formality gap — only weather exclusions are relieved", () => {
+   // sneakerCloset's f=2 shoe genuinely cannot reach Evening; that is a real
+   // wardrobe gap the empty screen should still name.
+
+
+=== DIFF: lib/generator/__tests__/rules.test.ts ===
+@@ -95,9 +95,21 @@ test("rain excludes suede + canvas", () => {
+   expect(weatherRules({ tempC: 16, rain: false }).excludeMaterials).toEqual([]);
+ });
+ 
+-test("real heat excludes warm materials — the measured version of the old season filter", () => {
++test("real heat excludes insulation — the measured version of the old season filter", () => {
+   const hot = weatherRules({ tempC: 30, rain: false }).excludeMaterials;
+-  expect(hot).toEqual(expect.arrayContaining(["wool", "fleece", "cashmere"]));
++  expect(hot).toEqual(expect.arrayContaining(["fleece", "down", "shearling", "tweed"]));
++});
++
++test("heat does NOT exclude wool — weight and weave decide that, and we store neither", () => {
++  // Tropical, fresco and high-twist wools are summer suiting, and merino is worn
++  // *for* heat because it wicks. `items.material` holds a bare fibre name, so a
++  // "wool" rule cannot tell a summer-weight trouser from a melton coat — it
++  // would bin the smart-casual work wear this app exists to style. Off-season
++  // wool is handled softly by the seasonFit term instead.
++  const hot = weatherRules({ tempC: 34, rain: false }).excludeMaterials;
++  expect(hot).not.toContain("wool");
++  expect(hot).not.toContain("merino wool");
++  expect(hot).not.toContain("cashmere");
+ });
+ 
+ test("a pleasant day excludes nothing — the threshold is properly hot, not merely warm", () => {
+@@ -107,7 +119,7 @@ test("a pleasant day excludes nothing — the threshold is properly hot, not mer
+ 
+ test("a hot rainy day excludes both sets", () => {
+   const both = weatherRules({ tempC: 30, rain: true }).excludeMaterials;
+-  expect(both).toEqual(expect.arrayContaining(["suede", "canvas", "wool"]));
++  expect(both).toEqual(expect.arrayContaining(["suede", "canvas", "fleece"]));
+ });
+ 
+ test("cold days are unaffected by the heat rule", () => {
+
+
+=== DIFF: lib/generator/rules.ts ===
+@@ -68,14 +68,35 @@ export function applyFormalityOverride(
+ }
+ 
+ /**
+- * Materials that make a properly hot day unpleasant. This is the MEASURED
+- * replacement for the season tag's incidental thermal protection: season used to
+- * be a hard filter, so a wool sweater tagged {Autumn,Winter} could never reach a
+- * July outfit. Season is now a preference (see ./season.ts), so the guard moved
+- * here — to the temperature we already fetch, which is a real reading of the day
+- * rather than a label derived from the calendar month.
++ * Fabrics that are wrong in real heat NO MATTER HOW THEY ARE MADE.
++ *
++ * This is the measured replacement for the season tag's incidental thermal
++ * protection: season used to be a hard filter, so a sweater tagged
++ * {Autumn,Winter} could never reach a July outfit. Season is now a preference
++ * (see ./season.ts), so the guard moved to the temperature we already fetch.
++ *
++ * The list is deliberately SHORT, and notably does not contain wool.
++ * Whether a wool garment suits 30°C is decided by its weight and weave, not its
++ * fibre: tropical, fresco and high-twist wools are summer suiting, and merino is
++ * used *for* heat because it wicks and breathes. `items.material` is a bare
++ * fibre name today, so a "wool" rule cannot tell a summer-weight trouser from a
++ * melton coat — it would exclude exactly the smart-casual work wear this app is
++ * built around. Everything left here is insulation or a coarse heavy weave,
++ * where no construction makes it summer-appropriate.
++ *
++ * Wool, merino and cashmere are not unprotected: an off-season piece still takes
++ * the `seasonFit` penalty in scoring, so it ranks below linen in July. Demoted
++ * on evidence rather than eliminated on a guess — the same argument this module
++ * makes about season itself.
++ *
++ * The real fix is data, not a longer list. `item-data-completeness` (queue #3)
++ * adds an `items.texture` column — Flat / Fine knit / Chunky knit / Brushed /
++ * Fleece-back — and constrains `material` to a vocabulary that separates "Wool"
++ * from "Merino wool". `item-signals-in-generator` (queue #12) then feeds
++ * material × texture into SCORING. Warmth belongs there, as a weighted signal,
++ * not here as a veto.
+  */
+-const HOT_MATERIALS = ["wool", "cashmere", "fleece", "shearling", "tweed", "corduroy", "down"];
++const HOT_MATERIALS = ["fleece", "shearling", "down", "quilted", "puffer", "tweed"];
+ 
+ /** Strictly above 25: 24° is pleasant, 26° is hot. */
+ const HOT_C = 25;
+
+
+Investigate per the method in your instructions, then return the findings list.
