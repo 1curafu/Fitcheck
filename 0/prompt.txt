@@ -1,0 +1,432 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - components/settings/settings-view.tsx
+  - components/weather/__tests__/location-sheet.test.tsx
+  - components/weather/location-picker.tsx
+  - components/weather/location-sheet.tsx
+
+Unified diff (only + lines are new):
+
+=== DIFF: components/settings/settings-view.tsx ===
+@@ -4,7 +4,7 @@ import { useState } from "react";
+ import Link from "next/link";
+ import type { Preferences } from "@/lib/profile/preferences";
+ import { useLocationPicker } from "@/lib/weather/use-location-picker";
+-import { LocationPicker } from "@/components/weather/location-picker";
++import { LocationSheet } from "@/components/weather/location-sheet";
+ import type { City } from "@/lib/weather/geocode";
+ 
+ const CARD =
+@@ -241,44 +241,48 @@ export function SettingsView({
+           </button>
+         </div>
+ 
+-        {/* The same picker the Stylist's weather pill opens — one component, so
+-            the two entry points cannot offer different ways to change one
+-            setting. The value shown is the EFFECTIVE location, not the stored
+-            column, so this row cannot disagree with the Stylist either. */}
++        {/* Opens a sheet, not an inline expansion: nesting the Stylist's
++            floating picker inside this card produced a card-in-a-card, and a
++            searchable list of unknown length needs room the row cannot give it
++            without reflowing the page under the user's thumb. The value shown is
++            the EFFECTIVE location, so this row cannot disagree with the
++            Stylist. */}
+         <div data-testid="location-row" className={`${CARD} mt-3`}>
+           <button
+             type="button"
++            aria-haspopup="dialog"
+             aria-expanded={pickerOpen}
+-            onClick={() => setPickerOpen((o) => !o)}
++            onClick={() => setPickerOpen(true)}
+             className="flex w-full items-center justify-between p-4 text-left"
+           >
+             <span className="text-[14.5px] text-foreground">Location</span>
+             <span className="flex items-center gap-2">
+               <span className="text-[13.5px] text-muted-foreground">{location ?? "Not set"}</span>
+-              <span aria-hidden className="text-muted-dim">
+-                {pickerOpen ? "▴" : "▾"}
++              <span aria-hidden className="text-[20px] text-muted-dim">
++                ›
+               </span>
+             </span>
+           </button>
+ 
+-          {picker.locating || picker.geoError || error?.where === "location" ? (
+-            <p role="status" className="px-4 pb-3 text-[12px] text-muted-foreground">
+-              {picker.locating ? "Locating…" : (error?.message ?? picker.geoError)}
++          {error?.where === "location" && (
++            <p role="status" className="px-4 pb-3 text-[12px] text-brand-high">
++              {error.message}
+             </p>
+-          ) : null}
+-
+-          {pickerOpen && (
+-            <LocationPicker
+-              className="px-3 pb-3"
+-              cities={picker.cities}
+-              currentLabel={location ?? undefined}
+-              onSearch={picker.search}
+-              onPick={pickCity}
+-              onUseMyLocation={picker.geoSupported ? picker.useMyLocation : undefined}
+-            />
+           )}
+         </div>
+ 
++        <LocationSheet
++          open={pickerOpen}
++          currentLabel={location ?? undefined}
++          cities={picker.cities}
++          onSearch={picker.search}
++          onPick={pickCity}
++          onUseMyLocation={picker.geoSupported ? picker.useMyLocation : undefined}
++          locating={picker.locating}
++          geoError={picker.geoError}
++          onClose={() => setPickerOpen(false)}
++        />
++
+         <form action="/auth/signout" method="post" className="mt-6">
+           <button
+             type="submit"
+
+
+=== DIFF: components/weather/__tests__/location-sheet.test.tsx ===
+@@ -0,0 +1,135 @@
++import { render, screen } from "@testing-library/react";
++import userEvent from "@testing-library/user-event";
++import { expect, test, vi } from "vitest";
++import { LocationSheet } from "../location-sheet";
++
++const cities = [
++  { name: "Manila", country: "PH", lat: 14.6, lon: 120.98 },
++  { name: "Berlin", country: "DE", lat: 52.52, lon: 13.41 },
++];
++
++function setup(over: Partial<React.ComponentProps<typeof LocationSheet>> = {}) {
++  const onPick = vi.fn();
++  const onClose = vi.fn();
++  const onSearch = vi.fn();
++  render(
++    <LocationSheet
++      open
++      cities={cities}
++      onPick={onPick}
++      onClose={onClose}
++      onSearch={onSearch}
++      {...over}
++    />,
++  );
++  return { onPick, onClose, onSearch };
++}
++
++test("a closed sheet renders nothing at all", () => {
++  render(
++    <LocationSheet open={false} cities={cities} onPick={vi.fn()} onClose={vi.fn()} onSearch={vi.fn()} />,
++  );
++  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
++  // Not merely hidden: a listbox that is still in the tree is still reachable
++  // by a screen reader and still focusable.
++  expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
++});
++
++test("it is a modal dialog with a name", () => {
++  setup();
++  const dialog = screen.getByRole("dialog", { name: /location/i });
++  expect(dialog).toHaveAttribute("aria-modal", "true");
++});
++
++test("it sits ABOVE the bottom nav, and is fixed rather than absolute", () => {
++  // MobileNav is z-50 and renders after the page content, so at equal z-index it
++  // paints straight over a sheet's controls. RefineSheet shipped with exactly
++  // this bug, and being `absolute` inside an overflow-hidden <main> clipped it
++  // outright — its colour palette and primary button were unreachable.
++  setup();
++  const dialog = screen.getByRole("dialog");
++  expect(dialog.className).toMatch(/\bfixed\b/);
++  expect(dialog.className).toMatch(/z-\[70\]/);
++  expect(dialog.className).not.toMatch(/\babsolute\b/);
++});
++
++test("picking a city hands back coordinates, not just a name", async () => {
++  const { onPick } = setup();
++  await userEvent.click(screen.getByRole("option", { name: /manila/i }));
++  expect(onPick).toHaveBeenCalledWith(expect.objectContaining({ lat: 14.6, lon: 120.98 }));
++});
++
++test("the current city is marked selected", () => {
++  setup({ currentLabel: "Berlin" });
++  expect(screen.getByRole("option", { name: /berlin/i })).toHaveAttribute("aria-selected", "true");
++});
++
++test("the backdrop dismisses it — a sheet you cannot leave is a trap", async () => {
++  const { onClose } = setup();
++  await userEvent.click(screen.getByRole("button", { name: /^close$/i }));
++  expect(onClose).toHaveBeenCalled();
++});
++
++test("Cancel dismisses it too", async () => {
++  const { onClose } = setup();
++  await userEvent.click(screen.getByRole("button", { name: /cancel/i }));
++  expect(onClose).toHaveBeenCalled();
++});
++
++test("'Use my location' appears only when the browser supports it", async () => {
++  setup();
++  expect(screen.queryByRole("button", { name: /use my location/i })).not.toBeInTheDocument();
++
++  const onUseMyLocation = vi.fn();
++  const { unmount } = render(
++    <LocationSheet
++      open
++      cities={cities}
++      onPick={vi.fn()}
++      onClose={vi.fn()}
++      onSearch={vi.fn()}
++      onUseMyLocation={onUseMyLocation}
++    />,
++  );
++  await userEvent.click(screen.getAllByRole("button", { name: /use my location/i })[0]);
++  expect(onUseMyLocation).toHaveBeenCalled();
++  unmount();
++});
++
++test("locating and geo errors are announced", () => {
++  const { unmount } = render(
++    <LocationSheet open cities={[]} onPick={vi.fn()} onClose={vi.fn()} onSearch={vi.fn()} locating />,
++  );
++  expect(screen.getByRole("status")).toHaveTextContent(/locating/i);
++  unmount();
++
++  render(
++    <LocationSheet
++      open
++      cities={[]}
++      onPick={vi.fn()}
++      onClose={vi.fn()}
++      onSearch={vi.fn()}
++      geoError="Location access is off — search for a city instead."
++    />,
++  );
++  expect(screen.getByRole("status")).toHaveTextContent(/location access is off/i);
++});
++
++test("the results list scrolls instead of growing the sheet off-screen", () => {
++  // The whole reason this is a sheet: an unbounded list pushes its own primary
++  // controls past the bottom of the viewport.
++  setup();
++  const box = screen.getByTestId("location-results");
++  expect(box.className).toMatch(/overflow-y-auto/);
++  expect(box.className).toMatch(/max-h-/);
++});
++
++test("the picker inside carries no surface of its own", () => {
++  // The defect this redesign fixes: the overlay variant nested inside another
++  // card gave two borders and two backgrounds.
++  setup();
++  const list = screen.getByRole("listbox");
++  expect(list.className).not.toMatch(/bg-surface-3/);
++  expect(list.className).not.toMatch(/\bborder\b/);
++});
+
+
+=== DIFF: components/weather/location-picker.tsx ===
+@@ -23,6 +23,7 @@ export function LocationPicker({
+   onSearch,
+   onPick,
+   onUseMyLocation,
++  variant = "overlay",
+   className,
+ }: {
+   cities: City[];
+@@ -31,21 +32,37 @@ export function LocationPicker({
+   onPick: (c: City) => void;
+   /** Omitted when the browser has no geolocation at all — then search is the only path. */
+   onUseMyLocation?: () => void;
++  /**
++   * `overlay` floats over the page (the Stylist's weather pill) and carries its
++   * own card. `bare` has no surface of its own and uses hairline-divided rows,
++   * for when it already sits inside one — nesting the overlay inside another
++   * card produced two borders and two backgrounds, which is what made it look
++   * wrong in Settings.
++   */
++  variant?: "overlay" | "bare";
+   className?: string;
+ }) {
++  const bare = variant === "bare";
++  const row = bare
++    ? "flex min-h-11 w-full items-center px-4 py-[13px] text-left text-[14px] text-foreground"
++    : "flex min-h-11 w-full items-center rounded-[8px] px-3 text-left text-[13px] text-foreground hover:bg-foreground/5";
+   return (
+     <div className={className}>
+       <ul
+         role="listbox"
+         aria-label="Choose a city"
+-        className={cn("w-full rounded-[12px] border bg-surface-3 p-1.5", HAIR2)}
++        className={cn(
++          "w-full",
++          bare ? "overflow-hidden" : cn("rounded-[12px] border bg-surface-3 p-1.5", HAIR2),
++        )}
+       >
+         {onUseMyLocation && (
+           <li>
+             <button
+               type="button"
+               onClick={onUseMyLocation}
+-              className="flex min-h-11 w-full items-center gap-2 rounded-[8px] px-3 text-left text-[13px] text-foreground hover:bg-foreground/5"
++              className={cn(row, "gap-2")}
++              style={bare ? { borderBottom: "1px solid var(--hairline-2)" } : undefined}
+             >
+               <svg
+                 width="11"
+@@ -63,12 +80,17 @@ export function LocationPicker({
+             </button>
+           </li>
+         )}
+-        <li className="p-1">
++        <li className={bare ? "px-4 py-3" : "p-1"}>
+           <input
+             aria-label="Search a city"
+             placeholder="Search a city…"
+             onChange={(e) => onSearch(e.target.value)}
+-            className="w-full rounded-[8px] bg-surface-1 px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-dim"
++            className={cn(
++              "w-full rounded-[10px] text-foreground outline-none placeholder:text-muted-dim",
++              bare
++                ? "bg-surface-3 px-3.5 py-3 text-[15px]"
++                : "bg-surface-1 px-3 py-2 text-sm",
++            )}
+           />
+         </li>
+         {cities.map((c) => (
+@@ -78,10 +100,13 @@ export function LocationPicker({
+               role="option"
+               aria-selected={c.name === currentLabel}
+               onClick={() => onPick(c)}
+-              className="flex min-h-11 w-full items-center justify-between rounded-[8px] px-3 text-left text-[13px] text-foreground hover:bg-foreground/5"
++              className={cn(row, "justify-between")}
++              style={bare ? { borderTop: "1px solid var(--hairline-2)" } : undefined}
+             >
+               {c.name}
+-              <span className="text-[10px] text-muted-dim">{c.country}</span>
++              <span className={bare ? "text-[12.5px] text-muted-dim" : "text-[10px] text-muted-dim"}>
++                {c.country}
++              </span>
+             </button>
+           </li>
+         ))}
+
+
+=== DIFF: components/weather/location-sheet.tsx ===
+@@ -0,0 +1,109 @@
++"use client";
++
++import { Kicker } from "@/components/ui-fitcheck/kicker";
++import { LocationPicker } from "./location-picker";
++import type { City } from "@/lib/weather/geocode";
++
++/**
++ * Changing your location from Settings.
++ *
++ * A sheet, not an inline expansion. The first attempt expanded the picker
++ * inside the Location row and it read as a card inside a card — two borders,
++ * two backgrounds, an inner box floating in its own margin. That presentation
++ * was drawn for the Stylist, where it FLOATS OVER the page rather than nesting
++ * inside another surface.
++ *
++ * A sheet is also the better fit for what this is: a searchable list of unknown
++ * length. Inline, the row grows as results arrive and reflows the page under
++ * the user's thumb, and the search field can end up beneath the keyboard. The
++ * project already reaches for a sheet in exactly this situation (`RefineSheet`,
++ * `UpgradeSheet`).
++ *
++ * ⚠️ `fixed` and `z-[70]`, never `absolute`. `MobileNav` is `z-50` and renders
++ * after the page content, so at equal z-index it paints straight over a sheet.
++ * `RefineSheet` shipped with this bug AND was an `absolute` child of a
++ * `overflow-hidden` `<main>`, which clipped it outright.
++ */
++export function LocationSheet({
++  open,
++  currentLabel,
++  cities,
++  onSearch,
++  onPick,
++  onUseMyLocation,
++  locating = false,
++  geoError = null,
++  onClose,
++}: {
++  open: boolean;
++  currentLabel?: string;
++  cities: City[];
++  onSearch: (q: string) => void;
++  onPick: (c: City) => void;
++  onUseMyLocation?: () => void;
++  locating?: boolean;
++  geoError?: string | null;
++  onClose: () => void;
++}) {
++  if (!open) return null;
++
++  return (
++    <>
++      <button
++        type="button"
++        aria-label="Close"
++        onClick={onClose}
++        className="fixed inset-0 z-[60] bg-[rgba(6,6,8,0.5)] backdrop-blur-[1.5px]"
++      />
++      <div
++        role="dialog"
++        aria-modal="true"
++        aria-label="Location"
++        // maxWidth inline: the shell caps at 440, and a sheet wider than it
++        // would hang off the app on a desktop viewport.
++        style={{ maxWidth: 440 }}
++        className="fixed inset-x-0 bottom-0 z-[70] mx-auto rounded-t-[22px] border-t border-[rgba(237,230,216,0.12)] bg-surface-2 px-[22px] pb-[calc(env(safe-area-inset-bottom)+20px)] pt-3.5"
++      >
++        <div className="mx-auto mb-4 h-1 w-[34px] rounded-full bg-faint" />
++
++        <Kicker className="block">Location</Kicker>
++        <h2 className="mt-2 font-serif text-[24px]/[1.15] text-foreground">
++          Where are you dressing for?
++        </h2>
++        <p className="mt-2 text-sm/[1.5] text-muted-foreground text-pretty">
++          Your looks are built around this forecast.
++        </p>
++
++        {(locating || geoError) && (
++          <p role="status" className="mt-3 text-[12.5px] text-brand-high">
++            {locating ? "Locating…" : geoError}
++          </p>
++        )}
++
++        {/* The list gets its own height and scrolls, rather than growing the
++            surface it sits in. `bare` because this card is the surface. */}
++        <div
++          data-testid="location-results"
++          className="mt-4 max-h-[46vh] overflow-y-auto rounded-[14px] bg-surface-1 shadow-[inset_0_0_0_1px_var(--hairline-2)]"
++        >
++          <LocationPicker
++            variant="bare"
++            cities={cities}
++            currentLabel={currentLabel}
++            onSearch={onSearch}
++            onPick={onPick}
++            onUseMyLocation={onUseMyLocation}
++          />
++        </div>
++
++        <button
++          type="button"
++          onClick={onClose}
++          className="mt-3 min-h-[44px] w-full text-[14px] text-muted-foreground"
++        >
++          Cancel
++        </button>
++      </div>
++    </>
++  );
++}
+
+
+Investigate per the method in your instructions, then return the findings list.
