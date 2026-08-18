@@ -1,0 +1,263 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/settings/actions.ts
+  - lib/generator/__tests__/candidates.test.ts
+  - lib/generator/__tests__/rules.test.ts
+  - lib/generator/candidates.ts
+  - lib/generator/rules.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/settings/actions.ts ===
+@@ -0,0 +1,40 @@
++"use server";
++
++import { revalidatePath } from "next/cache";
++import { createClient } from "@/lib/supabase/server";
++import { PreferencesSchema, readPreferences } from "@/lib/profile/preferences";
++
++/**
++ * Persist a partial preferences patch.
++ *
++ * Merge-patch, not replace: two settings screens open at once must not have the
++ * last save silently revert the other's toggle.
++ *
++ * Validation uses the STRICT schema — a bad value is rejected here rather than
++ * repaired on every later read.
++ */
++export async function updatePreferences(patch: unknown): Promise<void> {
++  const data = PreferencesSchema.partial().parse(patch);
++
++  const supabase = await createClient();
++  const {
++    data: { user },
++  } = await supabase.auth.getUser();
++  if (!user) throw new Error("Not signed in");
++
++  const { data: row } = await supabase
++    .from("profiles")
++    .select("preferences")
++    .eq("id", user.id)
++    .single();
++
++  const next = { ...readPreferences(row?.preferences), ...data };
++
++  const { error } = await supabase.from("profiles").update({ preferences: next }).eq("id", user.id);
++  if (error) throw new Error(error.message);
++
++  revalidatePath("/settings");
++  // The stylist screen reads both preferences: rain guard reaches weatherRules,
++  // tempUnit reaches the weather strip.
++  revalidatePath("/generate");
++}
+
+
+=== DIFF: lib/generator/__tests__/candidates.test.ts ===
+@@ -223,3 +223,53 @@ test("relief does NOT rescue a formality gap — only weather exclusions are rel
+   // wardrobe gap the empty screen should still name.
+   expect(missingCategory(sneakerCloset, { ...summer, band: [3.5, 5] })).toBe("Shoes");
+ });
++
++// ── Rain guard, threaded from the user's settings ────────────────────────────
++
++test("rain guard ON (the default) keeps suede out of a wet day", () => {
++  const wet = { ...base, weather: { tempC: 18, rain: true } };
++  // s1 leather survives, so material relief does NOT fire and the exclusion stands.
++  expect(eligibility(items, wet)["Shoes"]).toBe(1);
++  expect(buildCandidates(items, wet).flat().some((i) => i.id === "s2")).toBe(false);
++});
++
++test("rain guard OFF lets the user wear their suede in the rain", () => {
++  const wet = { ...base, weather: { tempC: 18, rain: true }, rainGuard: false };
++  expect(eligibility(items, wet)["Shoes"]).toBe(2);
++  expect(buildCandidates(items, wet).flat().some((i) => i.id === "s2")).toBe(true);
++});
++
++test("every shoe is reachable even when the closet has a single top", () => {
++  // Regression: the shoe index was `(t + d * 2) % shoes.length`. With one top,
++  // `t` is always 0, so the index reduced to `2d % shoes.length` — permanently 0
++  // whenever that length was 2, making the second pair unreachable and emitting
++  // the identical combo twice. PR #14 measured shoe coverage on a 20-top closet,
++  // where `t` supplied the variation and hid it.
++  const minimal = [
++    { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["spring"], material: "cotton" },
++    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["spring"], material: "cotton" },
++    { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["spring"], material: "leather" },
++    { id: "s2", category: "Shoes", colors: ["white"], formality: 3, seasons: ["spring"], material: "cotton" },
++  ];
++  const combos = buildCandidates(minimal, base);
++  const reached = new Set(combos.flat().filter((i) => i.category === "Shoes").map((i) => i.id));
++  expect(reached).toEqual(new Set(["s1", "s2"]));
++});
++
++test("shoe coverage holds across awkward list sizes", () => {
++  // The stride must stay coprime with the shoe count, not merely be even.
++  for (const shoeCount of [1, 2, 3, 4, 5, 6, 8, 9, 10]) {
++    const closet = [
++      { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["spring"], material: "cotton" },
++      { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["spring"], material: "cotton" },
++      ...Array.from({ length: shoeCount }, (_, n) => ({
++        id: `s${n}`, category: "Shoes", colors: ["brown"], formality: 3,
++        seasons: ["spring"], material: "leather",
++      })),
++    ];
++    const reached = new Set(
++      buildCandidates(closet, base).flat().filter((i) => i.category === "Shoes").map((i) => i.id),
++    );
++    expect(reached.size, `shoeCount=${shoeCount}`).toBe(shoeCount);
++  }
++});
+
+
+=== DIFF: lib/generator/__tests__/rules.test.ts ===
+@@ -126,3 +126,34 @@ test("cold days are unaffected by the heat rule", () => {
+   expect(weatherRules({ tempC: 5, rain: false }).excludeMaterials).toEqual([]);
+   expect(weatherRules({ tempC: 5, rain: false }).needsOuterwear).toBe(true);
+ });
++
++// ── Rain guard, the settings toggle ──────────────────────────────────────────
++
++test("rain guard off means rain stops excluding suede and canvas", () => {
++  expect(weatherRules({ tempC: 16, rain: true }, { rainGuard: false }).excludeMaterials).toEqual([]);
++});
++
++test("rain guard defaults ON when no preferences are passed", () => {
++  // Every existing caller passes one argument. The protective behaviour already
++  // shipped, so the default must preserve it rather than quietly opting the
++  // whole userbase out.
++  expect(weatherRules({ tempC: 16, rain: true }).excludeMaterials).toEqual(
++    expect.arrayContaining(["suede", "canvas"]),
++  );
++  expect(weatherRules({ tempC: 16, rain: true }, {}).excludeMaterials).toEqual(
++    expect.arrayContaining(["suede", "canvas"]),
++  );
++});
++
++test("rain guard does not reach the heat exclusions", () => {
++  // The heat list is about comfort in 30°, not about protecting shoes from
++  // water. A switch labelled "never suede in the rain" must not silently also
++  // put a shearling coat back into a July outfit.
++  const hot = weatherRules({ tempC: 30, rain: true }, { rainGuard: false }).excludeMaterials;
++  expect(hot).toEqual(expect.arrayContaining(["fleece", "down", "shearling", "tweed"]));
++  expect(hot).not.toContain("suede");
++});
++
++test("rain guard does not reach the outerwear rule", () => {
++  expect(weatherRules({ tempC: 12, rain: true }, { rainGuard: false }).needsOuterwear).toBe(true);
++});
+
+
+=== DIFF: lib/generator/candidates.ts ===
+@@ -16,10 +16,39 @@ export type CandidateArgs = {
+   season: string;
+   excludeItemIds: string[];
+   maxAccessories: number;
++  /**
++   * The user's rain-guard preference. Optional and defaulting ON, so every
++   * existing caller and fixture keeps the protective behaviour it had before
++   * the toggle existed.
++   *
++   * A bare boolean rather than the whole `Preferences` object: the generator
++   * has no business importing a module that also carries display concerns like
++   * the temperature unit.
++   */
++  rainGuard?: boolean;
+ };
+ 
+ const CAP = 200;
+ 
++function gcd(x: number, y: number): number {
++  return y === 0 ? x : gcd(y, x % y);
++}
++
++/**
++ * A step size that visits every index of a list of length `n` before repeating.
++ *
++ * `buildCandidates` walks shoes with a stride so their pairing does not move in
++ * lockstep with bottoms. A FIXED stride of 2 was wrong: it shares a factor with
++ * every even list length, so with one top — where the top index cannot supply
++ * variation — a two-shoe closet reached only the first pair, and emitted the
++ * same combo twice. Any stride coprime with `n` visits all of it, so pick the
++ * smallest one above 1 and fall back to 1 for n ≤ 2.
++ */
++function decorrelatedStride(n: number): number {
++  for (let s = 2; s < n; s++) if (gcd(s, n) === 1) return s;
++  return 1;
++}
++
+ /** The required slots — a combo cannot exist without one of each. */
+ export const REQUIRED_CATEGORIES = ["Tops", "Bottoms", "Shoes"] as const;
+ export type RequiredCategory = (typeof REQUIRED_CATEGORIES)[number];
+@@ -90,7 +119,7 @@ export function eligibleByCategory(
+   items: CandidateItem[],
+   a: CandidateArgs,
+ ): Record<string, CandidateItem[]> {
+-  const { excludeMaterials } = weatherRules(a.weather);
++  const { excludeMaterials } = weatherRules(a.weather, { rainGuard: a.rainGuard });
+   const cats = new Set<string>(items.map((i) => i.category));
+   for (const c of REQUIRED_CATEGORIES) cats.add(c);
+   cats.add("Outerwear");
+@@ -124,7 +153,7 @@ export function missingCategory(items: CandidateItem[], a: CandidateArgs): Requi
+ }
+ 
+ export function buildCandidates(items: CandidateItem[], a: CandidateArgs): CandidateItem[][] {
+-  const { needsOuterwear } = weatherRules(a.weather);
++  const { needsOuterwear } = weatherRules(a.weather, { rainGuard: a.rainGuard });
+ 
+   // Season ordering and material relief both live in `eligibleByCategory`, so
+   // this function, `eligibility` and `missingCategory` can never disagree about
+@@ -156,14 +185,17 @@ export function buildCandidates(items: CandidateItem[], a: CandidateArgs): Candi
+   //
+   // Each pass `d` walks all tops once, pairing each with a different bottom and
+   // shoe, so pass 0 alone touches every top, bottom and shoe. Later passes add
+-  // fresh pairings rather than exhausting one corner of the space. The offsets
+-  // are coprime-ish (d and 2d) so pairings do not repeat early.
++  // fresh pairings rather than exhausting one corner of the space. The shoe
++  // offset uses a stride coprime with the shoe count so pairings do not repeat
++  // early AND every shoe is still reachable — a fixed stride of 2 failed the
++  // second half of that on any even-length list (see `decorrelatedStride`).
+   const passes = Math.max(bottoms.length, shoes.length);
++  const shoeStride = decorrelatedStride(shoes.length);
+ 
+   build: for (let d = 0; d < passes; d++) {
+     for (let t = 0; t < tops.length; t++) {
+       const b = bottoms[(t + d) % bottoms.length];
+-      const s = shoes[(t + d * 2) % shoes.length];
++      const s = shoes[(t + d * shoeStride) % shoes.length];
+ 
+       // Outerwear is a PREFERENCE, not a requirement: layer it in when the cold
+       // calls for it and the closet has one, but never refuse to dress someone
+
+
+=== DIFF: lib/generator/rules.ts ===
+@@ -101,11 +101,24 @@ const HOT_MATERIALS = ["fleece", "shearling", "down", "quilted", "puffer", "twee
+ /** Strictly above 25: 24° is pleasant, 26° is hot. */
+ const HOT_C = 25;
+ 
+-export function weatherRules(w: Weather) {
++/** Materials rain ruins. Turned off by the rain-guard preference, nothing else. */
++const WET_MATERIALS = ["suede", "canvas"];
++
++/**
++ * @param prefs `rainGuard` is the settings toggle. It defaults ON: the
++ * protective behaviour shipped before the switch existed, so an absent
++ * preference must preserve it rather than opt the whole userbase out.
++ *
++ * The toggle reaches the WET list only. The heat exclusions are about comfort
++ * at 30°, not about keeping shoes dry, and `needsOuterwear` is about cold — a
++ * switch labelled "never suede in the rain" has no business touching either.
++ */
++export function weatherRules(w: Weather, prefs?: { rainGuard?: boolean }) {
++  const rainGuard = prefs?.rainGuard ?? true;
+   return {
+     needsOuterwear: w.tempC < 15,
+     excludeMaterials: [
+-      ...(w.rain ? ["suede", "canvas"] : []),
++      ...(w.rain && rainGuard ? WET_MATERIALS : []),
+       ...(w.tempC > HOT_C ? HOT_MATERIALS : []),
+     ],
+   };
+
+
+Investigate per the method in your instructions, then return the findings list.
