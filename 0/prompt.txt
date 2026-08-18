@@ -1,0 +1,520 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - components/capture/__tests__/confirm-form.test.tsx
+  - components/capture/confirm-form.tsx
+  - components/closet/__tests__/color-picker.test.tsx
+  - components/closet/color-picker.tsx
+  - components/closet/item-detail.tsx
+  - components/ui-fitcheck/select.tsx
+
+Unified diff (only + lines are new):
+
+=== DIFF: components/capture/__tests__/confirm-form.test.tsx ===
+@@ -61,7 +61,10 @@ test("the confirm screen exposes every AI tag for correction", () => {
+ test("correcting a colour reaches the tag patch", async () => {
+   const onTags = vi.fn();
+   renderConfirm({ onTags });
+-  await userEvent.click(screen.getByRole("button", { name: /navy/i }));
++  // The palette collapses once a colour is set (the fixture has one), so open
++  // it first — 21 swatches flat took three rows of a phone screen.
++  await userEvent.click(screen.getByRole("button", { name: /choose colours|hide colour palette/i }));
++  await userEvent.click(screen.getByRole("button", { name: "navy" }));
+   expect(onTags).toHaveBeenCalledWith(
+     expect.objectContaining({ colors: expect.arrayContaining(["navy"]) }),
+   );
+@@ -70,10 +73,19 @@ test("correcting a colour reaches the tag patch", async () => {
+ test("correcting the texture reaches the tag patch", async () => {
+   const onTags = vi.fn();
+   renderConfirm({ onTags });
+-  await userEvent.click(screen.getByRole("button", { name: "Cable knit" }));
++  // A select, not chips: MATERIALS (27) and TEXTURES (16) as chip rows filled
++  // most of a phone screen and pushed every other field out of reach.
++  await userEvent.selectOptions(screen.getByLabelText("Texture"), "Cable knit");
+   expect(onTags).toHaveBeenCalledWith({ texture: "Cable knit" });
+ });
+ 
++test("the long vocabularies are single-row selects, not chip walls", () => {
++  renderConfirm();
++  for (const label of ["Material", "Texture", "Pattern"]) {
++    expect(screen.getByLabelText(label).tagName).toBe("SELECT");
++  }
++});
++
+ test("the AI-detected subcategory leads the screen, as the design specifies", () => {
+   renderConfirm();
+   // Fitcheck.dc.html:537-539 — "AI detected" kicker over the subcategory.
+
+
+=== DIFF: components/capture/confirm-form.tsx ===
+@@ -2,6 +2,7 @@
+ 
+ import { Chip } from "@/components/ui-fitcheck/chip";
+ import { Kicker } from "@/components/ui-fitcheck/kicker";
++import { Select } from "@/components/ui-fitcheck/select";
+ import type { Draft } from "./use-capture";
+ import type { Tags } from "@/lib/ai/tagging-schema";
+ 
+@@ -40,9 +41,17 @@ export function ConfirmForm({
+ }) {
+   return (
+     <div className="flex flex-1 flex-col gap-5">
+-      <div className="grid aspect-[1.3] place-items-center rounded-[18px] bg-surface-1 shadow-[inset_0_0_0_1px_rgba(237,230,216,0.07)]">
++      {/* `.surface-stage` is the design's cutout stage (Fitcheck.dc.html:595 /
++          :530) — a radial gradient lit from above, not a flat fill.
++          The image is ABSOLUTELY positioned, not a grid item: as a grid
++          item its `min-height:auto` forced the row past the 1.3 aspect ratio,
++          and `max-h-full` could not save it because a percentage against an
++          auto-sized row is indefinite and resolves to `none` — so a 970x1280
++          cutout spilled over the fields below. Absolute + inset-0 gives
++          object-contain a definite box to fit inside. */}
++      <div className="relative aspect-[1.3] overflow-hidden rounded-[18px] surface-stage">
+         {/* eslint-disable-next-line @next/next/no-img-element */}
+-        <img src={draft.cutoutUrl} alt="" className="size-full object-contain p-6" />
++        <img src={draft.cutoutUrl} alt="" className="absolute inset-0 size-full object-contain p-6" />
+       </div>
+ 
+       <input
+@@ -80,34 +89,32 @@ export function ConfirmForm({
+ 
+       <div>
+         <Kicker className="mb-2 block">Texture</Kicker>
+-        <div className="flex flex-wrap gap-2">
++        <Select
++          aria-label="Texture"
++          value={draft.tags.texture}
++          onChange={(e) => onTags({ texture: e.target.value as Tags["texture"] })}
++        >
+           {TEXTURES.map((t) => (
+-            <Chip
+-              key={t}
+-              variant="select"
+-              active={draft.tags.texture === t}
+-              onClick={() => onTags({ texture: t })}
+-            >
++            <option key={t} value={t}>
+               {t}
+-            </Chip>
++            </option>
+           ))}
+-        </div>
++        </Select>
+       </div>
+ 
+       <div>
+         <Kicker className="mb-2 block">Pattern</Kicker>
+-        <div className="flex flex-wrap gap-2">
++        <Select
++          aria-label="Pattern"
++          value={draft.tags.pattern}
++          onChange={(e) => onTags({ pattern: e.target.value as Tags["pattern"] })}
++        >
+           {PATTERNS.map((p) => (
+-            <Chip
+-              key={p}
+-              variant="select"
+-              active={draft.tags.pattern === p}
+-              onClick={() => onTags({ pattern: p })}
+-            >
++            <option key={p} value={p}>
+               {p}
+-            </Chip>
++            </option>
+           ))}
+-        </div>
++        </Select>
+       </div>
+ 
+       <div>
+@@ -128,21 +135,20 @@ export function ConfirmForm({
+ 
+       <div>
+         <Kicker className="mb-2 block">Material</Kicker>
+-        {/* A chip row, not a free-text input: `material` is a constrained enum
+-            now, so anything typed outside the vocabulary would fail
+-            TagSchema.parse at save time — after the user had already typed it. */}
+-        <div className="flex flex-wrap gap-2">
++        {/* A select, not free text and not chips: `material` is a constrained
++            enum, so typed input would fail TagSchema.parse at save time — and
++            27 chips ran to eight rows on a phone. */}
++        <Select
++          aria-label="Material"
++          value={draft.tags.material}
++          onChange={(e) => onTags({ material: e.target.value as Tags["material"] })}
++        >
+           {MATERIALS.map((m) => (
+-            <Chip
+-              key={m}
+-              variant="select"
+-              active={draft.tags.material === m}
+-              onClick={() => onTags({ material: m })}
+-            >
++            <option key={m} value={m}>
+               {m}
+-            </Chip>
++            </option>
+           ))}
+-        </div>
++        </Select>
+       </div>
+ 
+       <div>
+
+
+=== DIFF: components/closet/__tests__/color-picker.test.tsx ===
+@@ -1,6 +1,15 @@
+ import { render, screen, fireEvent } from "@testing-library/react";
+ import { ColorPicker } from "../color-picker";
+ 
++/**
++ * The palette is collapsed once something is selected — 21 swatches flat ran to
++ * three rows and pushed the rest of the form off screen. These helpers open it
++ * first so each test exercises the palette itself.
++ */
++function open() {
++  fireEvent.click(screen.getByRole("button", { name: /choose colours|hide colour palette/i }));
++}
++
+ test("renders a swatch per palette colour with an accessible name", () => {
+   render(<ColorPicker value={[]} onChange={() => {}} />);
+   expect(screen.getByRole("button", { name: /navy/i })).toBeInTheDocument();
+@@ -9,31 +18,36 @@ test("renders a swatch per palette colour with an accessible name", () => {
+ test("selecting a colour adds it; selecting again removes it", () => {
+   const onChange = vi.fn();
+   const { rerender } = render(<ColorPicker value={[]} onChange={onChange} />);
+-  fireEvent.click(screen.getByRole("button", { name: /navy/i }));
++  fireEvent.click(screen.getByRole("button", { name: "navy" }));
+   expect(onChange).toHaveBeenCalledWith(["navy"]);
+ 
++  // No open() here: `open` is useState-initialised at mount (value was empty),
++  // and a rerender does not reset it — the palette is still showing.
+   rerender(<ColorPicker value={["navy"]} onChange={onChange} />);
+-  fireEvent.click(screen.getByRole("button", { name: /navy/i }));
++  fireEvent.click(screen.getByRole("button", { name: "navy" }));
+   expect(onChange).toHaveBeenCalledWith([]);
+ });
+ 
+ test("selection is capped so the tag schema's max of 3 can never be violated", () => {
+   const onChange = vi.fn();
+   render(<ColorPicker value={["navy", "cream", "brown"]} onChange={onChange} />);
+-  fireEvent.click(screen.getByRole("button", { name: /olive/i }));
++  open();
++  fireEvent.click(screen.getByRole("button", { name: "olive" }));
+   expect(onChange).not.toHaveBeenCalled();
+ });
+ 
+ test("an already-selected colour can still be deselected at the cap", () => {
+   const onChange = vi.fn();
+   render(<ColorPicker value={["navy", "cream", "brown"]} onChange={onChange} />);
+-  fireEvent.click(screen.getByRole("button", { name: /navy/i }));
++  open();
++  fireEvent.click(screen.getByRole("button", { name: "navy" }));
+   expect(onChange).toHaveBeenCalledWith(["cream", "brown"]);
+ });
+ 
+ test("selected swatches are marked pressed for screen readers", () => {
+   render(<ColorPicker value={["navy"]} onChange={() => {}} />);
+-  expect(screen.getByRole("button", { name: /navy/i })).toHaveAttribute("aria-pressed", "true");
++  open();
++  expect(screen.getByRole("button", { name: "navy" })).toHaveAttribute("aria-pressed", "true");
+ });
+ 
+ test("the selected ring uses a real theme token", () => {
+@@ -41,7 +55,21 @@ test("the selected ring uses a real theme token", () => {
+   // `--brand`, and an undefined var renders no ring at all — the selected
+   // state would be invisible.
+   const { container } = render(<ColorPicker value={["navy"]} onChange={() => {}} />);
+-  const selected = screen.getByRole("button", { name: /navy/i });
++  open();
++  const selected = screen.getByRole("button", { name: "navy" });
+   expect(selected.className).toContain("var(--color-brand)");
+   expect(container.innerHTML).not.toContain("var(--brand)");
+ });
++
++test("the palette is collapsed once a colour is chosen, and summarised in one row", () => {
++  render(<ColorPicker value={["navy", "cream"]} onChange={() => {}} />);
++  // The swatch grid is hidden...
++  expect(screen.queryByRole("button", { name: "olive" })).not.toBeInTheDocument();
++  // ...but the answer is still readable without opening anything.
++  expect(screen.getByText("navy · cream")).toBeInTheDocument();
++});
++
++test("it opens by default when nothing is selected, so the control never looks empty", () => {
++  render(<ColorPicker value={[]} onChange={() => {}} />);
++  expect(screen.getByRole("button", { name: "olive" })).toBeInTheDocument();
++});
+
+
+=== DIFF: components/closet/color-picker.tsx ===
+@@ -1,5 +1,6 @@
+ "use client";
+ 
++import { useState } from "react";
+ import { COLORS } from "@/lib/closet/vocab";
+ 
+ /**
+@@ -8,6 +9,15 @@ import { COLORS } from "@/lib/closet/vocab";
+  * outfit the generator ranks. The design shows colour as a hex swatch beside a
+  * name (Fitcheck.dc.html:548-560); this is that control, made multi-select
+  * because the schema stores up to three.
++ *
++ * COLLAPSED BY DEFAULT. Twenty-one swatches laid out flat ran to three rows and
++ * pushed the rest of the form off the screen — the same problem the material
++ * and texture selects solve. Editing a colour is rare (the tagger is usually
++ * right); reading one is common. So the resting state is a single row that
++ * SHOWS the answer, and the palette appears only when you go to change it.
++ *
++ * It opens automatically when nothing is selected, because then there is
++ * nothing to summarise and the control would otherwise look broken.
+  */
+ export function ColorPicker({
+   value,
+@@ -18,6 +28,8 @@ export function ColorPicker({
+   onChange: (next: string[]) => void;
+   max?: number;
+ }) {
++  const [open, setOpen] = useState(value.length === 0);
++
+   function toggle(name: string) {
+     if (value.includes(name)) {
+       onChange(value.filter((c) => c !== name));
+@@ -28,29 +40,60 @@ export function ColorPicker({
+   }
+ 
+   return (
+-    <div className="flex flex-wrap gap-2">
+-      {COLORS.map((c) => {
+-        const active = value.includes(c.name);
+-        return (
+-          <button
+-            key={c.name}
+-            type="button"
+-            onClick={() => toggle(c.name)}
+-            aria-label={c.name}
+-            aria-pressed={active}
+-            title={c.name}
+-            // `--color-brand`, not `--brand`: Tailwind v4's `@theme` names the
+-            // token `--color-*`, and an undefined var would render no ring at
+-            // all — leaving the selected state invisible.
+-            className={`size-9 rounded-[10px] transition-transform ${
+-              active
+-                ? "scale-105 shadow-[0_0_0_2px_var(--color-brand)]"
+-                : "shadow-[inset_0_0_0_1px_rgba(237,230,216,0.12)]"
+-            }`}
+-            style={{ background: c.hex }}
+-          />
+-        );
+-      })}
++    <div className="flex flex-col gap-2">
++      <button
++        type="button"
++        onClick={() => setOpen((o) => !o)}
++        aria-expanded={open}
++        aria-label={open ? "Hide colour palette" : "Choose colours"}
++        className="flex w-full items-center gap-3 rounded-[12px] border border-[--input] bg-surface-1 px-4 py-3 text-left text-sm text-foreground outline-none focus:border-brand"
++      >
++        <span className="flex gap-1.5">
++          {value.map((name) => (
++            <span
++              key={name}
++              // A stronger ring than the palette below: at 20px a near-black
++              // swatch (#141414) on the surface (#161517) reads as an empty box
++              // without a defined edge.
++              className="size-5 rounded-[6px] shadow-[inset_0_0_0_1px_rgba(237,230,216,0.28)]"
++              style={{ background: COLORS.find((c) => c.name === name)?.hex }}
++            />
++          ))}
++        </span>
++        <span className={value.length ? "text-value" : "text-muted-dim"}>
++          {value.length ? value.join(" · ") : "Choose colours"}
++        </span>
++        <span aria-hidden className="ml-auto text-muted-dim">
++          {open ? "▴" : "▾"}
++        </span>
++      </button>
++
++      {open && (
++        <div className="flex flex-wrap gap-2">
++          {COLORS.map((c) => {
++            const active = value.includes(c.name);
++            return (
++              <button
++                key={c.name}
++                type="button"
++                onClick={() => toggle(c.name)}
++                aria-label={c.name}
++                aria-pressed={active}
++                title={c.name}
++                // `--color-brand`, not `--brand`: Tailwind v4's `@theme` names
++                // the token `--color-*`, and an undefined var would render no
++                // ring at all — leaving the selected state invisible.
++                className={`size-8 rounded-[9px] transition-transform ${
++                  active
++                    ? "scale-105 shadow-[0_0_0_2px_var(--color-brand)]"
++                    : "shadow-[inset_0_0_0_1px_rgba(237,230,216,0.18)]"
++                }`}
++                style={{ background: c.hex }}
++              />
++            );
++          })}
++        </div>
++      )}
+     </div>
+   );
+ }
+
+
+=== DIFF: components/closet/item-detail.tsx ===
+@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
+ import { updateItem, archiveItem } from "@/app/closet/[itemId]/actions";
+ import { Chip } from "@/components/ui-fitcheck/chip";
+ import { Kicker } from "@/components/ui-fitcheck/kicker";
++import { Select } from "@/components/ui-fitcheck/select";
+ import type { Tags } from "@/lib/ai/tagging-schema";
+ 
+ import { ColorPicker } from "./color-picker";
+@@ -114,10 +115,22 @@ export function ItemDetail({
+         ‹
+       </button>
+ 
+-      <div className="grid aspect-[1.3] place-items-center rounded-[18px] bg-surface-1 shadow-[inset_0_0_0_1px_rgba(237,230,216,0.07)]">
++      {/* `.surface-stage` is the design's cutout stage (Fitcheck.dc.html:595 /
++          :530) — a radial gradient lit from above, not a flat fill.
++          The image is ABSOLUTELY positioned, not a grid item: as a grid
++          item its `min-height:auto` forced the row past the 1.3 aspect ratio,
++          and `max-h-full` could not save it because a percentage against an
++          auto-sized row is indefinite and resolves to `none` — so a 970x1280
++          cutout spilled over the fields below. Absolute + inset-0 gives
++          object-contain a definite box to fit inside. */}
++      <div className="relative aspect-[1.3] overflow-hidden rounded-[18px] surface-stage">
+         {imageUrl ? (
+           // eslint-disable-next-line @next/next/no-img-element
+-          <img src={imageUrl} alt={name} className="size-full object-contain p-6" />
++          <img
++            src={imageUrl}
++            alt={name}
++            className="absolute inset-0 size-full object-contain p-6"
++          />
+         ) : null}
+       </div>
+ 
+@@ -154,20 +167,19 @@ export function ItemDetail({
+ 
+       <div>
+         <Kicker className="mb-2 block">Material</Kicker>
+-        {/* A chip row, not free text: `material` is a constrained enum now, so
+-            anything typed outside the vocabulary fails validation on save. */}
+-        <div className="flex flex-wrap gap-2">
++        {/* A select, not free text and not chips: `material` is a constrained
++            enum, and 27 chips ran to eight rows on a phone. */}
++        <Select
++          aria-label="Material"
++          value={material}
++          onChange={(e) => setMaterial(e.target.value)}
++        >
+           {MATERIALS.map((m) => (
+-            <Chip
+-              key={m}
+-              variant="select"
+-              active={material === m}
+-              onClick={() => setMaterial(m)}
+-            >
++            <option key={m} value={m}>
+               {m}
+-            </Chip>
++            </option>
+           ))}
+-        </div>
++        </Select>
+       </div>
+ 
+       <div>
+@@ -212,24 +224,32 @@ export function ItemDetail({
+ 
+       <div>
+         <Kicker className="mb-2 block">Texture</Kicker>
+-        <div className="flex flex-wrap gap-2">
++        <Select
++          aria-label="Texture"
++          value={texture}
++          onChange={(e) => setTexture(e.target.value)}
++        >
+           {TEXTURES.map((t) => (
+-            <Chip key={t} variant="select" active={texture === t} onClick={() => setTexture(t)}>
++            <option key={t} value={t}>
+               {t}
+-            </Chip>
++            </option>
+           ))}
+-        </div>
++        </Select>
+       </div>
+ 
+       <div>
+         <Kicker className="mb-2 block">Pattern</Kicker>
+-        <div className="flex flex-wrap gap-2">
++        <Select
++          aria-label="Pattern"
++          value={pattern}
++          onChange={(e) => setPattern(e.target.value)}
++        >
+           {PATTERNS.map((p) => (
+-            <Chip key={p} variant="select" active={pattern === p} onClick={() => setPattern(p)}>
++            <option key={p} value={p}>
+               {p}
+-            </Chip>
++            </option>
+           ))}
+-        </div>
++        </Select>
+       </div>
+ 
+       <div>
+
+
+=== DIFF: components/ui-fitcheck/select.tsx ===
+@@ -0,0 +1,41 @@
++import { cn } from "@/lib/utils";
++
++/**
++ * A single-select field for long vocabularies.
++ *
++ * Chips are right for a short, scannable set the user compares at a glance —
++ * category (5), seasons (4), pattern (5). They are wrong for MATERIALS (27) and
++ * TEXTURES (16): as chips those two fields alone ran to a dozen rows and pushed
++ * everything else off the screen. A native `<select>` collapses each to one
++ * row and, on iOS, opens the system wheel — a better picker than anything we
++ * would build, and reachable with one thumb.
++ *
++ * Styled to match the text inputs beside it (same radius, border and surface)
++ * so the form reads as one control set. `appearance-none` plus a drawn chevron,
++ * because the platform default arrow ignores the theme.
++ */
++export function Select({
++  className,
++  children,
++  ...props
++}: React.ComponentProps<"select">) {
++  return (
++    <div className="relative">
++      <select
++        className={cn(
++          "w-full appearance-none rounded-[12px] border border-[--input] bg-surface-1 px-4 py-3 pr-10 text-sm text-foreground outline-none focus:border-brand",
++          className,
++        )}
++        {...props}
++      >
++        {children}
++      </select>
++      <span
++        aria-hidden
++        className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted-dim"
++      >
++        ▾
++      </span>
++    </div>
++  );
++}
+
+
+Investigate per the method in your instructions, then return the findings list.
