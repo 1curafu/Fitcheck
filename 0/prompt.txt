@@ -1,0 +1,152 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - lib/closet/__tests__/goes-with.test.ts
+  - lib/closet/__tests__/wear-stats.test.ts
+  - lib/closet/goes-with.ts
+  - lib/closet/wear-stats.ts
+
+Unified diff (only + lines are new):
+
+=== DIFF: lib/closet/__tests__/goes-with.test.ts ===
+@@ -0,0 +1,55 @@
++import { goesWith } from "../goes-with";
++
++const subject = { id: "s", category: "Tops", colors: ["cream"], formality: 3 };
++const closet = [
++  { id: "a", category: "Bottoms", colors: ["navy"], formality: 3 }, // harmonious, close formality
++  { id: "b", category: "Bottoms", colors: ["rust"], formality: 1 }, // clashing, far formality
++  { id: "c", category: "Tops", colors: ["navy"], formality: 3 }, // same category
++  { id: "s", category: "Tops", colors: ["cream"], formality: 3 }, // itself
++];
++
++test("a harmonious, formality-close piece ranks first", () => {
++  expect(goesWith(subject, closet)[0]).toBe("a");
++});
++
++test("the subject never suggests itself", () => {
++  expect(goesWith(subject, closet)).not.toContain("s");
++});
++
++test("same-category pieces are excluded — a shirt does not go with a shirt", () => {
++  expect(goesWith(subject, closet)).not.toContain("c");
++});
++
++test("returns at most n", () => {
++  expect(goesWith(subject, closet, 1)).toHaveLength(1);
++});
++
++test("a closet with nothing else returns empty rather than throwing", () => {
++  expect(goesWith(subject, [subject], 5)).toEqual([]);
++});
++
++test("fragrances are never suggested — they are not slotted anywhere", () => {
++  const withFragrance = [...closet, { id: "f", category: "Fragrance", colors: [], formality: 3 }];
++  expect(goesWith(subject, withFragrance)).not.toContain("f");
++});
++
++// An untagged formality must not read as "maximally different from everything",
++// which would bury every unfinished item at the bottom of the row forever.
++test("a missing formality is treated as mid-scale, not as a mismatch", () => {
++  const untagged = { id: "u", category: "Bottoms", colors: ["navy"], formality: null };
++  const formal = { id: "v", category: "Bottoms", colors: ["navy"], formality: 5 };
++  const ranked = goesWith(subject, [untagged, formal]);
++  expect(ranked[0]).toBe("u");
++});
++
++// The row is a suggestion, not a ranking of the whole closet — five is what the
++// design's scrolling row shows.
++test("defaults to five suggestions", () => {
++  const many = Array.from({ length: 9 }, (_, i) => ({
++    id: `x${i}`,
++    category: "Bottoms",
++    colors: ["navy"],
++    formality: 3,
++  }));
++  expect(goesWith(subject, many)).toHaveLength(5);
++});
+
+
+=== DIFF: lib/closet/__tests__/wear-stats.test.ts ===
+@@ -3,7 +3,7 @@ import { itemWearStats } from "../wear-stats";
+ test("counts wears and divides the price across them", () => {
+   const s = itemWearStats([{ worn_on: "2026-07-01" }, { worn_on: "2026-07-10" }], 100, "2026-07-24");
+   expect(s.wears).toBe(2);
+-  expect(s.costPerWear).toBe("£50.00");
++  expect(s.costPerWear).toBe("€50.00");
+ });
+ 
+ test("no price means no cost-per-wear rather than a fabricated zero", () => {
+
+
+=== DIFF: lib/closet/goes-with.ts ===
+@@ -0,0 +1,38 @@
++import { colorHarmonyScore } from "@/lib/generator/color";
++import { formalityCoherence } from "@/lib/generator/score";
++
++type Piece = { id: string; category: string; colors: string[]; formality: number | null };
++
++/**
++ * The "Goes with" row (Fitcheck.dc.html:641-649).
++ *
++ * Reuses the generator's own colour-harmony and formality-coherence scoring
++ * rather than inventing a second opinion — if these two disagreed, the row would
++ * recommend pieces the stylist would never pair, which is worse than an empty
++ * row. Deterministic and free: no AI call on this screen.
++ *
++ * A missing formality reads as 3 (smart casual, the middle of the scale) rather
++ * than as a mismatch, so an item the user has not finished tagging is not buried
++ * at the bottom of every row forever.
++ */
++export function goesWith(subject: Piece, closet: Piece[], n = 5): string[] {
++  return closet
++    .filter(
++      (i) =>
++        i.id !== subject.id &&
++        // A shirt does not "go with" another shirt — the row suggests what
++        // completes an outfit, not what replaces the piece.
++        i.category !== subject.category &&
++        // Fragrance occupies no slot in a look, so it can never be a pairing.
++        i.category !== "Fragrance",
++    )
++    .map((i) => ({
++      id: i.id,
++      score:
++        0.6 * colorHarmonyScore([...subject.colors, ...i.colors]) +
++        0.4 * formalityCoherence([subject.formality ?? 3, i.formality ?? 3]),
++    }))
++    .sort((a, b) => b.score - a.score)
++    .slice(0, n)
++    .map((x) => x.id);
++}
+
+
+=== DIFF: lib/closet/wear-stats.ts ===
+@@ -6,7 +6,14 @@
+  * logged outfits contained it".
+  */
+ 
+-const GBP = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" });
++/**
++ * Euro, formatted for the English UI — "€50.00", not "50,00 €".
++ *
++ * `en-IE` is the euro locale whose conventions match the rest of the interface;
++ * the German content the spec plans will want `de-DE` here. One hard-coded
++ * currency beats a fake one until Settings owns the choice.
++ */
++const MONEY = new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" });
+ 
+ /**
+  * Whole calendar days between two `YYYY-MM-DD` keys.
+@@ -33,7 +40,7 @@ export function itemWearStats(
+   today: string,
+ ): { wears: number; costPerWear: string | null; lastWorn: string } {
+   const wears = logs.length;
+-  const costPerWear = price != null && wears > 0 ? GBP.format(price / wears) : null;
++  const costPerWear = price != null && wears > 0 ? MONEY.format(price / wears) : null;
+ 
+   if (!wears) return { wears, costPerWear, lastWorn: "Never" };
+ 
+
+
+Investigate per the method in your instructions, then return the findings list.
