@@ -1,0 +1,227 @@
+Review this change for security vulnerabilities.
+
+Changed files (you may Read these and any other file in the repo):
+  - app/closet/[itemId]/page.tsx
+  - components/closet/__tests__/item-detail.test.tsx
+  - components/closet/__tests__/style-cta.test.tsx
+  - components/closet/item-detail.tsx
+  - components/closet/style-cta.tsx
+
+Unified diff (only + lines are new):
+
+=== DIFF: app/closet/[itemId]/page.tsx ===
+@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
+ import { createClient } from "@/lib/supabase/server";
+ import { signItemImages, displayPath } from "@/lib/storage/signed";
+ import { localDateFor } from "@/lib/outfits/local-date";
++import { loadStyledLooks } from "@/lib/outfits/styled-store";
+ import { itemWearStats } from "@/lib/closet/wear-stats";
+ import { goesWith } from "@/lib/closet/goes-with";
+ import { ItemDetail, type DetailItem } from "@/components/closet/item-detail";
+@@ -80,6 +81,16 @@ export default async function ItemPage({
+   // Distinct brands already in the closet → autocomplete suggestions.
+   const brandSuggestions = [...new Set(closet.map((i) => i.brand).filter(Boolean) as string[])];
+ 
++  /**
++   * Whether this piece already has a styled set today.
++   *
++   * Read on the SERVER, not tracked in the CTA's own state: tapping the primary
++   * navigates straight to the look, so a session flag set on that tap is gone
++   * the moment the user comes back and the component remounts — the "try
++   * another" control could never appear at all.
++   */
++  const styledToday = (await loadStyledLooks(user.id, item.id, today)).length > 0;
++
+   return (
+     <ItemDetail
+       item={item as DetailItem}
+@@ -87,6 +98,7 @@ export default async function ItemPage({
+       brandSuggestions={brandSuggestions}
+       stats={stats}
+       goesWith={goesWithCards}
++      styledToday={styledToday}
+     />
+   );
+ }
+
+
+=== DIFF: components/closet/__tests__/item-detail.test.tsx ===
+@@ -38,6 +38,7 @@ function renderDetail() {
+       brandSuggestions={[]}
+       stats={{ wears: 30, costPerWear: "€3.00", lastWorn: "Yesterday" }}
+       goesWith={[]}
++    styledToday={false}
+     />,
+   );
+ }
+
+
+=== DIFF: components/closet/__tests__/style-cta.test.tsx ===
+@@ -18,14 +18,14 @@ beforeEach(() => {
+ test("a successful styling opens the FIRST look of the set it produced", async () => {
+   // A styling now returns two looks, not one — see STYLED_LOOKS.
+   styleWithItem.mockResolvedValue({ status: "ok", outfitIds: ["o9", "o10"] });
+-  render(<StyleCta itemId="i1" />);
++  render(<StyleCta itemId="i1" styledToday={false} />);
+   await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
+   expect(push).toHaveBeenCalledWith("/outfits/o9");
+ });
+ 
+ test("the first tap is a cache-friendly read, never a regenerate", async () => {
+   styleWithItem.mockResolvedValue({ status: "ok", outfitIds: ["o9"] });
+-  render(<StyleCta itemId="i1" />);
++  render(<StyleCta itemId="i1" styledToday={false} />);
+   await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
+   expect(styleWithItem).toHaveBeenCalledWith("i1", { regenerate: false });
+ });
+@@ -33,7 +33,7 @@ test("the first tap is a cache-friendly read, never a regenerate", async () => {
+ test("'try another' is offered only AFTER a look exists", async () => {
+   // Before there is anything to compare against, the control has no meaning.
+   styleWithItem.mockResolvedValue({ status: "ok", outfitIds: ["o9"] });
+-  render(<StyleCta itemId="i1" />);
++  render(<StyleCta itemId="i1" styledToday={false} />);
+   expect(screen.queryByRole("button", { name: /try another/i })).not.toBeInTheDocument();
+   await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
+   expect(await screen.findByRole("button", { name: /try another/i })).toBeInTheDocument();
+@@ -43,7 +43,7 @@ test("'try another' asks for a regenerate, which skips the cache", async () => {
+   // The cache is correct but silent: tapping the primary again returned the
+   // identical look with no explanation. This is the affordance that fixes it.
+   styleWithItem.mockResolvedValue({ status: "ok", outfitIds: ["o9"] });
+-  render(<StyleCta itemId="i1" />);
++  render(<StyleCta itemId="i1" styledToday={false} />);
+   await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
+   await userEvent.click(await screen.findByRole("button", { name: /try another/i }));
+   expect(styleWithItem).toHaveBeenLastCalledWith("i1", { regenerate: true });
+@@ -53,7 +53,7 @@ test("the control says what it does — an icon alone would not", async () => {
+   // PR #20 tried an icon-only Regenerate on the stylist screen and rejected it:
+   // nothing tells you a ⟳ means "spend an AI call".
+   styleWithItem.mockResolvedValue({ status: "ok", outfitIds: ["o9"] });
+-  render(<StyleCta itemId="i1" />);
++  render(<StyleCta itemId="i1" styledToday={false} />);
+   await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
+   expect((await screen.findByRole("button", { name: /try another/i })).textContent).toMatch(/try another look/i);
+ });
+@@ -68,7 +68,7 @@ test("a limited result opens the upgrade sheet with the reason verbatim", async
+     status: "limited",
+     message: "Building a look around a piece is a Pro feature.",
+   });
+-  render(<StyleCta itemId="i1" />);
++  render(<StyleCta itemId="i1" styledToday={false} />);
+   await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
+   const sheet = await screen.findByRole("dialog");
+   expect(sheet).toHaveTextContent(/pro feature/i);
+@@ -80,7 +80,7 @@ test("a limited result opens the upgrade sheet with the reason verbatim", async
+ // as the upgrade path.
+ test("the upgrade sheet can be dismissed", async () => {
+   styleWithItem.mockResolvedValue({ status: "limited", message: "Pro feature." });
+-  render(<StyleCta itemId="i1" />);
++  render(<StyleCta itemId="i1" styledToday={false} />);
+   await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
+   await screen.findByRole("dialog");
+   await userEvent.click(screen.getByRole("button", { name: /not now/i }));
+@@ -92,7 +92,7 @@ test("the upgrade sheet can be dismissed", async () => {
+ // navigate to and nothing to look up.
+ test("the gate's sheet makes the full case, not just the refusal", async () => {
+   styleWithItem.mockResolvedValue({ status: "limited", message: "Pro feature." });
+-  render(<StyleCta itemId="i1" />);
++  render(<StyleCta itemId="i1" styledToday={false} />);
+   await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
+   const sheet = await screen.findByRole("dialog");
+   expect(sheet).toHaveTextContent(/gap analysis/i);
+@@ -106,7 +106,7 @@ test("a non-billing failure stays a quiet line, not an upgrade sheet", async ()
+     status: "empty",
+     message: "Fragrance finishes a look rather than forming one.",
+   });
+-  render(<StyleCta itemId="i1" />);
++  render(<StyleCta itemId="i1" styledToday={false} />);
+   await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
+   expect(await screen.findByRole("status")).toHaveTextContent(/fragrance finishes/i);
+   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+@@ -116,7 +116,7 @@ test("a non-billing failure stays a quiet line, not an upgrade sheet", async ()
+ // want is felt — so the gate explains itself rather than hiding the control.
+ test("the button stays available to a gated user", async () => {
+   styleWithItem.mockResolvedValue({ status: "limited", message: "Pro feature." });
+-  render(<StyleCta itemId="i1" />);
++  render(<StyleCta itemId="i1" styledToday={false} />);
+   const button = screen.getByRole("button", { name: /style an outfit/i });
+   await userEvent.click(button);
+   await screen.findByRole("dialog");
+@@ -128,7 +128,16 @@ test("an empty result explains itself too", async () => {
+     status: "empty",
+     message: "Fragrance finishes a look rather than forming one.",
+   });
+-  render(<StyleCta itemId="i1" />);
++  render(<StyleCta itemId="i1" styledToday={false} />);
+   await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
+   expect(await screen.findByRole("status")).toHaveTextContent(/fragrance finishes/i);
+ });
++
++test("'try another' shows on load when a set already exists from an earlier tap", async () => {
++  // The bug this guards: tapping the primary navigates to the look, so a flag
++  // set on that tap is gone when the user comes back and this remounts. Seeded
++  // from the server, the control survives the round trip — without it, it could
++  // never appear at all.
++  render(<StyleCta itemId="i1" styledToday />);
++  expect(screen.getByRole("button", { name: /try another/i })).toBeInTheDocument();
++});
+
+
+=== DIFF: components/closet/item-detail.tsx ===
+@@ -37,12 +37,15 @@ export function ItemDetail({
+   brandSuggestions,
+   stats,
+   goesWith,
++  styledToday,
+ }: {
+   item: DetailItem;
+   imageUrl: string;
+   brandSuggestions: string[];
+   stats: { wears: number; costPerWear: string | null; lastWorn: string };
+   goesWith: GoesWithCard[];
++  /** Whether this piece already has a styled set today — read on the server. */
++  styledToday: boolean;
+ }) {
+   const [editing, setEditing] = useState(false);
+   const [, start] = useTransition();
+@@ -68,7 +71,7 @@ export function ItemDetail({
+         // serialised — React cannot give it positional identity and warns that
+         // every child in a list needs a key. Creating it inside this client
+         // component keeps ItemView presentational without that round trip.
+-        styleCta={<StyleCta itemId={item.id} />}
++        styleCta={<StyleCta itemId={item.id} styledToday={styledToday} />}
+       />
+       {editing && (
+         <ItemEditSheet
+
+
+=== DIFF: components/closet/style-cta.tsx ===
+@@ -16,7 +16,7 @@ import { UpgradeSheet } from "@/components/billing/upgrade-sheet";
+  * feature they have never seen, and this screen — the canonical one — is where
+  * the want is felt. Tapping it explains the feature rather than doing nothing.
+  */
+-export function StyleCta({ itemId }: { itemId: string }) {
++export function StyleCta({ itemId, styledToday }: { itemId: string; styledToday: boolean }) {
+   const router = useRouter();
+   const [pending, start] = useTransition();
+   const [message, setMessage] = useState<string | null>(null);
+@@ -24,9 +24,14 @@ export function StyleCta({ itemId }: { itemId: string }) {
+   // and get different weight: the first is a sheet that explains and sells, the
+   // second is a quiet line, because there is nothing to buy — you add a piece.
+   const [upgrade, setUpgrade] = useState<string | null>(null);
+-  // Only offered once a set exists. "Try another" before there IS another is a
+-  // control with nothing to compare against.
+-  const [styled, setStyled] = useState(false);
++  /**
++   * Offered only once a set exists — before that there is nothing to compare
++   * against. Seeded from the SERVER, not just from this session: tapping the
++   * primary navigates to the look, so a flag set on that tap is gone by the
++   * time the user comes back and this remounts. Session state alone meant the
++   * control could never appear at all.
++   */
++  const [styled, setStyled] = useState(styledToday);
+ 
+   function run(regenerate: boolean) {
+     start(async () => {
+
+
+Investigate per the method in your instructions, then return the findings list.
