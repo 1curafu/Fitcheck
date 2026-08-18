@@ -1,0 +1,1 @@
+go mate, i trust u, but i would do that, if user doenst want add items, it will show skip, if he added item it will show next or something else, u know what i mean
