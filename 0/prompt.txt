@@ -1,0 +1,7 @@
+<task-notification>
+<task-id>bk1vn3v40</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-1curafu-Desktop-Fitcheck-Fitcheck/5a77392a-fa71-4cd0-ad0a-5561aa08716c/tasks/bk1vn3v40.output</output-file>
+<status>completed</status>
+<summary>Monitor "CI result for PR #29" stream ended</summary>
+</task-notification>
