@@ -1,0 +1,1 @@
+can u also make some check ups in pr like it making always vercel before deployment?
