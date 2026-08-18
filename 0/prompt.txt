@@ -1,0 +1,1 @@
+'/Users/1curafu/Desktop/Fitcheck/Fitcheck/design_handoff_stylist_generator', i got it from claude design review it, maybe it has not we need, but i got new generator screen, read first readme.md and review only that we really need and give me ur review about all files, cause 1 file has whole website and im not sure, that we really need it
