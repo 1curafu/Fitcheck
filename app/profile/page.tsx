@@ -16,7 +16,7 @@ import { entitlementsFor } from "@/lib/billing/tiers";
 const LINKS: HubLink[] = [
   { href: "/style-dna", label: "Style DNA", desc: "Your archetype, shareable", icon: "dna", ready: false },
   { href: "/outfits", label: "Saved Outfits", desc: "Looks you kept", icon: "saved", ready: false },
-  { href: "/stats", label: "Wear Stats", desc: "What you actually wear", icon: "stats", ready: false },
+  { href: "/stats", label: "Wear Stats", desc: "What you actually wear", icon: "stats", ready: true },
   { href: "/settings", label: "Settings", desc: "Preferences and account", icon: "settings", ready: true },
 ];
 

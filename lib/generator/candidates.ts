@@ -17,7 +17,16 @@ export type CandidateItem = {
 export type CandidateArgs = {
   band: [number, number];
   weather: Weather;
-  season: string;
+  /**
+   * The current season. **Optional: absent means no season preference at all.**
+   *
+   * `bySeasonFirst` has always accepted `string | undefined` and season only
+   * ever ORDERS the lists (see ./season.ts), so this was over-strict rather
+   * than load-bearing. The gap analysis is the caller that needs it: a
+   * recommendation for what to buy must not change because it happens to be
+   * March, and the alternative was `undefined as unknown as string`.
+   */
+  season?: string;
   excludeItemIds: string[];
   maxAccessories: number;
   /**

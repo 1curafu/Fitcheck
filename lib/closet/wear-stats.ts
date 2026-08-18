@@ -6,28 +6,8 @@
  * logged outfits contained it".
  */
 
-/**
- * Euro, formatted for the English UI — "€50.00", not "50,00 €".
- *
- * `en-IE` is the euro locale whose conventions match the rest of the interface;
- * the German content the spec plans will want `de-DE` here. One hard-coded
- * currency beats a fake one until Settings owns the choice.
- */
-const MONEY = new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" });
-
-/**
- * Whole calendar days between two `YYYY-MM-DD` keys.
- *
- * Built from the date parts via `Date.UTC` rather than parsing the strings as
- * local timestamps: `worn_on` is a DATE in the user's local calendar, and
- * subtracting two local timestamps across a DST change yields 23 or 25 hours,
- * which rounds to the wrong number of days.
- */
-function daysBetween(from: string, to: string): number {
-  const a = Date.UTC(+from.slice(0, 4), +from.slice(5, 7) - 1, +from.slice(8, 10));
-  const b = Date.UTC(+to.slice(0, 4), +to.slice(5, 7) - 1, +to.slice(8, 10));
-  return Math.round((b - a) / 86_400_000);
-}
+import { formatMoney } from "@/lib/format/money";
+import { daysBetween } from "@/lib/format/days";
 
 /**
  * Cost-per-wear is null rather than 0 or "—" when there is no price or no
@@ -40,7 +20,7 @@ export function itemWearStats(
   today: string,
 ): { wears: number; costPerWear: string | null; lastWorn: string } {
   const wears = logs.length;
-  const costPerWear = price != null && wears > 0 ? MONEY.format(price / wears) : null;
+  const costPerWear = price != null && wears > 0 ? formatMoney(price / wears) : null;
 
   if (!wears) return { wears, costPerWear, lastWorn: "Never" };
 
