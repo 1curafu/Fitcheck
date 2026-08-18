@@ -1,0 +1,1 @@
+go, so we dont need right now routes but later we should do it, yes?, also use for testing of mobile apps and websites for mobiles in your own ios simulator, u got it in new version. Remember that for all projects
