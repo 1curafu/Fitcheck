@@ -9,6 +9,10 @@ import { StatsView } from "@/components/stats/stats-view";
 import type { CandidateItem } from "@/lib/generator/candidates";
 import type { UiOccasion } from "@/lib/generator/types";
 
+// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 /** All four, so the gap answers "what should I buy", not "what suits Tuesday". */
 const ALL_OCCASIONS: UiOccasion[] = ["everyday", "work", "weekend", "evening"];
 

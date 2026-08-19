@@ -7,6 +7,10 @@ import { initials, handleFrom, paletteFor } from "@/lib/profile/identity";
 import { ProfileHub, type HubLink } from "@/components/profile/profile-hub";
 import { entitlementsFor } from "@/lib/billing/tiers";
 
+// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 /**
  * Rows are marked ready ONLY for routes that exist on `main` today.
  *
