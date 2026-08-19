@@ -1,0 +1,25 @@
+go
+
+---
+
+so with this plan we are fully ended?
+
+---
+
+i merged it so go to task 4 step 2 and 3, do all things that u need to get best result for our users
+
+---
+
+go
+
+---
+
+i want to say u, can we update nextjs to 16.3.1, if it brings us better perfomance, i saw it have better caching and a lot new functions https://nextjs.org/blog/next-16-3
+
+---
+
+okay, write a plan for that and i have more question, Maybe change to redis(idk for what, maybe caching), like adding microservices  or why we dont use “use cache” in next.js
+
+---
+
+yes, i want playwright with e2e tests, unit tests are not so good. Merge pr 39, and so we migrate to use cache?
