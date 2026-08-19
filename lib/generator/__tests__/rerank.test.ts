@@ -1,5 +1,11 @@
 import { dedupePicks, finalisePicks, RERANK_VARIETY_RULE } from "../rerank";
-import { describeCombos, RerankSchema, rerankJsonSchema, NAME_MAX } from "../rerank";
+import {
+  describeCombos,
+  RerankSchema,
+  rerankJsonSchema,
+  stubbedRerank,
+  NAME_MAX,
+} from "../rerank";
 
 test("describes each combo as one indexed line with subcategory + colours", () => {
   const t = describeCombos([
@@ -225,4 +231,26 @@ test("an item with no fabric data still renders cleanly", () => {
 
 test("a piece with nothing but a category does not render empty parentheses", () => {
   expect(describeCombos([[{ category: "Fragrance", colors: [] }]])).toBe("0. Fragrance");
+});
+
+// ── The e2e stub ────────────────────────────────────────────────────────────
+// Lives inside `rerank` rather than in a test file, so the whole deterministic
+// pipeline still runs and the code path under test stays the shipped one.
+
+test("the stub returns as many looks as were asked for, in order", () => {
+  const { picks } = stubbedRerank(20, 3);
+  expect(picks.map((p) => p.combo_index)).toEqual([0, 1, 2]);
+  expect(picks.every((p) => p.name && p.why)).toBe(true);
+});
+
+test("the stub never invents a combo the shortlist does not have", () => {
+  // A thin closet is exactly where the real generator has failed before — a
+  // pick index outside the shortlist used to render a copy of the first look.
+  expect(stubbedRerank(1, 3).picks).toHaveLength(1);
+  expect(stubbedRerank(0, 3).picks).toHaveLength(0);
+});
+
+test("the stub's output satisfies the same schema as the model's", () => {
+  // If it did not, the stub would be testing a shape that never ships.
+  expect(() => RerankSchema.parse(stubbedRerank(5, 3))).not.toThrow();
 });
