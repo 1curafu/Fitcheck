@@ -29,7 +29,15 @@ export default defineConfig({
   },
 
   projects: [
-    { name: "setup", testMatch: /global\.setup\.ts/ },
+    {
+      name: "setup",
+      testMatch: /global\.setup\.ts/,
+      // ⚠️ The same device as the real project, so this needs the SAME browser.
+      // Without it the setup project defaults to Chromium, which CI does not
+      // install — and it passed locally only because Chromium happened to be
+      // there from an earlier manual install. One browser, everywhere.
+      use: { ...devices["iPhone 15"] },
+    },
     {
       name: "iphone",
       use: { ...devices["iPhone 15"] },
