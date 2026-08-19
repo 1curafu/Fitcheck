@@ -51,6 +51,10 @@ jobs:
   # merge is decorative.
   e2e:
     runs-on: ubuntu-latest
+    # The suite takes ~4 minutes when it passes. Its first failure sat for 15
+    # before the runner gave up — a failing e2e job should cost minutes, not a
+    # quarter of an hour of CI time.
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v5
 
