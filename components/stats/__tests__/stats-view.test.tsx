@@ -115,3 +115,11 @@ test("the two flags gate independently", () => {
   expect(screen.getByText(/brushed oxford/i)).toBeInTheDocument();
   expect(screen.queryByText(/a camel overcoat/i)).not.toBeInTheDocument();
 });
+
+test("a wardrobe that can build nothing gets urgency, not a rounding error", () => {
+  // `share: null` — see `sharePhrase`. Going from zero buildable outfits to
+  // hundreds must not render as "Adds 1% more outfits".
+  renderStats({ gap: { label: "Dark denim", share: null, reason: "You have 0 bottoms." } });
+  expect(screen.getByText(/can't build a look without one/i)).toBeInTheDocument();
+  expect(screen.queryByText(/%/)).not.toBeInTheDocument();
+});

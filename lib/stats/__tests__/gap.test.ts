@@ -48,7 +48,7 @@ test("the raw count scales with our parameters and the share does not", () => {
   const one = biggestGap(closet, ["everyday"])!;
   const four = biggestGap(closet, ["everyday", "work", "weekend", "evening"])!;
   expect(four.unlocks).toBe(one.unlocks * 4); // the COUNT scales exactly
-  expect(four.share).toBeCloseTo(one.share, 10); // the SHARE is untouched
+  expect(four.share!).toBeCloseTo(one.share!, 10); // the SHARE is untouched
 });
 
 test("the share reflects the size of the slot, not the size of the closet", () => {
@@ -69,8 +69,8 @@ test("the share reflects the size of the slot, not the size of the closet", () =
     ...Array.from({ length: 8 }, (_, i) => piece(`s${i}`, "Shoes")),
     ...Array.from({ length: 8 }, (_, i) => piece(`o${i}`, "Outerwear")),
   ];
-  expect(biggestGap(shallow, ["everyday"])!.share).toBeGreaterThan(
-    biggestGap(deep, ["everyday"])!.share,
+  expect(biggestGap(shallow, ["everyday"])!.share!).toBeGreaterThan(
+    biggestGap(deep, ["everyday"])!.share!,
   );
 });
 
@@ -183,4 +183,32 @@ test("the candidates are all placeable by the generator", () => {
     expect(c.formality).toBeLessThanOrEqual(5);
     expect(c.colors.length).toBeGreaterThan(0);
   }
+});
+
+// ── The wardrobe that can build nothing ─────────────────────────────────────
+// Found by Task 4 Step 2 of the plan — strip every bottom from the real closet
+// and check the card by hand. `share` is `unlocks / before`, and `before` is
+// ZERO when a required slot is empty, so the most urgent recommendation the app
+// can ever make was rendering as "Adds 1% more outfits". A user straight out of
+// onboarding's "capture your first five" is exactly this shape.
+
+test("a closet missing a whole slot reports no share, not a tiny one", () => {
+  const noBottoms = [
+    ...Array.from({ length: 10 }, (_, i) => piece(`t${i}`, "Tops")),
+    ...Array.from({ length: 4 }, (_, i) => piece(`s${i}`, "Shoes")),
+  ];
+  const gap = biggestGap(noBottoms, ["everyday", "work", "weekend", "evening"])!;
+  expect(gap.candidate.category).toBe("Bottoms");
+  expect(gap.share).toBeNull(); // NOT 0 — a proportion of nothing is undefined
+  expect(gap.unlocks).toBeGreaterThan(0); // but the piece genuinely unlocks a lot
+});
+
+test("a wardrobe that can already build something still reports a share", () => {
+  const complete = [
+    ...Array.from({ length: 4 }, (_, i) => piece(`t${i}`, "Tops")),
+    ...Array.from({ length: 3 }, (_, i) => piece(`b${i}`, "Bottoms")),
+    ...Array.from({ length: 2 }, (_, i) => piece(`s${i}`, "Shoes")),
+    piece("o1", "Outerwear"),
+  ];
+  expect(biggestGap(complete, ["everyday"])!.share).toBeGreaterThan(0);
 });
