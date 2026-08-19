@@ -11,3 +11,7 @@ i merged it so go to task 4 step 2 and 3, do all things that u need to get best 
 ---
 
 go
+
+---
+
+i want to say u, can we update nextjs to 16.3.1, if it brings us better perfomance, i saw it have better caching and a lot new functions https://nextjs.org/blog/next-16-3
