@@ -55,3 +55,6 @@ design_handoff_stylist_generator/
 * [0-9].*
 
 .entire/
+# Written and maintained by `next dev` (16.3+). Meta/authorship docs stay out of
+# git in this project — same rule as CLAUDE.md, DESIGN.md and docs/.
+AGENTS.md
