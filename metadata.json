@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M0DPXF2HSSS9TQEJVR77FGMX",
+  "strategy": "manual-commit",
+  "branch": "feat/instant-nav",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "e2e/baseline.spec.ts",
+    "package.json"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 1048,
+    "cache_creation_tokens": 7641559,
+    "cache_read_tokens": 233808176,
+    "output_tokens": 387556,
+    "api_call_count": 565
+  }
+}

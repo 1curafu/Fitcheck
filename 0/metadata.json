@@ -1,0 +1,119 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M0DPXF2HSSS9TQEJVR77FGMX",
+  "session_id": "903d62f8-76c6-4d8e-aaef-442496fb144e",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-19T19:10:39.491681Z",
+  "branch": "feat/instant-nav",
+  "checkpoints_count": 3,
+  "save_step_count": 3,
+  "files_touched": [
+    "e2e/baseline.spec.ts",
+    "package.json"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-5",
+  "turn_id": "d566178e0e95",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 1048,
+    "cache_creation_tokens": 7641559,
+    "cache_read_tokens": 233808176,
+    "output_tokens": 387556,
+    "api_call_count": 565
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "prompt-skill-claude-code-login-2026-08-19T18:25:05.838735Z",
+      "event_type": "prompt_invocation",
+      "skill": {
+        "name": "login"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "prompt_slash_command",
+        "confidence": "explicit"
+      },
+      "turn_id": "76db7441d82b",
+      "timestamp": "2026-08-19T18:25:05.838735Z",
+      "native": {
+        "command": "/login"
+      },
+      "collapse": {
+        "target": "user_message",
+        "label": "/login",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_014QybtyLBgaaEJYKEE8aDe9",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "superpowers:executing-plans"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "d566178e0e95",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 76,
+        "end": 77,
+        "entry_ids": [
+          "e6fa7250-e7b3-467e-a6fb-3e16ea4836f4"
+        ],
+        "tool_use_id": "toolu_014QybtyLBgaaEJYKEE8aDe9"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_014QybtyLBgaaEJYKEE8aDe9"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: superpowers:executing-plans",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 10
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-19T19:10:38.997682Z",
+    "agent_lines": 52,
+    "agent_removed": 2,
+    "human_added": 16,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 68,
+    "total_lines_changed": 70,
+    "agent_percentage": 77.14285714285715,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 52,
+      "agent_lines_removed": 2
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 52,
+      "agent_lines_removed": 2
+    }
+  ]
+}
