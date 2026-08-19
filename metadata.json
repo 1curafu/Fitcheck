@@ -1,0 +1,24 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M0DMHN3MM512P2B4NZ2BWP9N",
+  "strategy": "manual-commit",
+  "branch": "feat/e2e-journeys",
+  "checkpoints_count": 1,
+  "files_touched": null,
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 1009,
+    "cache_creation_tokens": 7623842,
+    "cache_read_tokens": 220456570,
+    "output_tokens": 373567,
+    "api_call_count": 544
+  }
+}
