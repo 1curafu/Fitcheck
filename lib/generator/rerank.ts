@@ -147,6 +147,29 @@ export function finalisePicks(picks: Pick[], comboCount?: number, want = MAX_PIC
   return dedupePicks(picks, comboCount).slice(0, Math.max(1, want));
 }
 
+/**
+ * The deterministic stand-in for the model, used by the e2e suite.
+ *
+ * ⚠️ It lives HERE, inside `rerank`, rather than in a test file — the whole
+ * deterministic pipeline (candidates → rank → diversify → layout →
+ * persistence → render) still runs, and the code path under test stays the
+ * code path that ships. A stub mounted from the test would prove the test
+ * works, not that the app does.
+ *
+ * Enabled only by `FITCHECK_STUB_AI=1`, which is set in CI and nowhere else.
+ * Returns the first `want` combos in order, so assertions about WHICH looks
+ * appear are stable across runs — the real model's names and "why" sentences
+ * differ every time and cannot be asserted at all.
+ */
+export function stubbedRerank(comboCount: number, want: number): RerankResult {
+  const picks = Array.from({ length: Math.min(want, comboCount) }, (_, i) => ({
+    combo_index: i,
+    name: `Test Look ${i + 1}`,
+    why: `A deterministic stand-in for look ${i + 1}, used only when FITCHECK_STUB_AI is set.`,
+  }));
+  return { picks };
+}
+
 export async function rerank(args: {
   combos: DescItem[][];
   aesthetic: string[];
@@ -174,6 +197,15 @@ export async function rerank(args: {
   want?: number;
 }): Promise<RerankResult> {
   const want = Math.max(1, Math.min(args.want ?? MAX_PICKS, MAX_PICKS));
+
+  // Checked before the client is constructed, so CI needs no ANTHROPIC_API_KEY
+  // and spends nothing. See `stubbedRerank`.
+  if (process.env.FITCHECK_STUB_AI === "1") {
+    return {
+      picks: finalisePicks(stubbedRerank(args.combos.length, want).picks, args.combos.length, want),
+    };
+  }
+
   // Say the peak out loud when the day still has to climb into it, or the model
   // reasons about the morning and writes a sentence the outfit contradicts.
   const climbing = args.nowC != null && args.tempC - args.nowC >= 3;
