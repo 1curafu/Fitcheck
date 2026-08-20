@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { MobileNav } from "@/components/shell/mobile-nav";
@@ -7,11 +8,17 @@ import { resolveLocation } from "@/lib/weather/location";
 import { SettingsView } from "@/components/settings/settings-view";
 import { updatePreferences, setLocation } from "./actions";
 
-// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
-// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
-export const instant = false;
+export default function SettingsPage() {
+  // The session read is what blocks a shell, so it moves behind a boundary
+  // and the route's chrome prerenders and prefetches without it.
+  return (
+    <Suspense fallback={null}>
+      <SettingsBody />
+    </Suspense>
+  );
+}
 
-export default async function SettingsPage() {
+async function SettingsBody() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -20,7 +27,9 @@ export default async function SettingsPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name, location_label, location_lat, location_lon, location_source, preferences")
+    .select(
+      "display_name, location_label, location_lat, location_lon, location_source, preferences",
+    )
     .eq("id", user.id)
     .single();
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { Preferences } from "@/lib/profile/preferences";
 import { useLocationPicker } from "@/lib/weather/use-location-picker";
@@ -12,7 +12,9 @@ const CARD =
 
 function Kicker({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mb-3 mt-6 text-[11px] uppercase tracking-[0.2em] text-muted-dim">{children}</div>
+    <div className="mb-3 mt-6 text-[11px] uppercase tracking-[0.2em] text-muted-dim">
+      {children}
+    </div>
   );
 }
 
@@ -106,17 +108,34 @@ export function SettingsView({
   locationLabel: string | null;
   preferences: Preferences;
   onSaveAction: (patch: Partial<Preferences>) => Promise<void>;
-  onSetLocationAction: (city: { lat: number; lon: number; label: string }) => Promise<void>;
+  onSetLocationAction: (city: {
+    lat: number;
+    lon: number;
+    label: string;
+  }) => Promise<void>;
 }) {
   const [prefs, setPrefs] = useState(preferences);
   const [location, setLocation] = useState(locationLabel);
   const [pickerOpen, setPickerOpen] = useState(false);
   /**
+   * ⚠️ Close the sheet when this screen is left.
+   *
+   * Cache Components preserves a route with React `<Activity hidden>` rather
+   * than unmounting it, so `useState` survives navigation — leave with the
+   * sheet open and it is still open on return. The unmount used to do this for
+   * free. Same fix as `components/generate/stylist.tsx`.
+   */
+  useEffect(() => () => setPickerOpen(false), []);
+
+  /**
    * One error slot with a discriminator, rather than two independent ones.
    * Two `role="status"` nodes can be live at once, and then "the status" is
    * ambiguous to a screen reader and to a test alike.
    */
-  const [error, setError] = useState<{ where: "prefs" | "location"; message: string } | null>(null);
+  const [error, setError] = useState<{
+    where: "prefs" | "location";
+    message: string;
+  } | null>(null);
 
   /**
    * Optimistic, and reverted on failure.
@@ -133,7 +152,10 @@ export function SettingsView({
       await onSaveAction(next);
     } catch {
       setPrefs(previous);
-      setError({ where: "prefs", message: "Couldn't save that — check your connection." });
+      setError({
+        where: "prefs",
+        message: "Couldn't save that — check your connection.",
+      });
     }
   }
 
@@ -147,12 +169,16 @@ export function SettingsView({
       await onSetLocationAction({ lat: c.lat, lon: c.lon, label: c.name });
     } catch {
       setLocation(previous);
-      setError({ where: "location", message: "Couldn't save that — check your connection." });
+      setError({
+        where: "location",
+        message: "Couldn't save that — check your connection.",
+      });
     }
   }
 
   const picker = useLocationPicker({
-    onPick: (p) => pickCity({ name: p.label, country: "", lat: p.lat, lon: p.lon }),
+    onPick: (p) =>
+      pickCity({ name: p.label, country: "", lat: p.lat, lon: p.lon }),
   });
 
   return (
@@ -175,7 +201,9 @@ export function SettingsView({
           </div>
           <div className="min-w-0 flex-1">
             <div className="truncate text-[16px] text-foreground">{name}</div>
-            <div className="mt-[2px] truncate text-[12.5px] text-muted-foreground">{email}</div>
+            <div className="mt-[2px] truncate text-[12.5px] text-muted-foreground">
+              {email}
+            </div>
           </div>
         </div>
 
@@ -191,7 +219,9 @@ export function SettingsView({
             label="Metric units"
             desc="Temperatures in °C rather than °F"
             checked={prefs.tempUnit === "C"}
-            onChange={() => patch({ tempUnit: prefs.tempUnit === "C" ? "F" : "C" })}
+            onChange={() =>
+              patch({ tempUnit: prefs.tempUnit === "C" ? "F" : "C" })
+            }
             last
           />
         </div>
@@ -257,7 +287,9 @@ export function SettingsView({
           >
             <span className="text-[14.5px] text-foreground">Location</span>
             <span className="flex items-center gap-2">
-              <span className="text-[13.5px] text-muted-foreground">{location ?? "Not set"}</span>
+              <span className="text-[13.5px] text-muted-foreground">
+                {location ?? "Not set"}
+              </span>
               <span aria-hidden className="text-[20px] text-muted-dim">
                 ›
               </span>
@@ -277,7 +309,9 @@ export function SettingsView({
           cities={picker.cities}
           onSearch={picker.search}
           onPick={pickCity}
-          onUseMyLocation={picker.geoSupported ? picker.useMyLocation : undefined}
+          onUseMyLocation={
+            picker.geoSupported ? picker.useMyLocation : undefined
+          }
           locating={picker.locating}
           geoError={picker.geoError}
           onClose={() => setPickerOpen(false)}

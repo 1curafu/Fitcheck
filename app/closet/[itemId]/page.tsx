@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { signItemImages, displayPath } from "@/lib/storage/signed";
@@ -8,15 +9,25 @@ import { goesWith } from "@/lib/closet/goes-with";
 import { ItemDetail, type DetailItem } from "@/components/closet/item-detail";
 import type { GoesWithCard } from "@/components/closet/item-view";
 
-// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
-// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
-export const instant = false;
-
-export default async function ItemPage({
+export default function ItemPage({
   params,
 }: {
   params: Promise<{ itemId: string }>;
 }) {
+  return (
+    /**
+     * ⚠️ `params` is passed straight through and awaited INSIDE the boundary.
+     * Awaiting it here would block the shell on a value only known at request
+     * time, and an unknown item id could not prerender at all — which is the
+     * whole point for a route whose ids are user-specific and unbounded.
+     */
+    <Suspense fallback={null}>
+      <ItemBody params={params} />
+    </Suspense>
+  );
+}
+
+async function ItemBody({ params }: { params: Promise<{ itemId: string }> }) {
   const { itemId } = await params;
   const supabase = await createClient();
   const {
@@ -24,11 +35,18 @@ export default async function ItemPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/");
 
-  const { data: item } = await supabase.from("items").select("*").eq("id", itemId).single();
+  const { data: item } = await supabase
+    .from("items")
+    .select("*")
+    .eq("id", itemId)
+    .single();
   if (!item) notFound();
 
   // The rest of the wardrobe — used for "Goes with" and the brand suggestions.
-  const { data: closetRows } = await supabase.from("items").select("*").eq("archived", false);
+  const { data: closetRows } = await supabase
+    .from("items")
+    .select("*")
+    .eq("archived", false);
   const closet = closetRows ?? [];
 
   /**
@@ -47,7 +65,10 @@ export default async function ItemPage({
     .eq("item_id", itemId);
   const outfitIds = (wornIn ?? []).map((r) => r.outfit_id);
   const { data: logs } = outfitIds.length
-    ? await supabase.from("wear_logs").select("worn_on").in("outfit_id", outfitIds)
+    ? await supabase
+        .from("wear_logs")
+        .select("worn_on")
+        .in("outfit_id", outfitIds)
     : { data: [] };
 
   const { data: profile } = await supabase
@@ -60,7 +81,12 @@ export default async function ItemPage({
   const stats = itemWearStats(logs ?? [], item.price, today);
 
   const pairIds = goesWith(
-    { id: item.id, category: item.category, colors: item.colors ?? [], formality: item.formality },
+    {
+      id: item.id,
+      category: item.category,
+      colors: item.colors ?? [],
+      formality: item.formality,
+    },
     closet.map((i) => ({
       id: i.id,
       category: i.category,
@@ -83,7 +109,9 @@ export default async function ItemPage({
   }));
 
   // Distinct brands already in the closet → autocomplete suggestions.
-  const brandSuggestions = [...new Set(closet.map((i) => i.brand).filter(Boolean) as string[])];
+  const brandSuggestions = [
+    ...new Set(closet.map((i) => i.brand).filter(Boolean) as string[]),
+  ];
 
   /**
    * Whether this piece already has a styled set today.
@@ -93,7 +121,8 @@ export default async function ItemPage({
    * the moment the user comes back and the component remounts — the "try
    * another" control could never appear at all.
    */
-  const styledToday = (await loadStyledLooks(user.id, item.id, today)).length > 0;
+  const styledToday =
+    (await loadStyledLooks(user.id, item.id, today)).length > 0;
 
   return (
     <ItemDetail

@@ -82,6 +82,26 @@ export function Stylist() {
   // The seam's own words for which allowance ran out — never re-worded here.
   const [limitMessage, setLimitMessage] = useState<string>("");
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+
+  /**
+   * ⚠️ Close every sheet when this screen is left.
+   *
+   * Cache Components preserves a route with React `<Activity hidden>` instead
+   * of unmounting it, so `useState` now SURVIVES navigation — go back with the
+   * Refine sheet open and it is still open when you return. Caught by
+   * `e2e/instant.spec.ts`; before that change the unmount did this for free.
+   *
+   * A cleanup effect rather than URL-derived state: these sheets are modes of
+   * this screen, not destinations, and putting them in the URL would put a
+   * dead entry in the history stack for every tap of Refine.
+   */
+  useEffect(
+    () => () => {
+      setRefineOpen(false);
+      setUpgradeOpen(false);
+    },
+    [],
+  );
   const [locating, setLocating] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
   // Optimistic: the row shows until we learn the browser has no geolocation at
