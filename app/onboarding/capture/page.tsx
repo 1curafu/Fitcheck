@@ -1,12 +1,19 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { OnboardingCapture } from "@/components/capture/onboarding-capture";
 
-// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
-// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
-export const instant = false;
+export default function OnboardingCapturePage() {
+  // The session read is what blocks a shell, so it moves behind a boundary
+  // and the route's chrome prerenders and prefetches without it.
+  return (
+    <Suspense fallback={null}>
+      <CaptureBody />
+    </Suspense>
+  );
+}
 
-export default async function OnboardingCapturePage() {
+async function CaptureBody() {
   const supabase = await createClient();
   const {
     data: { user },

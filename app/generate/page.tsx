@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { MobileNav } from "@/components/shell/mobile-nav";
@@ -7,11 +8,29 @@ import { localDateFor, localHourFor } from "@/lib/outfits/local-date";
 import { readPreferences } from "@/lib/profile/preferences";
 import { shouldAsk } from "@/lib/outfits/confirm";
 
-// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
-// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
-export const instant = false;
+export default function GeneratePage() {
+  return (
+    // No bottom padding: the sticky nav occupies its own space in flow at the
+    // end of the page, so nothing sits under it. The old pb-[76px] was both
+    // unnecessary and 31px short of the nav's actual height.
+    <div className="flex min-h-dvh flex-1 flex-col">
+      {/* `Stylist` is a client component that reads `useSearchParams` (the
+          occasion and look index live in the URL, PR #21). ⚠️ Under Cache
+          Components that hook ALWAYS needs a Suspense boundary — search params
+          are only known at request time — so it gets its own, separate from the
+          wear-confirmation read below. */}
+      <Suspense fallback={null}>
+        <Stylist />
+      </Suspense>
+      <Suspense fallback={null}>
+        <EveningConfirm />
+      </Suspense>
+      <MobileNav />
+    </div>
+  );
+}
 
-export default async function GeneratePage() {
+async function EveningConfirm() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -46,7 +65,12 @@ export default async function GeneratePage() {
       .eq("user_id", user.id)
       .eq("generated_on", today)
       .not("viewed_at", "is", null),
-    supabase.from("wear_logs").select("id").eq("user_id", user.id).eq("worn_on", today).limit(1),
+    supabase
+      .from("wear_logs")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("worn_on", today)
+      .limit(1),
   ]);
 
   const confirm = shouldAsk({
@@ -61,14 +85,8 @@ export default async function GeneratePage() {
     })),
   });
 
+  if (!confirm.ask) return null;
   return (
-    // No bottom padding: the sticky nav occupies its own space in flow at the
-    // end of the page, so nothing sits under it. The old pb-[76px] was both
-    // unnecessary and 31px short of the nav's actual height.
-    <div className="flex min-h-dvh flex-1 flex-col">
-      <Stylist />
-      {confirm.ask && <WearConfirm outfitId={confirm.outfitId} lookName={confirm.lookName} />}
-      <MobileNav />
-    </div>
+    <WearConfirm outfitId={confirm.outfitId} lookName={confirm.lookName} />
   );
 }

@@ -1,13 +1,20 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
 import { EmailSignIn } from "@/components/auth/email-sign-in";
 
-// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
-// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
-export const instant = false;
+export default function Welcome() {
+  // The session read is what blocks a shell, so it moves behind a boundary
+  // and the route's chrome prerenders and prefetches without it.
+  return (
+    <Suspense fallback={null}>
+      <WelcomeBody />
+    </Suspense>
+  );
+}
 
-export default async function Welcome() {
+async function WelcomeBody() {
   const supabase = await createClient();
   const {
     data: { user },

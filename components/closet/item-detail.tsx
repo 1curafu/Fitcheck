@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { archiveItem } from "@/app/closet/[itemId]/actions";
 import type { Tags } from "@/lib/ai/tagging-schema";
 
@@ -48,6 +48,16 @@ export function ItemDetail({
   styledToday: boolean;
 }) {
   const [editing, setEditing] = useState(false);
+  /**
+   * ⚠️ Close the sheet when this screen is left.
+   *
+   * Cache Components preserves a route with React `<Activity hidden>` rather
+   * than unmounting it, so `useState` survives navigation — leave with the
+   * sheet open and it is still open on return. The unmount used to do this for
+   * free. Same fix as `components/generate/stylist.tsx`.
+   */
+  useEffect(() => () => setEditing(false), []);
+
   const [, start] = useTransition();
 
   function archive() {

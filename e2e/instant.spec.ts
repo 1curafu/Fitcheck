@@ -30,3 +30,35 @@ test("the closet's shell is on screen before any data arrives", async ({ page })
   // And the body still arrives.
   await expect(page.getByText("E2E Oxford Shirt").first()).toBeVisible();
 });
+
+/**
+ * ⚠️ Task 5: routes are preserved with React `<Activity hidden>` now, not
+ * unmounted, so `useState` survives navigation. Every sheet in this app opens
+ * from local state, and the migration guide predicts they stay open when you
+ * navigate away and back.
+ */
+test("a sheet does not survive leaving the screen", async ({ page }) => {
+  await page.goto("/closet");
+  await page.getByRole("link", { name: /stylist/i }).first().click();
+  await expect(page).toHaveURL(/\/generate/);
+
+  await page.getByRole("button", { name: /refine/i }).first().click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+
+  /**
+   * ⚠️ The BACK BUTTON, not a nav tap. A modal sheet's backdrop covers the
+   * bottom nav by design, so tapping a tab with the sheet open is not a path a
+   * user has — the first version of this test timed out trying, which was the
+   * sheet working correctly rather than a bug.
+   *
+   * Back IS reachable with a sheet open (the phone gesture, the browser
+   * control), which makes it the honest way to ask whether preserved state
+   * resurrects a sheet the user already left.
+   */
+  await page.goBack();
+  await expect(page).toHaveURL(/\/closet$/);
+  await page.goForward();
+  await expect(page).toHaveURL(/\/generate/);
+
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
