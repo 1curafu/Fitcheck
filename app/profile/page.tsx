@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { MobileNav } from "@/components/shell/mobile-nav";
@@ -7,10 +8,6 @@ import { initials, handleFrom, paletteFor } from "@/lib/profile/identity";
 import { ProfileHub, type HubLink } from "@/components/profile/profile-hub";
 import { entitlementsFor } from "@/lib/billing/tiers";
 
-// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
-// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
-export const instant = false;
-
 /**
  * Rows are marked ready ONLY for routes that exist on `main` today.
  *
@@ -18,13 +15,50 @@ export const instant = false;
  * an unready row renders disabled with "Soon" rather than linking into nothing.
  */
 const LINKS: HubLink[] = [
-  { href: "/style-dna", label: "Style DNA", desc: "Your archetype, shareable", icon: "dna", ready: false },
-  { href: "/outfits", label: "Saved Outfits", desc: "Looks you kept", icon: "saved", ready: false },
-  { href: "/stats", label: "Wear Stats", desc: "What you actually wear", icon: "stats", ready: true },
-  { href: "/settings", label: "Settings", desc: "Preferences and account", icon: "settings", ready: true },
+  {
+    href: "/style-dna",
+    label: "Style DNA",
+    desc: "Your archetype, shareable",
+    icon: "dna",
+    ready: false,
+  },
+  {
+    href: "/outfits",
+    label: "Saved Outfits",
+    desc: "Looks you kept",
+    icon: "saved",
+    ready: false,
+  },
+  {
+    href: "/stats",
+    label: "Wear Stats",
+    desc: "What you actually wear",
+    icon: "stats",
+    ready: true,
+  },
+  {
+    href: "/settings",
+    label: "Settings",
+    desc: "Preferences and account",
+    icon: "settings",
+    ready: true,
+  },
 ];
 
-export default async function ProfilePage() {
+export default function ProfilePage() {
+  return (
+    <div className="flex min-h-dvh flex-1 flex-col">
+      {/* The nav is the shell — identical for every user, so it prerenders
+          and prefetches. Everything below needs the session. */}
+      <Suspense fallback={null}>
+        <ProfileBody />
+      </Suspense>
+      <MobileNav />
+    </div>
+  );
+}
+
+async function ProfileBody() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -46,7 +80,10 @@ export default async function ProfilePage() {
    * on its own every day the app runs.
    */
   const [{ count: pieces }, { data: logs }] = await Promise.all([
-    supabase.from("items").select("id", { count: "exact", head: true }).eq("archived", false),
+    supabase
+      .from("items")
+      .select("id", { count: "exact", head: true })
+      .eq("archived", false),
     supabase.from("wear_logs").select("worn_on").eq("user_id", user.id),
   ]);
 
@@ -54,22 +91,19 @@ export default async function ProfilePage() {
   const wornDates = (logs ?? []).map((r) => r.worn_on);
 
   return (
-    <div className="flex min-h-dvh flex-1 flex-col">
-      <ProfileHub
-        name={profile?.display_name ?? "You"}
-        handle={handleFrom(user.email ?? "")}
-        initials={initials(profile?.display_name ?? null, user.email ?? "")}
-        archetype={profile?.archetype ?? null}
-        palette={paletteFor(profile?.archetype ?? null)}
-        tier={entitlementsFor(profile?.tier).tier}
-        stats={{
-          pieces: pieces ?? 0,
-          outfits: wornDates.length,
-          streak: currentStreak(wornDates, today),
-        }}
-        links={LINKS}
-      />
-      <MobileNav />
-    </div>
+    <ProfileHub
+      name={profile?.display_name ?? "You"}
+      handle={handleFrom(user.email ?? "")}
+      initials={initials(profile?.display_name ?? null, user.email ?? "")}
+      archetype={profile?.archetype ?? null}
+      palette={paletteFor(profile?.archetype ?? null)}
+      tier={entitlementsFor(profile?.tier).tier}
+      stats={{
+        pieces: pieces ?? 0,
+        outfits: wornDates.length,
+        streak: currentStreak(wornDates, today),
+      }}
+      links={LINKS}
+    />
   );
 }

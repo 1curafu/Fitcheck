@@ -18,6 +18,17 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   experimental: {
+    /**
+     * Bailing out of a prerender is how Next signals "this needs request-time
+     * data" — it THROWS, and any `try/catch` already wrapping the call catches
+     * it and logs it. Our Server Actions all have one, so every prerendered
+     * route emitted "fetch() rejects when the prerender is complete" on every
+     * build and request.
+     *
+     * ⚠️ This hides logs emitted AFTER a bail-out, not real errors during
+     * rendering. The migration guide names this flag for exactly this noise.
+     */
+    hideLogsAfterAbort: true,
     // Capture sends the base64 original JPEG + PNG cutout to the uploadAndTag
     // Server Action in one call; the two blobs exceed the default 1 MB body cap.
     serverActions: {
