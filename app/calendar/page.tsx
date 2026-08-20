@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { signItemImages, displayPath } from "@/lib/storage/signed";
@@ -5,11 +6,20 @@ import { localDateFor } from "@/lib/outfits/local-date";
 import { buildMonth, monthLabel, type DayLog } from "@/lib/diary/month";
 import { currentStreak } from "@/lib/diary/streak";
 import { thumbnailPieces } from "@/lib/diary/thumbnail";
-import { parseMonth, monthBounds, shiftMonth, latestPerDay } from "@/lib/diary/logs";
+import {
+  parseMonth,
+  monthBounds,
+  shiftMonth,
+  latestPerDay,
+} from "@/lib/diary/logs";
 import { DiaryGrid } from "@/components/diary/diary-grid";
 import { MobileNav } from "@/components/shell/mobile-nav";
 
-type ItemRow = { category: string; image_url: string; cutout_url: string | null };
+type ItemRow = {
+  category: string;
+  image_url: string;
+  cutout_url: string | null;
+};
 
 /**
  * The Fit Diary — a month of what was actually worn.
@@ -17,7 +27,30 @@ type ItemRow = { category: string; image_url: string; cutout_url: string | null 
  * A pure VIEW over `wear_logs`: it writes nothing. Everything on this screen
  * arrives via the "Wear this today" button on an outfit.
  */
-export default async function CalendarPage({
+export default function CalendarPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ m?: string }>;
+}) {
+  return (
+    <>
+      {/* The nav is the shell: prerendered, prefetched, and identical for every
+          user. The month grid needs both the session and `searchParams`, which
+          are only known at request time, so it streams. */}
+      <Suspense fallback={null}>
+        <DiaryBody searchParams={searchParams} />
+      </Suspense>
+      <MobileNav />
+    </>
+  );
+}
+
+/**
+ * ⚠️ `searchParams` is awaited HERE, inside the boundary, not at the top of the
+ * page. Awaiting it in `CalendarPage` would block the shell on request-time
+ * data and the route could not prerender at all.
+ */
+async function DiaryBody({
   searchParams,
 }: {
   searchParams: Promise<{ m?: string }>;
@@ -58,7 +91,9 @@ export default async function CalendarPage({
   ]);
 
   const days = latestPerDay(monthRows ?? []);
-  const outfitIds = days.map((d) => d.outfit_id).filter((id): id is string => Boolean(id));
+  const outfitIds = days
+    .map((d) => d.outfit_id)
+    .filter((id): id is string => Boolean(id));
 
   /**
    * `wear_logs` and `outfit_items` are NOT directly related — both hang off
@@ -75,7 +110,9 @@ export default async function CalendarPage({
 
   const piecesByOutfit = new Map<string, ItemRow[]>();
   for (const l of links ?? []) {
-    const item = (Array.isArray(l.items) ? l.items[0] : l.items) as ItemRow | null;
+    const item = (
+      Array.isArray(l.items) ? l.items[0] : l.items
+    ) as ItemRow | null;
     if (!item) continue;
     const held = piecesByOutfit.get(l.outfit_id) ?? [];
     held.push(item);
@@ -83,7 +120,9 @@ export default async function CalendarPage({
   }
 
   // One signing round-trip for the whole month, not one per day.
-  const signed = await signItemImages([...piecesByOutfit.values()].flat().map(displayPath));
+  const signed = await signItemImages(
+    [...piecesByOutfit.values()].flat().map(displayPath),
+  );
 
   const logs: DayLog[] = days.map((d) => ({
     worn_on: d.worn_on,
@@ -97,18 +136,15 @@ export default async function CalendarPage({
   }));
 
   return (
-    <>
-      <DiaryGrid
-        cells={buildMonth(year, month, today, logs)}
-        monthLabel={monthLabel(year, month)}
-        streak={currentStreak(
-          (allDates ?? []).map((r) => r.worn_on),
-          today,
-        )}
-        prevHref={`/calendar?m=${shiftMonth(year, month, -1)}`}
-        nextHref={`/calendar?m=${shiftMonth(year, month, 1)}`}
-      />
-      <MobileNav />
-    </>
+    <DiaryGrid
+      cells={buildMonth(year, month, today, logs)}
+      monthLabel={monthLabel(year, month)}
+      streak={currentStreak(
+        (allDates ?? []).map((r) => r.worn_on),
+        today,
+      )}
+      prevHref={`/calendar?m=${shiftMonth(year, month, -1)}`}
+      nextHref={`/calendar?m=${shiftMonth(year, month, 1)}`}
+    />
   );
 }

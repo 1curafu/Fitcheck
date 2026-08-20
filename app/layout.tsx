@@ -3,6 +3,10 @@ import { Libre_Caslon_Text, Hanken_Grotesk } from "next/font/google";
 import "./globals.css";
 import { MobileShell } from "@/components/shell/mobile-shell";
 
+// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 const serif = Libre_Caslon_Text({
   subsets: ["latin"],
   weight: ["400", "700"],

@@ -9,6 +9,10 @@ import { layoutForLook } from "@/lib/generator/layout";
 import { OutfitDetail, type DetailPiece } from "@/components/outfits/outfit-detail";
 import type { Slot } from "@/lib/generator/types";
 
+// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 type ItemRow = {
   id: string;
   name: string | null;

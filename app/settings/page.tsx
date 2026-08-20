@@ -7,6 +7,10 @@ import { resolveLocation } from "@/lib/weather/location";
 import { SettingsView } from "@/components/settings/settings-view";
 import { updatePreferences, setLocation } from "./actions";
 
+// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export default async function SettingsPage() {
   const supabase = await createClient();
   const {

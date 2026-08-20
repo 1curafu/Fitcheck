@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { MobileNav } from "@/components/shell/mobile-nav";
@@ -32,26 +33,54 @@ function slotPhrase(category: string, n: number): string {
   return `${n} ${n === 1 ? one : many}`;
 }
 
-export default async function StatsPage() {
+export default function StatsPage() {
+  return (
+    <div className="flex min-h-dvh flex-1 flex-col">
+      {/* The nav is the shell — identical for every user, so it prerenders
+          and prefetches. Everything below needs the session. */}
+      <Suspense fallback={null}>
+        <StatsBody />
+      </Suspense>
+      <MobileNav />
+    </div>
+  );
+}
+
+async function StatsBody() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/");
 
-  const [{ data: profile }, { data: itemsRaw }, { data: logs }, { data: pieces }] =
-    await Promise.all([
-      supabase.from("profiles").select("tier, location_timezone").eq("id", user.id).single(),
-      supabase.from("items").select("*").eq("user_id", user.id).eq("archived", false),
-      supabase.from("wear_logs").select("outfit_id, worn_on").eq("user_id", user.id),
-      /**
-       * ⚠️ `wear_logs` and `outfit_items` are NOT directly related — both hang
-       * off `outfits`. A `wear_logs → outfit_items!inner(...)` embed returns
-       * ZERO rows SILENTLY, which is how every item once read "0 times worn"
-       * while SQL said otherwise (PR #22). Two explicit queries, joined below.
-       */
-      supabase.from("outfit_items").select("outfit_id, item_id"),
-    ]);
+  const [
+    { data: profile },
+    { data: itemsRaw },
+    { data: logs },
+    { data: pieces },
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("tier, location_timezone")
+      .eq("id", user.id)
+      .single(),
+    supabase
+      .from("items")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("archived", false),
+    supabase
+      .from("wear_logs")
+      .select("outfit_id, worn_on")
+      .eq("user_id", user.id),
+    /**
+     * ⚠️ `wear_logs` and `outfit_items` are NOT directly related — both hang
+     * off `outfits`. A `wear_logs → outfit_items!inner(...)` embed returns
+     * ZERO rows SILENTLY, which is how every item once read "0 times worn"
+     * while SQL said otherwise (PR #22). Two explicit queries, joined below.
+     */
+    supabase.from("outfit_items").select("outfit_id, item_id"),
+  ]);
 
   const items = itemsRaw ?? [];
   const wears = logs ?? [];
@@ -79,7 +108,12 @@ export default async function StatsPage() {
   const byId = new Map(items.map((i) => [i.id, i]));
   const nameOf = (id: string) => byId.get(id)?.name ?? "That piece";
 
-  const stats = closetStats(items, wears.flatMap((w) => (itemsByOutfit.get(w.outfit_id) ?? []).map((item_id) => ({ item_id }))));
+  const stats = closetStats(
+    items,
+    wears.flatMap((w) =>
+      (itemsByOutfit.get(w.outfit_id) ?? []).map((item_id) => ({ item_id })),
+    ),
+  );
   const entitlements = entitlementsFor(profile?.tier);
 
   const closet: CandidateItem[] = items.map((i) => ({
@@ -94,7 +128,9 @@ export default async function StatsPage() {
   }));
   // Skipped entirely for a user who cannot see it — a few dozen passes over the
   // closet is cheap, but computing an answer nobody is shown is still waste.
-  const gap = entitlements.gapAnalysis ? biggestGap(closet, ALL_OCCASIONS) : null;
+  const gap = entitlements.gapAnalysis
+    ? biggestGap(closet, ALL_OCCASIONS)
+    : null;
 
   /**
    * The reason line names the gap in the user's OWN counts.
@@ -113,7 +149,9 @@ export default async function StatsPage() {
     if (!gap) return "";
     const counts = slotCounts(closet, ALL_OCCASIONS);
     const mine = counts[gap.candidate.category] ?? 0;
-    const deepest = Object.entries(counts).reduce((a, b) => (b[1] > a[1] ? b : a));
+    const deepest = Object.entries(counts).reduce((a, b) =>
+      b[1] > a[1] ? b : a,
+    );
     if (deepest[0] === gap.candidate.category || deepest[1] <= mine) {
       return "It pairs with more of your closet than anything else you're missing.";
     }
@@ -121,34 +159,29 @@ export default async function StatsPage() {
   })();
 
   return (
-    <div className="flex min-h-dvh flex-1 flex-col">
-      <StatsView
-        value={stats.value}
-        // Wears are logged against an OUTFIT, so the headline is the number of
-        // logged outfits — not the sum of per-item attributions, which counts a
-        // five-piece look five times.
-        totalWears={wears.length}
-        avgCostPerWear={stats.avgCostPerWear}
-        mostWorn={mostWorn(items, wearsById, TOP_N).map((id) => ({
-          id,
-          name: nameOf(id),
-          sub: wearsById[id] === 1 ? "Worn once" : `Worn ${wearsById[id]} times`,
-        }))}
-        dust={gatheringDust(items, lastWornById, today, TOP_N).map((d) => ({
-          id: d.id,
-          name: nameOf(d.id),
-          days: d.days,
-        }))}
-        gap={
-          gap && { label: gap.candidate.label, share: gap.share, reason }
-        }
-        entitlements={{
-          analytics: entitlements.analytics,
-          gapAnalysis: entitlements.gapAnalysis,
-        }}
-        isPro={entitlements.tier === "pro"}
-      />
-      <MobileNav />
-    </div>
+    <StatsView
+      value={stats.value}
+      // Wears are logged against an OUTFIT, so the headline is the number of
+      // logged outfits — not the sum of per-item attributions, which counts a
+      // five-piece look five times.
+      totalWears={wears.length}
+      avgCostPerWear={stats.avgCostPerWear}
+      mostWorn={mostWorn(items, wearsById, TOP_N).map((id) => ({
+        id,
+        name: nameOf(id),
+        sub: wearsById[id] === 1 ? "Worn once" : `Worn ${wearsById[id]} times`,
+      }))}
+      dust={gatheringDust(items, lastWornById, today, TOP_N).map((d) => ({
+        id: d.id,
+        name: nameOf(d.id),
+        days: d.days,
+      }))}
+      gap={gap && { label: gap.candidate.label, share: gap.share, reason }}
+      entitlements={{
+        analytics: entitlements.analytics,
+        gapAnalysis: entitlements.gapAnalysis,
+      }}
+      isPro={entitlements.tier === "pro"}
+    />
   );
 }
