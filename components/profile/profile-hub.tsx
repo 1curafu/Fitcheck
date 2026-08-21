@@ -31,12 +31,14 @@ function StatCell({ value, label }: { value: string; label: string }) {
   return (
     <div className="flex-1 px-[6px] py-4 text-center">
       <div className="font-serif text-[24px] text-foreground">{value}</div>
-      <div className="mt-[5px] text-[10px] uppercase tracking-[0.1em] text-muted-dim">{label}</div>
+      <div className="mt-[5px] text-[10px] uppercase tracking-[0.1em] text-muted-dim">
+        {label}
+      </div>
     </div>
   );
 }
 
-function LinkRow({ link }: { link: HubLink }) {
+export function LinkRow({ link }: { link: HubLink }) {
   const Icon = ICONS[link.icon];
   const body = (
     <>
@@ -48,14 +50,18 @@ function LinkRow({ link }: { link: HubLink }) {
       </div>
       <div className="min-w-0 flex-1">
         <div className="text-[15px] text-foreground">{link.label}</div>
-        <div className="mt-[2px] text-[12px] text-muted-foreground">{link.desc}</div>
+        <div className="mt-[2px] text-[12px] text-muted-foreground">
+          {link.desc}
+        </div>
       </div>
       {link.ready ? (
         <span className="text-[20px] text-muted-dim" aria-hidden="true">
           ›
         </span>
       ) : (
-        <span className="text-[10px] uppercase tracking-[0.14em] text-muted-dim">Soon</span>
+        <span className="text-[10px] uppercase tracking-[0.14em] text-muted-dim">
+          Soon
+        </span>
       )}
     </>
   );
@@ -127,7 +133,9 @@ export function ProfileHub({
         href="/style-dna"
         className="relative mt-[13px] block overflow-hidden rounded-[16px] p-5 shadow-[inset_0_0_0_1px_rgba(184,106,71,0.18)] [background:radial-gradient(120%_120%_at_82%_8%,#241d18,#161517)]"
       >
-        <span className="text-[10px] uppercase tracking-[0.22em] text-[#b89a6a]">Your archetype</span>
+        <span className="text-[10px] uppercase tracking-[0.22em] text-[#b89a6a]">
+          Your archetype
+        </span>
         <div className="mt-[6px] font-serif text-[30px] text-foreground">
           {archetype ?? "Not set yet"}
         </div>
@@ -140,7 +148,10 @@ export function ProfileHub({
             />
           ))}
         </div>
-        <span className="absolute right-[18px] top-6 text-[20px] text-muted-dim" aria-hidden="true">
+        <span
+          className="absolute right-[18px] top-6 text-[20px] text-muted-dim"
+          aria-hidden="true"
+        >
           ›
         </span>
       </Link>

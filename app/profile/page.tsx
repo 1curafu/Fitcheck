@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { LinkRow } from "@/components/profile/profile-hub";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { MobileNav } from "@/components/shell/mobile-nav";
@@ -45,12 +46,35 @@ const LINKS: HubLink[] = [
   },
 ];
 
+/**
+ * ⚠️ The profile has NO title in the design, so the shell must not invent one.
+ * A first attempt put a "Profile" heading here; it painted instantly and then
+ * VANISHED when the body arrived, because `ProfileHub` renders no such
+ * heading — new UI nobody designed, which is exactly what this plan's Task 6
+ * Step 3 warns against.
+ *
+ * What IS static on this screen is the link rows: their labels, descriptions
+ * and readiness are the same for every user. Only the identity block and the
+ * stat trio are personal, and those stream.
+ */
+function ProfileShell() {
+  return (
+    <div className="screen-top px-[22px]">
+      <div className="mt-[22px] flex flex-col gap-[10px]">
+        {LINKS.map((l) => (
+          <LinkRow key={l.label} link={l} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function ProfilePage() {
   return (
     <div className="flex min-h-dvh flex-1 flex-col">
       {/* The nav is the shell — identical for every user, so it prerenders
           and prefetches. Everything below needs the session. */}
-      <Suspense fallback={null}>
+      <Suspense fallback={<ProfileShell />}>
         <ProfileBody />
       </Suspense>
       <MobileNav />

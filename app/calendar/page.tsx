@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { ScreenHeader } from "@/components/shell/screen-header";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { signItemImages, displayPath } from "@/lib/storage/signed";
@@ -37,7 +38,7 @@ export default function CalendarPage({
       {/* The nav is the shell: prerendered, prefetched, and identical for every
           user. The month grid needs both the session and `searchParams`, which
           are only known at request time, so it streams. */}
-      <Suspense fallback={null}>
+      <Suspense fallback={<ScreenHeader title="Fit Diary" />}>
         <DiaryBody searchParams={searchParams} />
       </Suspense>
       <MobileNav />

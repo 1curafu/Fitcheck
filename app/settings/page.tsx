@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { ScreenHeader } from "@/components/shell/screen-header";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { MobileNav } from "@/components/shell/mobile-nav";
@@ -12,7 +13,7 @@ export default function SettingsPage() {
   // The session read is what blocks a shell, so it moves behind a boundary
   // and the route's chrome prerenders and prefetches without it.
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<ScreenHeader title="Settings" backHref="/profile" />}>
       <SettingsBody />
     </Suspense>
   );

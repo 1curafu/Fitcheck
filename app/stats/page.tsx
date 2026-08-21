@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { ScreenHeader } from "@/components/shell/screen-header";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { MobileNav } from "@/components/shell/mobile-nav";
@@ -38,7 +39,9 @@ export default function StatsPage() {
     <div className="flex min-h-dvh flex-1 flex-col">
       {/* The nav is the shell — identical for every user, so it prerenders
           and prefetches. Everything below needs the session. */}
-      <Suspense fallback={null}>
+      <Suspense
+        fallback={<ScreenHeader title="Wear Stats" backHref="/profile" />}
+      >
         <StatsBody />
       </Suspense>
       <MobileNav />

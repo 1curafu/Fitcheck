@@ -21,10 +21,10 @@ test.use({ storageState: "e2e/.auth/state.json" });
  */
 
 /** Each converted route, and the piece of chrome that proves its shell arrived. */
-const SHELLS: { name: string; from: string; link: RegExp; sees: RegExp }[] = [
-  { name: "closet", from: "/generate", link: /closet/i, sees: /the closet/i },
-  { name: "profile", from: "/closet", link: /profile/i, sees: /settings|style dna|wear stats/i },
-  { name: "stylist", from: "/closet", link: /stylist/i, sees: /today's looks/i },
+const SHELLS: { name: string; from: string; link: RegExp; heading: RegExp }[] = [
+  { name: "closet", from: "/generate", link: /closet/i, heading: /the closet/i },
+  { name: "stylist", from: "/closet", link: /stylist/i, heading: /today's looks/i },
+  { name: "diary", from: "/closet", link: /diary/i, heading: /fit diary/i },
 ];
 
 for (const shell of SHELLS) {
@@ -32,10 +32,47 @@ for (const shell of SHELLS) {
     await page.goto(shell.from);
     await instant(page, async () => {
       await page.getByRole("link", { name: shell.link }).first().click();
-      await expect(page.getByText(shell.sees).first()).toBeVisible();
+      // ⚠️ The HEADING, not any text: a nav label or a link row in the streamed
+      // body matches too, and asserting against those measures the wrong thing.
+      await expect(page.getByRole("heading", { name: shell.heading }).first()).toBeVisible();
     });
   });
 }
+
+/**
+ * The routes reached from a screen rather than the tab bar.
+ *
+ * ⚠️ Every route needs its own assertion. A shared choke point
+ * (`lib/supabase/server.ts`) de-opts all of them at once, but a `<Suspense>`
+ * boundary moved in a later refactor de-opts exactly one — and a guard covering
+ * only the tab destinations would never notice.
+ */
+test("profile: the link rows are on screen before any data arrives", async ({ page }) => {
+  // ⚠️ Not a heading — the design gives this screen no title, and inventing one
+  // produced a header that painted and then vanished. The link rows ARE its
+  // static content.
+  await page.goto("/closet");
+  await instant(page, async () => {
+    await page.getByRole("link", { name: /profile/i }).first().click();
+    await expect(page.getByRole("link", { name: /wear stats/i })).toBeVisible();
+  });
+});
+
+test("stats: the shell is on screen before any data arrives", async ({ page }) => {
+  await page.goto("/profile");
+  await instant(page, async () => {
+    await page.getByRole("link", { name: /wear stats/i }).first().click();
+    await expect(page.getByRole("heading", { name: /wear stats/i })).toBeVisible();
+  });
+});
+
+test("settings: the shell is on screen before any data arrives", async ({ page }) => {
+  await page.goto("/profile");
+  await instant(page, async () => {
+    await page.getByRole("link", { name: /settings/i }).first().click();
+    await expect(page.getByRole("heading", { name: /settings/i })).toBeVisible();
+  });
+});
 
 test("the closet's body still arrives after its shell", async ({ page }) => {
   // A shell that never fills would pass every assertion above and be useless.
@@ -88,4 +125,51 @@ test("the stylist keeps its occasion in the URL across a round trip", async ({ p
 
   // The occasion must survive, not fall back to the morning prediction.
   await expect(page).toHaveURL(/occasion=weekend/);
+});
+
+/**
+ * ⚠️ Task 5 Step 1 asks for EACH sheet, not one. Four were fixed by inspection
+ * after the Refine one was caught; reasoning is not evidence, and these are the
+ * tests that make it so.
+ */
+test("the item-edit sheet does not survive leaving the screen", async ({ page }) => {
+  await page.goto("/closet");
+  await page.getByText("E2E Oxford Shirt").first().click();
+  await page.getByRole("button", { name: /⋯|more|edit/i }).first().click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/closet$/);
+  await page.goForward();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("the location picker does not survive leaving settings", async ({ page }) => {
+  await page.goto("/settings");
+  await page.getByText(/rapperswil|zurich|location/i).first().click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+
+  await page.goBack();
+  await page.goForward();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+/**
+ * ⚠️ Task 5 Step 4. `MobileNav` is `z-50` and renders AFTER the page content,
+ * so at equal or lower z-index it paints straight over a sheet's primary
+ * action. `RefineSheet` shipped exactly that bug once (`docs/STATE.md`), and it
+ * is the sheet this migration touched — so its action must be genuinely
+ * clickable, not merely present. A z-index assertion would pass while the
+ * button was covered; a click will not.
+ */
+test("the refine sheet's action is reachable above the bottom nav", async ({ page }) => {
+  await page.goto("/generate");
+  await page.getByRole("button", { name: /refine/i }).first().click();
+  const sheet = page.getByRole("dialog");
+  await expect(sheet).toBeVisible();
+
+  const apply = sheet.getByRole("button", { name: /show \d+ looks?/i });
+  await expect(apply).toBeVisible();
+  await apply.click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
 });
