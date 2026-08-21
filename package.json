@@ -9,9 +9,10 @@
     "lint": "eslint",
     "test": "vitest",
     "test:run": "vitest run",
-    "e2e": "playwright test --grep-invert @measure",
+    "e2e": "playwright test --grep-invert \"@measure|@insights\"",
     "e2e:ui": "playwright test --ui",
-    "e2e:measure": "playwright test --grep @measure"
+    "e2e:measure": "playwright test --grep @measure",
+    "insights": "bash scripts/check-insights.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",

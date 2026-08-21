@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import {
   partition,
@@ -25,6 +26,16 @@ export async function signItemImages(paths: string[], expiresIn = 3600) {
   const map = new Map<string, string>();
   if (paths.length === 0) return map;
 
+  /**
+   * ⚠️ `Date.now()` is an unstable value, and under Cache Components Next
+   * refuses to prerender one — a clock read baked into a shell is frozen at
+   * build time and wrong for everyone after the first visitor. This function is
+   * request-time work by nature (it mints short-lived signed URLs), so saying
+   * so explicitly is the honest fix rather than a workaround.
+   *
+   * ⚠️ It did NOT show up in `npm run build`, only in the dev overlay.
+   */
+  await connection();
   const now = Date.now();
   const { fresh, stale } = partition(paths, cache, now, REFRESH_MARGIN_MS);
   for (const [path, url] of fresh) map.set(path, url);

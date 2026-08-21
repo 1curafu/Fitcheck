@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { signItemImages, displayPath } from "@/lib/storage/signed";
-import { localDateFor } from "@/lib/outfits/local-date";
+import { todayFor } from "@/lib/outfits/today";
 import { isWornToday } from "@/lib/outfits/wear";
 import { readPreferences } from "@/lib/profile/preferences";
 import { formatTemp } from "@/lib/weather/format";
@@ -102,7 +102,7 @@ async function OutfitBody({ params }: { params: Promise<{ id: string }> }) {
     .select("location_timezone, preferences")
     .eq("id", user.id)
     .single();
-  const today = localDateFor(new Date(), profile?.location_timezone ?? "UTC");
+  const today = await todayFor(profile?.location_timezone);
 
   const weather = outfit.weather_snapshot as {
     tempC?: number;

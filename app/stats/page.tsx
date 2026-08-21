@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { MobileNav } from "@/components/shell/mobile-nav";
-import { localDateFor } from "@/lib/outfits/local-date";
+import { todayFor } from "@/lib/outfits/today";
 import { entitlementsFor } from "@/lib/billing/tiers";
 import { closetStats, mostWorn, gatheringDust } from "@/lib/stats/aggregate";
 import { biggestGap, slotCounts } from "@/lib/stats/gap";
@@ -104,7 +104,7 @@ async function StatsBody() {
     }
   }
 
-  const today = localDateFor(new Date(), profile?.location_timezone ?? "UTC");
+  const today = await todayFor(profile?.location_timezone);
   const byId = new Map(items.map((i) => [i.id, i]));
   const nameOf = (id: string) => byId.get(id)?.name ?? "That piece";
 

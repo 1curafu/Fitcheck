@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { signItemImages, displayPath } from "@/lib/storage/signed";
-import { localDateFor } from "@/lib/outfits/local-date";
+import { todayFor } from "@/lib/outfits/today";
 import { loadStyledLooks } from "@/lib/outfits/styled-store";
 import { itemWearStats } from "@/lib/closet/wear-stats";
 import { goesWith } from "@/lib/closet/goes-with";
@@ -76,7 +76,7 @@ async function ItemBody({ params }: { params: Promise<{ itemId: string }> }) {
     .select("location_timezone")
     .eq("id", user.id)
     .single();
-  const today = localDateFor(new Date(), profile?.location_timezone ?? "UTC");
+  const today = await todayFor(profile?.location_timezone);
 
   const stats = itemWearStats(logs ?? [], item.price, today);
 
