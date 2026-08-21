@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { MobileNav } from "@/components/shell/mobile-nav";
-import { localDateFor } from "@/lib/outfits/local-date";
+import { todayFor } from "@/lib/outfits/today";
 import { currentStreak } from "@/lib/diary/streak";
 import { initials, handleFrom, paletteFor } from "@/lib/profile/identity";
 import { ProfileHub, type HubLink } from "@/components/profile/profile-hub";
@@ -87,7 +87,7 @@ async function ProfileBody() {
     supabase.from("wear_logs").select("worn_on").eq("user_id", user.id),
   ]);
 
-  const today = localDateFor(new Date(), profile?.location_timezone ?? "UTC");
+  const today = await todayFor(profile?.location_timezone);
   const wornDates = (logs ?? []).map((r) => r.worn_on);
 
   return (

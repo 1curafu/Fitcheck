@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { signItemImages, displayPath } from "@/lib/storage/signed";
-import { localDateFor } from "@/lib/outfits/local-date";
+import { todayFor } from "@/lib/outfits/today";
 import { buildMonth, monthLabel, type DayLog } from "@/lib/diary/month";
 import { currentStreak } from "@/lib/diary/streak";
 import { thumbnailPieces } from "@/lib/diary/thumbnail";
@@ -67,7 +67,7 @@ async function DiaryBody({
     .select("location_timezone")
     .eq("id", user.id)
     .single();
-  const today = localDateFor(new Date(), profile?.location_timezone ?? "UTC");
+  const today = await todayFor(profile?.location_timezone);
 
   const { year, month } = parseMonth(m, today);
   const { start, end } = monthBounds(year, month);

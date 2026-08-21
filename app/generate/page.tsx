@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { MobileNav } from "@/components/shell/mobile-nav";
 import { Stylist } from "@/components/generate/stylist";
 import { WearConfirm } from "@/components/outfits/wear-confirm";
-import { localDateFor, localHourFor } from "@/lib/outfits/local-date";
+import { hourFor, todayFor } from "@/lib/outfits/today";
 import { readPreferences } from "@/lib/profile/preferences";
 import { shouldAsk } from "@/lib/outfits/confirm";
 
@@ -56,7 +56,7 @@ async function EveningConfirm() {
     .single();
 
   const tz = profile?.location_timezone ?? "UTC";
-  const today = localDateFor(new Date(), tz);
+  const today = await todayFor(tz);
 
   const [{ data: viewed }, { data: worn }] = await Promise.all([
     supabase
@@ -74,7 +74,7 @@ async function EveningConfirm() {
   ]);
 
   const confirm = shouldAsk({
-    nowLocalHour: localHourFor(new Date(), tz),
+    nowLocalHour: await hourFor(tz),
     today,
     askedOn: readPreferences(profile?.preferences).wearAskedOn,
     hasWearToday: Boolean(worn?.length),
