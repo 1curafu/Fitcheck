@@ -14,13 +14,15 @@ export function tagsToItemRow(args: {
   userId: string;
   imageUrl: string;
   cutoutUrl: string | null;
+  thumbUrl?: string | null;
   tags: Tags;
 }) {
-  const { userId, imageUrl, cutoutUrl, tags } = args;
+  const { userId, imageUrl, cutoutUrl, thumbUrl = null, tags } = args;
   return {
     user_id: userId,
     image_url: imageUrl,
     cutout_url: cutoutUrl,
+    thumb_url: thumbUrl,
     category: tags.category,
     subcategory: tags.subcategory,
     colors: tags.colors,

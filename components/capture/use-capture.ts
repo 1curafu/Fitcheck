@@ -8,6 +8,7 @@ import type { Tags } from "@/lib/ai/tagging-schema";
 export type Draft = {
   imagePath: string;
   cutoutPath: string;
+  thumbPath: string | null;
   cutoutUrl: string;
   name: string;
   brand: string;
@@ -34,15 +35,23 @@ export function useCapture(options?: { onSaved?: () => void }) {
     setError(null);
     setPhase("removing");
     try {
-      const { original, cutout, cutoutMediaType } = await processImage(file);
-      const [originalB64, cutoutB64] = await Promise.all([
+      const { original, cutout, cutoutMediaType, thumb, thumbMediaType } = await processImage(file);
+      const [originalB64, cutoutB64, thumbB64] = await Promise.all([
         blobToBase64(original),
         blobToBase64(cutout),
+        thumb ? blobToBase64(thumb) : Promise.resolve(null),
       ]);
-      const res = await uploadAndTag({ originalB64, cutoutB64, mediaType: cutoutMediaType });
+      const res = await uploadAndTag({
+        originalB64,
+        cutoutB64,
+        mediaType: cutoutMediaType,
+        thumbB64,
+        thumbMediaType,
+      });
       setDraft({
         imagePath: res.imagePath,
         cutoutPath: res.cutoutPath,
+        thumbPath: res.thumbPath,
         cutoutUrl: URL.createObjectURL(cutout),
         name: res.tags.subcategory,
         brand: "",
@@ -80,6 +89,7 @@ export function useCapture(options?: { onSaved?: () => void }) {
       await confirmItem({
         imagePath: draft.imagePath,
         cutoutPath: draft.cutoutPath,
+        thumbPath: draft.thumbPath,
         name: draft.name || null,
         brand: draft.brand || null,
         tags: draft.tags,

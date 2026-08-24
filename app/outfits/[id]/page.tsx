@@ -69,7 +69,7 @@ async function OutfitBody({ params }: { params: Promise<{ id: string }> }) {
     .filter((i): i is ItemRow => Boolean(i));
   if (rows.length === 0) notFound();
 
-  const signed = await signItemImages(rows.map(displayPath));
+  const signed = await signItemImages(rows.map((i) => displayPath(i)));
 
   // The stored geometry is what makes the detail stage identical to the look the
   // user tapped. Rows written before the daily drop have no layout — fall back

@@ -100,7 +100,7 @@ async function ItemBody({ params }: { params: Promise<{ itemId: string }> }) {
     return row ? [row] : [];
   });
 
-  const signed = await signItemImages([item, ...pairs].map(displayPath));
+  const signed = await signItemImages([item, ...pairs].map((i) => displayPath(i)));
 
   const goesWithCards: GoesWithCard[] = pairs.map((i) => ({
     id: i.id,

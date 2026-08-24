@@ -122,7 +122,7 @@ async function DiaryBody({
 
   // One signing round-trip for the whole month, not one per day.
   const signed = await signItemImages(
-    [...piecesByOutfit.values()].flat().map(displayPath),
+    [...piecesByOutfit.values()].flat().map((i) => displayPath(i)),
   );
 
   const logs: DayLog[] = days.map((d) => ({

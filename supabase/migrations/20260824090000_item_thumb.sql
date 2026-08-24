@@ -1,0 +1,13 @@
+-- A small display derivative, produced in the browser at upload time alongside
+-- the cutout (`lib/images/thumb.ts`).
+--
+-- The closet grid renders a 1280px cutout into a ~125x160 CSS px cell and the
+-- diary into ~45x54 — measured at 493.5 kB of images for a 7-item grid. The
+-- derivative is generated on-device, so it costs no per-view transformation
+-- fee: the same bargain as Decision 2's on-device background removal.
+--
+-- Nullable, and that is load-bearing. Every existing row predates the column,
+-- and `displayPath(item, "thumb")` falls through to the cutout when it is null.
+-- The same null is also what an engine with no working canvas encoder produces,
+-- so the legacy path and the failure path are one path.
+alter table public.items add column if not exists thumb_url text;

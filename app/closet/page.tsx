@@ -80,7 +80,7 @@ async function ClosetBody() {
     .order("created_at", { ascending: false });
 
   const rows = items ?? [];
-  const signed = await signItemImages(rows.map(displayPath));
+  const signed = await signItemImages(rows.map((i) => displayPath(i)));
   const grid = rows.map((i) => ({
     ...i,
     name: i.name ?? i.subcategory ?? i.category,

@@ -54,6 +54,29 @@ export async function signItemImages(paths: string[], expiresIn = 3600) {
   return map;
 }
 
-export function displayPath(item: { cutout_url: string | null; image_url: string }) {
+/** A row as the readers select it. `thumb_url` may be absent entirely. */
+export type ImageRow = {
+  cutout_url: string | null;
+  image_url: string;
+  thumb_url?: string | null;
+};
+
+/**
+ * Which stored object a surface should render.
+ *
+ * ⚠️ **`"full"` is the default, deliberately.** Six call sites pass these rows
+ * in, and the signature growing must change none of them — a surface opts IN to
+ * the smaller image. The flat-lay and the item-detail hero are the product and
+ * stay on the cutout.
+ *
+ * ⚠️ **The fallback chain must never be broken.** A row uploaded before
+ * thumbnails existed has no `thumb_url` and falls through to the cutout; a row
+ * whose background removal failed has no `cutout_url` and falls through to the
+ * original. Both are live in the current data, and a broken rung renders a
+ * blank tile whose `load` never fires — which hangs `page.goto` until timeout
+ * and reads like a missing element rather than a missing image.
+ */
+export function displayPath(item: ImageRow, size: "thumb" | "full" = "full") {
+  if (size === "thumb" && item.thumb_url) return item.thumb_url;
   return item.cutout_url ?? item.image_url;
 }
