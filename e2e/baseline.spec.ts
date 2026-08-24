@@ -138,7 +138,9 @@ test("measure image bytes @measure", async ({ browser }) => {
 
     console.log(
       `\n  --- image bytes, production build ---` +
-        `\n  (fixture: cutout ${(sizes.cutout / 1024).toFixed(0)} kB, original ${(sizes.original / 1024).toFixed(0)} kB per item)\n`,
+        `\n  (fixture per item: cutout ${(sizes.cutout / 1024).toFixed(0)} kB,` +
+        ` original ${(sizes.original / 1024).toFixed(0)} kB,` +
+        ` thumb ${sizes.thumb === null ? "NONE — run scripts/backfill-thumbs.ts" : `${(sizes.thumb / 1024).toFixed(0)} kB`})\n`,
     );
     console.log(`  ${"surface".padEnd(18)} ${"images".padStart(14)} ${"all requests".padStart(16)}`);
 

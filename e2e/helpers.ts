@@ -59,14 +59,25 @@ export async function reseed(): Promise<void> {
  * These run ONLY under `npm run e2e:measure`, which CI excludes, so the suite's
  * runtime and CI's storage are untouched.
  */
-type Pair = { cutout: Uint8Array; original: Uint8Array };
+type Pair = { cutout: Uint8Array; original: Uint8Array; thumb: Uint8Array | null };
 
-/** Find one real (non-seeded) item folder and download its two blobs. */
+/**
+ * Find one real (non-seeded) item folder and download its blobs.
+ *
+ * ⚠️ **Prefers a folder that also has a `thumb.webp`, and that is not a detail.**
+ * The bucket contains orphans — objects whose `items` row was deleted — and the
+ * backfill walks DB rows, so an orphan never gets a thumbnail. Taking the first
+ * folder with a cutout picked one of those and reported "thumb NONE", which
+ * would have made the after-measurement identical to the before and looked
+ * exactly like a change that did nothing.
+ */
 async function borrowRealPair(): Promise<Pair> {
   const db = admin();
   const testUser = await testUserId();
   const { data: owners, error } = await db.storage.from("wardrobe").list("");
   if (error) throw new Error(`listing the wardrobe bucket failed: ${error.message}`);
+
+  let fallback: Pair | null = null;
 
   for (const owner of owners ?? []) {
     if (owner.name === testUser) continue; // the seeded user's own 1×1s
@@ -76,10 +87,15 @@ async function borrowRealPair(): Promise<Pair> {
       const cutout = await db.storage.from("wardrobe").download(`${base}/cutout.webp`);
       const original = await db.storage.from("wardrobe").download(`${base}/original.jpg`);
       if (cutout.error || original.error || !cutout.data || !original.data) continue;
-      return {
+
+      const thumb = await db.storage.from("wardrobe").download(`${base}/thumb.webp`);
+      const pair: Pair = {
         cutout: new Uint8Array(await cutout.data.arrayBuffer()),
         original: new Uint8Array(await original.data.arrayBuffer()),
+        thumb: thumb.data ? new Uint8Array(await thumb.data.arrayBuffer()) : null,
       };
+      if (pair.thumb) return pair;
+      fallback ??= pair;
     }
   }
 
@@ -89,34 +105,60 @@ async function borrowRealPair(): Promise<Pair> {
    * The same failure mode as the seed insert that failed silently and left
    * `/stats` rendering an empty MOST WORN header.
    */
-  throw new Error(
-    "no real wardrobe images found to borrow — the byte measurement needs a non-seeded closet " +
-      "in local storage. Upload an item, or run this probe on a machine that has one.",
-  );
+  if (!fallback) {
+    throw new Error(
+      "no real wardrobe images found to borrow — the byte measurement needs a non-seeded closet " +
+        "in local storage. Upload an item, or run this probe on a machine that has one.",
+    );
+  }
+  return fallback;
 }
 
-/** Put real-sized images behind every seeded path. Restore with `reseed()`. */
-export async function installRealisticImages(): Promise<{ cutout: number; original: number }> {
+/**
+ * Put real-sized images behind every seeded path, thumbnails included.
+ * Restore with `reseed()`, which re-inserts the rows with `thumb_url` null.
+ */
+export async function installRealisticImages(): Promise<{
+  cutout: number;
+  original: number;
+  thumb: number | null;
+}> {
   const db = admin();
   const userId = await testUserId();
   const pair = await borrowRealPair();
 
-  const { data: items, error } = await db.from("items").select("image_url, cutout_url").eq("user_id", userId);
+  const { data: items, error } = await db
+    .from("items")
+    .select("id, image_url, cutout_url")
+    .eq("user_id", userId);
   if (error) throw new Error(`reading the seeded closet failed: ${error.message}`);
 
   for (const item of items ?? []) {
+    const thumbPath = item.cutout_url?.replace(/[^/]+$/, "thumb.webp") ?? null;
+
     for (const [path, body, type] of [
       [item.cutout_url, pair.cutout, "image/webp"],
       [item.image_url, pair.original, "image/jpeg"],
+      [pair.thumb ? thumbPath : null, pair.thumb, "image/webp"],
     ] as const) {
-      if (!path) continue;
+      if (!path || !body) continue;
       const { error: upErr } = await db.storage
         .from("wardrobe")
         .upload(path, body, { contentType: type, upsert: true });
       if (upErr) throw new Error(`installing a realistic image at ${path} failed: ${upErr.message}`);
     }
+
+    if (pair.thumb && thumbPath) {
+      const { error: rowErr } = await db.from("items").update({ thumb_url: thumbPath }).eq("id", item.id);
+      if (rowErr) throw new Error(`pointing ${item.id} at its thumbnail failed: ${rowErr.message}`);
+    }
   }
-  return { cutout: pair.cutout.length, original: pair.original.length };
+
+  return {
+    cutout: pair.cutout.length,
+    original: pair.original.length,
+    thumb: pair.thumb?.length ?? null,
+  };
 }
 
 /**

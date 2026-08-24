@@ -100,12 +100,28 @@ async function ItemBody({ params }: { params: Promise<{ itemId: string }> }) {
     return row ? [row] : [];
   });
 
-  const signed = await signItemImages([item, ...pairs].map((i) => displayPath(i)));
+  /**
+   * Two sizes on one screen, signed together in one round-trip.
+   *
+   * The HERO keeps the full cutout — it is the product, it is what this whole
+   * design is built around, and `DESIGN.md` makes the cutout the hero of the
+   * item-detail screen.
+   *
+   * ⚠️ The "Goes with" tiles do NOT. They are `w-[92px]` with `p-3`, so a 68 CSS
+   * px box, and there are four of them: measured, they were four fifths of the
+   * images on this screen and most of its 352.5 kB. The plan's Task 3 says to
+   * leave "the item-detail hero" on the cutout and it is right — but the hero is
+   * one of these five images, not all five, and a 68px tile is exactly the
+   * "pixels are wasted" case that task is named for.
+   */
+  const heroPath = displayPath(item);
+  const pairPath = (i: (typeof pairs)[number]) => displayPath(i, "thumb");
+  const signed = await signItemImages([heroPath, ...pairs.map(pairPath)]);
 
   const goesWithCards: GoesWithCard[] = pairs.map((i) => ({
     id: i.id,
     name: i.name ?? i.subcategory ?? i.category,
-    imageUrl: signed.get(displayPath(i)) ?? "",
+    imageUrl: signed.get(pairPath(i)) ?? "",
   }));
 
   // Distinct brands already in the closet → autocomplete suggestions.
@@ -127,7 +143,7 @@ async function ItemBody({ params }: { params: Promise<{ itemId: string }> }) {
   return (
     <ItemDetail
       item={item as DetailItem}
-      imageUrl={signed.get(displayPath(item)) ?? ""}
+      imageUrl={signed.get(heroPath) ?? ""}
       brandSuggestions={brandSuggestions}
       stats={stats}
       goesWith={goesWithCards}
