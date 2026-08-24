@@ -125,6 +125,18 @@ export async function seedTestUser(cfg: { url: string; service: string }): Promi
   ]);
 
   /**
+   * ⚠️ **Restore means restore.** The `@measure` fixture installs a real
+   * thumbnail on ALL seven paths, and this function re-creates the rows with
+   * `thumb_url` set on item 0 only — so without this the other six objects
+   * linger with nothing pointing at them, which is precisely the orphan class
+   * `scripts/sweep-orphan-uploads.ts` exists to report. A seed that leaves
+   * litter makes its own cleanliness check meaningless.
+   */
+  await admin.storage
+    .from("wardrobe")
+    .remove(CLOSET.slice(1).map((_, i) => `${userId}/e2e-${i + 1}/thumb.webp`));
+
+  /**
    * ⚠️ A WORN outfit, and the suite is much weaker without it.
    *
    * Found while writing the first spec: with no wear logs, `/stats` renders its
