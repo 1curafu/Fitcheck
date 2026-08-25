@@ -7,6 +7,7 @@ import type { Tags } from "@/lib/ai/tagging-schema";
 const draft: Draft = {
   imagePath: "p",
   cutoutPath: "c",
+  thumbPath: null,
   cutoutUrl: "blob:x",
   name: "Tee",
   brand: "",

@@ -253,7 +253,7 @@ export async function styleWithItem(
       if (drafts.some((d) => d.pieces.map((p) => p.itemId).sort().join("+") === comboKey)) continue;
 
       const dbItems = chosen.items.map((ci) => byId.get(ci.id)!);
-      const signed = await signItemImages(dbItems.map(displayPath));
+      const signed = await signItemImages(dbItems.map((i) => displayPath(i)));
       const slots = layoutForLook(dbItems.map((d) => ({ category: d.category })));
       const pieces: LookPiece[] = dbItems.map((d, i) => ({
         itemId: d.id,

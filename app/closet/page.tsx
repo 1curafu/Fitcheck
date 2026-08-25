@@ -80,12 +80,24 @@ async function ClosetBody() {
     .order("created_at", { ascending: false });
 
   const rows = items ?? [];
-  const signed = await signItemImages(rows.map(displayPath));
+
+  /**
+   * ⚠️ **`"thumb"` on both lines, or the lookup silently misses.** The map is
+   * keyed by the signed path; signing one size and asking for another returns
+   * undefined and renders an empty card.
+   *
+   * The grid is `columns-2`, so a card's image box is ~125x160 CSS px — it was
+   * being served the full 1280px cutout, 493.5 kB for seven items. The hero on
+   * item detail keeps the cutout; this is a 45-160px cell.
+   */
+  const path = (i: (typeof rows)[number]) => displayPath(i, "thumb");
+
+  const signed = await signItemImages(rows.map(path));
   const grid = rows.map((i) => ({
     ...i,
     name: i.name ?? i.subcategory ?? i.category,
     brand: i.brand,
-    imageUrl: signed.get(displayPath(i)) ?? "",
+    imageUrl: signed.get(path(i)) ?? "",
   }));
 
   return (

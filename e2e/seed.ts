@@ -97,6 +97,15 @@ export async function seedTestUser(cfg: { url: string; service: string }): Promi
        */
       image_url: `${userId}/e2e-${i}/original.jpg`,
       cutout_url: `${userId}/e2e-${i}/cutout.webp`,
+      /**
+       * ⚠️ **Exactly ONE item has a thumbnail, and that asymmetry is the point.**
+       * Both branches of `displayPath(item, "thumb")` are live in real data —
+       * every row uploaded before the column exists falls through to the cutout
+       * — so a seed where all seven have one, or none do, silently tests half
+       * the reader. Item 0 takes the thumbnail path; the rest take the legacy
+       * fallback that must keep working forever.
+       */
+      thumb_url: i === 0 ? `${userId}/e2e-${i}/thumb.webp` : null,
       category: c.category,
       colors: c.colors,
       material: c.material,
@@ -109,10 +118,23 @@ export async function seedTestUser(cfg: { url: string; service: string }): Promi
   );
   if (error) throw new Error(`seeding the closet failed: ${error.message}`);
 
-  await uploadPlaceholders(
-    admin,
-    CLOSET.flatMap((_, i) => [`${userId}/e2e-${i}/original.jpg`, `${userId}/e2e-${i}/cutout.webp`]),
-  );
+  await uploadPlaceholders(admin, [
+    ...CLOSET.flatMap((_, i) => [`${userId}/e2e-${i}/original.jpg`, `${userId}/e2e-${i}/cutout.webp`]),
+    // The one thumbnail, so item 0's tile has a real object behind it.
+    `${userId}/e2e-0/thumb.webp`,
+  ]);
+
+  /**
+   * ⚠️ **Restore means restore.** The `@measure` fixture installs a real
+   * thumbnail on ALL seven paths, and this function re-creates the rows with
+   * `thumb_url` set on item 0 only — so without this the other six objects
+   * linger with nothing pointing at them, which is precisely the orphan class
+   * `scripts/sweep-orphan-uploads.ts` exists to report. A seed that leaves
+   * litter makes its own cleanliness check meaningless.
+   */
+  await admin.storage
+    .from("wardrobe")
+    .remove(CLOSET.slice(1).map((_, i) => `${userId}/e2e-${i + 1}/thumb.webp`));
 
   /**
    * ⚠️ A WORN outfit, and the suite is much weaker without it.

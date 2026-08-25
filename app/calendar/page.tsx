@@ -20,6 +20,7 @@ type ItemRow = {
   category: string;
   image_url: string;
   cutout_url: string | null;
+  thumb_url: string | null;
 };
 
 /**
@@ -105,7 +106,7 @@ async function DiaryBody({
   const { data: links } = outfitIds.length
     ? await supabase
         .from("outfit_items")
-        .select("outfit_id, items(category, image_url, cutout_url)")
+        .select("outfit_id, items(category, image_url, cutout_url, thumb_url)")
         .in("outfit_id", outfitIds)
     : { data: [] };
 
@@ -120,10 +121,20 @@ async function DiaryBody({
     piecesByOutfit.set(l.outfit_id, held);
   }
 
+  /**
+   * ⚠️ **`"thumb"` here, and it must match on BOTH lines below.** The signed-URL
+   * map is keyed by the path that was signed; asking it for a different size
+   * than was signed returns undefined and renders an empty tile. One local
+   * helper so the two cannot drift.
+   *
+   * This is the app's worst size mismatch: a cell is ~45x54 CSS px and was
+   * being handed the same 1280px cutout the flat-lay uses. It also scales with
+   * use — a month with twenty logged days pulls sixty of them.
+   */
+  const path = (i: ItemRow) => displayPath(i, "thumb");
+
   // One signing round-trip for the whole month, not one per day.
-  const signed = await signItemImages(
-    [...piecesByOutfit.values()].flat().map(displayPath),
-  );
+  const signed = await signItemImages([...piecesByOutfit.values()].flat().map(path));
 
   const logs: DayLog[] = days.map((d) => ({
     worn_on: d.worn_on,
@@ -131,7 +142,7 @@ async function DiaryBody({
     pieces: thumbnailPieces(
       (piecesByOutfit.get(d.outfit_id ?? "") ?? []).map((i) => ({
         category: i.category,
-        imageUrl: signed.get(displayPath(i)) ?? "",
+        imageUrl: signed.get(path(i)) ?? "",
       })),
     ),
   }));
