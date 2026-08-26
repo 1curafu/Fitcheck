@@ -23,6 +23,40 @@ export type CapsuleInput = {
   build: OutfitBuilder;
 };
 
+/**
+ * The minimum outfit score for a day to count as covered.
+ *
+ * ⚠️ **MEASURED, not chosen** — `scripts/calibrate-packing-floor.ts`, run against
+ * the developer's real 26-item closet on a 7-day trip (3 work, 2 everyday,
+ * 2 evening) at a mild spring forecast:
+ *
+ * ```
+ * level 3 (default)          level 5 (pack light)       level 1 (fresh daily)
+ * floor  pieces  uncovered   floor  pieces  uncovered   floor  pieces  uncovered
+ * 0–0.8       7          0   0–0.8       5          0   0–0.7      12          3
+ * 0.9         0          7   0.9         0          7   0.8         3          6
+ * ```
+ *
+ * Every outfit this closet builds scores between 0.775 and 0.850, so **any floor
+ * below 0.775 is inert and 0.9 rejects everything**. 0.7 is the highest value
+ * that rejects nothing the closet can legitimately build — an honest guard
+ * rather than an active filter.
+ *
+ * ⚠️ **Two things this measurement revealed, which matter more than the number:**
+ *
+ * 1. **`scoreCombo` is barely discriminating here** — a 0.075 spread across
+ *    every combination. A floor can only ever be a backstop against something
+ *    egregious, never a quality dial. Do not build UI that implies otherwise.
+ * 2. **Level 1 ("Fresh every day") cannot dress a 7-day trip from 26 items** —
+ *    12 pieces and still 3 days uncovered, at ANY floor. The shortfall state is
+ *    reachable from an ordinary closet at an ordinary setting, not just from a
+ *    sparse one.
+ *
+ * ⚠️ Calibrated on ONE menswear closet. A wardrobe that scores differently —
+ * womenswear, or one with wider formality spread — may want this re-run.
+ */
+export const QUALITY_FLOOR = 0.7;
+
 export type CapsuleResult = {
   itemIds: string[];
   covered: { day: TripDay; itemIds: string[] }[];
