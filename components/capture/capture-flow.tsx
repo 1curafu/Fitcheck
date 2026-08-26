@@ -31,6 +31,7 @@ export function CaptureFlow() {
           onTags={cap.updateTags}
           onToggleSeason={cap.toggleSeason}
           onSave={cap.save}
+          onRetake={cap.discard}
         />
       )}
     </main>

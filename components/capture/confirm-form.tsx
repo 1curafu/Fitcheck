@@ -1,5 +1,7 @@
 "use client";
 
+import { RotateCcw } from "lucide-react";
+
 import { Chip } from "@/components/ui-fitcheck/chip";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { Select } from "@/components/ui-fitcheck/select";
@@ -30,6 +32,7 @@ export function ConfirmForm({
   onTags,
   onToggleSeason,
   onSave,
+  onRetake,
 }: {
   draft: Draft;
   saving: boolean;
@@ -38,6 +41,7 @@ export function ConfirmForm({
   onTags: (patch: Partial<Tags>) => void;
   onToggleSeason: (s: Tags["seasons"][number]) => void;
   onSave: () => void;
+  onRetake: () => void;
 }) {
   return (
     <div className="flex flex-1 flex-col gap-5">
@@ -196,13 +200,35 @@ export function ConfirmForm({
       </p>
       {error && <p className="text-sm text-brand">{error}</p>}
       <div className="flex-1" />
-      <button
-        onClick={onSave}
-        disabled={saving}
-        className="rounded-[12px] bg-foreground py-[17px] text-center font-semibold text-canvas disabled:opacity-60"
-      >
-        {saving ? "Saving…" : "Add to closet"}
-      </button>
+      {/* The bottom action bar from the canonical item-detail screen: one small
+          secondary icon button, one full-width primary. Reused rather than
+          invented — `docs/STATE.md` records what happened the last time UI was
+          made up for a screen the design already covers.
+
+          ⚠️ Until this existed the screen was a DEAD END. It renders the cutout
+          large, which makes it the one place a bad cut is visible, and it
+          offered only "Add to closet" — so the choice was to save a damaged
+          image or navigate away, stranding both uploaded blobs. Two of the four
+          orphans found on 2026-08-24 were 40 seconds apart, which reads exactly
+          like capture, back out, retry, back out. */}
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={onRetake}
+          disabled={saving}
+          aria-label="Retake"
+          className="grid h-[54px] w-14 shrink-0 place-items-center rounded-[14px] bg-surface-2 text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-6)] disabled:opacity-60"
+        >
+          <RotateCcw size={19} />
+        </button>
+        <button
+          onClick={onSave}
+          disabled={saving}
+          className="flex-1 rounded-[12px] bg-foreground py-[17px] text-center font-semibold text-canvas disabled:opacity-60"
+        >
+          {saving ? "Saving…" : "Add to closet"}
+        </button>
+      </div>
     </div>
   );
 }

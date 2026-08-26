@@ -106,3 +106,37 @@ export async function confirmItem(input: {
   if (error) throw error;
   revalidatePath("/closet");
 }
+
+/**
+ * Throw away an capture the user rejected on the confirm screen.
+ *
+ * ⚠️ **This is the orphan class, closed at source.** `uploadAndTag` writes both
+ * blobs to Storage BEFORE any row exists, so until now the only way out of the
+ * confirm screen was to navigate away — which stranded them forever.
+ * `scripts/sweep-orphan-uploads.ts` had to reclaim them afterwards, and still
+ * does for the paths this cannot reach: crashes, closed tabs, dead connections.
+ *
+ * No DB work: there is no row yet. That is the whole point of the two-phase
+ * capture (Decision 2/3).
+ */
+export async function discardDraft(paths: (string | null)[]) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  /**
+   * ⚠️ Defence in depth, not the primary guard. These paths arrive from the
+   * CLIENT, so they are checked against the caller rather than trusted — but
+   * the bucket's RLS policy (`wardrobe_rw_own`, migration 20260615114702)
+   * already pins `storage.foldername(name)[1]` to `auth.uid()`, so a
+   * cross-user delete is impossible at the database level either way.
+   */
+  const owned = paths.filter(
+    (path): path is string => typeof path === "string" && path.startsWith(`${user.id}/`),
+  );
+  if (owned.length === 0) return;
+
+  await supabase.storage.from("wardrobe").remove(owned);
+}

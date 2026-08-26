@@ -26,6 +26,7 @@ export function OnboardingCapture({ initialCount = 0 }: { initialCount?: number 
           onTags={cap.updateTags}
           onToggleSeason={cap.toggleSeason}
           onSave={cap.save}
+          onRetake={cap.discard}
         />
       </main>
     );

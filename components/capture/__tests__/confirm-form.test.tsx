@@ -29,6 +29,7 @@ test("renders the draft name and fires onSave", async () => {
       onTags={() => {}}
       onToggleSeason={() => {}}
       onSave={onSave}
+      onRetake={() => {}}
     />,
   );
   expect(screen.getByDisplayValue("Tee")).toBeInTheDocument();
@@ -46,6 +47,7 @@ function renderConfirm(overrides: { onTags?: (p: Partial<Tags>) => void } = {}) 
       onTags={overrides.onTags ?? (() => {})}
       onToggleSeason={() => {}}
       onSave={() => {}}
+      onRetake={() => {}}
     />,
   );
 }
@@ -91,4 +93,28 @@ test("the AI-detected subcategory leads the screen, as the design specifies", ()
   renderConfirm();
   // Fitcheck.dc.html:537-539 — "AI detected" kicker over the subcategory.
   expect(screen.getByText(/ai detected/i)).toBeInTheDocument();
+});
+
+
+/**
+ * The escape hatch itself. Before this the screen had exactly one action, so a
+ * user looking at a hole punched through their garment could only save it or
+ * abandon the capture — and abandoning it stranded both uploaded blobs.
+ */
+test("offers a way out when the cutout is wrong", async () => {
+  const onRetake = vi.fn();
+  render(
+    <ConfirmForm
+      draft={draft}
+      saving={false}
+      error={null}
+      onDraft={() => {}}
+      onTags={() => {}}
+      onToggleSeason={() => {}}
+      onSave={() => {}}
+      onRetake={onRetake}
+    />,
+  );
+  await userEvent.click(screen.getByRole("button", { name: /retake/i }));
+  expect(onRetake).toHaveBeenCalledOnce();
 });
