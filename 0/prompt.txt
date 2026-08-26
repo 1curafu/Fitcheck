@@ -99,3 +99,7 @@ Focus on these files (the whole project is readable):
 ---
 
 if u think it looks good, wirte specs and plan, but question, if we have clothes for trip, and it shows us capsels, can we change this capsels f.e.?
+
+---
+
+start gooooo
