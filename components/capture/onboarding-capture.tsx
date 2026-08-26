@@ -38,7 +38,7 @@ export function OnboardingCapture({ initialCount = 0 }: { initialCount?: number 
         Capture your first five.
       </h1>
       <p className="mb-6 text-sm text-muted-foreground">
-        Snap each piece on a flat surface. We cut it out and learn its colour, fabric and formality.
+        Snap each piece on a flat surface that contrasts with it — dark clothes on a pale floor. We cut it out and learn its colour, fabric and formality.
       </p>
       <Viewfinder busy={cap.phase === "removing"} onFile={cap.capture} />
       <ProgressStrip filled={count} />
