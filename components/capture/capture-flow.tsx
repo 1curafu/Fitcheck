@@ -18,7 +18,7 @@ export function CaptureFlow() {
           <h1 className="mb-6 font-serif text-3xl/[1.12] text-foreground">Capture an item.</h1>
           <Viewfinder busy={cap.phase === "removing"} onFile={cap.capture} />
           <p className="mt-6 text-sm text-muted-foreground">
-            Snap each piece on a flat surface. We cut it out and learn its colour, fabric and formality.
+            Snap each piece on a flat surface that contrasts with it — dark clothes on a pale floor. We cut it out and learn its colour, fabric and formality.
           </p>
           {cap.error && <p className="mt-4 text-sm text-brand">{cap.error}</p>}
         </>
@@ -31,6 +31,7 @@ export function CaptureFlow() {
           onTags={cap.updateTags}
           onToggleSeason={cap.toggleSeason}
           onSave={cap.save}
+          onRetake={cap.discard}
         />
       )}
     </main>

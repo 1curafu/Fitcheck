@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { processImage, blobToBase64 } from "@/lib/images/process";
-import { uploadAndTag, confirmItem } from "@/app/closet/upload/actions";
+import { uploadAndTag, confirmItem, discardDraft } from "@/app/closet/upload/actions";
 import type { Tags } from "@/lib/ai/tagging-schema";
 
 export type Draft = {
@@ -64,6 +64,31 @@ export function useCapture(options?: { onSaved?: () => void }) {
     }
   }
 
+  /**
+   * Retake: drop the draft and go back to the viewfinder.
+   *
+   * ⚠️ **The UI resets FIRST, and the cleanup is best-effort.** The user has
+   * already decided this capture is wrong; making them wait on a storage
+   * round-trip — or worse, stranding them on the screen they rejected because
+   * the delete failed — would be a worse bug than the leak it is tidying.
+   * `scripts/sweep-orphan-uploads.ts` remains the backstop for anything that
+   * fails here, and for the paths this can never reach: crashes, closed tabs,
+   * dead connections.
+   */
+  async function discard() {
+    const abandoned = draft;
+    setDraft(null);
+    setPhase("aim");
+    setError(null);
+    if (!abandoned) return;
+
+    try {
+      await discardDraft([abandoned.imagePath, abandoned.cutoutPath, abandoned.thumbPath]);
+    } catch {
+      // Swept later rather than surfaced now — see above.
+    }
+  }
+
   function updateDraft(patch: Partial<Draft>) {
     setDraft((d) => (d ? { ...d, ...patch } : d));
   }
@@ -104,5 +129,5 @@ export function useCapture(options?: { onSaved?: () => void }) {
     }
   }
 
-  return { phase, draft, error, saving, capture, updateDraft, updateTags, toggleSeason, save };
+  return { phase, draft, error, saving, capture, discard, updateDraft, updateTags, toggleSeason, save };
 }
