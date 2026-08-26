@@ -29,13 +29,48 @@ test("covers every day and reports no shortfall", () => {
 });
 
 /**
+ * ⚠️ **This builder exists because the obvious test was a tautology.**
+ *
+ * `simple` always returns the FIRST matching item, so it hands back the same
+ * pieces whether it is given the chosen subset or the whole closet — which
+ * meant "re-uses pieces" passed even with re-use deliberately broken. Caught by
+ * the negative pass, and the same shape as the `gap === null || gap.unlocks > 0`
+ * tautology this project shipped once before.
+ *
+ * This one rotates its pick by day, so given the whole closet it chooses a
+ * DIFFERENT top every day. Only a solve that genuinely prefers what it already
+ * has will keep the capsule small.
+ */
+const rotating: OutfitBuilder = (day, available) => {
+  const nth = Number(day.date.slice(-2));
+  const pick = (category: string) => {
+    const options = available.filter((i) => i.category === category);
+    return options.length ? options[nth % options.length] : null;
+  };
+  const top = pick("Tops");
+  const bottom = pick("Bottoms");
+  const shoe = pick("Shoes");
+  if (!top || !bottom || !shoe) return null;
+  return { itemIds: [top.id, bottom.id, shoe.id], score: 1 };
+};
+
+/**
  * The whole point. Three independent outfits would need nine pieces; a capsule
  * re-uses, so three days should cost far fewer.
  */
 test("re-uses pieces instead of packing one outfit per day", () => {
-  const r = solveCapsule({ closet, days: days(3), level: 3, floor: 0.5, build: simple });
+  const r = solveCapsule({ closet, days: days(3), level: 3, floor: 0.5, build: rotating });
   expect(r.itemIds.length).toBeLessThan(9);
   expect(r.itemIds.length).toBeLessThanOrEqual(5);
+});
+
+// The same property stated as a guarantee rather than a bound: a builder that
+// would happily pick a fresh top every day must still yield ONE top, because
+// the solve asks the chosen set first.
+test("prefers what is already packed over something new", () => {
+  const r = solveCapsule({ closet, days: days(3), level: 3, floor: 0.5, build: rotating });
+  const tops = r.itemIds.filter((id) => id.startsWith("shirt") || id === "tee");
+  expect(tops).toHaveLength(1);
 });
 
 // ⚠️ The re-wear limit is what forces a second top; without it the solve would
