@@ -31,6 +31,13 @@ const LINKS: HubLink[] = [
     ready: false,
   },
   {
+    href: "/packing",
+    label: "Packing Mode",
+    desc: "The smallest case that dresses the trip",
+    icon: "saved",
+    ready: true,
+  },
+  {
     href: "/stats",
     label: "Wear Stats",
     desc: "What you actually wear",

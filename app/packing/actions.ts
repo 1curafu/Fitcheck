@@ -9,15 +9,8 @@ import { scheduleDays } from "@/lib/packing/schedule";
 import { expandDays, realBuilder } from "@/lib/packing/plan";
 import { narrateTrip } from "@/lib/packing/narrate";
 import { saveTrip, loadTrip, replaceCapsule, saveTripLooks } from "@/lib/packing/store";
+import { PackingLockedError } from "@/lib/packing/errors";
 import type { CandidateItem } from "@/lib/generator/candidates";
-
-/** Thrown when a free user reaches for a Pro feature. The screen offers the upgrade sheet. */
-export class PackingLockedError extends Error {
-  constructor() {
-    super("Packing mode is a Pro feature");
-    this.name = "PackingLockedError";
-  }
-}
 
 export type PlanTripInput = {
   destinationLabel: string;
