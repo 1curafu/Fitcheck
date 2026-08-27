@@ -1,20 +1,27 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { MobileNav } from "@/components/shell/mobile-nav";
-import { ScreenHeader } from "@/components/shell/screen-header";
+import { PackingBack } from "@/components/packing/back-link";
 import { TripSetup } from "@/components/packing/trip-setup";
 import { resolveLocation } from "@/lib/weather/location";
 
 /**
- * The shell: the title bar, which is identical for every user. Rendered as both
- * the shell and the `<Suspense>` fallback so nothing moves when the body lands.
- *
- * ⚠️ Do NOT invent UI for a shell. The Profile lesson: a title nobody designed
- * painted instantly and then vanished when the body arrived.
+ * The shell, and the `<Suspense>` fallback — the back control and the title,
+ * both of which are identical for every user, in the same place the body puts
+ * them, so nothing moves when the body lands.
  */
 function PackingShell() {
-  return <ScreenHeader title="Where are you going?" kicker="Packing mode" backHref="/profile" />;
+  return (
+    <div className="screen-top px-[22px]">
+      <PackingBack href="/profile" />
+      <span className="mt-[10px] block text-[11px] uppercase tracking-[0.22em] text-muted-dim">
+        Packing mode
+      </span>
+      <h1 className="mt-[13px] font-serif text-3xl/[1.12] tracking-[-0.01em] text-foreground-strong">
+        Where are you going?
+      </h1>
+    </div>
+  );
 }
 
 export default function PackingPage() {
@@ -23,7 +30,6 @@ export default function PackingPage() {
       <Suspense fallback={<PackingShell />}>
         <PackingBody />
       </Suspense>
-      <MobileNav />
     </div>
   );
 }
@@ -57,7 +63,6 @@ async function PackingBody() {
       lat={location.lat}
       lon={location.lon}
       timezone={timezone}
-      onLocate={location.label}
     />
   );
 }

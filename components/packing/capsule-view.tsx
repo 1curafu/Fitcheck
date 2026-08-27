@@ -1,9 +1,13 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { PackingBack } from "./back-link";
 import { WhyQuote } from "@/components/generate/why-quote";
+import { PieceSheet, type SheetPiece } from "./piece-sheet";
 
-export type CapsulePiece = { id: string; name: string; imageUrl: string };
+export type CapsulePiece = { id: string; name: string; imageUrl: string; pinned: boolean };
 
 /** A stat tile — the item-detail pattern, lifted rather than re-derived. */
 function Tile({ value, label }: { value: string; label: string }) {
@@ -43,6 +47,12 @@ export function CapsuleView({
   tripId: string;
   beyondHorizon: boolean;
 }) {
+  // Tapping a piece asks what to do with it. Navigating straight to the item
+  // would be the wrong default here: on this screen the question is "does this
+  // go in the case", not "tell me about this shirt" — and the sheet offers that
+  // as its third option anyway.
+  const [selected, setSelected] = useState<SheetPiece | null>(null);
+
   return (
     <div className="flex min-h-dvh flex-1 flex-col">
       <div className="screen-top px-[22px]">
@@ -62,11 +72,33 @@ export function CapsuleView({
       </div>
 
       {/* The cutouts are the largest thing on screen — the clothes speak, the
-          UI whispers. `surface-stage` is the design's radial stage, not a flat fill. */}
-      <div className="mt-[14px] flex-1 px-[22px]">
-        <div className="grid h-full grid-cols-3 grid-rows-3 gap-[10px] overflow-hidden rounded-[18px] p-[20px] surface-stage">
+          UI whispers. `surface-stage` is the design's radial stage, not a flat fill.
+          ⚠️ The wrapper is a flex COLUMN with `min-h-0`: the first version made
+          the grid `h-full`, which pushed the name list and the why line clean
+          off the screen. And the row count follows the piece count — a fixed
+          three rows left a third of the stage empty for a six-piece capsule,
+          and the capsule size is measured, never assumed. */}
+      <div className="mt-[14px] flex min-h-0 flex-1 flex-col px-[22px]">
+        <div
+          className="grid min-h-0 flex-1 grid-cols-3 gap-[10px] overflow-hidden rounded-[18px] p-[20px] surface-stage"
+          style={{ gridTemplateRows: `repeat(${Math.max(1, Math.ceil(pieces.length / 3))}, minmax(0, 1fr))` }}
+        >
           {pieces.map((p) => (
-            <Link key={p.id} href={`/closet/${p.id}`} className="grid place-items-center">
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => setSelected({ id: p.id, name: p.name, pinned: p.pinned })}
+              aria-label={`Change ${p.name}`}
+              className="relative grid place-items-center"
+            >
+              {/* A pinned piece is marked: the user insisted on it, and a
+                  re-solve that kept it should look deliberate rather than lucky. */}
+              {p.pinned && (
+                <span
+                  aria-hidden="true"
+                  className="absolute right-0 top-0 size-[7px] rounded-full bg-brand"
+                />
+              )}
               {p.imageUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -77,15 +109,19 @@ export function CapsuleView({
                   className="size-full object-contain"
                 />
               )}
-            </Link>
+            </button>
           ))}
         </div>
-        <p className="mt-[11px] text-[10px] uppercase leading-[1.65] tracking-[0.13em] text-muted-foreground">
+        <p className="mt-[11px] shrink-0 text-[10px] uppercase leading-[1.65] tracking-[0.13em] text-muted-foreground">
           {pieces.map((p) => p.name).join(" · ")}
         </p>
       </div>
 
-      <div className="px-[22px]">
+      {/* ⚠️ Clears the sticky action bar. Without the padding the why line — the
+          product's differentiator, and a named rule says it is never truncated —
+          sits UNDER "See the days". The stage above is `flex-1`, so it gives up
+          the space rather than the sentence doing so. */}
+      <div className="shrink-0 px-[22px] pb-[86px]">
         <WhyQuote name={`${dayCount} days · ${pieces.length} pieces`} why={why} />
         {beyondHorizon && (
           // ⚠️ Said out loud rather than hidden. Part of this trip is past the
@@ -105,6 +141,8 @@ export function CapsuleView({
           See the days
         </Link>
       </div>
+
+      <PieceSheet tripId={tripId} piece={selected} onClose={() => setSelected(null)} />
     </div>
   );
 }

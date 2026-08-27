@@ -73,6 +73,7 @@ async function TripBody({ params }: { params: Promise<{ tripId: string }> }) {
         id: row.id,
         name: (row.name ?? row.subcategory ?? row.category) as string,
         imageUrl: signed.get(path(row)) ?? "",
+        pinned: c.pinned,
       },
     ];
   });

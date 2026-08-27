@@ -100,6 +100,7 @@ async function DaysBody({ params }: { params: Promise<{ tripId: string }> }) {
     });
 
     return {
+      outfitId: l.id as string,
       date,
       label: new Date(`${date}T00:00:00Z`).toLocaleDateString("en-GB", {
         weekday: "short",

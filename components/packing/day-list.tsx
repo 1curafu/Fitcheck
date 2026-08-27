@@ -1,9 +1,12 @@
+import Link from "next/link";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { PackingBack } from "./back-link";
 import { WhyQuote } from "@/components/generate/why-quote";
 import { formatTemp, type TempUnit } from "@/lib/weather/format";
 
 export type DayCard = {
+  /** The stored outfit, so the card can open the look it describes. */
+  outfitId: string;
   date: string;
   label: string;
   occasion: string;
@@ -53,10 +56,15 @@ export function DayList({
       </div>
 
       <div className="mt-4 flex flex-col gap-[10px] px-[22px] pb-[calc(env(safe-area-inset-bottom)+24px)]">
+        {/* ⚠️ The whole card opens the look. A day that describes an outfit and
+            cannot be opened is a dead end — and `/outfits/[id]` already carries
+            the flat-lay, the wear button and the favourite, so this needs no
+            new screen. */}
         {days.map((d) => (
-          <article
+          <Link
             key={d.date}
-            className="rounded-[16px] bg-surface-1 px-[14px] pb-[13px] pt-3 shadow-[inset_0_0_0_1px_var(--hairline-3)]"
+            href={`/outfits/${d.outfitId}`}
+            className="block rounded-[16px] bg-surface-1 px-[14px] pb-[13px] pt-3 shadow-[inset_0_0_0_1px_var(--hairline-3)]"
           >
             <header className="flex items-center gap-[10px]">
               <div className="font-serif text-[17px] text-foreground">{d.label}</div>
@@ -92,7 +100,7 @@ export function DayList({
             </p>
 
             <WhyQuote name={d.name} why={d.why} />
-          </article>
+          </Link>
         ))}
       </div>
     </div>
