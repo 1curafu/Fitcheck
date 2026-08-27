@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { signItemImages, displayPath } from "@/lib/storage/signed";
+import { MobileNav } from "@/components/shell/mobile-nav";
 import { DayList, type DayCard } from "@/components/packing/day-list";
 import { PackingBack } from "@/components/packing/back-link";
 import { loadTrip } from "@/lib/packing/store";
@@ -30,6 +31,14 @@ export default function DaysPage({ params }: { params: Promise<{ tripId: string 
     <div className="flex min-h-dvh flex-1 flex-col">
       <Suspense fallback={<DaysShell />}>
         <DaysBody params={params} />
+      </Suspense>
+      {/* ⚠️ Its own boundary. `MobileNav` calls `usePathname()`, and on a
+          DYNAMIC route the path is not known at prerender time — the build
+          fails outright with "URL data in a Client Component outside of
+          <Suspense>". The tab destinations get away with rendering it bare
+          because their paths are static. */}
+      <Suspense fallback={null}>
+        <MobileNav />
       </Suspense>
     </div>
   );

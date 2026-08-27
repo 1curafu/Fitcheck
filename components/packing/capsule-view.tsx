@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Shirt } from "lucide-react";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { PackingBack } from "./back-link";
 import { WhyQuote } from "@/components/generate/why-quote";
-import { PieceSheet, type SheetPiece } from "./piece-sheet";
+import { PieceSheet, type SheetPiece, type Alternative } from "./piece-sheet";
 
-export type CapsulePiece = { id: string; name: string; imageUrl: string; pinned: boolean };
+export type CapsulePiece = { id: string; name: string; imageUrl: string; pinned: boolean; category: string };
 
 /** A stat tile — the item-detail pattern, lifted rather than re-derived. */
 function Tile({ value, label }: { value: string; label: string }) {
@@ -37,6 +38,7 @@ export function CapsuleView({
   why,
   tripId,
   beyondHorizon,
+  alternatives,
 }: {
   destination: string;
   dateRange: string;
@@ -46,6 +48,8 @@ export function CapsuleView({
   why: string;
   tripId: string;
   beyondHorizon: boolean;
+  /** The rest of the closet, so a piece can be swapped for a real alternative. */
+  alternatives: Alternative[];
 }) {
   // Tapping a piece asks what to do with it. Navigating straight to the item
   // would be the wrong default here: on this screen the question is "does this
@@ -87,7 +91,7 @@ export function CapsuleView({
             <button
               key={p.id}
               type="button"
-              onClick={() => setSelected({ id: p.id, name: p.name, pinned: p.pinned })}
+              onClick={() => setSelected({ id: p.id, name: p.name, pinned: p.pinned, category: p.category })}
               aria-label={`Change ${p.name}`}
               className="relative grid place-items-center"
             >
@@ -121,7 +125,7 @@ export function CapsuleView({
           product's differentiator, and a named rule says it is never truncated —
           sits UNDER "See the days". The stage above is `flex-1`, so it gives up
           the space rather than the sentence doing so. */}
-      <div className="shrink-0 px-[22px] pb-[86px]">
+      <div className="shrink-0 px-[22px] pb-[112px]">
         <WhyQuote name={`${dayCount} days · ${pieces.length} pieces`} why={why} />
         {beyondHorizon && (
           // ⚠️ Said out loud rather than hidden. Part of this trip is past the
@@ -133,7 +137,20 @@ export function CapsuleView({
         )}
       </div>
 
+      {/* ⚠️ The canonical bottom action bar — one small secondary, one primary
+          pill — and the secondary is the way OUT. These screens carry no bottom
+          nav (they have a sticky action, and the two stacked is the bug
+          docs/STATE.md records), so without this the only exit was two taps of
+          a small back chevron. Three levels deep with no one-tap way home is
+          not an acceptable place to leave someone. */}
       <div className="sticky bottom-0 z-30 flex gap-3 bg-gradient-to-t from-canvas from-60% to-transparent px-[22px] pb-[calc(env(safe-area-inset-bottom)+14px)] pt-[14px]">
+        <Link
+          href="/closet"
+          aria-label="Done — back to the closet"
+          className="grid h-[54px] w-14 shrink-0 place-items-center rounded-[14px] bg-surface-2 text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-6)]"
+        >
+          <Shirt size={19} />
+        </Link>
         <Link
           href={`/packing/${tripId}/days`}
           className="flex-1 rounded-[12px] bg-foreground py-[17px] text-center font-semibold text-canvas"
@@ -142,7 +159,12 @@ export function CapsuleView({
         </Link>
       </div>
 
-      <PieceSheet tripId={tripId} piece={selected} onClose={() => setSelected(null)} />
+      <PieceSheet
+        tripId={tripId}
+        piece={selected}
+        alternatives={alternatives}
+        onClose={() => setSelected(null)}
+      />
     </div>
   );
 }

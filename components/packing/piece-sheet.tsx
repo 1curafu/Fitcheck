@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { editCapsule } from "@/app/packing/actions";
 
-export type SheetPiece = { id: string; name: string; pinned: boolean };
+export type SheetPiece = { id: string; name: string; pinned: boolean; category: string };
+/** A closet piece offered as a replacement. */
+export type Alternative = { id: string; name: string; category: string; imageUrl: string };
 
 /**
  * Change what goes in the case.
@@ -22,15 +24,19 @@ export type SheetPiece = { id: string; name: string; pinned: boolean };
 export function PieceSheet({
   tripId,
   piece,
+  alternatives,
   onClose,
 }: {
   tripId: string;
   piece: SheetPiece | null;
+  /** Everything else in the closet, so a swap can offer the same category. */
+  alternatives: Alternative[];
   onClose: () => void;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [swapping, setSwapping] = useState(false);
 
   // ⚠️ Routes are preserved with `<Activity hidden>` rather than unmounted, so
   // `useState` survives navigation — without this the sheet is still open when
@@ -39,7 +45,7 @@ export function PieceSheet({
 
   if (!piece) return null;
 
-  function act(edit: { pin?: string; remove?: string }) {
+  function act(edit: { pin?: string; remove?: string; swapFor?: string }) {
     setError(null);
     start(async () => {
       try {
@@ -52,6 +58,10 @@ export function PieceSheet({
     });
   }
 
+  // Same category only. Offering a shirt in place of shoes would produce a
+  // capsule that cannot dress the days it was solved for.
+  const swaps = alternatives.filter((a) => a.category === piece.category && a.id !== piece.id);
+
   return (
     <div className="fixed inset-0 z-[60] flex items-end" role="dialog" aria-modal="true">
       <button
@@ -63,7 +73,48 @@ export function PieceSheet({
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[var(--hairline-6)]" />
         <p className="font-serif text-[22px] text-foreground">{piece.name}</p>
 
+        {swapping ? (
+          <div className="mt-4 max-h-[46vh] overflow-y-auto">
+            {swaps.length === 0 ? (
+              <p className="py-6 text-center text-[14px] text-muted-foreground">
+                Nothing else in your closet fits this slot.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {swaps.map((a) => (
+                  <button
+                    key={a.id}
+                    onClick={() => act({ swapFor: a.id, remove: piece.id })}
+                    disabled={pending}
+                    className="flex items-center gap-3 rounded-[12px] bg-surface-3 p-3 text-left shadow-[inset_0_0_0_1px_var(--hairline-6)] disabled:opacity-60"
+                  >
+                    <span className="grid size-12 shrink-0 place-items-center rounded-[10px] bg-surface-1">
+                      {a.imageUrl && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={a.imageUrl} alt="" className="size-full object-contain p-1" />
+                      )}
+                    </span>
+                    <span className="flex-1 text-[15px] text-foreground">{a.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <button
+              onClick={() => setSwapping(false)}
+              className="mt-3 w-full py-3 text-center text-[14px] text-muted-foreground"
+            >
+              Back
+            </button>
+          </div>
+        ) : (
         <div className="mt-5 flex flex-col gap-2">
+          <button
+            onClick={() => setSwapping(true)}
+            disabled={pending}
+            className="rounded-[12px] bg-surface-3 py-[15px] text-center text-[15px] text-foreground shadow-[inset_0_0_0_1px_var(--hairline-6)] disabled:opacity-60"
+          >
+            Take something else instead
+          </button>
           <button
             onClick={() => act(piece.pinned ? { remove: piece.id } : { pin: piece.id })}
             disabled={pending}
@@ -85,6 +136,7 @@ export function PieceSheet({
             See the piece
           </Link>
         </div>
+        )}
 
         {pending && (
           <p role="status" className="mt-3 text-center text-[13px] text-muted-foreground">
