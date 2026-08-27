@@ -28,6 +28,7 @@ const ROUTES = [
   // ⚠️ New routes must be added here or `npm run insights` passes without ever
   // visiting them — a green walk that proves nothing.
   "/packing",
+  "/packing/new",
 ];
 
 test("walk every route @insights", async ({ page }) => {

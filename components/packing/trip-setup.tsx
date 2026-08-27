@@ -107,7 +107,7 @@ export function TripSetup({ destinationLabel, lat, lon, timezone }: TripSetupPro
         {/* ⚠️ The same header the shell renders, in the same place. A shell that
             shows a back control the body then drops makes it VANISH — the
             Profile mistake. */}
-        <PackingBack href="/profile" />
+        <PackingBack href="/packing" />
         <Kicker className="mt-[10px] block">Packing mode</Kicker>
         <h1 className="mt-[13px] font-serif text-3xl/[1.12] tracking-[-0.01em] text-foreground-strong">
           Where are you going?
