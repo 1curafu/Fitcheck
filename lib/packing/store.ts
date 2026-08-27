@@ -176,3 +176,50 @@ export async function saveTripLooks(
   const { error: pieceError } = await supabase.from("outfit_items").insert(pieces);
   if (pieceError) throw new Error(`saving trip look pieces failed: ${pieceError.message}`);
 }
+
+export type TripSummary = {
+  id: string;
+  destinationLabel: string;
+  startDate: string;
+  endDate: string;
+  pieceCount: number;
+  dayCount: number;
+};
+
+/**
+ * Every trip the caller owns, most recent first.
+ *
+ * ⚠️ **This is the half of "a trip is a real entity" that was missing.** The
+ * rows were being written from day one — destination, dates, capsule, per-day
+ * looks — and nothing ever read them back, so a saved trip was invisible the
+ * moment the page closed. Persistence nobody can reach is indistinguishable
+ * from no persistence, and that is exactly how it looked.
+ */
+export async function listTrips(): Promise<TripSummary[]> {
+  const supabase = await createClient();
+
+  // RLS scopes this to the caller; a user_id filter would imply otherwise.
+  const { data, error } = await supabase
+    .from("trips")
+    .select("id, destination_label, start_date, end_date, trip_items(count)")
+    .order("start_date", { ascending: false });
+  if (error) throw new Error(`listing trips failed: ${error.message}`);
+
+  return (data ?? []).map((t) => ({
+    id: t.id as string,
+    destinationLabel: t.destination_label as string,
+    startDate: t.start_date as string,
+    endDate: t.end_date as string,
+    // PostgREST returns an aggregate as a one-element array.
+    pieceCount: (t.trip_items as unknown as { count: number }[])?.[0]?.count ?? 0,
+    dayCount: daysInclusive(t.start_date as string, t.end_date as string),
+  }));
+}
+
+/** Inclusive whole days. Calendar strings, never instants — DST is not a factor. */
+export function daysInclusive(start: string, end: string): number {
+  const a = new Date(`${start}T00:00:00Z`).getTime();
+  const b = new Date(`${end}T00:00:00Z`).getTime();
+  if (Number.isNaN(a) || Number.isNaN(b) || b < a) return 0;
+  return Math.round((b - a) / 86_400_000) + 1;
+}
