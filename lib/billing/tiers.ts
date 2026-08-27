@@ -1,7 +1,13 @@
 export type Tier = "free" | "pro";
 
 /** The three things that spend a model request. See docs/MONETISATION.md §2. */
-export type GenerationKind = "drop" | "regenerate" | "styled";
+/**
+ * ⚠️ `trip` is RECORDED but never limited (spec decision #5). Packing is
+ * Pro-only, and Pro is sold on "unlimited daily looks" — metering it would
+ * contradict the pitch. It is in the ledger so a trip is not invisible when
+ * someone asks what a user costs.
+ */
+export type GenerationKind = "drop" | "regenerate" | "styled" | "trip";
 
 export type Entitlements = {
   tier: Tier;
