@@ -146,8 +146,44 @@ export function solveCapsule(input: CapsuleInput): CapsuleResult {
       continue;
     }
 
-    // 2. Costed: fall back to the whole closet and take on whatever it adds.
-    // No `recent` — see above.
+    /**
+     * 2. Top up only the categories that have actually run out.
+     *
+     * ⚠️ **Without this the case over-packs, and it is not subtle.** Going
+     * straight to the whole closet lets the builder return its best outfit
+     * outright, and every piece of it not already packed gets bought — so a day
+     * that needed only a fresh top drags a second pair of shoes in with it.
+     * Measured: a 5-day trip at "fresh every day" came back with FOUR pairs of
+     * shoes. That is the user report that found this.
+     *
+     * So the pool offered here is: everything already packed that still has
+     * wear left, PLUS the closet only in the categories where nothing packed
+     * has any left. The builder physically cannot reach for a new shoe when the
+     * shoes in the case are still wearable.
+     *
+     * Cheaper than searching subsets, and exact: the categories that need
+     * topping up are known, not guessed.
+     */
+    const withCapacity = chosen.filter((i) => (wears.get(i.id) ?? 0) < limitFor(i));
+    const covered = new Set(withCapacity.map((i) => i.category));
+    const toppedUp = [
+      ...withCapacity,
+      ...eligible.filter((i) => !covered.has(i.category) && !chosen.some((c) => c.id === i.id)),
+    ];
+
+    const topped = outfitFor(day, toppedUp);
+    if (topped) {
+      for (const id of topped.itemIds) {
+        if (chosen.some((c) => c.id === id)) continue;
+        const item = eligible.find((i) => i.id === id);
+        if (item) chosen.push(item);
+      }
+      commit(day, topped.itemIds);
+      continue;
+    }
+
+    // 3. Costed: the topped-up pool still cannot dress the day, so fall back to
+    // the whole closet. No `recent` — see above.
     const fresh = outfitFor(day, eligible);
     if (!fresh) continue; // nothing can dress this day — it lands in `uncovered`
 

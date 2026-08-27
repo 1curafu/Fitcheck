@@ -36,11 +36,21 @@ export function maxWears(category: string, level: number, tripDays: number): num
   // stored in the database, and one bad row must not break a whole trip.
   const clamped = Math.min(5, Math.max(1, Math.round(level)));
 
-  // Level 1 is absolute — fresh every day, coats included. Exempting outerwear
-  // here would make "Fresh every day" quietly untrue.
-  if (clamped === 1) return 1;
-
+  /**
+   * ⚠️ **Outerwear, shoes and accessories re-wear at EVERY level, level 1
+   * included.** An earlier version made level 1 absolute — fresh everything,
+   * coats and shoes too — on the argument that exempting them would make
+   * "Fresh every day" untrue. That argument was wrong, and it produced an
+   * absurd result: a five-day trip demanded five pairs of shoes, so a closet
+   * with four reported UNCOVERED DAYS for a reason no human would accept.
+   *
+   * Nobody means "a different pair of shoes each day" by fresh every day. They
+   * mean fresh CLOTHES. The label describes what a person means, and this is
+   * what a person means.
+   */
   if (ALWAYS_REWEARABLE.has(category)) return tripDays;
+
+  if (clamped === 1) return 1;
 
   // Bottoms sit one step looser than tops: a trouser outlasts a shirt.
   const allowance = category === "Bottoms" ? clamped + 1 : clamped;

@@ -119,6 +119,12 @@ export function CapsuleView({
         <p className="mt-[11px] shrink-0 text-[10px] uppercase leading-[1.65] tracking-[0.13em] text-muted-foreground">
           {pieces.map((p) => p.name).join(" · ")}
         </p>
+        {/* ⚠️ Nothing said the pieces were tappable, so the one thing the user
+            most wanted to do — change what is in the case — was invisible. A
+            capsule you cannot see how to edit is a capsule you have to accept. */}
+        <p className="mt-[6px] shrink-0 text-[12px] text-muted-foreground">
+          Tap a piece to swap it or leave it behind.
+        </p>
       </div>
 
       {/* ⚠️ Clears the sticky action bar. Without the padding the why line — the

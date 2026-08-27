@@ -211,50 +211,23 @@ describe("variety across consecutive days", () => {
   });
 
   /**
-   * ⚠️ **The regression this whole section nearly shipped.**
+   * ⚠️ **A test that used to live here was DELETED, deliberately.**
    *
-   * A builder that returns a score NEAR THE FLOOR, and lowers it when pieces
-   * repeat, must still cover the day from what is packed. Return a penalised
-   * score to the solve and a repeated outfit sinks under `floor`, the free
-   * branch fails, and the solve buys a piece to escape its own variety nudge —
-   * it took the real closet from six pieces to seven while the days STILL
-   * repeated. The earlier tests missed it because their builders returned a
-   * flat score of 1 and never touched the floor.
+   * It proved that a builder leaking its variety preference into the score it
+   * REPORTS inflates the capsule — the day the recency work took the real
+   * closet from six pieces to seven. The category-precise top-up branch above
+   * now defends against that from a second direction: the pool offered when a
+   * day needs new pieces contains only the categories that ran out, so even a
+   * penalised score cannot buy something unrelated.
+   *
+   * With both fixes the assertion could no longer fail on any fixture, and a
+   * test that cannot fail is worse than no test — this file already carried one
+   * such tautology and it took a negative pass to find it.
+   *
+   * The property is still guarded, at the place it actually lives:
+   * `plan.test.ts` → "the recency preference orders without lowering the
+   * reported score", verified to go red when `realBuilder` is reverted.
    */
-  test("a near-floor score is not dragged under it by repeating", () => {
-    const FLOOR = 0.7;
-
-    /** Counts how often the solve had to fall back to the whole closet. */
-    function costedFallbacks(build: OutfitBuilder) {
-      let costed = 0;
-      const spy: OutfitBuilder = (day, available, recent) => {
-        if (available.length === closet.length) costed += 1;
-        return build(day, available, recent);
-      };
-      solveCapsule({ closet, days: days(5), level: 3, floor: FLOOR, build: spy });
-      return costed;
-    }
-
-    // Honest: reports the outfit's own quality, just above the floor.
-    const honest: OutfitBuilder = (day, available) => {
-      const built = simple(day, available);
-      return built ? { ...built, score: 0.75 } : null;
-    };
-
-    // Buggy: subtracts its variety preference from the score it REPORTS, so a
-    // fully-repeated outfit lands under the floor and the free branch fails.
-    const leaky: OutfitBuilder = (day, available, recent) => {
-      const built = simple(day, available);
-      if (!built) return null;
-      const repeated = built.itemIds.filter((id) => (recent ?? []).includes(id)).length;
-      return { ...built, score: 0.75 - 0.25 * (repeated / built.itemIds.length) };
-    };
-
-    // ⚠️ Every extra fallback is a chance to buy a piece. On the real closet
-    // this cost a seventh item while the days still repeated. `realBuilder`
-    // re-scores its winner WITHOUT the penalty precisely to prevent it.
-    expect(costedFallbacks(leaky)).toBeGreaterThan(costedFallbacks(honest));
-  });
 
   // The costed branch must NOT receive history: a day may never add a piece
   // merely to avoid looking like yesterday.
@@ -268,5 +241,65 @@ describe("variety across consecutive days", () => {
     solveCapsule({ closet, days: days(3), level: 3, floor: 0.5, build: spy });
     expect(costedCalls.length).toBeGreaterThan(0);
     expect(costedCalls.every((r) => r === undefined)).toBe(true);
+  });
+});
+
+
+/**
+ * ⚠️ **Over-packing, the user report that found it.**
+ *
+ * "It should not give 4 pairs of shoes for a 5 day trip, maximal 2."
+ *
+ * Two separate causes, both fixed:
+ *  1. `maxWears` treated level 1 as absolute, so shoes were limited to one wear
+ *     and a 5-day trip demanded 5 pairs. Nobody means fresh SHOES by "fresh
+ *     every day".
+ *  2. When a day needed new pieces, the solve asked for the best outfit in the
+ *     whole closet and bought everything in it that was not already packed — so
+ *     a fresh top dragged a fresh pair of shoes along. It now tops up only the
+ *     categories that have actually run out.
+ */
+describe("over-packing", () => {
+  const wardrobe: CapsuleItem[] = [
+    ...Array.from({ length: 6 }, (_, i) => ({ id: `top-${i}`, category: "Tops" })),
+    ...Array.from({ length: 6 }, (_, i) => ({ id: `bot-${i}`, category: "Bottoms" })),
+    ...Array.from({ length: 4 }, (_, i) => ({ id: `shoe-${i}`, category: "Shoes" })),
+  ];
+
+  // Rotates its pick, as the real scorer does when the other slots change —
+  // which is exactly what dragged extra shoes in.
+  const rotatingAll: OutfitBuilder = (day, available) => {
+    const n = Number(day.date.slice(-2));
+    const pick = (category: string) => {
+      const options = available.filter((i) => i.category === category);
+      return options.length ? options[n % options.length] : null;
+    };
+    const top = pick("Tops");
+    const bottom = pick("Bottoms");
+    const shoe = pick("Shoes");
+    if (!top || !bottom || !shoe) return null;
+    return { itemIds: [top.id, bottom.id, shoe.id], score: 1 };
+  };
+
+  const fiveDays = Array.from({ length: 5 }, (_, i) => ({
+    date: `2026-09-0${i + 1}`,
+    occasion: "everyday",
+  }));
+
+  test.each([1, 2, 3, 5])("packs one pair of shoes for five days at level %i", (level) => {
+    const r = solveCapsule({
+      closet: wardrobe, days: fiveDays, level, floor: 0.5, build: rotatingAll,
+    });
+    const shoes = r.itemIds.filter((id) => id.startsWith("shoe"));
+    expect(shoes.length).toBeLessThanOrEqual(2);
+    expect(r.uncovered).toHaveLength(0);
+  });
+
+  // Four pairs must not be a reason a day cannot be dressed.
+  test("four pairs of shoes still cover five days at 'fresh every day'", () => {
+    const r = solveCapsule({
+      closet: wardrobe, days: fiveDays, level: 1, floor: 0.5, build: rotatingAll,
+    });
+    expect(r.uncovered).toHaveLength(0);
   });
 });
