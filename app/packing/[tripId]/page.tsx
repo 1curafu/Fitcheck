@@ -55,15 +55,28 @@ async function TripBody({ params }: { params: Promise<{ tripId: string }> }) {
     .eq("trip_id", tripId)
     .order("trip_day");
 
+  // The WHOLE closet, not just the capsule: a swap has to offer real
+  // alternatives, and they are cutouts the sheet renders at thumbnail size.
   const { data: items } = await supabase
     .from("items")
     .select("id, name, subcategory, category, image_url, cutout_url, thumb_url")
-    .in("id", trip.capsule.length ? trip.capsule.map((c) => c.itemId) : ["00000000-0000-0000-0000-000000000000"]);
+    .eq("archived", false);
 
-  const rows = items ?? [];
+  const all = items ?? [];
+  const inCapsule = new Set(trip.capsule.map((c) => c.itemId));
+  const rows = all.filter((r) => inCapsule.has(r.id));
   // The capsule grid renders cutouts at ~110px — the thumbnail, not the hero.
   const path = (i: (typeof rows)[number]) => displayPath(i, "thumb");
-  const signed = await signItemImages(rows.map(path));
+  const signed = await signItemImages(all.map(path));
+
+  const alternatives = all
+    .filter((r) => !inCapsule.has(r.id))
+    .map((r) => ({
+      id: r.id,
+      name: (r.name ?? r.subcategory ?? r.category) as string,
+      category: r.category as string,
+      imageUrl: signed.get(path(r)) ?? "",
+    }));
 
   const pieces = trip.capsule.flatMap((c) => {
     const row = rows.find((r) => r.id === c.itemId);
@@ -74,6 +87,7 @@ async function TripBody({ params }: { params: Promise<{ tripId: string }> }) {
         name: (row.name ?? row.subcategory ?? row.category) as string,
         imageUrl: signed.get(path(row)) ?? "",
         pinned: c.pinned,
+        category: row.category as string,
       },
     ];
   });
@@ -134,6 +148,7 @@ async function TripBody({ params }: { params: Promise<{ tripId: string }> }) {
       outfitCount={covered}
       why={(looks ?? [])[0]?.ai_reasoning ?? ""}
       beyondHorizon={false}
+      alternatives={alternatives}
     />
   );
 }

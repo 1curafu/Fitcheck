@@ -55,7 +55,11 @@ export function DayList({
         </h1>
       </div>
 
-      <div className="mt-4 flex flex-col gap-[10px] px-[22px] pb-[calc(env(safe-area-inset-bottom)+24px)]">
+      {/* Extra bottom padding: this screen DOES carry the bottom nav — it has
+          no sticky action of its own, so there is nothing for the nav to cover.
+          That is the rule: a screen may have a sticky primary action or the
+          nav, never both. */}
+      <div className="mt-4 flex flex-col gap-[10px] px-[22px] pb-[calc(env(safe-area-inset-bottom)+96px)]">
         {/* ⚠️ The whole card opens the look. A day that describes an outfit and
             cannot be opened is a dead end — and `/outfits/[id]` already carries
             the flat-lay, the wear button and the favourite, so this needs no

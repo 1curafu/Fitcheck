@@ -11,7 +11,14 @@ export const config = {
     /*
      * Run on all request paths except static assets and image files, so the
      * session cookie is refreshed on every navigation.
+     *
+     * ⚠️ `monitoring` is excluded deliberately. Sentry's `tunnelRoute` proxies
+     * every browser error report through `/monitoring` to get past ad-blockers,
+     * and this matcher would otherwise run a full Supabase session refresh —
+     * a database round-trip — on each one. Sentry's own setup comment warns
+     * that the tunnel route must not collide with middleware; this is that
+     * collision, avoided rather than discovered in a bill.
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|monitoring|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

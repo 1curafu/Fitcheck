@@ -196,7 +196,7 @@ async function solveAndPersist(args: SolveArgs): Promise<string> {
  */
 export async function editCapsule(
   tripId: string,
-  edit: { pin?: string; remove?: string },
+  edit: { pin?: string; remove?: string; swapFor?: string },
 ): Promise<{ tripId: string }> {
   const { supabase, user } = await requireUser();
 
@@ -209,6 +209,16 @@ export async function editCapsule(
   const pinned = new Set(trip.capsule.filter((c) => c.pinned).map((c) => c.itemId));
   if (edit.pin) pinned.add(edit.pin);
   if (edit.remove) pinned.delete(edit.remove);
+
+  /**
+   * A swap is a pin and a removal in one move, and it has to be BOTH.
+   *
+   * ⚠️ Removing alone re-solves and the solve is free to pick the same piece
+   * straight back — it was chosen because it scored best, and nothing about
+   * excluding it changes that for the replacement. Pinning the replacement is
+   * what makes "use this instead" actually mean instead.
+   */
+  if (edit.swapFor) pinned.add(edit.swapFor);
 
   const { data: closet } = await supabase
     .from("items")
