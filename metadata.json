@@ -1,0 +1,24 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M10W8W06B938MG2WA2XW1WX3",
+  "strategy": "manual-commit",
+  "branch": "feat/packing-trips",
+  "checkpoints_count": 3,
+  "files_touched": null,
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 642,
+    "cache_creation_tokens": 3876222,
+    "cache_read_tokens": 102766445,
+    "output_tokens": 333064,
+    "api_call_count": 323
+  }
+}
