@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { editCapsule } from "@/app/packing/actions";
@@ -38,10 +38,28 @@ export function PieceSheet({
   const [error, setError] = useState<string | null>(null);
   const [swapping, setSwapping] = useState(false);
 
-  // ⚠️ Routes are preserved with `<Activity hidden>` rather than unmounted, so
-  // `useState` survives navigation — without this the sheet is still open when
-  // you come back. Four sheets needed this fix on PRs #42–#45.
-  useEffect(() => () => onClose(), [onClose]);
+  /**
+   * ⚠️ **The sheet used to close itself the instant it opened.**
+   *
+   * The cleanup depended on `onClose`, which the parent passes as an inline
+   * `() => setSelected(null)` — a NEW function on every render. So the effect
+   * re-ran constantly and its cleanup fired immediately, and the sheet was
+   * unusable. Settings gets this right with empty deps and a stable setter.
+   *
+   * The ref keeps the latest callback without making it a dependency, so the
+   * effect runs exactly once and its cleanup fires only on unmount — which is
+   * what it is for: routes are preserved with `<Activity hidden>` rather than
+   * unmounted, so `useState` survives navigation and a sheet left open is
+   * still open when you come back. Four sheets needed this on PRs #42–#45.
+   */
+  const closeRef = useRef(onClose);
+  // Assigned in an effect, not during render — a ref written while rendering
+  // can leave the component not updating as expected, and the lint rule that
+  // says so is right.
+  useEffect(() => {
+    closeRef.current = onClose;
+  }, [onClose]);
+  useEffect(() => () => closeRef.current(), []);
 
   if (!piece) return null;
 
