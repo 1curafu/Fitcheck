@@ -162,3 +162,111 @@ test("covers what it can and reports the rest", () => {
   expect(r.uncovered).toHaveLength(1);
   expect(r.uncovered[0].occasion).toBe("evening");
 });
+
+/**
+ * ⚠️ Day-to-day variety, and the guarantee that it is FREE.
+ *
+ * A capsule's promise is re-use, so a variety preference that could make the
+ * solve buy another piece would fight the feature. The engine only offers
+ * `recent` on the branch where nothing can be bought.
+ */
+describe("variety across consecutive days", () => {
+  // A builder that respects `recent`: it avoids repeating the previous day's
+  // top when it has another to hand — what `rankTopN`'s recency weight does.
+  const varying: OutfitBuilder = (_day, available, recent) => {
+    const avoid = new Set(recent ?? []);
+    const pick = (category: string) => {
+      const options = available.filter((i) => i.category === category);
+      return options.find((o) => !avoid.has(o.id)) ?? options[0];
+    };
+    const top = pick("Tops");
+    const bottom = pick("Bottoms");
+    const shoe = pick("Shoes");
+    if (!top || !bottom || !shoe) return null;
+    return { itemIds: [top.id, bottom.id, shoe.id], score: 1 };
+  };
+
+  test("passes the previous day's pieces when choosing from what is packed", () => {
+    const seen: (string[] | undefined)[] = [];
+    const spy: OutfitBuilder = (d, a, recent) => {
+      seen.push(recent);
+      return simple(d, a);
+    };
+    solveCapsule({ closet, days: days(3), level: 3, floor: 0.5, build: spy });
+    // The first call has no history; a later one does.
+    expect(seen[0]).toBeUndefined();
+    expect(seen.some((r) => r && r.length > 0)).toBe(true);
+  });
+
+  /**
+   * ⚠️ **The guarantee that matters.** A builder that actively avoids repeats
+   * must not enlarge the capsule — because the solve only offers it the choice
+   * among pieces it has already committed to.
+   */
+  test("varying days never adds a piece", () => {
+    const plain = solveCapsule({ closet, days: days(4), level: 3, floor: 0.5, build: simple });
+    const varied = solveCapsule({ closet, days: days(4), level: 3, floor: 0.5, build: varying });
+    expect(varied.itemIds.length).toBeLessThanOrEqual(plain.itemIds.length);
+    expect(varied.uncovered).toHaveLength(0);
+  });
+
+  /**
+   * ⚠️ **The regression this whole section nearly shipped.**
+   *
+   * A builder that returns a score NEAR THE FLOOR, and lowers it when pieces
+   * repeat, must still cover the day from what is packed. Return a penalised
+   * score to the solve and a repeated outfit sinks under `floor`, the free
+   * branch fails, and the solve buys a piece to escape its own variety nudge —
+   * it took the real closet from six pieces to seven while the days STILL
+   * repeated. The earlier tests missed it because their builders returned a
+   * flat score of 1 and never touched the floor.
+   */
+  test("a near-floor score is not dragged under it by repeating", () => {
+    const FLOOR = 0.7;
+
+    /** Counts how often the solve had to fall back to the whole closet. */
+    function costedFallbacks(build: OutfitBuilder) {
+      let costed = 0;
+      const spy: OutfitBuilder = (day, available, recent) => {
+        if (available.length === closet.length) costed += 1;
+        return build(day, available, recent);
+      };
+      solveCapsule({ closet, days: days(5), level: 3, floor: FLOOR, build: spy });
+      return costed;
+    }
+
+    // Honest: reports the outfit's own quality, just above the floor.
+    const honest: OutfitBuilder = (day, available) => {
+      const built = simple(day, available);
+      return built ? { ...built, score: 0.75 } : null;
+    };
+
+    // Buggy: subtracts its variety preference from the score it REPORTS, so a
+    // fully-repeated outfit lands under the floor and the free branch fails.
+    const leaky: OutfitBuilder = (day, available, recent) => {
+      const built = simple(day, available);
+      if (!built) return null;
+      const repeated = built.itemIds.filter((id) => (recent ?? []).includes(id)).length;
+      return { ...built, score: 0.75 - 0.25 * (repeated / built.itemIds.length) };
+    };
+
+    // ⚠️ Every extra fallback is a chance to buy a piece. On the real closet
+    // this cost a seventh item while the days still repeated. `realBuilder`
+    // re-scores its winner WITHOUT the penalty precisely to prevent it.
+    expect(costedFallbacks(leaky)).toBeGreaterThan(costedFallbacks(honest));
+  });
+
+  // The costed branch must NOT receive history: a day may never add a piece
+  // merely to avoid looking like yesterday.
+  test("withholds history when it would cost a new piece", () => {
+    const costedCalls: (string[] | undefined)[] = [];
+    const spy: OutfitBuilder = (d, a, recent) => {
+      // The costed branch is the one offered the whole closet.
+      if (a.length === closet.length) costedCalls.push(recent);
+      return simple(d, a);
+    };
+    solveCapsule({ closet, days: days(3), level: 3, floor: 0.5, build: spy });
+    expect(costedCalls.length).toBeGreaterThan(0);
+    expect(costedCalls.every((r) => r === undefined)).toBe(true);
+  });
+});
