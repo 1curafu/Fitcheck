@@ -1,4 +1,5 @@
 import { buildCandidates, type CandidateItem } from "@/lib/generator/candidates";
+import { rankTopN } from "@/lib/generator/rank";
 import { scoreCombo, type ScoreItem } from "@/lib/generator/score";
 import { occasionBand, type Weather } from "@/lib/generator/rules";
 import type { OutfitBuilder, TripDay } from "./capsule";
@@ -73,7 +74,7 @@ export function realBuilder(
 ): OutfitBuilder {
   const byId = new Map(closet.map((i) => [i.id, i]));
 
-  return (day, available) => {
+  return (day, available, recent) => {
     const pool = available.flatMap((a) => {
       const full = byId.get(a.id);
       return full ? [full] : [];
@@ -92,15 +93,43 @@ export function realBuilder(
     });
     if (combos.length === 0) return null;
 
-    let best: { itemIds: string[]; score: number } | null = null;
-    for (const combo of combos) {
-      const score = scoreCombo(combo as unknown as ScoreItem[], {
-        aesthetic: opts?.aesthetic ?? [],
-        band,
-        tempC: weather.highC ?? weather.tempC,
-      });
-      if (!best || score > best.score) best = { itemIds: combo.map((i) => i.id), score };
-    }
-    return best;
+    /**
+     * ⚠️ `rankTopN`, not a bare `scoreCombo` loop, because it already carries the
+     * recency preference: `RECENT_WEIGHT = 0.25` applied in proportion to how
+     * many pieces repeat, and documented there as "a preference, never an
+     * eliminator". Reused rather than reinvented.
+     *
+     * `recent` arrives only when the solve is choosing among pieces already
+     * packed, so varying a day can never cost a piece — see `solveCapsule`.
+     */
+    const ctx = {
+      aesthetic: opts?.aesthetic ?? [],
+      band,
+      tempC: weather.highC ?? weather.tempC,
+    };
+
+    const ranked = rankTopN(combos as unknown as (ScoreItem & { id: string })[][], {
+      ...ctx,
+      recentlyShown: recent,
+    }, 1);
+    const top = ranked[0];
+    if (!top) return null;
+
+    /**
+     * ⚠️ **The recency preference ORDERS, it does not score.** `rankTopN`
+     * subtracts up to `RECENT_WEIGHT` (0.25) for repeated pieces — and the
+     * caller compares the returned score against `QUALITY_FLOOR` (0.7). Return
+     * the penalised number and a fully-repeated outfit sinks below the floor,
+     * the "dress it from what is already packed" branch fails, and the solve
+     * BUYS A PIECE to escape its own variety nudge.
+     *
+     * Measured, not theorised: it took the real closet's 7-day capsule from six
+     * pieces to seven while the days still repeated — worse on both counts.
+     * So the winner is re-scored WITHOUT the penalty before it is returned.
+     */
+    return {
+      itemIds: top.items.map((i) => i.id),
+      score: scoreCombo(top.items as unknown as ScoreItem[], ctx),
+    };
   };
 }

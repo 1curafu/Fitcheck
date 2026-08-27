@@ -3,10 +3,17 @@ import { maxWears } from "./rewear";
 export type TripDay = { date: string; occasion: string };
 export type CapsuleItem = { id: string; category: string };
 
-/** Injected. Returns the best outfit for a day from `available`, or null. */
+/**
+ * Injected. Returns the best outfit for a day from `available`, or null.
+ *
+ * `recent` carries the previous day's pieces so a builder can prefer variety.
+ * ⚠️ Optional, and it is passed ONLY when choosing among pieces already packed
+ * — see the note in `solveCapsule`.
+ */
 export type OutfitBuilder = (
   day: TripDay,
   available: CapsuleItem[],
+  recent?: string[],
 ) => { itemIds: string[]; score: number } | null;
 
 export type CapsuleInput = {
@@ -106,26 +113,41 @@ export function solveCapsule(input: CapsuleInput): CapsuleResult {
   const limitFor = (item: CapsuleItem) => maxWears(item.category, level, days.length);
 
   /** Best outfit for a day from `pool`, honouring per-item wear limits and the floor. */
-  const outfitFor = (day: TripDay, pool: CapsuleItem[]) => {
+  const outfitFor = (day: TripDay, pool: CapsuleItem[], recent?: string[]) => {
     const withCapacity = pool.filter((i) => (wears.get(i.id) ?? 0) < limitFor(i));
-    const built = build(day, withCapacity);
+    const built = build(day, withCapacity, recent);
     return built && built.score >= floor ? built : null;
   };
+
+  /** What was worn on the previous covered day, for the variety preference. */
+  let lastWorn: string[] | undefined;
 
   const commit = (day: TripDay, itemIds: string[]) => {
     assigned.set(day.date, itemIds);
     for (const id of itemIds) wears.set(id, (wears.get(id) ?? 0) + 1);
+    lastWorn = itemIds;
   };
 
   for (const day of days) {
-    // 1. Free: dress this day from the pieces already going in the case.
-    const reused = outfitFor(day, chosen);
+    /**
+     * 1. Free: dress this day from the pieces already going in the case.
+     *
+     * ⚠️ **`lastWorn` is passed HERE and nowhere else, and that placement is the
+     * whole design.** A capsule's promise is re-use, so a variety preference
+     * fights the feature if it can make the solve buy another piece. On this
+     * branch nothing can be bought — every candidate is already in the case —
+     * so preferring a different arrangement is FREE. On the costed branch below
+     * it is deliberately withheld: a day must never add a piece merely to avoid
+     * looking like yesterday.
+     */
+    const reused = outfitFor(day, chosen, lastWorn);
     if (reused) {
       commit(day, reused.itemIds);
       continue;
     }
 
     // 2. Costed: fall back to the whole closet and take on whatever it adds.
+    // No `recent` — see above.
     const fresh = outfitFor(day, eligible);
     if (!fresh) continue; // nothing can dress this day — it lands in `uncovered`
 

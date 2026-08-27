@@ -131,3 +131,22 @@ describe("realBuilder", () => {
     expect(asked).toEqual(["2026-05-12", "2026-05-13"]);
   });
 });
+
+/**
+ * ⚠️ The bug that reached real data: `rankTopN` subtracts up to RECENT_WEIGHT
+ * (0.25) for repeated pieces, and the solve compares the returned score against
+ * QUALITY_FLOOR (0.7). Returning the penalised number sank a repeated outfit
+ * below the floor and made the solve buy a piece to escape its own nudge.
+ */
+test("the recency preference orders without lowering the reported score", () => {
+  const build = realBuilder(closet, () => mild);
+  const day = { date: "2026-05-12", occasion: "work" };
+
+  const fresh = build(day, closet);
+  const repeating = build(day, closet, fresh!.itemIds);
+
+  expect(repeating).not.toBeNull();
+  // Same pool and no alternative, so the same outfit — and crucially the SAME
+  // score. A lower one here is the inflation bug.
+  expect(repeating!.score).toBeCloseTo(fresh!.score, 5);
+});
