@@ -3,6 +3,7 @@ import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { PackingBack } from "./back-link";
 import { WhyQuote } from "@/components/generate/why-quote";
 import { formatTemp, type TempUnit } from "@/lib/weather/format";
+import { WeatherAttribution } from "@/components/weather/attribution";
 
 export type DayCard = {
   /** The stored outfit, so the card can open the look it describes. */
@@ -106,6 +107,10 @@ export function DayList({
             <WhyQuote name={d.name} why={d.why} />
           </Link>
         ))}
+        {/* ⚠️ REQUIRED by ODbL — every card above shows a temperature. ONCE at
+            the foot rather than per card: five copies is noise, and the licence
+            asks for visible credit on the screen, not on each element. */}
+        <WeatherAttribution className="mt-1" />
       </div>
     </div>
   );

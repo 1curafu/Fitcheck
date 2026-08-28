@@ -9,7 +9,7 @@ import { createClient } from "@supabase/supabase-js";
 import { solveCapsule, QUALITY_FLOOR, type CapsuleItem } from "../lib/packing/capsule";
 import { scheduleDays } from "../lib/packing/schedule";
 import { expandDays, realBuilder } from "../lib/packing/plan";
-import { mapTripForecast } from "../lib/weather/trip";
+import { mapOneCallDaily } from "../lib/weather/openweather";
 import { narrateTrip } from "../lib/packing/narrate";
 import type { CandidateItem } from "../lib/generator/candidates";
 
@@ -33,14 +33,20 @@ async function main() {
 
   const days = expandDays(START, END, MIX);
   // A plausible early-September forecast, so this needs no network.
-  const forecast = mapTripForecast(
+  // ⚠️ OpenWeather One Call 4.0 shape (unix `dt` + condition ids), not
+  // Open-Meteo's parallel arrays — 500 is light rain, 800/801/803 are clear
+  // through cloud. See lib/weather/openweather.ts.
+  const HIGHS = [24, 23, 21, 19, 22, 25, 20];
+  const LOWS = [15, 14, 13, 12, 14, 16, 13];
+  const IDS = [800, 801, 803, 500, 800, 800, 803];
+  const forecast = mapOneCallDaily(
     {
-      daily: {
-        time: days.map((d) => d.date),
-        temperature_2m_max: [24, 23, 21, 19, 22, 25, 20],
-        temperature_2m_min: [15, 14, 13, 12, 14, 16, 13],
-        weather_code: [0, 1, 3, 61, 0, 0, 3],
-      },
+      timezone_offset: 7200,
+      data: days.map((d, i) => ({
+        dt: Math.floor(new Date(`${d.date}T12:00:00Z`).getTime() / 1000) - 7200,
+        temp: { max: HIGHS[i % HIGHS.length], min: LOWS[i % LOWS.length] },
+        weather: [{ id: IDS[i % IDS.length] }],
+      })),
     },
     days.map((d) => d.date),
   );

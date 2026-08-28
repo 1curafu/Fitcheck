@@ -57,10 +57,18 @@ export function useLocationPicker(opts?: { onPick?: (p: PickedLocation) => void 
    * the next render.
    */
   const latestQuery = useRef("");
+  /**
+   * ⚠️ The in-flight request, so a new keystroke CANCELS the old one rather
+   * than racing it. `latestQuery` already discards stale answers, but the
+   * request still completed and still cost a call — and city search is now
+   * proxied through our own endpoint against a metered quota.
+   */
+  const inFlight = useRef<AbortController | null>(null);
 
   const search = useCallback((q: string) => {
     const query = q.trim();
     latestQuery.current = query;
+    inFlight.current?.abort();
 
     // The input fires on every keystroke, and a single letter matches most of
     // the planet. Two characters is the floor that makes the result list mean
@@ -71,11 +79,16 @@ export function useLocationPicker(opts?: { onPick?: (p: PickedLocation) => void 
       return;
     }
 
-    searchCities(query)
+    const ctl = new AbortController();
+    inFlight.current = ctl;
+    searchCities(query, ctl.signal)
       .then((r) => {
         if (latestQuery.current === query) setCities(r);
       })
       .catch(() => {
+        // An abort is the expected path on every keystroke, not a failure —
+        // clearing the list on it would blank the results mid-type.
+        if (ctl.signal.aborted) return;
         if (latestQuery.current === query) setCities([]);
       });
   }, []);

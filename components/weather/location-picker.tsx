@@ -1,7 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import type { City } from "@/lib/weather/geocode";
+import { regionLabel, type City } from "@/lib/weather/geocode";
+import { WeatherAttribution } from "./attribution";
 
 const HAIR2 = "border-[rgba(237,230,216,0.12)]";
 
@@ -105,13 +106,21 @@ export function LocationPicker({
               style={bare ? { borderTop: "1px solid var(--hairline-2)" } : undefined}
             >
               {c.name}
+              {/* ⚠️ Region, not bare country. OpenWeather returns same-name
+                  duplicates freely — "Springfield" comes back five times, all
+                  US — so `country` alone renders five identical, unpickable
+                  rows. `regionLabel` adds the state where there is one. */}
               <span className={bare ? "text-[12.5px] text-muted-dim" : "text-[10px] text-muted-dim"}>
-                {c.country}
+                {regionLabel(c)}
               </span>
             </button>
           </li>
         ))}
       </ul>
+      {/* ⚠️ REQUIRED by OpenWeather's ODbL terms. This one component is
+          rendered by both the Stylist's overlay and the Settings / trip-setup
+          sheet, so the credit reaches all three from here. */}
+      <WeatherAttribution className={bare ? "px-4 pb-3 pt-2.5" : "px-3 pb-1 pt-2"} />
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { PreferencesSchema, readPreferences } from "@/lib/profile/preferences";
-import { fetchForecast } from "@/lib/weather/open-meteo";
+import { fetchForecast } from "@/lib/weather/forecast";
 import { locationColumns, invalidatesDrop, resolveLocation } from "@/lib/weather/location";
 import { localDateFor } from "@/lib/outfits/local-date";
 

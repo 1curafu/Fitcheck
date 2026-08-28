@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { signItemImages, displayPath } from "@/lib/storage/signed";
-import { fetchForecast } from "@/lib/weather/open-meteo";
+import { fetchForecast } from "@/lib/weather/forecast";
 import { laterAdvice } from "@/lib/weather/advice";
 import { planningTempFor, rainAheadFor } from "@/lib/weather/planning";
 import { readPreferences } from "@/lib/profile/preferences";

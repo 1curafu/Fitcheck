@@ -8,6 +8,7 @@ import { PackingBack } from "@/components/packing/back-link";
 import { Shortfall } from "@/components/packing/shortfall";
 import { loadTrip } from "@/lib/packing/store";
 import { expandDays } from "@/lib/packing/plan";
+import { fetchTripForecast } from "@/lib/weather/forecast";
 
 /**
  * The shell, and the `<Suspense>` fallback.
@@ -94,6 +95,7 @@ async function TripBody({ params }: { params: Promise<{ tripId: string }> }) {
 
   const covered = (looks ?? []).length;
   const range = formatRange(trip.startDate, trip.endDate);
+  const forecast = await fetchTripForecast(trip.lat, trip.lon, days.map((d) => d.date));
 
   // ⚠️ The shortfall branch. Reachable at an ordinary setting — "Fresh every
   // day" leaves 3 of 7 days uncovered on a 26-item closet — so it is the real
@@ -147,7 +149,20 @@ async function TripBody({ params }: { params: Promise<{ tripId: string }> }) {
       dayCount={days.length}
       outfitCount={covered}
       why={(looks ?? [])[0]?.ai_reasoning ?? ""}
-      beyondHorizon={false}
+      /**
+       * ⚠️ Was hard-coded `false`, so a trip past the forecast window silently
+       * rendered a capsule built on the nearest real day's weather, PRESENTED
+       * AS FACT. `mapTripForecast` had always set the flag correctly; only the
+       * last hop was missing, and the copy for it was already on the screen.
+       *
+       * ⚠️ Not optional after the provider swap: One Call gives 10 days where
+       * Open-Meteo gave 16, so every trip 11–16 days out moved from a real
+       * forecast to a stand-in. This went from an edge case to an ordinary one.
+       *
+       * The read is served by the Postgres cache the planning step already
+       * filled, so it costs a row rather than an API call.
+       */
+      beyondHorizon={forecast.beyondHorizon}
       alternatives={alternatives}
     />
   );
