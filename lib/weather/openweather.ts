@@ -185,10 +185,35 @@ export function mapOneCall(
   /**
    * The peak and trough STILL AHEAD, not the calendar day's — opening the app at
    * 20:00 must not plan against a 17:00 peak that has been and gone.
+   *
+   * ⚠️ THREE rungs, in this order, and the order is not interchangeable:
+   *
+   *   1. the hours still ahead        — what the look is actually worn through
+   *   2. TODAY's daily block          — when the hourly series is unavailable
+   *   3. the current reading          — when there is nothing else at all
+   *
+   * ⚠️ Rung 2 must never be promoted above rung 1. `temp.max` is the calendar
+   * day's midnight-to-midnight maximum, so preferring it would plan an evening
+   * look against an afternoon peak that has already passed — the mirror of the
+   * bug that put a cable-knit on a 34.8°C day. It is a fallback, not a source.
+   *
+   * This mattered more than it looks: One Call's hourly window is 20 hours, so
+   * "the hourly series ran out" is an ordinary occurrence here, not a fault
+   * condition the way it was with Open-Meteo's 24.
    */
   const ahead = restOfDay.map((h) => h.tempC);
-  const high = ahead.length ? Math.max(...ahead) : nowC;
-  const low = ahead.length ? Math.min(...ahead) : nowC;
+  const todayDaily = bundle.daily.data?.[0];
+  const dailyT = typeof todayDaily?.temp === "object" ? todayDaily.temp : undefined;
+  const high = ahead.length
+    ? Math.max(...ahead)
+    : dailyT?.max != null
+      ? Math.round(dailyT.max)
+      : nowC;
+  const low = ahead.length
+    ? Math.min(...ahead)
+    : dailyT?.min != null
+      ? Math.round(dailyT.min)
+      : nowC;
 
   return {
     tempC: nowC,

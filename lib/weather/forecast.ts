@@ -75,6 +75,15 @@ function bundleFrom(series: CachedDay[], nowDt: number) {
       weather: [{ id: c.conditionId }],
     }));
 
+  /**
+   * ⚠️ TODAY's daily block must be passed through, not left empty. It is rung 2
+   * of `mapOneCall`'s high/low fallback — used when the hourly series runs out,
+   * which with a 20-hour window is an ordinary occurrence rather than a fault.
+   * An earlier version sent `data: []` here, silently collapsing the range to
+   * the current reading whenever that happened.
+   */
+  const today = series.find((s) => s.daily !== null)?.daily ?? null;
+
   return {
     current: {
       timezone: tz,
@@ -82,7 +91,13 @@ function bundleFrom(series: CachedDay[], nowDt: number) {
       data: nowCell ? asData([nowCell]) : [],
     },
     hourly: { timezone: tz, timezone_offset: offset, data: asData(all) },
-    daily: { timezone: tz, timezone_offset: offset, data: [] },
+    daily: {
+      timezone: tz,
+      timezone_offset: offset,
+      data: today
+        ? [{ dt: today.dt, temp: { max: today.max, min: today.min }, weather: [{ id: today.conditionId }] }]
+        : [],
+    },
   };
 }
 

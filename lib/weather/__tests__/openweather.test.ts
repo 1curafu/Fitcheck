@@ -130,13 +130,43 @@ describe("mapOneCall — the daily-drop shape", () => {
     expect(w.highC).toBeGreaterThanOrEqual(w.tempC);
   });
 
-  test("degrades rather than throws when a block is missing", () => {
+  test("degrades rather than throws when every block is missing", () => {
     const w = mapOneCall({ current: currentFixture, hourly: { data: [] }, daily: { data: [] } }, NOW);
     expect(w.tempC).toBe(19);
     expect(w.hourly).toEqual([]);
-    // With no hours ahead, the range falls back to the current reading.
+    // Last rung: with no hours AND no daily block, the current reading stands.
     expect(w.highC).toBe(19);
     expect(w.lowC).toBe(19);
+  });
+
+  /**
+   * ⚠️ The fallback is THREE rungs, not two: hours still ahead → the daily
+   * block → the current reading. `open-meteo.ts` said so explicitly and an
+   * earlier version of this file skipped the middle one, quietly collapsing the
+   * range to a single number whenever the hourly series ran out.
+   *
+   * ⚠️ The ORDER is the whole point, and it is not interchangeable. The daily
+   * block is the calendar day's midnight-to-midnight max, so preferring it over
+   * the hours ahead would plan a 20:00 look against a 17:00 peak that has been
+   * and gone — the mirror of the bug that put a sweater on a 34.8°C day. It is
+   * a FALLBACK, never the primary source.
+   */
+  test("falls back to the DAILY block when the hourly series is empty", () => {
+    const w = mapOneCall(
+      { current: currentFixture, hourly: { data: [] }, daily: dailyFixture },
+      NOW,
+    );
+    expect(w.highC).toBe(29); // temp.max 28.61 from today's daily block
+    expect(w.lowC).toBe(19); // temp.min 18.64, and never above the reading
+    expect(w.highC).toBeGreaterThan(w.tempC); // a real range, not a collapsed one
+  });
+
+  test("hours ahead still WIN over the daily block when both exist", () => {
+    const withBoth = mapOneCall(bundle, NOW);
+    const hourlyHigh = Math.max(...withBoth.restOfDay.map((c) => c.tempC));
+    expect(withBoth.highC).toBe(Math.max(withBoth.tempC, hourlyHigh));
+    // 28.61 is today's calendar max; the hours AHEAD must not be overridden by it.
+    expect(withBoth.highC).not.toBe(29);
   });
 });
 
