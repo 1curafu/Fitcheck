@@ -3,8 +3,14 @@ import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 
 // SettingsView drives the shared useLocationPicker hook, which would otherwise
-// hit Open-Meteo's geocoder.
-vi.mock("@/lib/weather/geocode", () => ({
+// make a real request to /api/cities.
+//
+// ⚠️ Stub ONLY the network call and keep the rest of the module real. An
+// earlier version replaced the whole module, so when the picker started using
+// `regionLabel` that export became undefined and the component threw — three
+// tests failed with an empty document and an error that named none of this.
+vi.mock("@/lib/weather/geocode", async (orig) => ({
+  ...(await orig<typeof import("@/lib/weather/geocode")>()),
   searchCities: vi
     .fn()
     .mockResolvedValue([{ name: "Manila", country: "PH", lat: 14.6, lon: 120.98 }]),

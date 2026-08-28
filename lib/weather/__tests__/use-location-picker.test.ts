@@ -4,7 +4,11 @@ import { useLocationPicker } from "../use-location-picker";
 import { searchCities, type City } from "../geocode";
 import { getCurrentPosition, permissionState, GeoError } from "../geolocate";
 
-vi.mock("../geocode", () => ({ searchCities: vi.fn() }));
+// Stub only the network call — `regionLabel` and friends stay real.
+vi.mock("../geocode", async (orig) => ({
+  ...(await orig<typeof import("../geocode")>()),
+  searchCities: vi.fn(),
+}));
 vi.mock("../geolocate", async (orig) => ({
   ...(await orig<typeof import("../geolocate")>()),
   getCurrentPosition: vi.fn(),
@@ -34,7 +38,36 @@ test("a real query searches and exposes the results", async () => {
   const { result } = renderHook(() => useLocationPicker());
   act(() => result.current.search("Man"));
   await waitFor(() => expect(result.current.cities).toHaveLength(1));
-  expect(mockSearch).toHaveBeenCalledWith("Man");
+  expect(mockSearch).toHaveBeenCalledWith("Man", expect.any(AbortSignal));
+});
+
+/**
+ * ⚠️ City search is now proxied through our own endpoint against a metered
+ * OpenWeather quota, so an abandoned keystroke must be CANCELLED, not merely
+ * ignored on arrival. The old `latestQuery` guard discarded the answer but the
+ * request still completed and still cost a call.
+ */
+test("a new keystroke aborts the request still in flight", async () => {
+  const { result } = renderHook(() => useLocationPicker());
+  act(() => result.current.search("Man"));
+  const first = mockSearch.mock.calls[0][1] as AbortSignal;
+  expect(first.aborted).toBe(false);
+
+  act(() => result.current.search("Manc"));
+  expect(first.aborted).toBe(true);
+});
+
+test("an aborted request does not blank the list mid-type", async () => {
+  mockSearch.mockResolvedValue([{ name: "Manila", country: "PH", lat: 14.6, lon: 120.98 }]);
+  const { result } = renderHook(() => useLocationPicker());
+  act(() => result.current.search("Man"));
+  await waitFor(() => expect(result.current.cities).toHaveLength(1));
+
+  // The abort rejection must not be treated as "no matches".
+  mockSearch.mockRejectedValueOnce(Object.assign(new Error("aborted"), { name: "AbortError" }));
+  act(() => result.current.search("Manc"));
+  await waitFor(() => expect(mockSearch).toHaveBeenCalledTimes(2));
+  expect(result.current.cities).toHaveLength(1);
 });
 
 test("an explicit tap surfaces a denied permission as copy, not a silent no-op", async () => {
