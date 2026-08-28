@@ -27,3 +27,31 @@ make notes about ggole, we will test it later
 ---
 
 i made all things, need to connect google oauth, i added folder brand, there u will find all logos, lockups etc. [Image #10] [Image #11] this is from google cloude website
+
+---
+
+[Image #12] what there and whats next
+
+---
+
+[Image #13] there right?
+
+---
+
+[Image #14]
+
+---
+
+[Image #15]
+
+---
+
+redirect works auth also
+
+---
+
+[Image #16]
+
+---
+
+go with brand assets, we should also place our logo on landing page, whole website etc, idk how but go go
