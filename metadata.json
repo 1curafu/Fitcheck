@@ -1,0 +1,24 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M14PB7GT8DW8Z01RMPSX6KRW",
+  "strategy": "manual-commit",
+  "branch": "feat/brand-assets",
+  "checkpoints_count": 14,
+  "files_touched": null,
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 134,
+    "cache_creation_tokens": 494594,
+    "cache_read_tokens": 30251171,
+    "output_tokens": 50225,
+    "api_call_count": 68
+  }
+}

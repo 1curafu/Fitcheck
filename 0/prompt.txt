@@ -1,0 +1,29 @@
+bring and what do u mean again with 20 hour gap, didnt we done with that
+
+---
+
+'/Users/1curafu/Desktop/Fitcheck/Fitcheck/docs/design-system.md''/Users/1curafu/Desktop/Fitcheck/Fitcheck/docs/design-review-2026-07-24.md' check ip before
+
+---
+
+so whats next, do u created pr?
+
+---
+
+2. I inserted this keys, chill but service role from our prod database?
+
+---
+
+go
+
+---
+
+yes i did it, a question, is it not better to fetch cities from google developer api?
+
+---
+
+make notes about ggole, we will test it later
+
+---
+
+i made all things, need to connect google oauth, i added folder brand, there u will find all logos, lockups etc. [Image #10] [Image #11] this is from google cloude website
