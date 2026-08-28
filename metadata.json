@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M13FRPKJ7Z7TN234JKC7JVRD",
+  "strategy": "manual-commit",
+  "branch": "feat/openweather-swap",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "lib/weather/__tests__/cache.test.ts",
+    "lib/weather/cache.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 26,
+    "cache_creation_tokens": 19096,
+    "cache_read_tokens": 3684927,
+    "output_tokens": 16332,
+    "api_call_count": 13
+  }
+}
