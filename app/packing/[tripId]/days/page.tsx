@@ -6,7 +6,7 @@ import { MobileNav } from "@/components/shell/mobile-nav";
 import { DayList, type DayCard } from "@/components/packing/day-list";
 import { PackingBack } from "@/components/packing/back-link";
 import { loadTrip } from "@/lib/packing/store";
-import { fetchTripForecast } from "@/lib/weather/trip";
+import { fetchTripForecast } from "@/lib/weather/forecast";
 import { formatRange } from "../page";
 
 /**

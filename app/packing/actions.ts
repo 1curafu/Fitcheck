@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { currentEntitlements, recordGeneration } from "@/lib/billing/entitlements";
-import { fetchTripForecast } from "@/lib/weather/trip";
+import { fetchTripForecast } from "@/lib/weather/forecast";
 import { solveCapsule, QUALITY_FLOOR, type CapsuleItem } from "@/lib/packing/capsule";
 import { scheduleDays } from "@/lib/packing/schedule";
 import { expandDays, realBuilder } from "@/lib/packing/plan";

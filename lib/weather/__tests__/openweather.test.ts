@@ -173,6 +173,28 @@ describe("mapOneCallDaily — the trip shape", () => {
     expect(t.beyondHorizon).toBe(true);
     expect(Object.keys(t.byDate)).toHaveLength(dates.length);
   });
+
+  /**
+   * ⚠️ Ported from the Open-Meteo `trip.test.ts` before that file was deleted.
+   * A row with a missing temperature must not SHIFT the days after it — every
+   * date is keyed off its own `dt`, never off an array index.
+   */
+  test("a gap in the daily rows does not shift the other days", () => {
+    const rows = dailyFixture.data.slice(0, 3).map((d) => ({ ...d }));
+    // Knock the middle day's range out, as a partial provider response would.
+    const holed = [
+      rows[0],
+      { ...rows[1], temp: { ...rows[1].temp, max: undefined, min: undefined } },
+      rows[2],
+    ];
+    const t = mapOneCallDaily(
+      { timezone_offset: 7200, data: holed as unknown as typeof dailyFixture.data },
+      dates,
+    );
+    // Day 3 still carries DAY 3's numbers, not day 2's shifted along.
+    expect(t.byDate[dates[2]].highC).toBe(Math.round(rows[2].temp.max));
+    expect(t.beyondHorizon).toBe(true); // the holed day fell through to the stand-in
+  });
 });
 
 describe("the provider's hard caps — measured, not assumed", () => {
