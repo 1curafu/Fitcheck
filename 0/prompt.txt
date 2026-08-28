@@ -1,0 +1,17 @@
+so we are making cache already for supabase integration?
+
+---
+
+we can rename it to .env and use as for deploy
+
+---
+
+wait, i dont understand, what should i do, create .env or not, and we need to create vercel project[Image #4] [Image #5] [Image #6]
+
+---
+
+go
+
+---
+
+[Image #8] and what here?
