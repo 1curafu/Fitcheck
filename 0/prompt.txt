@@ -1,0 +1,34 @@
+we will make sign up and sign in with clerk, I have pro plan in clerk, is that worth for us now, we can use faceid or touchid for auth etc, its really perfect, we can just build own design for signup sign in form?
+
+---
+
+but i dont want to pay for subapabase right now, so maybe clerk is a good call
+
+---
+
+but overall for scaling and future, clerk is better? cause i have 1 year free for clerk
+
+---
+
+and what about heruko deploy, I have also heroku deployment Offer
+Enjoy a credit of $13 USD per month for 24 months.
+
+---
+
+but overall heroku or vercel for us?
+
+---
+
+https://openweathermap.org/api/one-call-4?collection=one_call_api check it, idk why can is not working[Image #2] New API keys may take up to 2 hours to become ready for use.
+
+---
+
+no, we will use 4.0[Image #3]
+
+---
+
+if doesnt work, lets wait 2 hours
+
+---
+
+https://openweathermap.org/api/one-call-4?collection=one_call_api read it fully, maybe u are using wrong parameters or something else
