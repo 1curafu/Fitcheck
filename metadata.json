@@ -1,0 +1,29 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M13TD1C749FAZENKEXRAJD4T",
+  "strategy": "manual-commit",
+  "branch": "feat/openweather-swap",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "app/api/cities/route.ts",
+    "components/weather/location-picker.tsx",
+    "lib/weather/__tests__/geocode.test.ts",
+    "lib/weather/geocode.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 38,
+    "cache_creation_tokens": 26139,
+    "cache_read_tokens": 6945986,
+    "output_tokens": 15060,
+    "api_call_count": 19
+  }
+}
