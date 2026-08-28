@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
 import { EmailSignIn } from "@/components/auth/email-sign-in";
+import { BrandMark } from "@/components/brand/mark";
 
 export default function Welcome() {
   // The session read is what blocks a shell, so it moves behind a boundary
@@ -24,6 +25,14 @@ async function WelcomeBody() {
   return (
     <main className="screen-top flex flex-1 flex-col justify-between px-7 pb-10">
       <div className="flex flex-1 flex-col items-center justify-center text-center">
+        {/* ⚠️ Deliberately ABOVE the kicker and deliberately small. The
+            wordmark below is the Display step — DESIGN.md reserves ~4.5rem
+            Caslon for "the wordmark and welcome-screen moments only" — so the
+            mark supports it and must not compete with it. 56px against 72px
+            type reads as a lockup; matching their sizes would read as two
+            logos. The 28px gap is the brand's 25%-of-tile clear space, rounded
+            to the kicker's own rhythm. */}
+        <BrandMark size={56} className="mb-[28px]" />
         <p className="mb-[22px] text-[13px] uppercase tracking-[0.34em] text-brand">
           Your AI Stylist
         </p>
