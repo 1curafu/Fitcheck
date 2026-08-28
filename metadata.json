@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M139H6CC4GHCQA08TZGCEM7P",
+  "strategy": "manual-commit",
+  "branch": "feat/openweather-swap",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "supabase/migrations/20260828090000_weather_cache.sql"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 108,
+    "cache_creation_tokens": 215670,
+    "cache_read_tokens": 6007939,
+    "output_tokens": 45796,
+    "api_call_count": 54
+  }
+}

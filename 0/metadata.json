@@ -1,0 +1,115 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M139H6CC4GHCQA08TZGCEM7P",
+  "session_id": "95b94828-4686-470c-9bd6-51802d54e093",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-28T04:20:02.49954Z",
+  "branch": "feat/openweather-swap",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "supabase/migrations/20260828090000_weather_cache.sql"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-5",
+  "turn_id": "06702d9b1f7c",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 108,
+    "cache_creation_tokens": 215670,
+    "cache_read_tokens": 6007939,
+    "output_tokens": 45796,
+    "api_call_count": 54
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "claude-skill-toolu_01K3q6WEFTDsqpjeSWAyArHj",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "superpowers:executing-plans"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "06702d9b1f7c",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 187,
+        "end": 188,
+        "entry_ids": [
+          "6f915fc1-649f-4134-9b08-5bc62ccca715"
+        ],
+        "tool_use_id": "toolu_01K3q6WEFTDsqpjeSWAyArHj"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01K3q6WEFTDsqpjeSWAyArHj"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: superpowers:executing-plans",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_019V8NuKgwm9NMUSU3xnW3Yy",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "supabase:supabase"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "06702d9b1f7c",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 307,
+        "end": 308,
+        "entry_ids": [
+          "eedc8205-33a2-4529-b4c8-2b5a8ff0bca2"
+        ],
+        "tool_use_id": "toolu_019V8NuKgwm9NMUSU3xnW3Yy"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_019V8NuKgwm9NMUSU3xnW3Yy"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: supabase:supabase",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 3
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-28T04:20:02.462046Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 45,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 45,
+    "total_lines_changed": 45,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 45,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "supabase/migrations/20260828090000_weather_cache.sql": 45
+      }
+    }
+  ]
+}
