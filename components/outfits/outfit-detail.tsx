@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bookmark } from "lucide-react";
 import { toggleWear, toggleFavorite, noteOutfitViewed } from "@/app/outfits/[id]/actions";
+import { WeatherAttribution } from "@/components/weather/attribution";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { wearLabel } from "@/lib/outfits/wear";
 import type { Slot } from "@/lib/generator/types";
@@ -122,6 +123,11 @@ export function OutfitDetail({
           <Kicker>
             {outfit.occasion} · {outfit.weatherLabel}
           </Kicker>
+          {/* ⚠️ REQUIRED by ODbL — but ONLY when a temperature is actually on
+              screen. `weatherLabel` is "" when the look was stored without a
+              forecast, and crediting a provider for weather we are not showing
+              would be noise, not compliance. */}
+          {outfit.weatherLabel && <WeatherAttribution className="mt-1" />}
           <h1 className="mt-2 font-serif text-[34px]/[1.04] text-foreground">{outfit.lookName}</h1>
 
           {outfit.reasoning && (

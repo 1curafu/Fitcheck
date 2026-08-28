@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { regionLabel, type City } from "@/lib/weather/geocode";
+import { WeatherAttribution } from "./attribution";
 
 const HAIR2 = "border-[rgba(237,230,216,0.12)]";
 
@@ -116,6 +117,10 @@ export function LocationPicker({
           </li>
         ))}
       </ul>
+      {/* ⚠️ REQUIRED by OpenWeather's ODbL terms. This one component is
+          rendered by both the Stylist's overlay and the Settings / trip-setup
+          sheet, so the credit reaches all three from here. */}
+      <WeatherAttribution className={bare ? "px-4 pb-3 pt-2.5" : "px-3 pb-1 pt-2"} />
     </div>
   );
 }

@@ -58,15 +58,33 @@ test("a new keystroke aborts the request still in flight", async () => {
 });
 
 test("an aborted request does not blank the list mid-type", async () => {
-  mockSearch.mockResolvedValue([{ name: "Manila", country: "PH", lat: 14.6, lon: 120.98 }]);
+  const city = { name: "Manila", country: "PH", lat: 14.6, lon: 120.98 };
   const { result } = renderHook(() => useLocationPicker());
+
+  // A result is on screen.
+  mockSearch.mockResolvedValueOnce([city]);
   act(() => result.current.search("Man"));
   await waitFor(() => expect(result.current.cities).toHaveLength(1));
 
-  // The abort rejection must not be treated as "no matches".
-  mockSearch.mockRejectedValueOnce(Object.assign(new Error("aborted"), { name: "AbortError" }));
-  act(() => result.current.search("Manc"));
-  await waitFor(() => expect(mockSearch).toHaveBeenCalledTimes(2));
+  /**
+   * ⚠️ The ONE case the signal check exists for, and it is narrow: the SAME
+   * text searched again. A different query is already handled by the
+   * `latestQuery` guard, because the stale answer no longer matches. Here it
+   * does match, so without `signal.aborted` the aborted request would clear a
+   * list that is still correct and still being replaced.
+   */
+  mockSearch.mockImplementationOnce(
+    (_q, signal) =>
+      new Promise<never>((_, rej) => signal!.addEventListener("abort", () => rej(new Error("abort")))),
+  );
+  act(() => result.current.search("Man"));
+
+  // The successor never settles, so the ONLY thing that can change the list
+  // from here is the aborted request's rejection. Deterministic by construction.
+  mockSearch.mockImplementationOnce(() => new Promise<never>(() => {}));
+  act(() => result.current.search("Man"));
+
+  await new Promise((r) => setTimeout(r, 0));
   expect(result.current.cities).toHaveLength(1);
 });
 
