@@ -1,0 +1,69 @@
+bring and what do u mean again with 20 hour gap, didnt we done with that
+
+---
+
+'/Users/1curafu/Desktop/Fitcheck/Fitcheck/docs/design-system.md''/Users/1curafu/Desktop/Fitcheck/Fitcheck/docs/design-review-2026-07-24.md' check ip before
+
+---
+
+so whats next, do u created pr?
+
+---
+
+2. I inserted this keys, chill but service role from our prod database?
+
+---
+
+go
+
+---
+
+yes i did it, a question, is it not better to fetch cities from google developer api?
+
+---
+
+make notes about ggole, we will test it later
+
+---
+
+i made all things, need to connect google oauth, i added folder brand, there u will find all logos, lockups etc. [Image #10] [Image #11] this is from google cloude website
+
+---
+
+[Image #12] what there and whats next
+
+---
+
+[Image #13] there right?
+
+---
+
+[Image #14]
+
+---
+
+[Image #15]
+
+---
+
+redirect works auth also
+
+---
+
+[Image #16]
+
+---
+
+go with brand assets, we should also place our logo on landing page, whole website etc, idk how but go go
+
+---
+
+good calls for 2, mark it when we will make a share card and profle
+
+---
+
+go and we should create a custom mail if user use registration with email, not with google, usign our logo and'/Users/1curafu/Desktop/Fitcheck/Fitcheck/public/brand/fitcheck-lockup-dark.svg''/Users/1curafu/Desktop/Fitcheck/Fitcheck/public/brand/fitcheck-lockup-light.svg' as bottom ending of email
+
+---
+
+mate we should create a branch before main, cause we will make a lot of updates that user should not see, so before main should be something for us to push
