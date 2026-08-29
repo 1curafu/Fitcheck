@@ -1,0 +1,135 @@
+<!--
+  Fitcheck — magic-link sign-in email.
+
+  ⚠️ This is the ONLY email the product sends, and for an email sign-up it is the
+  FIRST thing a new user ever sees of the brand. `enable_confirmations = false`
+  in config.toml means there is no separate signup-confirmation step, so this one
+  template serves both new and returning users — verified against the local mail
+  catcher, where a brand-new address and an existing one both received it.
+
+  ⚠️ THREE email-specific constraints drive every choice below. None of them
+  apply to the app, so do not "modernise" this into app CSS:
+
+  1. NO SVG. Gmail strips <svg> entirely and Outlook cannot render it. The
+     lockup files are SVG, so the mark is a PNG raster (`email-mark-96.png`,
+     rendered from `fitcheck-mark-on-light.svg` — the variant drawn for light
+     backgrounds, and pure geometry so no font is needed at raster time).
+  2. IMAGES ARE BLOCKED BY DEFAULT in many clients, so the "fitcheck" wordmark
+     is HTML TEXT, not part of an image. The lockup is reconstructed from a mark
+     image plus serif text — which means the brand still reads when images are
+     off, and stays crisp on retina.
+  3. NO FLEXBOX, NO GRID, NO <style> RELIANCE. Tables and inline styles only;
+     Outlook's engine is Word's.
+
+  ⚠️ LIGHT, not the app's near-black. The Midnight Atelier palette is beautiful
+  on screen and fragile in mail: dark backgrounds break in Outlook desktop and
+  get inverted unpredictably by client dark modes. The brand carries here
+  through the serif, the rust accent and the dark mark tile instead.
+-->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
+    <title>Your Fitcheck sign-in link</title>
+  </head>
+  <body style="margin:0; padding:0; background-color:#F4F1EA; -webkit-font-smoothing:antialiased;">
+    <!-- Preheader: the grey line the inbox shows next to the subject. Without
+         it clients scrape the first visible words, which would be the heading
+         repeated. Hidden in the body itself. -->
+    <div style="display:none; font-size:1px; color:#F4F1EA; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden;">
+      One tap and you're in — this link works once and expires shortly.
+    </div>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F4F1EA;">
+      <tr>
+        <td align="center" style="padding:40px 16px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px; width:100%;">
+
+            <!-- Mark -->
+            <tr>
+              <td align="center" style="padding-bottom:28px;">
+                <img src="{{ .SiteURL }}/brand/email-mark-96.png" width="48" height="48" alt="Fitcheck"
+                     style="display:block; width:48px; height:48px; border:0; outline:none; text-decoration:none;" />
+              </td>
+            </tr>
+
+            <!-- Card -->
+            <tr>
+              <td style="background-color:#FFFFFF; border-radius:14px; padding:40px 36px;">
+
+                <p style="margin:0 0 18px; font-family:'Hanken Grotesk',Helvetica,Arial,sans-serif; font-size:11px; font-weight:500; letter-spacing:0.22em; text-transform:uppercase; color:#B86A47;">
+                  Your AI Stylist
+                </p>
+
+                <h1 style="margin:0 0 14px; font-family:'Libre Caslon Text',Georgia,'Times New Roman',serif; font-size:30px; line-height:1.12; letter-spacing:-0.01em; font-weight:400; color:#17171A;">
+                  Your sign-in link
+                </h1>
+
+                <p style="margin:0 0 30px; font-family:'Hanken Grotesk',Helvetica,Arial,sans-serif; font-size:16px; line-height:1.55; color:#54514B;">
+                  Tap the button below and your wardrobe is waiting. No password to remember — there never was one.
+                </p>
+
+                <!-- Bulletproof button: padding lives on the <a>, so the whole
+                     block is clickable even where the cell background is
+                     dropped. -->
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 30px;">
+                  <tr>
+                    <td align="center" bgcolor="#B86A47" style="border-radius:12px;">
+                      <a href="{{ .ConfirmationURL }}"
+                         style="display:inline-block; padding:16px 34px; font-family:'Hanken Grotesk',Helvetica,Arial,sans-serif; font-size:16px; font-weight:600; letter-spacing:0.01em; color:#FFFFFF; text-decoration:none; border-radius:12px;">
+                        Open Fitcheck
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- ⚠️ The link in full. Some clients strip or rewrite button
+                     hrefs, and a user who cannot click has no other way in. -->
+                <p style="margin:0 0 8px; font-family:'Hanken Grotesk',Helvetica,Arial,sans-serif; font-size:13px; line-height:1.5; color:#8A867E;">
+                  Or paste this into your browser:
+                </p>
+                <p style="margin:0 0 30px; font-family:'Hanken Grotesk',Helvetica,Arial,sans-serif; font-size:13px; line-height:1.5; word-break:break-all;">
+                  <a href="{{ .ConfirmationURL }}" style="color:#B86A47; text-decoration:underline;">{{ .ConfirmationURL }}</a>
+                </p>
+
+                <hr style="border:0; border-top:1px solid #EAE5DA; margin:0 0 22px;" />
+
+                <p style="margin:0; font-family:'Hanken Grotesk',Helvetica,Arial,sans-serif; font-size:13px; line-height:1.6; color:#8A867E;">
+                  This link can be used once and expires shortly. If you didn't ask for it, you can ignore this email — nothing was created and no one can sign in without it.
+                </p>
+              </td>
+            </tr>
+
+            <!-- Footer lockup: mark image + wordmark as TEXT, so it survives
+                 image blocking. This is the lockup, rebuilt email-safely. -->
+            <tr>
+              <td align="center" style="padding:32px 0 0;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td style="padding-right:9px;" valign="middle">
+                      <img src="{{ .SiteURL }}/brand/email-mark-96.png" width="22" height="22" alt=""
+                           style="display:block; width:22px; height:22px; border:0;" />
+                    </td>
+                    <td valign="middle" style="font-family:'Libre Caslon Text',Georgia,'Times New Roman',serif; font-size:21px; letter-spacing:-0.02em; color:#17171A;">
+                      fitcheck
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding:12px 0 0;">
+                <p style="margin:0; font-family:'Libre Caslon Text',Georgia,'Times New Roman',serif; font-style:italic; font-size:15px; line-height:1.5; color:#8A867E;">
+                  A wardrobe that thinks.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

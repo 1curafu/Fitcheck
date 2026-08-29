@@ -195,6 +195,20 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
+# ⚠️ The magic-link email is the ONLY email this product sends, and for an email
+# sign-up it is the first thing a new user sees of the brand.
+# `enable_confirmations = false` above means there is no separate signup
+# confirmation step, so this ONE template serves both new and returning users —
+# verified against the local mail catcher, where a brand-new address and an
+# existing one both received it.
+#
+# ⚠️ Local only. The HOSTED project does not read this file: the same subject and
+# HTML must be pasted into Supabase Dashboard → Authentication → Email Templates
+# → Magic Link, or production keeps sending the CLI default.
+[auth.email.template.magic_link]
+subject = "Your Fitcheck sign-in link"
+content_path = "./supabase/templates/magic-link.html"
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"
