@@ -1,0 +1,37 @@
+i want to work with generator of looks. We should 100% train our ai model or give a lot of instructions, cause it did a great job to choose a light blue shirt, flowed trousers, but it had 3 pairs of shoes and chose the worst. It should choose shoes with blue nike swoosh or white Jordan, but not a creme shoes. So it shows that ai doesn’t give attention on details of clothes. So we should train ai to choose best color and material combinations. Should i give u guide how to style an outfit, best colors and materials combinations etc, idk know what would help us to make perfecct outifts
+
+---
+
+can u write a prompt for it, we need to know for a mens and women streetwear, cause, very casual, smart casual, formal and business'/Users/1curafu/Downloads/fit-check-research-raw.md' i have that for u, but its not cover all what we need
+
+---
+
+also write in prompt, that i can give best color combination for clothes, cause it has it overall, or its bad?
+
+---
+
+because i know navy top and white bottom or white top and navy bottom is literally almost best combo
+
+---
+
+i made it, but i also made extended research for round 1 '/Users/1curafu/Desktop/Fitcheck/Fitcheck/docs/research/fitcheck-r1-ext.md', and here round 2 '/Users/1curafu/Desktop/Fitcheck/Fitcheck/docs/research/fitcheck-round2-extended.md' and '/Users/1curafu/Desktop/Fitcheck/Fitcheck/docs/research/fit-check-research-round2-raw.md'(from another ai, so u should check both of them)
+
+---
+
+okay, for "fit" we can ask user when we are cutted background in confirmation, is that oversize, tailored etc.xae, also about frame-gate and proportion how will we handle that. So all of that will ship us best approach to get most possible output
+
+---
+
+if u think if will work, do it bro
+
+---
+
+go go
+
+---
+
+wait, so we will do plan 3 and 4 later?
+
+---
+
+One product question is in there that research can't answer: should your onboarding aesthetic bias frame detection when a combo is genuinely ambiguous? It helps someone who dresses one way consistently and hurts everyone who switches registers by the day. That's your call, and it's flagged rather than decided. for that we should do for all users bro
