@@ -21,10 +21,32 @@ test("repeating a NEUTRAL is not an echo — it is just neutral", () => {
 });
 
 test("no repetition at all is neutral, not penalised", () => {
-  expect(echoScore([["sky"], ["stone"], ["white"]])).toBe(0.5);
+  // Was [["sky"],["stone"],["white"]] — that carries the unsupported accent
+  // "sky" and now correctly returns 0.35 (an orphan accent), not 0.5. Moved to
+  // an all-neutral fixture so this test still tests what its name says.
+  expect(echoScore([["navy"], ["stone"], ["white"]])).toBe(0.5);
 });
 
 test("null when there is nothing to compare", () => {
   expect(echoScore([])).toBeNull();
   expect(echoScore([["navy"]])).toBeNull();
+});
+
+test("an accent nothing supports scores BELOW an outfit with no accent at all", () => {
+  // White shirt, stone trousers. The blue on the sneaker echoes nothing.
+  const orphan = echoScore([["white"], ["stone"], ["white", "sky"]])!;
+  const clean = echoScore([["white"], ["stone"], ["white", "black"]])!;
+  expect(orphan).toBeLessThan(clean);
+});
+
+test("but the SAME shoe against a shirt that supports it is still the reward case", () => {
+  const supported = echoScore([["sky"], ["stone"], ["white", "sky"]])!;
+  const orphan = echoScore([["white"], ["stone"], ["white", "sky"]])!;
+  expect(supported).toBeGreaterThan(orphan);
+  expect(supported).toBe(1);
+});
+
+test("an all-neutral outfit is still the plain 0.5 baseline, not a demerit", () => {
+  // No accent is present at all — nothing to support, so nothing to fault.
+  expect(echoScore([["white"], ["stone"], ["white", "black"]])).toBe(0.5);
 });

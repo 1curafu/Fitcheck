@@ -38,7 +38,19 @@ export function echoScore(perItemColours: string[][]): number | null {
   let echoPoints = 0;
   for (const n of counts.values()) if (n > 1) echoPoints += n - 1;
 
-  if (echoPoints === 0) return 0.5;
+  if (echoPoints === 0) {
+    // ⚠️ Two DIFFERENT situations both reach zero echo points, and collapsing
+    // them was a real defect: an outfit with no accent at all is simply
+    // restrained (0.5, no fault), while an outfit carrying an accent that
+    // NOTHING else supports has spent a colour for no work. The research:
+    // "statement sneakers work best when they connect with one color from the
+    // tee, hoodie, jacket, or accessories."
+    //
+    // Small on purpose. A neutral base plus ONE accent is a legitimate classic
+    // structure, not an error — this only breaks a tie between two shoes for
+    // the same outfit, and must never outweigh temperature or pairing.
+    return counts.size > 0 ? 0.35 : 0.5;
+  }
   if (echoPoints === 1) return 1;
   if (echoPoints === 2) return 0.75; // still readable, past the ideal
   return 0.25; // three or more — "matchy-matchy", the documented failure
