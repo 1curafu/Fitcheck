@@ -1,0 +1,34 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M1F2V2HXRXAW7P23BP4CE7ES",
+  "strategy": "manual-commit",
+  "branch": "feat/generator-colour-intelligence",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "lib/generator/__tests__/score.test.ts",
+    "lib/generator/score.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 30,
+    "cache_creation_tokens": 42935,
+    "cache_read_tokens": 7122767,
+    "output_tokens": 28011,
+    "api_call_count": 15,
+    "subagent_tokens": {
+      "input_tokens": 134,
+      "cache_creation_tokens": 203716,
+      "cache_read_tokens": 4531755,
+      "output_tokens": 941,
+      "api_call_count": 67
+    }
+  }
+}
