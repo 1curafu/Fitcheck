@@ -29,8 +29,8 @@ export const PAIRING_RATINGS: Record<string, number> = {
   "grey|navy": 5,
   "cream|navy": 4,
   "brown|navy": 4,
-  "camel|navy": 4,
-  "navy|tan": 4,
+  "camel|navy": 5,   // was 4 — named classic in BOTH documents
+  "navy|tan": 5,     // was 4 — same
   "charcoal|navy": 3,
   // CONTESTED — sources actively disagree; rated low-middling so it is never
   // chosen over an evidenced pair, and never banned either.
@@ -49,7 +49,7 @@ export const PAIRING_RATINGS: Record<string, number> = {
   "brown|cream": 5,
   "brown|white": 5,
   "grey|white": 5,
-  "cream|grey": 4,
+  "cream|grey": 5,   // was 4 — named classic in BOTH documents
   "grey|ivory": 4,
   "camel|grey": 4,
   "grey|tan": 4,
@@ -61,10 +61,19 @@ export const PAIRING_RATINGS: Record<string, number> = {
   "beige|taupe": 4,
   "beige|khaki": 4,
   "khaki|taupe": 4,
-  "navy|stone": 4,
+  "navy|stone": 5,   // was 4 — named classic in BOTH documents
   "grey|stone": 4,
   "camel|chocolate": 4,
   "brown|camel": 4,
+  // From `fitcheck-r1-ext.md` §2.1, a second rated table not used when this file
+  // was first written. Same 0-5 scale, same direction-agnostic sorted keys.
+  "beige|navy": 5,
+  "cream|sand": 4,
+  "cream|taupe": 4,
+  "beige|olive": 4,
+  "olive|sand": 4,
+  "beige|forest": 4,
+  "forest|sand": 4,
   // (b) Neutral × accent
   "burgundy|navy": 5,
   "navy|red": 4,

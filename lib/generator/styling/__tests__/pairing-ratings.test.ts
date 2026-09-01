@@ -42,6 +42,26 @@ test("pairingScore averages only the rated pairs and normalises to 0..1", () => 
   expect(pairingScore(["green", "plum"])).toBeNull(); // nothing rated
 });
 
+test("canonical pairs from BOTH research documents are present", () => {
+  // fitcheck-r1-ext.md §2.1 — absent from the round-2 §D2 table Task 3 was built from.
+  expect(pairingRating("beige", "navy")).toBe(5);
+  expect(pairingRating("olive", "sand")).toBe(4);
+  expect(pairingRating("forest", "beige")).toBe(4);
+  expect(pairingRating("cream", "taupe")).toBe(4);
+});
+
+test("a pair named classic in BOTH documents is rated 5, per this table's own scale", () => {
+  // The scale in pairing-ratings.ts: 5 = "repeatedly named classic across >= 2 sources".
+  // These are named in round-2 §D2 AND in r1-ext §2.1, so 4 understated them.
+  for (const [a, b] of [["camel", "navy"], ["cream", "grey"], ["navy", "stone"], ["navy", "tan"]]) {
+    expect(pairingRating(a, b)).toBe(5);
+  }
+});
+
+test("black+grey stays 5 — r1-ext's '4-5' range includes it, so there is no conflict", () => {
+  expect(pairingRating("black", "grey")).toBe(5);
+});
+
 test("the reported outfit has NO rated pairs — and that is correct", () => {
   // ⚠️ sky/stone/white and sky/stone/cream contain no researched pair between
   // them, so this term has no opinion on the reported defect at all and returns
