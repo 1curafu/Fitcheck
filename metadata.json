@@ -1,0 +1,37 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M1F3NYNBGCWE26D6M8RAG3QE",
+  "strategy": "manual-commit",
+  "branch": "feat/generator-colour-intelligence",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "lib/generator/score.ts",
+    "lib/generator/styling/__tests__/colour-table.test.ts",
+    "lib/generator/styling/colour-score.ts",
+    "lib/generator/styling/colour-table.ts",
+    "lib/generator/styling/temperature.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 40,
+    "cache_creation_tokens": 42829,
+    "cache_read_tokens": 10383194,
+    "output_tokens": 30149,
+    "api_call_count": 20,
+    "subagent_tokens": {
+      "input_tokens": 88,
+      "cache_creation_tokens": 224142,
+      "cache_read_tokens": 3201474,
+      "output_tokens": 13220,
+      "api_call_count": 44
+    }
+  }
+}
