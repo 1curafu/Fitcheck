@@ -42,6 +42,28 @@ test("a missing formality is treated as mid-scale, not as a mismatch", () => {
   expect(ranked[0]).toBe("u");
 });
 
+// colorHarmonyScore used to count accent OCCURRENCES rather than distinct
+// accents, so a candidate that echoed the subject's own accent was charged the
+// same 0.25 "second accent" penalty as a candidate that introduced a brand-new
+// one — a colour echo, the most reliable move in styling, scored no better
+// than a genuine clash. Pinned here at the goesWith call site (not just in
+// colorHarmonyScore's own unit tests) because this is a real caller whose
+// fixtures never previously exercised a repeated accent.
+test("a candidate that echoes the subject's accent outranks one that adds a new accent", () => {
+  const echoSubject = { id: "s2", category: "Tops", colors: ["sky"], formality: 3 };
+  const echoCloset = [
+    // Echoes the subject's own accent (sky) — under distinct-accent counting
+    // this is still a single accent in play, so harmony stays at 1.0.
+    { id: "echo", category: "Bottoms", colors: ["sky"], formality: 3 },
+    // Introduces a second, different accent (rust) — two distinct accents,
+    // so harmony drops to 0.75. formality is identical to "echo" above, so
+    // the only thing that can separate them is the harmony term.
+    { id: "newaccent", category: "Bottoms", colors: ["rust"], formality: 3 },
+  ];
+  const ranked = goesWith(echoSubject, echoCloset);
+  expect(ranked[0]).toBe("echo");
+});
+
 // The row is a suggestion, not a ranking of the whole closet — five is what the
 // design's scrolling row shows.
 test("defaults to five suggestions", () => {
