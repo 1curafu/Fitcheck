@@ -1,6 +1,7 @@
-import { colorHarmonyScore, leanScore } from "./color";
+import { leanScore } from "./color";
 import { seasonFit } from "./season";
 import { warmthFit } from "./texture";
+import { colourScore } from "./styling/colour-score";
 
 export type ScoreItem = {
   category: string;
@@ -109,7 +110,10 @@ function climateFit(items: ScoreItem[], ctx: Ctx): number | null {
 
 export function scoreCombo(items: ScoreItem[], ctx: Ctx): number {
   const colors = items.flatMap((i) => i.colors);
-  const harmony = colorHarmonyScore(colors);
+  // ⚠️ Pass the PER-ITEM grouping, not the flattened list: `echoScore` needs to
+  // know which garment each colour came from — an accent repeated across two
+  // garments is an echo, the same accent listed twice on one garment is not.
+  const harmony = colourScore(items.map((i) => i.colors));
   const coherence = formalityCoherence(items.map((i) => i.formality ?? 3));
   const dnaHits = items.filter((i) => i.style_tags?.some((t) => ctx.aesthetic.includes(t))).length;
   const dna = items.length ? dnaHits / items.length : 0;
