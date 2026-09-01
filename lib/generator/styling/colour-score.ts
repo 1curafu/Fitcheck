@@ -15,6 +15,17 @@ import { echoScore } from "./echo";
  *
  * Temperature leads the optional terms because it is the most corroborated
  * finding and the one that fixes the reported defect on its own.
+ *
+ * ⚠️ UNDOCUMENTED-NO-LONGER: when all three optional terms fire (the common
+ * case for a fully-tagged outfit), `harmony` keeps only `1 - 0.3 - 0.25 - 0.15
+ * = 0.30` of `colourScore` — and `colourScore` itself is weighted 0.4 into
+ * `scoreCombo`, so `harmony`'s share of the FINAL score is `0.4 * 0.30 =
+ * 0.12`, down from the 0.40 it carried before these terms existed. This is
+ * deliberate, not a regression: `harmony` only measures restraint (how many
+ * distinct accents are in play), while temperature, pairing and echo each
+ * carry actual research-backed evidence about whether the specific colours
+ * chosen work together. A term with no evidence should not outweigh three that
+ * have some.
  */
 const W_TEMPERATURE = 0.3;
 const W_PAIRING = 0.25;
@@ -25,7 +36,9 @@ export function colourScore(perItemColours: string[][]): number {
   const harmony = colorHarmonyScore(flat);
 
   const terms: { weight: number; value: number }[] = [];
-  const temperature = temperatureCoherence(flat);
+  // Per-garment, not flattened: a two-tone garment must cast at most one warm
+  // and one cool vote. See temperature.ts.
+  const temperature = temperatureCoherence(perItemColours);
   if (temperature != null) terms.push({ weight: W_TEMPERATURE, value: temperature });
   const pairing = pairingScore(flat);
   if (pairing != null) terms.push({ weight: W_PAIRING, value: pairing });

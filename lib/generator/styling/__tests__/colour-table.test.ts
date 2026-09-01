@@ -1,7 +1,7 @@
 import { COLOR_NAMES } from "@/lib/ai/tagging-schema";
 import { COLOUR_TEMPERATURE, temperatureOf, WARM_WEATHER_ONLY } from "../colour-table";
 
-test("every one of the 39 colours has a temperature", () => {
+test("every one of the 42 colours has a temperature", () => {
   for (const name of COLOR_NAMES) {
     expect(COLOUR_TEMPERATURE[name]).toBeDefined();
   }

@@ -50,3 +50,16 @@ test("an all-neutral outfit is still the plain 0.5 baseline, not a demerit", () 
   // No accent is present at all — nothing to support, so nothing to fault.
   expect(echoScore([["white"], ["stone"], ["white", "black"]])).toBe(0.5);
 });
+
+test("a two-tone garment does not echo with itself", () => {
+  // ⚠️ The obvious assertion here is WRONG. `["sky", "sky"]` as one garment
+  // dedupes to a single "sky" — an accent that nothing ELSE in the outfit
+  // supports, i.e. the orphan-accent branch (0.35), NOT the no-accent
+  // baseline (0.5). Listing "sky" once on that garment reaches the exact same
+  // number for the exact same reason: what matters is that repeating a colour
+  // WITHIN one garment must not be counted as a second garment carrying it.
+  const listedTwice = echoScore([["sky", "sky"], ["stone"], ["white"]]);
+  const listedOnce = echoScore([["sky"], ["stone"], ["white"]]);
+  expect(listedTwice).toBe(listedOnce);
+  expect(listedTwice).toBe(0.35);
+});

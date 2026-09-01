@@ -113,12 +113,12 @@ export function scoreCombo(items: ScoreItem[], ctx: Ctx): number {
   // ⚠️ Pass the PER-ITEM grouping, not the flattened list: `echoScore` needs to
   // know which garment each colour came from — an accent repeated across two
   // garments is an echo, the same accent listed twice on one garment is not.
-  const harmony = colourScore(items.map((i) => i.colors));
+  const colour = colourScore(items.map((i) => i.colors));
   const coherence = formalityCoherence(items.map((i) => i.formality ?? 3));
   const dnaHits = items.filter((i) => i.style_tags?.some((t) => ctx.aesthetic.includes(t))).length;
   const dna = items.length ? dnaHits / items.length : 0;
   const pattern = patternHarmony(items.map((i) => i.pattern));
-  const base = 0.4 * harmony + 0.3 * coherence + 0.15 * dna + 0.15 * pattern;
+  const base = 0.4 * colour + 0.3 * coherence + 0.15 * dna + 0.15 * pattern;
 
   // Each preference claims its weight only when it applies, so with neither one
   // set the score is byte-identical to what it was before either landed.

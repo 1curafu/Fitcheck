@@ -1,7 +1,7 @@
 import type { ColorName } from "@/lib/closet/vocab";
 
 /**
- * Warm / cool / temperature-neutral, for all 39 colours.
+ * Warm / cool / temperature-neutral, for all 42 colours.
  *
  * This is the axis the generator did not have, and its absence is the whole
  * reported defect: `cream` and `white` are both `neutral: true` in
@@ -14,7 +14,7 @@ import type { ColorName } from "@/lib/closet/vocab";
  * (navy). Deriving one from the other would be wrong.
  *
  * Source: `docs/research/fit-check-research-round2-raw.md` §D1, which classifies
- * all 39 with a cited basis per row.
+ * all 42 with a cited basis per row.
  */
 export type Temperature = "warm" | "cool" | "neutral";
 
@@ -73,7 +73,10 @@ export function temperatureOf(colour: string): Temperature {
  * than as a global "darkest at the bottom" rule (which the research downgraded to
  * CONTESTED after a source rejected it as universal).
  *
- * Consumed by the seasonal term, not by pairing lookup — which is why the
- * pairing table can stay direction-agnostic at ~741 cells instead of 1,482.
+ * Defined here for a later plan — nothing in production consumes this set yet
+ * (only its own test does). Deliberately not wired up: it is the answer to a
+ * seasonal-gate term the generator does not have. Leave the export in place
+ * rather than deleting it; when the seasonal term lands, it reads from here so
+ * the pairing table can stay direction-agnostic at ~741 cells instead of 1,482.
  */
 export const WARM_WEATHER_ONLY: ReadonlySet<string> = new Set(["white", "cream", "ivory", "sand"]);
