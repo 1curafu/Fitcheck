@@ -197,12 +197,23 @@ export function ItemEditSheet({
 
           <div>
             <Kicker className="mb-2 block">Fit</Kicker>
-            {/* Same chip treatment as the confirm screen — the one tag we ASK
-                rather than infer, since "oversized" is relative to a body the
-                cutout does not contain. */}
+            {/* Same chip treatment as the confirm screen, but with ONE
+                deliberate divergence: these chips toggle off. `fit` is nullable
+                and is treated as the USER's answer, not the model's — a later
+                plan gates its proportion rules on what fraction of items have a
+                real value here, so an accidental tap must be undoable back to
+                "I don't know" rather than silently promoted to a fact. The
+                confirm screen does not need this: it pre-selects the model's
+                draft, so its chips are a correction affordance over an
+                always-present value, never a way to express "unset". */}
             <div role="group" aria-label="Fit" className="flex flex-wrap gap-2">
               {FIT_OPTIONS.map((f) => (
-                <Chip key={f} variant="select" active={fit === f} onClick={() => setFit(f)}>
+                <Chip
+                  key={f}
+                  variant="select"
+                  active={fit === f}
+                  onClick={() => setFit(fit === f ? null : f)}
+                >
                   {f}
                 </Chip>
               ))}

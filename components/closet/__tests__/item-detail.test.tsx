@@ -130,6 +130,10 @@ test("the update action carries all six new fields", async () => {
   await userEvent.selectOptions(screen.getByLabelText("Branding"), "Large");
   await userEvent.selectOptions(screen.getByLabelText("Length"), "Cropped");
   await userEvent.selectOptions(screen.getByLabelText("Wear"), "Ripped");
+  // Sole/`bulk` only exists on a Shoes item — asserted here too, since this
+  // is the one path that confirms the control actually reaches the payload
+  // rather than just rendering.
+  await userEvent.selectOptions(screen.getByLabelText("Sole"), "Low profile");
   await userEvent.click(screen.getByRole("button", { name: /^sky$/i }));
   await userEvent.click(screen.getByRole("button", { name: /^save$/i }));
 
@@ -140,7 +144,21 @@ test("the update action carries all six new fields", async () => {
       branding: "Large",
       accent_color: "sky",
       length: "Cropped",
+      bulk: "Low profile",
       distressing: "Ripped",
     }),
+  );
+});
+
+test("tapping the selected fit chip clears it back to unset", async () => {
+  // `fit` is the user's answer, and "I don't know" is a legitimate answer —
+  // a later plan measures how many items have a real value, so an accidental
+  // tap must be undoable or that measurement counts taps nobody meant.
+  renderDetail({ fit: "Relaxed" });
+  await userEvent.click(screen.getByRole("button", { name: /more/i }));
+  await userEvent.click(screen.getByRole("button", { name: "Relaxed" }));
+  expect(screen.getByRole("button", { name: "Relaxed" })).toHaveAttribute(
+    "aria-pressed",
+    "false",
   );
 });
