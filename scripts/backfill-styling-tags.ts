@@ -21,8 +21,20 @@
  * code (app code always goes through RLS via lib/supabase/server.ts).
  *
  * Cost: ~$0.002/item, one time. Re-running is free — only rows where
- * `accent_color is null` are selected, so an already-backfilled item is
- * never re-billed.
+ * `branding is null and distressing is null` are selected, so an
+ * already-backfilled item is never re-billed.
+ *
+ * ⚠️ The sentinel is `branding`/`distressing`, NOT `accent_color`. Measured
+ * against the real local closet, `accent_color` turned out to be a bad
+ * eligibility check: it is `null` both when a row has never been processed
+ * AND when a row WAS processed and the garment legitimately has no accent —
+ * a plain single-colour tee has none to report, and that is the common case,
+ * not the exception. Selecting on `accent_color is null` would re-tag (and
+ * re-bill) most of an already-backfilled closet on every re-run.
+ * `branding` and `distressing` don't have this problem: both enums include a
+ * literal `"None"` value distinct from SQL NULL, so a processed row always
+ * comes back with SOMETHING in both columns, even for a plain garment. Only
+ * a row the script has truly never touched has both still NULL.
  */
 import { createClient } from "@supabase/supabase-js";
 import { fileURLToPath } from "node:url";
@@ -37,7 +49,8 @@ const db = createClient(
 
 type BackfillRow = {
   id: string;
-  accent_color?: string | null;
+  branding?: string | null;
+  distressing?: string | null;
   cutout_url: string | null;
 };
 
@@ -59,8 +72,12 @@ function mediaTypeFor(path: string): "image/webp" | "image/png" | "image/jpeg" {
  * failure mode here resolves to `"failed"` instead of rejecting.
  */
 export async function backfillItem(item: BackfillRow): Promise<"filled" | "skipped" | "failed"> {
-  // Already backfilled — re-running the script must cost nothing.
-  if (item.accent_color != null) return "skipped";
+  // Already backfilled — re-running the script must cost nothing. `branding`
+  // and `distressing` are the sentinel, not `accent_color`: both enums
+  // always come back with a real value (`"None"` included) once a row has
+  // been through the tagger, even for a plain garment with no accent — so
+  // "still NULL" reliably means "never processed", unlike `accent_color`.
+  if (item.branding != null || item.distressing != null) return "skipped";
   // Nothing to tag. Not a failure: this item just predates cutouts entirely
   // (background removal failed, or a legacy row was never migrated).
   if (!item.cutout_url) return "skipped";
@@ -98,8 +115,9 @@ async function main() {
   // restored, and it would come back missing the fields every other item has.
   const { data: items, error } = await db
     .from("items")
-    .select("id, accent_color, cutout_url")
-    .is("accent_color", null)
+    .select("id, branding, distressing, cutout_url")
+    .is("branding", null)
+    .is("distressing", null)
     .not("cutout_url", "is", null);
   if (error) throw error;
 

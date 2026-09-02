@@ -61,21 +61,30 @@ beforeEach(() => {
   lastWrite = undefined;
 });
 
-test("an item that already has an accent colour is skipped, not re-billed", async () => {
-  const r = await backfillItem({ id: "1", accent_color: "sky", cutout_url: "x" });
+// The sentinel is `branding`/`distressing`, not `accent_color`: accent_color
+// is legitimately null on a processed row (most garments have no accent), so
+// it can't distinguish "never touched" from "touched, nothing to report".
+// branding/distressing always come back populated (their enums include a
+// literal "None") once a row has been through the tagger.
+test("an item that already has branding/distressing set is skipped, not re-billed", async () => {
+  const r = await backfillItem({ id: "1", branding: "None", distressing: "None", cutout_url: "x" });
   expect(r).toBe("skipped");
   expect(tagItemMock).not.toHaveBeenCalled();
 });
 
 test("fit is never written by the backfill", async () => {
-  const written = await captureWrite(() => backfillItem({ id: "2", accent_color: null, cutout_url: "x" }));
+  const written = await captureWrite(() =>
+    backfillItem({ id: "2", branding: null, distressing: null, cutout_url: "x" }),
+  );
   expect(written).not.toHaveProperty("fit");
 });
 
 test("an item with no cutout is skipped rather than failing the whole run", async () => {
-  expect(await backfillItem({ id: "3", accent_color: null, cutout_url: null })).toBe("skipped");
+  expect(await backfillItem({ id: "3", branding: null, distressing: null, cutout_url: null })).toBe("skipped");
 });
 
 test("one failed item does not abort the run", async () => {
-  expect(await backfillItem({ id: "4", accent_color: null, cutout_url: "explodes" })).toBe("failed");
+  expect(
+    await backfillItem({ id: "4", branding: null, distressing: null, cutout_url: "explodes" }),
+  ).toBe("failed");
 });
