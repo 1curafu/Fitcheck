@@ -31,5 +31,11 @@ export function tagsToItemRow(args: {
     texture: tags.texture,
     formality: tags.formality,
     seasons: tags.seasons,
+    accent_color: tags.accent_color,
+    branding: tags.branding,
+    fit: tags.fit,
+    length: tags.length,
+    bulk: tags.bulk,
+    distressing: tags.distressing,
   };
 }

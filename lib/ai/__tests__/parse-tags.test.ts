@@ -1,4 +1,5 @@
 import { parseTagText, tagsToItemRow } from "../parse-tags";
+import { TagSchema } from "../tagging-schema";
 
 const valid = JSON.stringify({
   category: "Bottoms",
@@ -9,6 +10,12 @@ const valid = JSON.stringify({
   texture: "Twill",
   formality: 3,
   seasons: ["Spring"],
+  accent_color: "sky",
+  branding: "Small",
+  fit: null,
+  length: "Ankle",
+  bulk: null,
+  distressing: "None",
 });
 
 test("parseTagText returns validated tags", () => {
@@ -36,4 +43,17 @@ test("tagsToItemRow merges tags with ids + urls", () => {
     texture: "Twill",
     formality: 3,
   });
+});
+
+test("tagsToItemRow carries every new styling field into the row", () => {
+  const row = tagsToItemRow({
+    userId: "u1", imageUrl: "a.jpg", cutoutUrl: null,
+    tags: TagSchema.parse(JSON.parse(valid)),
+  });
+  expect(row.accent_color).toBe("sky");
+  expect(row.branding).toBe("Small");
+  expect(row.fit).toBeNull();
+  expect(row.length).toBe("Ankle");
+  expect(row.bulk).toBeNull();
+  expect(row.distressing).toBe("None");
 });

@@ -15,6 +15,7 @@ const draft: Draft = {
     category: "Tops", subcategory: "Crew neck tee", colors: ["black"],
     pattern: "solid", material: "Cotton", texture: "Flat",
     formality: 2, seasons: ["Summer"],
+    accent_color: null, branding: null, fit: null, length: null, bulk: null, distressing: null,
   },
 };
 
