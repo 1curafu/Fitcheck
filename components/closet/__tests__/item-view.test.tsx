@@ -17,6 +17,12 @@ const item: DetailItem = {
   price: 90,
   formality: 3,
   seasons: ["Spring", "Autumn"],
+  accent_color: null,
+  branding: null,
+  fit: null,
+  length: null,
+  bulk: null,
+  distressing: null,
 };
 
 const noop = () => {};

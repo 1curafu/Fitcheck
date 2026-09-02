@@ -21,6 +21,12 @@ export type DetailItem = {
   price: number | null;
   formality: number | null;
   seasons: string[];
+  accent_color: Tags["accent_color"];
+  branding: Tags["branding"];
+  fit: Tags["fit"];
+  length: Tags["length"];
+  bulk: Tags["bulk"];
+  distressing: Tags["distressing"];
 };
 
 /**

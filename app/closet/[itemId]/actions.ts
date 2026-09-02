@@ -23,6 +23,12 @@ export async function updateItem(itemId: string, input: unknown) {
       price: data.price,
       formality: data.formality,
       seasons: data.seasons,
+      accent_color: data.accent_color,
+      branding: data.branding,
+      fit: data.fit,
+      length: data.length,
+      bulk: data.bulk,
+      distressing: data.distressing,
     })
     .eq("id", itemId);
   if (error) throw error;

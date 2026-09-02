@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ItemDetail, type DetailItem } from "../item-detail";
 
@@ -28,12 +28,18 @@ const item: DetailItem = {
   price: 90,
   formality: 3,
   seasons: ["Spring"],
+  accent_color: null,
+  branding: null,
+  fit: null,
+  length: null,
+  bulk: null,
+  distressing: null,
 };
 
-function renderDetail() {
+function renderDetail(itemOverrides: Partial<DetailItem> = {}) {
   return render(
     <ItemDetail
-      item={item}
+      item={{ ...item, ...itemOverrides }}
       imageUrl="/i1.png"
       brandSuggestions={[]}
       stats={{ wears: 30, costPerWear: "€3.00", lastWorn: "Yesterday" }}
@@ -84,4 +90,57 @@ test("escape closes the sheet without saving", async () => {
   await userEvent.keyboard("{Escape}");
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   expect(updateItem).not.toHaveBeenCalled();
+});
+
+// Every tag that can be set at capture must be correctable afterwards, or the
+// closet becomes a place where mistakes are permanent — the six fields the
+// item-data-completeness plan added (fit, branding, accent colour, length,
+// bulk/sole, distressing) need a way back.
+test("the edit screen offers every new field", async () => {
+  renderDetail({ category: "Shoes", fit: "Regular", bulk: "Chunky" });
+  await userEvent.click(screen.getByRole("button", { name: /more/i }));
+  expect(screen.getByLabelText("Fit")).toBeInTheDocument();
+  expect(screen.getByLabelText("Branding")).toBeInTheDocument();
+  expect(screen.getByLabelText("Accent colour")).toBeInTheDocument();
+  expect(screen.getByLabelText("Length")).toBeInTheDocument();
+  // ⚠️ `distressing` is AI-tagged and never asked at capture, so THIS is its
+  // only correction path. Without it the field is write-once and a wrong tag
+  // is permanent — the exact failure this task exists to prevent.
+  expect(screen.getByLabelText("Wear")).toBeInTheDocument();
+});
+
+test("sole is offered for shoes and hidden for everything else", async () => {
+  renderDetail({ category: "Shoes" });
+  await userEvent.click(screen.getByRole("button", { name: /more/i }));
+  expect(screen.getByLabelText("Sole")).toBeInTheDocument();
+
+  cleanup();
+  updateItem.mockClear();
+  renderDetail({ category: "Tops" });
+  await userEvent.click(screen.getByRole("button", { name: /more/i }));
+  expect(screen.queryByLabelText("Sole")).not.toBeInTheDocument();
+});
+
+test("the update action carries all six new fields", async () => {
+  updateItem.mockClear();
+  renderDetail({ category: "Shoes", fit: "Regular", bulk: "Chunky" });
+  await userEvent.click(screen.getByRole("button", { name: /more/i }));
+
+  await userEvent.click(screen.getByRole("button", { name: "Oversized" }));
+  await userEvent.selectOptions(screen.getByLabelText("Branding"), "Large");
+  await userEvent.selectOptions(screen.getByLabelText("Length"), "Cropped");
+  await userEvent.selectOptions(screen.getByLabelText("Wear"), "Ripped");
+  await userEvent.click(screen.getByRole("button", { name: /^sky$/i }));
+  await userEvent.click(screen.getByRole("button", { name: /^save$/i }));
+
+  expect(updateItem).toHaveBeenCalledWith(
+    "i1",
+    expect.objectContaining({
+      fit: "Oversized",
+      branding: "Large",
+      accent_color: "sky",
+      length: "Cropped",
+      distressing: "Ripped",
+    }),
+  );
 });
