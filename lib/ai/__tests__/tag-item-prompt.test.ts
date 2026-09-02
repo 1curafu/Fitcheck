@@ -1,4 +1,4 @@
-import { PROMPT } from "../tag-item";
+import { PROMPT } from "../tagging-prompt";
 
 test("the prompt no longer instructs the model to discard logos", () => {
   expect(PROMPT).not.toContain("Ignore small logos");
