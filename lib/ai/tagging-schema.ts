@@ -102,6 +102,70 @@ export const COLOR_NAMES = [
   "mustard", "yellow", "gold", "orange",
 ] as const;
 
+/** How loud the visible branding is. Counted per OUTFIT (max ~2), not judged per garment. */
+export const BRANDING = ["None", "Small", "Large"] as const;
+
+/**
+ * How the garment is cut and worn.
+ *
+ * ⚠️ The one tag the USER answers rather than the model. Everything else here is
+ * visible in a cutout; "oversized" is relative to a body the photo does not
+ * contain. Haiku still drafts a guess from the cut, and the confirm screen asks.
+ */
+export const FITS = ["Fitted", "Tailored", "Regular", "Relaxed", "Oversized"] as const;
+
+/**
+ * WHERE THE HEM FALLS ON THE BODY.
+ *
+ * ⚠️ Revised 2026-09-01 after a full re-read of `docs/research/`. The first draft
+ * was `["Cropped","Regular","Long","Extra long"]`, which tried to serve two
+ * DIFFERENT axes with one vocabulary — hem length on a top, and the break on a
+ * trouser — so "Regular" meant nothing consistent across them and the proportion
+ * rules could not compare a top against a bottom.
+ *
+ * Research §A.4 answers the question directly: the rule-of-thirds and the
+ * volume-balance formulas are defined by *where a hem falls*, not by fabric
+ * fullness. Body-referenced placement unifies both axes — a trouser's break IS
+ * its hem placement — so one field still serves every role:
+ *
+ *   Cropped       above the natural waist (top) · above the ankle (trouser, skirt)
+ *   Natural waist a top ending at the waist
+ *   Hip           a top or jacket ending at the hip
+ *   Knee          skirt, dress or shorts at the knee
+ *   Midi          mid-calf
+ *   Ankle         a full-length trouser meeting the shoe with no break
+ *   Floor         floor-length, or a trouser stacking over the shoe
+ *
+ * ⚠️ Widened NOW, before the migration runs, because an enum is cheap to change
+ * while no data exists and expensive afterwards — every stored value would need
+ * re-tagging. `Floor` deliberately carries both "floor-length gown" and "stacked
+ * trouser": both mean the hem reaches the ground, which is what the stacking ×
+ * chunky-sole rule compares.
+ */
+export const LENGTHS = [
+  "Cropped", "Natural waist", "Hip", "Knee", "Midi", "Ankle", "Floor",
+] as const;
+
+/** Footwear silhouette. Null on everything that is not a shoe. */
+export const BULKS = ["Low profile", "Regular", "Chunky"] as const;
+
+/**
+ * Visible wear on a garment.
+ *
+ * Backs a HARD rule the research states outright: distressed and ripped denim is
+ * excluded from business formal and most business casual. Not womenswear-specific
+ * — r1-ext asks for "tailored, distress-free jeans" in the classic register too.
+ *
+ * ⚠️ Deliberately NOT a `wash` field. Light-vs-dark wash is ALREADY expressible
+ * through `material: "Denim"` plus the colour (`sky`/`denim` light, `indigo`/`navy`
+ * dark). Adding a wash column would give one fact two sources, which drift.
+ * Distressing is the half nothing carried.
+ *
+ * 'Faded' = whiskering, fading, abrasion, no holes. 'Ripped' = holes, tears,
+ * deliberate destruction.
+ */
+export const DISTRESSING = ["None", "Faded", "Ripped"] as const;
+
 // Categories + seasons match the prototype (Title case) so tags line up with
 // the closet filters and the generator.
 export const TagSchema = z.object({
@@ -113,6 +177,22 @@ export const TagSchema = z.object({
   texture: z.enum(TEXTURES),
   formality: z.number().int().min(1).max(5),
   seasons: z.array(z.enum(["Spring", "Summer", "Autumn", "Winter"])).min(1),
+
+  /**
+   * A small contrast colour: a logo, a sole, contrast stitching.
+   *
+   * ⚠️ SEPARATE from `colors` on purpose. `colors` drives the 3-colour ceiling
+   * and the harmony score; folding every logo into it would make a two-tone
+   * sneaker read as a loud outfit. The accent participates in colour reasoning
+   * at its own smaller weight — the research is explicit that "accent" is a tier
+   * below dominant and secondary, not a peer.
+   */
+  accent_color: z.enum(COLOR_NAMES).nullable(),
+  branding: z.enum(BRANDING).nullable(),
+  fit: z.enum(FITS).nullable(),
+  length: z.enum(LENGTHS).nullable(),
+  bulk: z.enum(BULKS).nullable(),
+  distressing: z.enum(DISTRESSING).nullable(),
 });
 export type Tags = z.infer<typeof TagSchema>;
 
