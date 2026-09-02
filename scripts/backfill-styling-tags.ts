@@ -21,20 +21,22 @@
  * code (app code always goes through RLS via lib/supabase/server.ts).
  *
  * Cost: ~$0.002/item, one time. Re-running is free — only rows where
- * `branding is null and distressing is null` are selected, so an
- * already-backfilled item is never re-billed.
+ * `distressing is null` are selected, so an already-backfilled item is
+ * never re-billed.
  *
- * ⚠️ The sentinel is `branding`/`distressing`, NOT `accent_color`. Measured
- * against the real local closet, `accent_color` turned out to be a bad
- * eligibility check: it is `null` both when a row has never been processed
- * AND when a row WAS processed and the garment legitimately has no accent —
- * a plain single-colour tee has none to report, and that is the common case,
- * not the exception. Selecting on `accent_color is null` would re-tag (and
- * re-bill) most of an already-backfilled closet on every re-run.
- * `branding` and `distressing` don't have this problem: both enums include a
- * literal `"None"` value distinct from SQL NULL, so a processed row always
- * comes back with SOMETHING in both columns, even for a plain garment. Only
- * a row the script has truly never touched has both still NULL.
+ * ⚠️ The sentinel is `distressing`, NOT `accent_color` and NOT `branding`.
+ * Measured against the real local closet, `accent_color` turned out to be a
+ * bad eligibility check: it is `null` both when a row has never been
+ * processed AND when a row WAS processed and the garment legitimately has no
+ * accent — a plain single-colour tee has none to report, and that is the
+ * common case, not the exception. Selecting on `accent_color is null` would
+ * re-tag (and re-bill) most of an already-backfilled closet on every re-run.
+ * `branding` was tried next and is ALSO unsafe as a sentinel on its own: it
+ * is `.nullable()` in `TagSchema`, and the model genuinely returns null for
+ * it sometimes (3 of 26 rows in this closet's first run). `distressing` is
+ * the one column this script does not merely pass through — see the `??
+ * "None"` coercion below — so it is the only column guaranteed non-null on
+ * every row the script has touched, regardless of what the model returns.
  */
 import { createClient } from "@supabase/supabase-js";
 import { fileURLToPath } from "node:url";
@@ -49,7 +51,6 @@ const db = createClient(
 
 type BackfillRow = {
   id: string;
-  branding?: string | null;
   distressing?: string | null;
   cutout_url: string | null;
 };
@@ -70,14 +71,21 @@ function mediaTypeFor(path: string): "image/webp" | "image/png" | "image/jpeg" {
  * answer. Never throws — a single bad cutout (missing from storage, a
  * tagger error, a write failure) must not abort the whole run, so every
  * failure mode here resolves to `"failed"` instead of rejecting.
+ *
+ * `onBilled` fires the instant `tagItem` returns successfully — i.e. the
+ * instant the call is actually billed by Anthropic — NOT when the later DB
+ * write succeeds. A cost total driven by `"filled"` would silently drop the
+ * spend for any item where tagging succeeded but the subsequent `.update()`
+ * failed; that money was still spent.
  */
-export async function backfillItem(item: BackfillRow): Promise<"filled" | "skipped" | "failed"> {
-  // Already backfilled — re-running the script must cost nothing. `branding`
-  // and `distressing` are the sentinel, not `accent_color`: both enums
-  // always come back with a real value (`"None"` included) once a row has
-  // been through the tagger, even for a plain garment with no accent — so
-  // "still NULL" reliably means "never processed", unlike `accent_color`.
-  if (item.branding != null || item.distressing != null) return "skipped";
+export async function backfillItem(
+  item: BackfillRow,
+  onBilled?: () => void,
+): Promise<"filled" | "skipped" | "failed"> {
+  // Already backfilled — re-running the script must cost nothing.
+  // `distressing` is the sentinel — see the file header for why it, and only
+  // it, is safe to rely on here.
+  if (item.distressing != null) return "skipped";
   // Nothing to tag. Not a failure: this item just predates cutouts entirely
   // (background removal failed, or a legacy row was never migrated).
   if (!item.cutout_url) return "skipped";
@@ -88,6 +96,7 @@ export async function backfillItem(item: BackfillRow): Promise<"filled" | "skipp
 
     const buf = Buffer.from(await blob.arrayBuffer());
     const tags = await tagItem(buf.toString("base64"), mediaTypeFor(item.cutout_url));
+    onBilled?.(); // the API call succeeded here — this item is billed regardless of what happens next
 
     // ⚠️ `fit` is intentionally absent from this object — see file header.
     const { error } = await db
@@ -97,7 +106,17 @@ export async function backfillItem(item: BackfillRow): Promise<"filled" | "skipp
         branding: tags.branding,
         length: tags.length,
         bulk: tags.bulk,
-        distressing: tags.distressing,
+        // ⚠️ Coerced, not passed through. This column is the sentinel that
+        // marks a row as processed, so it must ALWAYS be non-null after a
+        // successful run — otherwise the row reads as never-processed and
+        // gets re-tagged and re-billed forever. The model is permitted to
+        // return null here (`z.enum(DISTRESSING).nullable()`), and in this
+        // closet it returned null for `branding` on 3 of 26 rows, so "the
+        // model always fills it" is not a property we may rely on for the
+        // sentinel column specifically.
+        // Semantically safe: the prompt already instructs "None for a clean
+        // garment", so null and "None" carry the same meaning for this field.
+        distressing: tags.distressing ?? "None",
       })
       .eq("id", item.id);
     if (error) return "failed";
@@ -115,8 +134,7 @@ async function main() {
   // restored, and it would come back missing the fields every other item has.
   const { data: items, error } = await db
     .from("items")
-    .select("id, branding, distressing, cutout_url")
-    .is("branding", null)
+    .select("id, distressing, cutout_url")
     .is("distressing", null)
     .not("cutout_url", "is", null);
   if (error) throw error;
@@ -127,22 +145,25 @@ async function main() {
   let filled = 0;
   let skipped = 0;
   let failed = 0;
+  // Tracked separately from `filled`: billed the moment tagItem succeeds,
+  // not the moment the write succeeds — see backfillItem's onBilled doc.
+  let billed = 0;
 
   for (const [i, item] of (items ?? []).entries()) {
-    const result = await backfillItem(item);
+    const result = await backfillItem(item, () => billed++);
     if (result === "filled") filled++;
     else if (result === "skipped") skipped++;
     else failed++;
 
     console.log(
       `  [${i + 1}/${total}] ${item.id}: ${result}` +
-        `  (running: ${filled} filled, ~$${(filled * COST_PER_ITEM).toFixed(2)} spent)`,
+        `  (running: ${filled} filled, ~$${(billed * COST_PER_ITEM).toFixed(2)} spent)`,
     );
   }
 
   console.log(
     `\nDone. ${filled} filled, ${skipped} skipped, ${failed} failed.` +
-      ` ~$${(filled * COST_PER_ITEM).toFixed(2)} spent.`,
+      ` ~$${(billed * COST_PER_ITEM).toFixed(2)} spent.`,
   );
 }
 
