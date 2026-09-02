@@ -62,6 +62,18 @@ test("black+grey stays 5 — r1-ext's '4-5' range includes it, so there is no co
   expect(pairingRating("black", "grey")).toBe(5);
 });
 
+test("the bottom of the rating scale costs full credit, not a fifth of it", () => {
+  // `/5` mapped a rating of 1 ("actively discouraged") to 0.2 — still a fifth of
+  // full marks for a pairing the research says to avoid. (r-1)/4 maps 1 to 0.
+  // green|red is rated 2, the lowest present: sources call it "Christmas-y
+  // territory" needing deeper, muted versions.
+  expect(pairingScore(["green", "red"])).toBeCloseTo(0.25);
+});
+
+test("a canonical pair still scores full marks", () => {
+  expect(pairingScore(["navy", "white"])).toBe(1);
+});
+
 test("the reported outfit has NO rated pairs — and that is correct", () => {
   // ⚠️ sky/stone/white and sky/stone/cream contain no researched pair between
   // them, so this term has no opinion on the reported defect at all and returns

@@ -125,6 +125,18 @@ export const PAIRING_RATINGS: Record<string, number> = {
   "green|pink": 3,
   "burgundy|olive": 3,
   "burgundy|mustard": 3,
+
+  // Slash-pair sweep against §D2: rows written as "a + b/c" (or "a/b + c/d")
+  // where only one expansion had been encoded. Each key below is a genuinely
+  // new combination from an existing rated row — not a new inference.
+  "ivory|navy": 4,        // "navy + cream/ivory" — navy|cream already present
+  "tan|terracotta": 4,    // "camel/tan + rust/terracotta" — the other 3 of 4 already present
+  "burgundy|forest": 3,   // "burgundy + olive/forest" — burgundy|olive already present
+  // "beige/cream + coral/pink" — all four combinations were absent.
+  "beige|coral": 3,
+  "beige|pink": 3,
+  "coral|cream": 3,
+  "cream|pink": 3,
 };
 
 function key(a: string, b: string): string {
@@ -154,5 +166,10 @@ export function pairingScore(colours: string[]): number | null {
     }
   }
   if (!rated.length) return null;
-  return rated.reduce((a, b) => a + b, 0) / rated.length / 5;
+  // ⚠️ (mean - 1) / 4, NOT mean / 5. Dividing by 5 gave a rating of 1 — "actively
+  // discouraged" — a score of 0.2, i.e. a fifth of full credit for a pairing the
+  // research says to avoid. Mapping the scale's floor to 0 makes the bottom
+  // actually cost something, and leaves 5 at 1.0 untouched.
+  const mean = rated.reduce((a, b) => a + b, 0) / rated.length;
+  return (mean - 1) / 4;
 }
