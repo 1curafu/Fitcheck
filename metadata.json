@@ -1,0 +1,37 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M1MPV3MF9EV1DYXWSJC06Y1Q",
+  "strategy": "manual-commit",
+  "branch": "feat/scoring-foundations",
+  "checkpoints_count": 9,
+  "files_touched": [
+    "app/closet/[itemId]/actions.ts",
+    "components/capture/__tests__/confirm-form.test.tsx",
+    "components/capture/confirm-form.tsx",
+    "components/closet/__tests__/item-detail.test.tsx",
+    "components/closet/item-detail.tsx",
+    "components/closet/item-edit-sheet.tsx",
+    "lib/ai/__tests__/parse-tags.test.ts",
+    "lib/ai/__tests__/tagging-schema.test.ts",
+    "lib/ai/parse-tags.ts",
+    "lib/ai/tagging-schema.ts",
+    "lib/closet/update-schema.ts",
+    "supabase/migrations/20260903090000_item_fit_source.sql"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 878,
+    "cache_creation_tokens": 7997380,
+    "cache_read_tokens": 258761177,
+    "output_tokens": 553122,
+    "api_call_count": 452
+  }
+}
