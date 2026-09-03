@@ -17,9 +17,16 @@ export function isNeutral(color: string): boolean {
   return NEUTRALS.has(color.trim().toLowerCase());
 }
 
-/** 1.0 = all neutral; each accent beyond the first costs 0.25. */
+/** 1.0 = all neutral; each DISTINCT accent beyond the first costs 0.25. */
 export function colorHarmonyScore(colors: string[]): number {
-  const accents = colors.filter((c) => !isNeutral(c)).length;
+  // ⚠️ DISTINCT, not occurrences. An accent repeated across two garments is a
+  // colour ECHO — the most reliable move in styling — and counting it twice
+  // charged 0.25 for the very thing `echoScore` exists to reward, at a weight
+  // that cancelled the reward out. One colour in play is one accent, however
+  // many garments carry it.
+  const accents = new Set(
+    colors.map((c) => c.trim().toLowerCase()).filter((c) => !isNeutral(c)),
+  ).size;
   const penalty = Math.max(0, accents - 1) * 0.25;
   return Math.min(1, Math.max(0, 1 - penalty));
 }

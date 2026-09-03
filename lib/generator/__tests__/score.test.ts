@@ -1,5 +1,17 @@
 import { formalityCoherence, scoreCombo } from "../score";
 
+const CTX = { aesthetic: [], band: [1, 5] as [number, number] };
+
+test("scoreCombo prefers the cool shoe over the warm one against a cool shirt", () => {
+  const base = [
+    { category: "top", colors: ["sky"], formality: 3 },
+    { category: "bottom", colors: ["stone"], formality: 3 },
+  ];
+  const white = scoreCombo([...base, { category: "shoes", colors: ["white"], formality: 3 }], CTX);
+  const cream = scoreCombo([...base, { category: "shoes", colors: ["cream"], formality: 3 }], CTX);
+  expect(white).toBeGreaterThan(cream);
+});
+
 test("tight formality spread scores higher than a wide one", () => {
   expect(formalityCoherence([3, 3, 4])).toBeGreaterThan(formalityCoherence([1, 5, 3]));
 });
