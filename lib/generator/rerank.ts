@@ -21,6 +21,21 @@ export type DescItem = {
   material?: string | null;
   texture?: string | null;
   pattern?: string | null;
+  /**
+   * The garment's ONE small contrast colour — a logo, a sole, a buckle.
+   *
+   * ⚠️ Added 2026-09-03 for exactly the reason the comment above records for
+   * `pattern`, one signal later. `scoreCombo` now rewards an accent echoed
+   * across two garments, so the swoosh sneaker RISES to the top of the
+   * shortlist — and without this field the model could not tell it from a plain
+   * white one, was free to pick the plain one, and wrote a "why" that could not
+   * mention the single most deliberate thing about the outfit.
+   *
+   * Rendered by `describeItem` as a subordinate detail, never merged into the
+   * colour list: "a white shoe with a sky accent" and "a white and sky shoe"
+   * are different garments, and the whole point of the column is that they are.
+   */
+  accent_color?: string | null;
 };
 
 /**
@@ -35,6 +50,10 @@ function describeItem(it: DescItem): string {
     it.material?.toLowerCase(),
     it.texture && it.texture !== "Flat" ? it.texture.toLowerCase() : null,
     it.pattern && it.pattern !== "solid" ? it.pattern : null,
+    // Last, and explicitly labelled. The dominant colours are "/"-joined; an
+    // accent is a comma-separated NOTE, so "white, sky accent" cannot be read
+    // as the two-tone "white/sky".
+    it.accent_color ? `${it.accent_color.toLowerCase()} accent` : null,
   ].filter(Boolean);
   const detail = [it.colors.join("/"), ...notes].filter(Boolean).join(", ");
   return `${it.subcategory ?? it.category}${detail ? ` (${detail})` : ""}`;
@@ -108,6 +127,37 @@ export type RerankResult = z.infer<typeof RerankSchema>;
  * ranked, so the top of the list is naturally near-identical. Asking for the
  * best 3 without asking for three DIFFERENT ones gets exactly what it asks for.
  */
+/**
+ * The accent instruction.
+ *
+ * The deterministic half rewards an accent echoed across two garments (see
+ * `lib/generator/styling/echo.ts` — the most reliable move in streetwear), so
+ * the combos that reach the model are often winning ON that echo. Without this
+ * line the model has the data and no reason to use it, and the "why" — the
+ * product's differentiator — credits the outfit for something else.
+ *
+ * ⚠️ Both halves are load-bearing, and a WEAKER first draft was measured
+ * failing both against a real Haiku call on 2026-09-03. That draft said only
+ * that an echo was "worth naming in the why", and the model (a) chose the plain
+ * sneaker over the echoing one — nothing had told it the echo was a reason to
+ * PREFER a combo, only to describe one — and (b) then wrote "white leather
+ * sneakers and their sky accent echoing the top" about an outfit whose top was
+ * CREAM. So it skipped the real echo and invented a false one. Hence: say
+ * "prefer", and forbid the invention explicitly rather than trusting "ignore
+ * it" to be read as "do not talk about it".
+ *
+ * ⚠️ **Placement is load-bearing and was measured.** Moving this line down
+ * beside "Pick the best N" — where the choice is actually made, which is where
+ * you would expect it to work harder — brought the fabricated echo straight
+ * back (2 of 3 runs claimed a sky accent "echoes the pale cream tone"). Stated
+ * up front with the other reading instructions, alongside how a piece is
+ * listed, 3 of 3 runs stayed clean. It describes how to READ a line, so it
+ * belongs with the format, not with the decision. Do not "improve" this by
+ * moving it without re-running a live sample.
+ */
+export const RERANK_ACCENT_RULE =
+  "A piece may carry a small accent colour, written as \"sky accent\" — a logo, a sole, hardware; it is not one of the garment's main colours. When that accent repeats a colour actually worn elsewhere in the SAME outfit, that echo is a deliberate styling move: prefer that outfit over an otherwise identical one without it, and name the echo in the \"why\". When no other piece in the outfit carries that colour the accent is doing nothing — do not mention it, and never describe an accent as picking up or echoing a colour the outfit does not contain.";
+
 export const RERANK_VARIETY_RULE =
   "The three must be genuinely different outfits, not variations of one: no two may share the same top, and no two may share the same bottom. If the candidates cannot give you three that differ, prefer variety over a marginally higher-scoring repeat.";
 
@@ -215,7 +265,8 @@ export async function rerank(args: {
   const prompt = `You are a personal stylist. The user's aesthetic is ${
     args.aesthetic.join(", ") || "understated, modern menswear"
   }. Occasion: ${args.occasion}. Weather: ${weather}.
-Each piece is listed as: name (colours, fabric, weave, pattern) — fabric and weave are given where known, and a pattern is named only when the piece is not plain. Prefer outfits whose fabrics suit the temperature above, and avoid putting two patterned pieces together.
+Each piece is listed as: name (colours, fabric, weave, pattern, accent) — fabric and weave are given where known, and a pattern is named only when the piece is not plain. Prefer outfits whose fabrics suit the temperature above, and avoid putting two patterned pieces together.
+${RERANK_ACCENT_RULE}
 Here are candidate outfits (already filtered and scored), one per line:
 ${describeCombos(args.combos)}
 

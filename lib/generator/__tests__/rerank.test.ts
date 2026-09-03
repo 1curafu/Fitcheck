@@ -1,4 +1,4 @@
-import { dedupePicks, finalisePicks, RERANK_VARIETY_RULE } from "../rerank";
+import { dedupePicks, finalisePicks, RERANK_ACCENT_RULE, RERANK_VARIETY_RULE } from "../rerank";
 import {
   describeCombos,
   RerankSchema,
@@ -253,4 +253,68 @@ test("the stub never invents a combo the shortlist does not have", () => {
 test("the stub's output satisfies the same schema as the model's", () => {
   // If it did not, the stub would be testing a shape that never ships.
   expect(() => RerankSchema.parse(stubbedRerank(5, 3))).not.toThrow();
+});
+
+// ── The accent reaches the model ────────────────────────────────────────────
+// Review finding, 2026-09-03. `scoreCombo` now rewards an accent echoed across
+// two garments, so the swoosh sneaker RISES to the top of the shortlist — and
+// the model that makes the final pick, and writes the "why", could not see the
+// accent at all. Exactly the failure the DescItem comment records for `pattern`
+// on 2026-08-15, one signal later.
+
+test("a garment's accent colour reaches the model, labelled as an accent", () => {
+  const line = describeCombos([
+    [
+      {
+        category: "Shoes",
+        subcategory: "Sneakers",
+        colors: ["white"],
+        material: "Leather",
+        accent_color: "sky",
+      },
+    ],
+  ]);
+  expect(line).toBe("0. Sneakers (white, leather, sky accent)");
+});
+
+test("the accent is NOT merged into the colour list", () => {
+  // ⚠️ The property the whole `accent_color` column exists for: "a white shoe
+  // with a sky accent" and "a white and sky shoe" are different garments, and
+  // the model must be able to tell them apart. Dominant colours are "/"-joined;
+  // an accent is a labelled, comma-separated note.
+  const accent = describeCombos([
+    [{ category: "Shoes", subcategory: "Sneakers", colors: ["white"], accent_color: "sky" }],
+  ]);
+  const twoTone = describeCombos([
+    [{ category: "Shoes", subcategory: "Sneakers", colors: ["white", "sky"] }],
+  ]);
+  expect(accent).not.toBe(twoTone);
+  expect(accent).not.toContain("white/sky");
+  expect(twoTone).toContain("white/sky");
+});
+
+test("a garment with no accent renders exactly as it did before", () => {
+  const line = describeCombos([
+    [{ category: "Shoes", subcategory: "Sneakers", colors: ["white"], accent_color: null }],
+  ]);
+  expect(line).toBe("0. Sneakers (white)");
+});
+
+test("the prompt tells the model to PREFER a real echo, not merely to describe one", () => {
+  // Measured against a real Haiku call: a rule that only said an echo was
+  // "worth naming" left the model no reason to CHOOSE the echoing combo, and it
+  // picked the plain sneaker instead.
+  expect(RERANK_ACCENT_RULE).toMatch(/accent/i);
+  expect(RERANK_ACCENT_RULE).toMatch(/echo/i);
+  expect(RERANK_ACCENT_RULE).toMatch(/prefer/i);
+  expect(RERANK_ACCENT_RULE).toMatch(/why/i);
+});
+
+test("the prompt forbids inventing an echo the outfit does not contain", () => {
+  // The other half of the same measurement: told only to "ignore" an
+  // unsupported accent, the model wrote "their sky accent echoing the top"
+  // about an outfit whose top was cream. The "why" is the product; a sentence
+  // that describes a colour story the clothes do not have is worse than none.
+  expect(RERANK_ACCENT_RULE).toMatch(/never describe/i);
+  expect(RERANK_ACCENT_RULE).toMatch(/does not contain/i);
 });
