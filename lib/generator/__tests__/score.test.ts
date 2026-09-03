@@ -359,6 +359,25 @@ const accentBase = [
   { category: "bottom", colors: ["stone"], formality: 3 },
 ];
 
+// --- The dead aesthetic term ------------------------------------------------
+
+test("the aesthetic does not silently claim score weight it cannot use", () => {
+  // `dna` was 0.15 of the base and permanently 0: `style_tags` had no producer
+  // anywhere in the repo, so every outfit lost the same 15% and the term
+  // discriminated nothing. The aesthetic still reaches the model through the
+  // rerank prompt; it just no longer pretends to be a deterministic signal.
+  const items = [
+    { category: "top", colors: ["navy"], formality: 3 },
+    { category: "bottom", colors: ["white"], formality: 3 },
+    { category: "shoes", colors: ["brown"], formality: 3 },
+  ];
+  const withAesthetic = scoreCombo(items, { aesthetic: ["smart_casual"], band: [1, 5] });
+  const without = scoreCombo(items, { aesthetic: [], band: [1, 5] });
+  expect(withAesthetic).toBe(without);
+  // and the freed weight must actually go somewhere, not vanish:
+  expect(withAesthetic).toBeGreaterThan(0.9);
+});
+
 test("a sneaker's accent scores the same in accent_color as it did in colors", () => {
   const inColors = scoreCombo(
     [...accentBase, { category: "shoes", colors: ["white", "sky"], formality: 3 }],
