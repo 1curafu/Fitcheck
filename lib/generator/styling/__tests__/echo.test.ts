@@ -1,4 +1,4 @@
-import { echoScore } from "../echo";
+import { echoedAccents, echoScore } from "../echo";
 
 test("one repeated accent across two garments is the reward case", () => {
   // sky shirt, stone trousers, sneaker carrying a sky accent — ONE echo point.
@@ -62,4 +62,42 @@ test("a two-tone garment does not echo with itself", () => {
   const listedOnce = echoScore([["sky"], ["stone"], ["white"]]);
   expect(listedTwice).toBe(listedOnce);
   expect(listedTwice).toBe(0.35);
+});
+
+// ── echoedAccents: the same counting, exposed by name ────────────────────────
+// `lib/generator/rerank.ts` prints these on the combo line so the re-ranker is
+// told WHICH accent echoes instead of being asked to spot it. Sharing the
+// counting with `echoScore` is the point: the sentence shown to the user and
+// the score that ranked the combo cannot disagree.
+
+test("names the accent carried by more than one garment", () => {
+  expect(echoedAccents([["sky"], ["stone"], ["white", "sky"]])).toEqual(["sky"]);
+});
+
+test("says nothing when no accent repeats", () => {
+  expect(echoedAccents([["sky"], ["stone"], ["white"]])).toEqual([]);
+});
+
+test("neutrals are never echoes, however often they repeat", () => {
+  expect(echoedAccents([["white"], ["white"], ["white"]])).toEqual([]);
+});
+
+test("a two-tone garment does not echo with itself", () => {
+  expect(echoedAccents([["sky", "sky"], ["stone"]])).toEqual([]);
+});
+
+test("a lone garment has nothing to echo with", () => {
+  expect(echoedAccents([["sky", "rust"]])).toEqual([]);
+});
+
+test("every accent that repeats is named, not just the first", () => {
+  expect(echoedAccents([["sky", "rust"], ["rust"], ["sky"]]).sort()).toEqual(["rust", "sky"]);
+});
+
+test("what echoScore rewards is exactly what echoedAccents names", () => {
+  const echoing = [["sky"], ["stone"], ["white", "sky"]];
+  const plain = [["sky"], ["stone"], ["white"]];
+  expect(echoedAccents(echoing).length).toBeGreaterThan(0);
+  expect(echoScore(echoing)!).toBeGreaterThan(echoScore(plain)!);
+  expect(echoedAccents(plain)).toEqual([]);
 });

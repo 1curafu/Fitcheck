@@ -21,9 +21,14 @@ import { isNeutral } from "@/lib/generator/color";
  * the absence of an echo is neutral rather than a penalty. An outfit with no
  * repeated accent is not doing anything wrong.
  */
-export function echoScore(perItemColours: string[][]): number | null {
-  if (perItemColours.length < 2) return null;
-
+/**
+ * How many GARMENTS each non-neutral colour appears in.
+ *
+ * The one implementation of "what echoes here". `echoScore` weighs it and
+ * `echoedAccents` names it, so the score and the sentence shown to the user can
+ * never disagree about whether an outfit has a colour story.
+ */
+function accentCounts(perItemColours: string[][]): Map<string, number> {
   const counts = new Map<string, number>();
   for (const item of perItemColours) {
     // Count each colour ONCE per garment: a two-tone shoe listing "sky" twice is
@@ -33,6 +38,33 @@ export function echoScore(perItemColours: string[][]): number | null {
       counts.set(colour, (counts.get(colour) ?? 0) + 1);
     }
   }
+  return counts;
+}
+
+/**
+ * WHICH accents actually echo in this combo — the non-neutral colours carried by
+ * more than one garment.
+ *
+ * ⚠️ Exists because the re-ranker could not infer them. `echoScore` made the
+ * echoing combo rank first and the model then discarded it: measured across
+ * nine live calls, Haiku never once picked the echoing combo over its
+ * identical-but-plain twin, and when merely *encouraged* to look for echoes it
+ * invented one that was not there. This is the same fix `DescItem`'s comment
+ * records for `pattern` on 2026-08-15 — hand the model the CONCLUSION, not the
+ * ingredients. `lib/generator/rerank.ts` prints these on the combo line.
+ *
+ * Returns [] rather than null for "nothing echoes": a caller asking what echoes
+ * wants a list to iterate, and the empty case is not exceptional.
+ */
+export function echoedAccents(perItemColours: string[][]): string[] {
+  if (perItemColours.length < 2) return [];
+  return [...accentCounts(perItemColours)].filter(([, n]) => n > 1).map(([colour]) => colour);
+}
+
+export function echoScore(perItemColours: string[][]): number | null {
+  if (perItemColours.length < 2) return null;
+
+  const counts = accentCounts(perItemColours);
 
   // An "echo point" is one accent appearing in one EXTRA garment beyond its first.
   let echoPoints = 0;
