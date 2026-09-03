@@ -107,6 +107,54 @@ test("fit is never written by the backfill", async () => {
   expect(written).not.toHaveProperty("fit");
 });
 
+// Fill, never overwrite. A row eligible for the backfill (distressing is
+// null) can still carry a real user correction on one of the OTHER four
+// fields — a user can fix Branding without ever touching Wear. A re-run must
+// not silently replace that correction with a fresh model guess.
+test("a field the user already corrected is left alone, not overwritten by the model's guess", async () => {
+  const written = await captureWrite(() =>
+    backfillItem({
+      id: "7",
+      distressing: null,
+      cutout_url: "x",
+      branding: "Large", // the user's correction; the mock model would say "Small"
+    }),
+  );
+  expect(written?.branding).toBe("Large");
+  // Fields still genuinely empty on the row DO get filled from the model.
+  expect(written?.accent_color).toBe("rust");
+});
+
+// Same footwear-only gate as tagsToItemRow (lib/ai/parse-tags.ts). The
+// prompt says FOOTWEAR ONLY, but a prompt is guidance, not an invariant —
+// this mock itself returns `bulk: "Regular"` for a Tops item, which proves
+// the hole is reachable without a code-level gate.
+test("bulk is nulled on a non-Shoes item even though the model returned one", async () => {
+  const written = await captureWrite(() => backfillItem({ id: "8", distressing: null, cutout_url: "x" }));
+  expect(written?.bulk).toBeNull();
+});
+
+test("bulk from the model is kept for a Shoes item with no existing value", async () => {
+  tagItemMock.mockResolvedValueOnce({
+    category: "Shoes",
+    subcategory: "Sneakers",
+    colors: ["black"],
+    pattern: "solid",
+    material: "Leather",
+    texture: "Flat",
+    formality: 2,
+    seasons: ["Summer"],
+    accent_color: null,
+    branding: null,
+    fit: null,
+    length: null,
+    bulk: "Chunky",
+    distressing: "None",
+  });
+  const written = await captureWrite(() => backfillItem({ id: "9", distressing: null, cutout_url: "x" }));
+  expect(written?.bulk).toBe("Chunky");
+});
+
 test("an item with no cutout is skipped rather than failing the whole run", async () => {
   expect(await backfillItem({ id: "3", distressing: null, cutout_url: null })).toBe("skipped");
 });

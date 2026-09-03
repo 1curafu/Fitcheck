@@ -57,3 +57,23 @@ test("tagsToItemRow carries every new styling field into the row", () => {
   expect(row.bulk).toBeNull();
   expect(row.distressing).toBe("None");
 });
+
+// `distressing` doubles as the backfill script's "has this row been through
+// the tagger" sentinel — see scripts/backfill-styling-tags.ts. A capture-path
+// row must never land in the DB with a null distressing, or a freshly-tagged
+// item reads as never-processed.
+test("tagsToItemRow never emits a null distressing, even when the model returns null", () => {
+  const tags = TagSchema.parse({ ...JSON.parse(valid), distressing: null });
+  const row = tagsToItemRow({ userId: "u1", imageUrl: "a.jpg", cutoutUrl: null, tags });
+  expect(row.distressing).toBe("None");
+});
+
+// `bulk` is a footwear-only field. The prompt tells the model "FOOTWEAR
+// ONLY", but a prompt is guidance, not an invariant — this pins the DB write
+// itself, so a model that ignores the prompt can never persist a sole value
+// on a non-Shoes item.
+test("tagsToItemRow nulls bulk on a non-Shoes item even if the model returned one", () => {
+  const tags = TagSchema.parse({ ...JSON.parse(valid), category: "Tops", bulk: "Chunky" });
+  const row = tagsToItemRow({ userId: "u1", imageUrl: "a.jpg", cutoutUrl: null, tags });
+  expect(row.bulk).toBeNull();
+});

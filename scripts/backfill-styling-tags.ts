@@ -11,6 +11,15 @@
  * gates its proportion rules on how many items have a REAL `fit`; a
  * backfilled guess would make that measurement a lie.
  *
+ * ⚠️ FILL, NEVER OVERWRITE. The query below selects only rows where
+ * `distressing is null`, but by the time this runs the OTHER four fields may
+ * already carry a user's correction from the edit sheet — the row's own
+ * `distressing` can be null while everything else on it is a real, edited
+ * value (a user can correct branding/length/bulk/accent_color without ever
+ * touching Wear). Each field is written only where the CURRENT row value is
+ * null (`item.field ?? tags.field`); a user correction is never replaced by
+ * a fresh model guess, on this run or any re-run.
+ *
  * Usage: npx tsx scripts/backfill-styling-tags.ts
  * Requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.
  *
@@ -53,6 +62,11 @@ type BackfillRow = {
   id: string;
   distressing?: string | null;
   cutout_url: string | null;
+  category?: string | null;
+  accent_color?: string | null;
+  branding?: string | null;
+  length?: string | null;
+  bulk?: string | null;
 };
 
 /**
@@ -99,13 +113,20 @@ export async function backfillItem(
     onBilled?.(); // the API call succeeded here — this item is billed regardless of what happens next
 
     // ⚠️ `fit` is intentionally absent from this object — see file header.
+    // ⚠️ Fill, never overwrite. A user may have corrected any of these in the
+    // edit sheet, and a re-run must not silently replace their answer with a
+    // fresh model guess. Only genuinely-empty fields are written.
     const { error } = await db
       .from("items")
       .update({
-        accent_color: tags.accent_color,
-        branding: tags.branding,
-        length: tags.length,
-        bulk: tags.bulk,
+        accent_color: item.accent_color ?? tags.accent_color,
+        branding: item.branding ?? tags.branding,
+        length: item.length ?? tags.length,
+        // Same footwear-only gate as tagsToItemRow (lib/ai/parse-tags.ts): a
+        // prompt saying "FOOTWEAR ONLY" is guidance, not an invariant, and the
+        // mock in this suite's own tests proves a non-Shoes item can carry a
+        // bulk value from the model.
+        bulk: item.bulk ?? (tags.category === "Shoes" ? tags.bulk : null),
         // ⚠️ Coerced, not passed through. This column is the sentinel that
         // marks a row as processed, so it must ALWAYS be non-null after a
         // successful run — otherwise the row reads as never-processed and
@@ -116,7 +137,11 @@ export async function backfillItem(
         // sentinel column specifically.
         // Semantically safe: the prompt already instructs "None for a clean
         // garment", so null and "None" carry the same meaning for this field.
-        distressing: tags.distressing ?? "None",
+        // `item.distressing` is never non-null here — the caller only reaches
+        // this branch when `distressing is null` was true — but `?? "None"`
+        // is kept for symmetry with the other fields and as a belt-and-braces
+        // guard on the sentinel specifically.
+        distressing: item.distressing ?? tags.distressing ?? "None",
       })
       .eq("id", item.id);
     if (error) return "failed";
@@ -134,7 +159,7 @@ async function main() {
   // restored, and it would come back missing the fields every other item has.
   const { data: items, error } = await db
     .from("items")
-    .select("id, distressing, cutout_url")
+    .select("id, distressing, cutout_url, category, accent_color, branding, length, bulk")
     .is("distressing", null)
     .not("cutout_url", "is", null);
   if (error) throw error;

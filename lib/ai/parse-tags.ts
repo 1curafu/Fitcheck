@@ -35,7 +35,18 @@ export function tagsToItemRow(args: {
     branding: tags.branding,
     fit: tags.fit,
     length: tags.length,
-    bulk: tags.bulk,
-    distressing: tags.distressing,
+    // ⚠️ Category-gated here, not trusted from the model. The prompt says
+    // FOOTWEAR ONLY, but a prompt is guidance and this is an invariant: a sole
+    // value on a knit would make the proportion rules compare a bulk that
+    // cannot exist.
+    bulk: tags.category === "Shoes" ? tags.bulk : null,
+    // ⚠️ Coerced here, not passed through, because this column doubles as the
+    // "has this row been through the tagger" sentinel for the backfill script.
+    // The model is permitted to return null (`z.enum(DISTRESSING).nullable()`)
+    // and on the real closet it returned null for `branding` on 3 of 26 rows —
+    // "the model always fills it" is not a property we may rely on. The prompt
+    // already says "Use None for a clean garment", so null and "None" carry the
+    // same meaning here and nothing is lost.
+    distressing: tags.distressing ?? "None",
   };
 }

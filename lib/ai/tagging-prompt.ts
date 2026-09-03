@@ -38,8 +38,12 @@ genuinely unclear rather than guessing.
 length — WHERE THE HEM FALLS ON THE BODY, one of: Cropped, Natural waist, Hip, \
 Knee, Midi, Ankle, Floor. A cropped tee is Cropped; a hip-length jacket is Hip; \
 a mid-calf skirt is Midi; a full-length trouser meeting the shoe is Ankle; a \
-trouser stacking over the shoe or a floor-length dress is Floor. null if the \
-piece has no meaningful hem (shoes, most accessories).
+trouser stacking over the shoe or a floor-length dress is Floor. The cutout has \
+no body in it, so INFER placement from the garment's TYPE and proportions, the \
+same way you would size it up on a hanger: a standard shirt or tee falls at the \
+hip, so Hip; a bomber or standard jacket ends at the hip, so Hip; a topcoat or \
+overcoat reaches the knee, so Knee. Return null ONLY for shoes and accessories \
+— every garment has a real hem, so do not use null as an escape from a hard call.
 bulk — FOOTWEAR ONLY: Low profile, Regular, or Chunky. null for everything else.
 distressing — visible wear: None, Faded, or Ripped. Faded = whiskering, fading or \
 abrasion with no holes; Ripped = actual holes, tears or deliberate destruction. \

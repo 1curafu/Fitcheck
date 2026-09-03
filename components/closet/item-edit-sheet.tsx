@@ -399,13 +399,23 @@ export function ItemEditSheet({
             {/* User-facing label for `distressing`. AI-inferred at capture (rips
                 and heavy fading are plainly visible in a cutout), so unlike Fit
                 it never interrupts capture with a question — this is its only
-                correction path. */}
+                correction path.
+
+                ⚠️ No "Not set" option here, unlike Branding/Length/Sole below —
+                deliberately. `distressing` doubles as the backfill script's
+                sentinel for "has this row been through the tagger" (see
+                scripts/backfill-styling-tags.ts), and it already has a real
+                value for "no wear": "None". Offering "Not set" would let a
+                user re-arm the sentinel by accident, making an already-tagged
+                row look never-processed again. Null is a genuine answer for
+                Branding/Length/Sole (a photo may not show enough to tell);
+                for Wear it never is — the tagger always resolves to
+                None/Faded/Ripped. */}
             <Select
               aria-label="Wear"
               value={distressing ?? ""}
-              onChange={(e) => setDistressing((e.target.value || null) as Tags["distressing"])}
+              onChange={(e) => setDistressing(e.target.value as Tags["distressing"])}
             >
-              <option value="">Not set</option>
               {DISTRESSING_OPTIONS.map((d) => (
                 <option key={d} value={d}>
                   {d}

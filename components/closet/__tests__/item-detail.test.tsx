@@ -1,4 +1,4 @@
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ItemDetail, type DetailItem } from "../item-detail";
 
@@ -148,6 +148,23 @@ test("the update action carries all six new fields", async () => {
       distressing: "Ripped",
     }),
   );
+});
+
+// `distressing` doubles as the backfill script's "has this row been through
+// the tagger" sentinel (scripts/backfill-styling-tags.ts). It already has a
+// real value for "no wear" — None — so "Not set" must not be offered here,
+// unlike Branding/Length/Sole where null is a genuine answer.
+test("Wear has no way to set an unset answer, unlike Branding, Length and Sole", async () => {
+  renderDetail({ category: "Shoes" });
+  await userEvent.click(screen.getByRole("button", { name: /more/i }));
+
+  const wear = within(screen.getByLabelText("Wear"));
+  expect(wear.getByRole("option", { name: "None" })).toBeInTheDocument();
+  expect(wear.queryByRole("option", { name: "Not set" })).not.toBeInTheDocument();
+
+  expect(within(screen.getByLabelText("Branding")).getByRole("option", { name: "Not set" })).toBeInTheDocument();
+  expect(within(screen.getByLabelText("Length")).getByRole("option", { name: "Not set" })).toBeInTheDocument();
+  expect(within(screen.getByLabelText("Sole")).getByRole("option", { name: "Not set" })).toBeInTheDocument();
 });
 
 test("tapping the selected fit chip clears it back to unset", async () => {
