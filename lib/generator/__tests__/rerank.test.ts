@@ -1,5 +1,12 @@
-import { dedupePicks, echoNote, finalisePicks, RERANK_ACCENT_RULE, RERANK_VARIETY_RULE } from "../rerank";
-import { echoedAccents } from "../styling/echo";
+import {
+  dedupePicks,
+  type DescItem,
+  echoNote,
+  finalisePicks,
+  RERANK_ACCENT_RULE,
+  RERANK_VARIETY_RULE,
+} from "../rerank";
+import { echoedAccents, withAccent } from "../styling/echo";
 import {
   describeCombos,
   RerankSchema,
@@ -367,12 +374,39 @@ test("neutrals never count as an echo — two white pieces is a wardrobe, not a 
 
 test("the echo note and the score cannot disagree — both read echoedAccents", () => {
   // One implementation of "what echoes here", so a combo the scorer rewards is
-  // exactly a combo the sentence can describe.
-  const evidence = (it: { colors: string[]; accent_color?: string }) =>
-    it.accent_color ? [...it.colors, it.accent_color] : it.colors;
-  const combo = [shirt, trousers, swoosh];
-  expect(echoedAccents(combo.map(evidence))).toEqual(["sky"]);
+  // exactly a combo the sentence can describe. ⚠️ The evidence is assembled with
+  // `withAccent`, the same function `colourScore` uses — re-implementing it here
+  // would make the two agree by coincidence, which is the defect this shares.
+  const combo: DescItem[] = [shirt, trousers, swoosh];
+  expect(echoedAccents(combo.map((it) => withAccent(it.colors, it.accent_color)))).toEqual(["sky"]);
   expect(echoNote(combo)).not.toBeNull();
+});
+
+// ── An accent is a ROLE: a neutral accent echoes, two neutral garments do not ──
+
+test("a navy accent picking up a navy top is stated, exactly like a sky one", () => {
+  // ⚠️ The case that used to be invisible. `navy` is a palette NEUTRAL, so the
+  // echo rule filtered it out and the most deliberate thing about the outfit
+  // never reached the model.
+  const navyTop = { category: "Tops", subcategory: "Crewneck", colors: ["navy"] };
+  const whiteTrousers = { category: "Bottoms", subcategory: "Chinos", colors: ["white"] };
+  const navySwoosh = {
+    category: "Shoes",
+    subcategory: "Sneakers",
+    colors: ["white"],
+    accent_color: "navy",
+  };
+  expect(echoNote([navyTop, whiteTrousers, navySwoosh])).toBe(
+    "the sneakers' navy accent picks up the crewneck",
+  );
+});
+
+test("two navy GARMENTS are tonal dressing and get no note", () => {
+  // Monochrome is a different mechanism with its own rule; the note would claim
+  // a colour story the wearer did not make.
+  const navyTop = { category: "Tops", subcategory: "Crewneck", colors: ["navy"] };
+  const navyTrousers = { category: "Bottoms", subcategory: "Chinos", colors: ["navy"] };
+  expect(echoNote([navyTop, navyTrousers, plainShoe])).toBeNull();
 });
 
 test("an over-matched outfit gets NO note, so the line never argues with the score", () => {

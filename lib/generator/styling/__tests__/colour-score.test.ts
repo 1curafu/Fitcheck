@@ -63,3 +63,24 @@ test("an accent reaches echo ONLY — never harmony, temperature or pairing", ()
   expect(asAccent).toBeCloseTo(none, 10);
   expect(asColour).toBeLessThan(none);
 });
+
+// --- an accent is a ROLE, not a palette class (2026-09-03) -------------------
+// `isNeutral` governs whether a colour can ANCHOR an outfit (the harmony
+// ceiling); it is not the question echo asks. navy stays neutral in vocab.ts —
+// what changed is that echo no longer borrows that answer.
+
+test("a navy swoosh picking up a navy top beats the same sneaker without it", () => {
+  const swoosh = colourScore([["navy"], ["white"], ["white"]], [null, null, "navy"]);
+  const plain = colourScore([["navy"], ["white"], ["white"]]);
+  expect(swoosh).toBeGreaterThan(plain);
+});
+
+test("two navy GARMENTS score no echo — tonal dressing is a separate concept", () => {
+  // ⚠️ The line the rule must not cross. If a neutral dominant could echo
+  // another neutral dominant, every navy-and-white wardrobe would read as a
+  // deliberate colour story and the reward would mean nothing.
+  const tonal = colourScore([["navy"], ["navy"], ["white"]]);
+  const tonalWithAccent = colourScore([["navy"], ["white"], ["white"]], [null, null, "navy"]);
+  expect(tonal).toBeLessThan(tonalWithAccent);
+  expect(tonal).toBe(colourScore([["navy"], ["navy"], ["white"]], [null, null, null]));
+});
