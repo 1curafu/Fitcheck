@@ -190,6 +190,23 @@ export const TagSchema = z.object({
   accent_color: z.enum(COLOR_NAMES).nullable(),
   branding: z.enum(BRANDING).nullable(),
   fit: z.enum(FITS).nullable(),
+  /**
+   * Did a HUMAN answer `fit`, or is it still the model's opening guess?
+   *
+   * ⚠️ Deliberately absent from `taggingJsonSchema` below — the model cannot
+   * know whether its own draft will be accepted untouched or corrected by a
+   * later tap, so asking it to fill this in would just be a guess wearing a
+   * ground-truth label. `parseTagText` defaults it to `null` right after the
+   * model call; `tagsToItemRow` is what turns an untouched `null` into
+   * `"model"` at write time. The confirm screen's Fit chips and the edit
+   * sheet's Fit chips set it to `"user"` the moment a human taps one.
+   *
+   * ⚠️ `.optional()` as well as `.nullable()` — same lesson `accent_color`
+   * taught earlier: every row and every fixture predates this column, and a
+   * fixture that doesn't care about provenance should not have to state it.
+   * Fix the type, not a dozen call sites.
+   */
+  fit_source: z.enum(["model", "user"]).nullable().optional(),
   length: z.enum(LENGTHS).nullable(),
   bulk: z.enum(BULKS).nullable(),
   distressing: z.enum(DISTRESSING).nullable(),
@@ -225,6 +242,10 @@ export function forStructuredOutput(node: unknown): unknown {
 }
 
 // Zod 4 native JSON Schema, sanitised for Anthropic's output_config.format.
+//
+// `fit_source` is omitted here on purpose: it records whether a HUMAN answered
+// `fit`, and the model cannot answer that question about its own output. Every
+// other field goes to the model because a photo can settle it; this one can't.
 export const taggingJsonSchema = forStructuredOutput(
-  z.toJSONSchema(TagSchema),
+  z.toJSONSchema(TagSchema.omit({ fit_source: true })),
 ) as Record<string, unknown>;

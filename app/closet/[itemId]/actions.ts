@@ -26,6 +26,7 @@ export async function updateItem(itemId: string, input: unknown) {
       accent_color: data.accent_color,
       branding: data.branding,
       fit: data.fit,
+      fit_source: data.fit_source,
       length: data.length,
       bulk: data.bulk,
       distressing: data.distressing,

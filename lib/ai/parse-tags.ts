@@ -7,7 +7,11 @@ export function parseTagText(text: string): Tags {
   } catch {
     throw new Error("Tagging response was not JSON");
   }
-  return TagSchema.parse(json);
+  // The model is never asked for fit_source (see tagging-schema.ts), so its
+  // response never carries the key. Default it to null here rather than
+  // leaving it undefined — TagSchema requires the key to be present, and
+  // tagsToItemRow is where an untouched null becomes "model".
+  return TagSchema.parse({ fit_source: null, ...(json as Record<string, unknown>) });
 }
 
 export function tagsToItemRow(args: {
@@ -34,6 +38,12 @@ export function tagsToItemRow(args: {
     accent_color: tags.accent_color,
     branding: tags.branding,
     fit: tags.fit,
+    // ⚠️ A draft that reached this row untouched came from the model — the
+    // confirm screen pre-selects the model's guess, so accepting it costs no
+    // taps and leaves fit_source null. The confirm screen's and edit sheet's
+    // Fit chips set "user" the moment a human actually taps one; anything
+    // else that arrives here null is, by construction, the model's own guess.
+    fit_source: tags.fit_source ?? "model",
     length: tags.length,
     // ⚠️ Category-gated here, not trusted from the model. The prompt says
     // FOOTWEAR ONLY, but a prompt is guidance and this is an invariant: a sole
