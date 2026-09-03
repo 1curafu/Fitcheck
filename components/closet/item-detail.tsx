@@ -24,6 +24,7 @@ export type DetailItem = {
   accent_color: Tags["accent_color"];
   branding: Tags["branding"];
   fit: Tags["fit"];
+  fit_source?: Tags["fit_source"];
   length: Tags["length"];
   bulk: Tags["bulk"];
   distressing: Tags["distressing"];

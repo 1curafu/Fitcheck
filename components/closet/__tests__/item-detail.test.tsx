@@ -31,6 +31,7 @@ const item: DetailItem = {
   accent_color: null,
   branding: null,
   fit: null,
+  fit_source: null,
   length: null,
   bulk: null,
   distressing: null,
@@ -177,5 +178,34 @@ test("tapping the selected fit chip clears it back to unset", async () => {
   expect(screen.getByRole("button", { name: "Relaxed" })).toHaveAttribute(
     "aria-pressed",
     "false",
+  );
+});
+
+// ── Task 3: changing fit in the edit sheet is a human decision ──────────────
+
+test("changing the fit in the edit sheet records fit_source as the user's", async () => {
+  updateItem.mockClear();
+  renderDetail({ fit: "Relaxed", fit_source: "model" });
+  await userEvent.click(screen.getByRole("button", { name: /more/i }));
+  await userEvent.click(screen.getByRole("button", { name: "Oversized" }));
+  await userEvent.click(screen.getByRole("button", { name: /^save$/i }));
+
+  expect(updateItem).toHaveBeenCalledWith(
+    "i1",
+    expect.objectContaining({ fit: "Oversized", fit_source: "user" }),
+  );
+});
+
+test("clearing the fit via the toggle clears fit_source too, not a stale 'user'", async () => {
+  updateItem.mockClear();
+  renderDetail({ fit: "Relaxed", fit_source: "user" });
+  await userEvent.click(screen.getByRole("button", { name: /more/i }));
+  // Tapping the already-selected chip toggles it off.
+  await userEvent.click(screen.getByRole("button", { name: "Relaxed" }));
+  await userEvent.click(screen.getByRole("button", { name: /^save$/i }));
+
+  expect(updateItem).toHaveBeenCalledWith(
+    "i1",
+    expect.objectContaining({ fit: null, fit_source: null }),
   );
 });

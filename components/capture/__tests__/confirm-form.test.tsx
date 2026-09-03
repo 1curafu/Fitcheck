@@ -16,7 +16,7 @@ const draft: Draft = {
     category: "Tops", subcategory: "Crew neck tee", colors: ["black"],
     pattern: "solid", material: "Cotton", texture: "Flat",
     formality: 2, seasons: ["Summer"],
-    accent_color: null, branding: null, fit: null, length: null, bulk: null, distressing: null,
+    accent_color: null, branding: null, fit: null, fit_source: null, length: null, bulk: null, distressing: null,
   },
 };
 
@@ -133,14 +133,25 @@ test("every fit option is offered", async () => {
   }
 });
 
-test("tapping a fit reports it upward", async () => {
+test("tapping a fit reports it upward, attributed to the user", async () => {
   const onTags = vi.fn();
   renderConfirm({ onTags });
   await userEvent.click(screen.getByRole("button", { name: "Oversized" }));
-  expect(onTags).toHaveBeenCalledWith({ fit: "Oversized" });
+  expect(onTags).toHaveBeenCalledWith({ fit: "Oversized", fit_source: "user" });
 });
 
 test("the AI's draft fit starts selected so the user only corrects it", () => {
   renderConfirm({ tags: { fit: "Relaxed" } });
   expect(screen.getByRole("button", { name: "Relaxed" })).toHaveAttribute("aria-pressed", "true");
+});
+
+// A fit the model drafted and the user never touched must not be recorded as
+// though the user vouched for it. Starting from a drafted "Relaxed" and
+// tapping a DIFFERENT chip is the clearest proof the tap, not the draft,
+// produces "user".
+test("a fit the user tapped over the model's draft is recorded as theirs", async () => {
+  const onTags = vi.fn();
+  renderConfirm({ onTags, tags: { fit: "Relaxed" } });
+  await userEvent.click(screen.getByRole("button", { name: "Oversized" }));
+  expect(onTags).toHaveBeenCalledWith({ fit: "Oversized", fit_source: "user" });
 });

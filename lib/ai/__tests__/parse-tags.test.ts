@@ -77,3 +77,35 @@ test("tagsToItemRow nulls bulk on a non-Shoes item even if the model returned on
   const row = tagsToItemRow({ userId: "u1", imageUrl: "a.jpg", cutoutUrl: null, tags });
   expect(row.bulk).toBeNull();
 });
+
+// ── Task 3: fit_source — was `fit` answered by a human, or still a guess? ───
+
+// `fit` is the one tag the USER answers: "oversized" is relative to a body a
+// flat cutout does not contain. The confirm screen pre-selects the model's
+// draft, so accepting it costs no taps — a value nobody looked at must not be
+// stored identically to one somebody chose.
+test("accepting the model's drafted fit is recorded as the model's, not the user's", () => {
+  const row = tagsToItemRow({
+    userId: "u1",
+    imageUrl: "a.jpg",
+    cutoutUrl: null,
+    tags: { ...TagSchema.parse(JSON.parse(valid)), fit: "Relaxed" },
+  });
+  expect(row.fit_source).toBe("model");
+});
+
+test("a fit the user explicitly set stays attributed to the user", () => {
+  const tags = TagSchema.parse({ ...JSON.parse(valid), fit: "Oversized", fit_source: "user" });
+  const row = tagsToItemRow({ userId: "u1", imageUrl: "a.jpg", cutoutUrl: null, tags });
+  expect(row.fit_source).toBe("user");
+});
+
+// The model is never asked for fit_source (see tagging-schema.ts) — its real
+// response omits the key entirely, unlike every fixture above which sets it
+// to null explicitly.
+test("parseTagText defaults fit_source to null when the model's response omits it", () => {
+  const noFitSource = JSON.stringify({ ...JSON.parse(valid) });
+  const parsedRaw = JSON.parse(noFitSource);
+  delete parsedRaw.fit_source; // the fixture never had the key, but be explicit
+  expect(parseTagText(JSON.stringify(parsedRaw)).fit_source).toBeNull();
+});

@@ -192,7 +192,7 @@ export function ConfirmForm({
               key={f}
               variant="select"
               active={draft.tags.fit === f}
-              onClick={() => onTags({ fit: f })}
+              onClick={() => onTags({ fit: f, fit_source: "user" })}
             >
               {f}
             </Chip>

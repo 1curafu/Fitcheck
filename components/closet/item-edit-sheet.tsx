@@ -68,6 +68,7 @@ export function ItemEditSheet({
   const [subcategory, setSubcategory] = useState(item.subcategory ?? "");
   const [price, setPrice] = useState(item.price?.toString() ?? "");
   const [fit, setFit] = useState<Tags["fit"]>(item.fit ?? null);
+  const [fitSource, setFitSource] = useState<Tags["fit_source"]>(item.fit_source ?? null);
   const [branding, setBranding] = useState<Tags["branding"]>(item.branding ?? null);
   const [length, setLength] = useState<Tags["length"]>(item.length ?? null);
   const [bulk, setBulk] = useState<Tags["bulk"]>(item.bulk ?? null);
@@ -114,6 +115,7 @@ export function ItemEditSheet({
           formality,
           seasons: seasons.length ? seasons : ["Spring"],
           fit,
+          fit_source: fitSource,
           branding,
           accent_color: accentColor,
           length,
@@ -205,14 +207,23 @@ export function ItemEditSheet({
                 "I don't know" rather than silently promoted to a fact. The
                 confirm screen does not need this: it pre-selects the model's
                 draft, so its chips are a correction affordance over an
-                always-present value, never a way to express "unset". */}
+                always-present value, never a way to express "unset".
+
+                ⚠️ Every tap here is a human decision, so fitSource follows fit
+                in lockstep: setting a fit records "user", and clearing it back
+                to null must clear fitSource too — a stale "user" left on a null
+                fit would say someone vouched for an absent value. */}
             <div role="group" aria-label="Fit" className="flex flex-wrap gap-2">
               {FIT_OPTIONS.map((f) => (
                 <Chip
                   key={f}
                   variant="select"
                   active={fit === f}
-                  onClick={() => setFit(fit === f ? null : f)}
+                  onClick={() => {
+                    const next = fit === f ? null : f;
+                    setFit(next);
+                    setFitSource(next === null ? null : "user");
+                  }}
                 >
                   {f}
                 </Chip>
