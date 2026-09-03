@@ -260,3 +260,87 @@ test("the aesthetic base keeps a real share even with every preference active", 
   ];
   expect(scoreCombo(coherent, all)).toBeGreaterThan(scoreCombo(clash, all));
 });
+
+// --- The weight budget is additive, not subtractive -------------------------
+
+test("a signal's weight does not depend on which OTHER signals happen to apply", () => {
+  // The old budget subtracted: with `lean` and `climate` both active, the base
+  // retained only 42%, so `colour` silently fell from 0.55 to 0.231. A signal's
+  // influence must be a property of that signal, not of what else is present.
+  const items = [
+    { category: "top", colors: ["navy"], formality: 3 },
+    { category: "bottom", colors: ["white"], formality: 3 },
+    { category: "shoes", colors: ["brown"], formality: 3 },
+  ];
+  const bare = scoreCombo(items, { aesthetic: [], band: [1, 5] });
+  const withPrefs = scoreCombo(items, {
+    aesthetic: [],
+    band: [1, 5],
+    lean: ["navy"],
+    tempC: 18,
+    season: "Autumn",
+  });
+  // Both are well-formed outfits scoring well; adding preferences it satisfies
+  // must not drag it down just by existing.
+  expect(withPrefs).toBeGreaterThan(bare - 0.05);
+});
+
+test("adding a third signal dilutes every other signal by the SAME factor", () => {
+  // The sharp form of the property above, and the one the old budget failed.
+  // `lean` and `climate` used to carve their weight out of the BASE, so turning
+  // climate on shrank `colour` to 0.42 of itself while leaving `lean` untouched
+  // — measured here as a 0.6 dilution against 1.02. A signal's influence
+  // RELATIVE to another signal must be fixed by their two declared weights and
+  // nothing else, or adding any new term is a renegotiation with every existing
+  // one instead of a decision about the term.
+  const cloth = { material: "Cotton", texture: "Flat", seasons: ["Autumn"], pattern: "solid" };
+  const mk = (colours: string[]) =>
+    colours.map((c, n) => ({
+      category: ["top", "bottom", "shoes"][n],
+      colors: [c],
+      formality: 3,
+      ...cloth,
+    }));
+  // Two pairs that differ in ONE signal each. Cloth, season, formality and
+  // pattern are identical throughout, so the climate term scores all four the
+  // same and can only act through the budget.
+  const goodColour = mk(["navy", "white", "black"]);
+  const poorColour = mk(["navy", "rust", "olive"]);
+  const hasLean = mk(["navy", "white", "black"]);
+  const noLean = mk(["grey", "white", "black"]);
+
+  const leaning = { aesthetic: [], band: [1, 5] as [number, number], lean: ["navy"] };
+  const alsoWarm = { ...leaning, season: "Autumn", tempC: 14 };
+  const gap = (a: typeof goodColour, b: typeof goodColour, c: typeof leaning) =>
+    scoreCombo(a, c) - scoreCombo(b, c);
+
+  const colourDilution = gap(goodColour, poorColour, alsoWarm) / gap(goodColour, poorColour, leaning);
+  const leanDilution = gap(hasLean, noLean, alsoWarm) / gap(hasLean, noLean, leaning);
+  expect(colourDilution).toBeCloseTo(leanDilution, 6);
+});
+
+test("the score stays inside 0..1 with every signal active", () => {
+  const s = scoreCombo(
+    [
+      {
+        category: "top",
+        colors: ["rust"],
+        formality: 1,
+        material: "Linen",
+        texture: "Flat",
+        pattern: "print",
+      },
+      {
+        category: "bottom",
+        colors: ["olive"],
+        formality: 5,
+        material: "Wool",
+        texture: "Tweed",
+        pattern: "check",
+      },
+    ],
+    { aesthetic: [], band: [1, 5], lean: ["olive"], tempC: 30, season: "Winter" },
+  );
+  expect(s).toBeGreaterThanOrEqual(0);
+  expect(s).toBeLessThanOrEqual(1);
+});
