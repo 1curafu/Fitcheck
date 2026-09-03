@@ -1,0 +1,116 @@
+<task-notification>
+<task-id>a3042a13a2f583e7d</task-id>
+<tool-use-id>toolu_01Tu2XmPdMmQZDuRApLTtJeY</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-1curafu-Desktop-Fitcheck-Fitcheck/6e8fba2c-73d4-4345-8911-9eda52ec6195/tasks/a3042a13a2f583e7d.output</output-file>
+<status>completed</status>
+<summary>Agent "Final review fix wave plan 2" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>Status: COMPLETE
+Commit SHA: 10d600f
+Test summary: 877/877 passed (871 baseline + 6 new); `tsc --noEmit` clean; `npm run build` clean; `npm run insights` clean.
+`length` re-tag of `Test assets/IMG_7913.jpg` (Oxford shirt): returned `"Hip"` (non-null, correct) — full response also had `fit: "Tailored"`, `bulk: null`, `distressing: "None"`.
+
+Applied all 4 IMPORTANT findings plus Q1:
+1. Backfill now fills only null fields (accent_color/branding/length/bulk), never overwrites — query updated to select those columns.
+2. `distressing ?? "None"` sentinel coercion moved into `tagsToItemRow` (shared mapping), so the capture path inherits it, not just the backfill.
+3. `bulk` category-gated (`Shoes` only) in both `tagsToItemRow` and the backfill.
+4. "Not set" removed from Wear select only in `item-edit-sheet.tsx`; kept on Branding/Length/Sole.
+5. `length` prompt now instructs inference from garment type, narrowed null escape to shoes/accessories — verified with a real API call as required.
+
+Concerns: none — all 12-line-report items are direct, no ambiguity encountered. Report written to `.superpowers/sdd/2026-09-02-item-detail-tags/final-fix-report.md` (gitignored by that directory's own `.gitignore`, as expected for this doc type).</result>
+<usage><subagent_tokens>107800</subagent_tokens><tool_uses>58</tool_uses><duration_ms>292884</duration_ms></usage>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>ad06b49964fec66aa</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-1curafu-Desktop-Fitcheck-Fitcheck/6e8fba2c-73d4-4345-8911-9eda52ec6195/tasks/ad06b49964fec66aa.output</output-file>
+<status>completed</status>
+<summary>Agent "Re-review plan 2 fix wave" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>**1. Findings verdicts**
+- IMPORTANT 1 (backfill fill-not-overwrite): ADDRESSED — `scripts/backfill-styling-tags.ts:122-129` uses `item.field ?? tags.field`; query selects the columns at `scripts/backfill-styling-tags.ts:162`.
+- IMPORTANT 2 (distressing sentinel in shared mapping): ADDRESSED — `lib/ai/parse-tags.ts:50` (`tags.distressing ?? "None"`).
+- IMPORTANT 3 (bulk gated on both machine paths): ADDRESSED — `lib/ai/parse-tags.ts:42` and `scripts/backfill-styling-tags.ts:129`.
+- IMPORTANT 4 ("Not set" removed from Wear only): ADDRESSED — `components/closet/item-edit-sheet.tsx:106` (option removed), Branding/Length/Sole selects untouched by the diff, and `item-detail.test.tsx:49-60` pins it.
+- Q1 (length prompt strengthened): ADDRESSED — `lib/ai/tagging-prompt.ts:196-206`, self-reported live verification returning `"Hip"` (not re-run by me).
+
+**2. `fit` absence check** — `fit` IS present in `tagsToItemRow` (`lib/ai/parse-tags.ts:36`, `fit: tags.fit`), unchanged by this diff and covered by a pre-existing test expecting `row.fit` to be null-or-set. This is correct, not a regression: commit `21b119e` ("Capture: ask the user how a garment is cut") means by the time `confirmItem`→`tagsToItemRow` runs, `tags.fit` is the user's capture-time answer, not a model guess — `tagsToItemRow` is the legitimate fit-writer. The backfill's write payload still excludes `fit` entirely (`scripts/backfill-styling-tags.ts:122-144`, no `fit:` key), guarded by the unchanged test "fit is never written by the backfill". So: present where it should be, absent where it should be.
+
+**3. Fill-not-overwrite reads the real stored value** — CONFIRMED correct. `scripts/backfill-styling-tags.ts:162` selects `accent_color, branding, length, bulk` (plus `category`) alongside `distressing, cutout_url`, and `backfillItem`'s `BackfillRow` type declares them (`:61-70`), so `item.field` is the genuine DB value, not `undefined`. New test at `scripts/__tests__/backfill-styling-tags.test.ts:232-244` exercises this directly.
+
+**4. "Not set" removal scope** — CONFIRMED. Diff only touches the Wear/`distressing` `&lt;Select&gt;` (`item-edit-sheet.tsx:100-112`); Branding, Length, Sole blocks are outside the diff hunk, unchanged, still have "Not set". Test at `item-detail.test.tsx:49-60` asserts this explicitly.
+
+**5. New breakage** — None Critical/Important. The `bulk` gate correctly uses `tags.category` (the freshly-returned, schema-validated, non-nullable field from the same `tagItem()` call), both in `tagsToItemRow` and the backfill — reliable in both places. Two minor, non-blocking notes: (a) the backfill's candidate query selects `category` but the write logic never reads `item.category` (only `tags.category`) — harmless dead selection, not a bug. (b) `item-edit-sheet.tsx`'s Wear `&lt;Select&gt;` still renders `value={distressing ?? ""}` but no longer has a `""` option — for the (now theoretically impossible via machine writers, but not DB-constrained) case of a genuinely-null stored `distressing`, the browser would visually default to the first real option while internal state stays `null`, a latent display/state mismatch. Cosmetic, not data-corrupting, out of this fix's stated scope.</result>
+<usage><subagent_tokens>80839</subagent_tokens><tool_uses>7</tool_uses><duration_ms>90592</duration_ms></usage>
+</task-notification>
+
+---
+
+so how we can fix came camel bug, only if user do good input?
+
+---
+
+but do we have implemented 2 other points or not? it make sense do 3 of them or not?
+
+---
+
+but we are talking about n users, they could have more calbe knit than flat cloth
+
+---
+
+remember, we are making for n users, so should we do 3 points of that?
+
+---
+
+what do u mean as unit?
+
+---
+
+but we will do 3 of them, so make a pr, and then say me if u ready to add this 3 piece of works to plan
+
+---
+
+so maybe first to do a things that dont give us to do all works properly like dead dna etc? and then implement other?
+
+---
+
+add all thigns to do now, that dont give us to make this 3 piece of work that we told about
+
+---
+
+a question, is fit playing a big role now in outfit?
+
+---
+
+pr #58 merged, so go?
+
+---
+
+<task-notification>
+<task-id>a10361010d91dbe78</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-1curafu-Desktop-Fitcheck-Fitcheck/6e8fba2c-73d4-4345-8911-9eda52ec6195/tasks/a10361010d91dbe78.output</output-file>
+<status>failed</status>
+<summary>Agent "Implement foundations task 1" failed: Agent terminated early due to an API error: You've hit your session limit · resets 11:10am (Europe/Zurich) (error type rate_limit, HTTP 429, request id req_011CefvDFrWdXCxkVxh3eyFo, model sent to the API: claude-sonnet-5)</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>First run "after" (current state, with fix applied), then stash to get "before".</result>
+</task-notification>
+
+---
+
+why we are using sonnet 5 for agents not opus 5, or u just give a code to him and sonnet write it?
+
+---
+
+so for future, thinks which model to use for agent, but are u sure that previous code from agents okay is?
+
+---
+
+and for future, write not so much text in our chat, if its not required
+
+---
+
+and review team which model?
