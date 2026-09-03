@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { forStructuredOutput } from "@/lib/ai/tagging-schema";
-import { echoedAccents, withAccent } from "./styling/echo";
+import { echoedAccents, withAccent, type ItemColour } from "./styling/echo";
 
 // Text-only re-rank (CLAUDE.md Decision 3, mode 2): the model sees tag DESCRIPTIONS,
 // never images. It returns the best 3 with a look name + one-sentence "why".
@@ -61,14 +61,21 @@ function describeItem(it: DescItem): string {
 }
 
 /**
- * A garment's colours as the echo model sees them.
+ * A garment's colours as the echo model sees them, each tagged with the ROLE it
+ * plays on that garment.
  *
  * ⚠️ Delegates to `withAccent` rather than re-implementing `accent ? [...colours,
  * accent] : colours`, because `colourScore` assembles the very same evidence for
  * the SCORE. Two matching copies would agree by coincidence, and a change to
  * either would silently desync this sentence from the ranking that produced it.
+ *
+ * ⚠️ The roles are read, not flattened away: the echo rule keys off them (a
+ * navy swoosh echoes a navy top; navy trousers under a navy top do not), and so
+ * does the wording below, which names the direction of the pickup. Re-deriving
+ * either from `it.accent_color` at this call site would be the same coincidence
+ * in a new place.
  */
-function colourEvidence(it: DescItem): string[] {
+function colourEvidence(it: DescItem): ItemColour[] {
   return withAccent(it.colors, it.accent_color);
 }
 
@@ -110,11 +117,13 @@ export function echoNote(combo: DescItem[]): string | null {
   if (!echoes.length) return null;
 
   const clauses = echoes.map((colour) => {
-    const carries = (it: DescItem) =>
-      colourEvidence(it).some((c) => c.trim().toLowerCase() === colour);
-    const carriers = combo.filter(carries);
-    const viaAccent = carriers.filter((it) => it.accent_color?.trim().toLowerCase() === colour);
-    const viaBody = carriers.filter((it) => it.accent_color?.trim().toLowerCase() !== colour);
+    // Roles come from `colourEvidence`, i.e. from the same assembly the scorer
+    // used — `echoedAccents` named this colour because of those roles, so the
+    // sentence has to read them from there too.
+    const rolesOf = (it: DescItem) => colourEvidence(it).filter((e) => e.colour === colour);
+    const carriers = combo.filter((it) => rolesOf(it).length > 0);
+    const viaAccent = carriers.filter((it) => rolesOf(it).some((e) => e.role === "accent"));
+    const viaBody = carriers.filter((it) => !rolesOf(it).some((e) => e.role === "accent"));
     // Name the direction when exactly one piece carries the colour as an accent
     // and something else wears it properly — that is the styling move, and "the
     // sneaker's sky accent picks up the shirt" says it better than a symmetric
