@@ -7,7 +7,6 @@ export type ScoreItem = {
   category: string;
   colors: string[];
   formality: number | null;
-  style_tags?: string[];
   seasons?: string[];
   /** "solid" | "striped" | "check" | "print" | "other". Null = no opinion. */
   pattern?: string | null;
@@ -64,9 +63,8 @@ export type Ctx = {
  * subtractive form declared; only the combination moved. Adding a signal is now
  * one entry here and one line in `terms`.
  *
- * `colour`, `coherence`, `dna` and `pattern` are the always-present terms and
- * sum to 1, so a context with no preferences at all scores exactly as it did
- * before this change.
+ * `colour`, `coherence` and `pattern` are the always-present terms and sum to
+ * 0.85, so a context with no preferences at all normalises over what claimed.
  *
  * `lean` is high enough to reorder the top 20 decisively, low enough that a
  * combo missing the colour still beats an incoherent one that has it — the lean
@@ -79,7 +77,6 @@ export type Ctx = {
 const WEIGHTS = {
   colour: 0.4,
   coherence: 0.3,
-  dna: 0.15,
   pattern: 0.15,
   lean: 0.3,
   climate: 0.28,
@@ -142,7 +139,19 @@ type Term = { weight: number; value: number | null };
 
 export function scoreCombo(items: ScoreItem[], ctx: Ctx): number {
   const colors = items.flatMap((i) => i.colors);
-  const dnaHits = items.filter((i) => i.style_tags?.some((t) => ctx.aesthetic.includes(t))).length;
+
+  // ⚠️ `dna` was here and was ALWAYS ZERO. `style_tags` had no DB column and no
+  // producer anywhere in the repo, so `dnaHits` never exceeded 0 — a constant
+  // 15% removed from every outfit, discriminating nothing. Deleted rather than
+  // revived: the aesthetic already reaches the model through the rerank prompt,
+  // and a deterministic aesthetic signal needs a real producer behind it, which
+  // is its own piece of work.
+  //
+  // ⚠️ The weight is NOT redistributed here. With Task 1's additive budget the
+  // term simply stops claiming its share and normalisation absorbs it, which is
+  // a uniform rescale and provably cannot reorder anything. Moving the 0.15 to
+  // `colour` was measured to reorder the tail — a deliberate reweighting that
+  // belongs in its own change where it can be judged on its own evidence.
 
   // One line per signal. A `null` value means "no evidence" — the term is
   // DROPPED, never folded in as a neutral 0.5, and the rest renormalise over
@@ -168,7 +177,6 @@ export function scoreCombo(items: ScoreItem[], ctx: Ctx): number {
       ),
     },
     { weight: WEIGHTS.coherence, value: formalityCoherence(items.map((i) => i.formality ?? 3)) },
-    { weight: WEIGHTS.dna, value: items.length ? dnaHits / items.length : 0 },
     { weight: WEIGHTS.pattern, value: patternHarmony(items.map((i) => i.pattern)) },
     { weight: WEIGHTS.lean, value: ctx.lean?.length ? leanScore(colors, ctx.lean) : null },
     { weight: WEIGHTS.climate, value: climateFit(items, ctx) },
