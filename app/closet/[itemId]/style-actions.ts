@@ -229,6 +229,7 @@ export async function styleWithItem(
             material: it.material,
             texture: it.texture,
             pattern: it.pattern,
+            accent_color: it.accent_color,
           };
         }),
       ),

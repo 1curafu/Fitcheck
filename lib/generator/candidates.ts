@@ -21,9 +21,14 @@ export type CandidateItem = {
    *
    * Optional, like every other tag field added after the fact: most garments
    * genuinely have no accent, and a fixture or caller that does not care about
-   * one should not have to state `null`. The seam it closes is guarded by a
-   * test rather than by the type — `pipeline-integration.test.ts` walks
-   * buildCandidates → rankTopN and fails if the field stops arriving.
+   * one should not have to state `null`.
+   *
+   * ⚠️ **The TYPE is the guard here, not a test.** `buildCandidates` passes
+   * item REFERENCES through and never reconstructs them, so removing this field
+   * would leave it on the runtime object and every test would still pass —
+   * only `tsc` would object, at the mapping sites in `app/generate/actions.ts`
+   * and friends. Deleting it is a compile error there; it is not a test failure
+   * anywhere.
    */
   accent_color?: string | null;
 };
