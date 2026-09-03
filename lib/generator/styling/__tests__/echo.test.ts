@@ -1,4 +1,4 @@
-import { echoedAccents, echoScore } from "../echo";
+import { echoedAccents, echoScore, withAccent } from "../echo";
 
 test("one repeated accent across two garments is the reward case", () => {
   // sky shirt, stone trousers, sneaker carrying a sky accent — ONE echo point.
@@ -100,4 +100,73 @@ test("what echoScore rewards is exactly what echoedAccents names", () => {
   expect(echoedAccents(echoing).length).toBeGreaterThan(0);
   expect(echoScore(echoing)!).toBeGreaterThan(echoScore(plain)!);
   expect(echoedAccents(plain)).toEqual([]);
+});
+
+// ── The note must never advertise what the score punishes ───────────────────
+// `echoScore` returns 1.0 for one echo point and 0.25 — its WORST value — for
+// three or more, the "matchy-matchy" failure. `echoedAccents` feeds a prompt
+// line telling the model a stated echo is "worth preferring", so naming an
+// over-matched outfit would have the two halves of the same model arguing.
+
+test("a two-garment repeat is named — the rewarded kind", () => {
+  const twoGarments = [["rust"], ["stone"], ["rust"]];
+  expect(echoedAccents(twoGarments)).toEqual(["rust"]);
+  expect(echoScore(twoGarments)).toBe(1);
+});
+
+test("a three-garment repeat is 2 points, not 3 — still named", () => {
+  // ⚠️ An echo POINT is one extra garment beyond the first, so one colour worn
+  // by three garments is 2 points, not 3. Worth pinning: it is the natural
+  // reading of "three garments in the same colour" and it is wrong, which is
+  // exactly the arithmetic a future change to the ceiling has to get right.
+  const threeGarments = [["rust"], ["rust"], ["rust"]];
+  expect(echoScore(threeGarments)).toBe(0.75);
+  expect(echoedAccents(threeGarments)).toEqual(["rust"]);
+});
+
+test("two separate two-garment echoes are still named — 2 points is the ceiling", () => {
+  // rust across two pieces AND sky across two: 2 echo points, scored 0.75. Past
+  // the ideal but still readable, so the note stands.
+  const two = [["rust", "sky"], ["rust"], ["sky"]];
+  expect(echoScore(two)).toBe(0.75);
+  expect(echoedAccents(two).sort()).toEqual(["rust", "sky"]);
+});
+
+test("THREE echo points are not named — the scorer punishes them", () => {
+  // rust across three garments (2 points) plus sky across two (1) = 3. This is
+  // the real boundary: 0.25 is the WORST value echoScore returns, below even
+  // the 0.5 it gives an outfit with no echo at all.
+  const forced = [["rust", "sky"], ["rust"], ["rust"], ["sky"]];
+  expect(echoScore(forced)).toBe(0.25);
+  expect(echoedAccents(forced)).toEqual([]);
+});
+
+test("one colour across four garments is also suppressed", () => {
+  const allRust = [["rust"], ["rust"], ["rust"], ["rust"]];
+  expect(echoScore(allRust)).toBe(0.25);
+  expect(echoedAccents(allRust)).toEqual([]);
+});
+
+test("the note is emitted exactly when the score is above the no-echo baseline", () => {
+  // The invariant behind all of the above: a named echo is always one the
+  // scorer rewarded relative to "no echo at all" (0.5).
+  const cases = [
+    [["rust"], ["stone"], ["rust"]], //             1 point  -> 1.00, named
+    [["rust", "sky"], ["rust"], ["sky"]], //        2 points -> 0.75, named
+    [["rust", "sky"], ["rust"], ["rust"], ["sky"]], // 3 pts -> 0.25, NOT named
+    [["sky"], ["stone"], ["white"]], //              0 points -> 0.35, NOT named
+    [["white"], ["stone"], ["black"]], //           no accent -> 0.50, NOT named
+  ];
+  for (const c of cases) {
+    expect(echoedAccents(c).length > 0).toBe(echoScore(c)! > 0.5);
+  }
+});
+
+// ── withAccent: the one place colors and accent_color are combined ──────────
+
+test("withAccent appends the accent, and is a no-op without one", () => {
+  expect(withAccent(["white"], "sky")).toEqual(["white", "sky"]);
+  expect(withAccent(["white"], null)).toEqual(["white"]);
+  expect(withAccent(["white"], undefined)).toEqual(["white"]);
+  expect(withAccent(["white"], "")).toEqual(["white"]);
 });
