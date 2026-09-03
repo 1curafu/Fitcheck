@@ -1,4 +1,5 @@
-import { dedupePicks, finalisePicks, RERANK_ACCENT_RULE, RERANK_VARIETY_RULE } from "../rerank";
+import { dedupePicks, echoNote, finalisePicks, RERANK_ACCENT_RULE, RERANK_VARIETY_RULE } from "../rerank";
+import { echoedAccents } from "../styling/echo";
 import {
   describeCombos,
   RerankSchema,
@@ -300,21 +301,76 @@ test("a garment with no accent renders exactly as it did before", () => {
   expect(line).toBe("0. Sneakers (white)");
 });
 
-test("the prompt tells the model to PREFER a real echo, not merely to describe one", () => {
-  // Measured against a real Haiku call: a rule that only said an echo was
-  // "worth naming" left the model no reason to CHOOSE the echoing combo, and it
-  // picked the plain sneaker instead.
+test("the prompt explains the accent and points at the stated echo", () => {
   expect(RERANK_ACCENT_RULE).toMatch(/accent/i);
   expect(RERANK_ACCENT_RULE).toMatch(/echo/i);
-  expect(RERANK_ACCENT_RULE).toMatch(/prefer/i);
   expect(RERANK_ACCENT_RULE).toMatch(/why/i);
 });
 
-test("the prompt forbids inventing an echo the outfit does not contain", () => {
-  // The other half of the same measurement: told only to "ignore" an
-  // unsupported accent, the model wrote "their sky accent echoing the top"
-  // about an outfit whose top was cream. The "why" is the product; a sentence
-  // that describes a colour story the clothes do not have is worse than none.
+test("the prompt forbids inventing an echo the line does not state", () => {
+  // Measured: told only to "ignore" an unsupported accent, the model wrote
+  // "their sky accent echoing the top" about an outfit whose top was cream. The
+  // "why" is the product; a sentence describing a colour story the clothes do
+  // not have is worse than none. This is the half that earned its place.
   expect(RERANK_ACCENT_RULE).toMatch(/never describe/i);
-  expect(RERANK_ACCENT_RULE).toMatch(/does not contain/i);
+  expect(RERANK_ACCENT_RULE).toMatch(/does not say/i);
+});
+
+// ── The echo is COMPUTED and stated, not left to the model ──────────────────
+// Measured 2026-09-03: `echoScore` ranked the echoing combo first and the model
+// discarded it in 9 of 9 live calls, then fabricated an echo when pushed to
+// look for one. Same fix as `pattern` on 2026-08-15 — state the conclusion.
+
+const shirt = { category: "Tops", subcategory: "Oxford shirt", colors: ["sky"] };
+const trousers = { category: "Bottoms", subcategory: "Chinos", colors: ["stone"] };
+const swoosh = { category: "Shoes", subcategory: "Sneakers", colors: ["white"], accent_color: "sky" };
+const plainShoe = { category: "Shoes", subcategory: "Sneakers", colors: ["white"] };
+
+test("a plural garment name takes a bare possessive, not \"sneakers's\"", () => {
+  // These lines are read by a model that then writes prose back at the user.
+  expect(echoNote([shirt, trousers, swoosh])).not.toContain("sneakers's");
+});
+
+test("a real echo is stated on the combo line, naming both pieces", () => {
+  const line = describeCombos([[shirt, trousers, swoosh]]);
+  expect(line).toContain("— the sneakers' sky accent picks up the oxford shirt");
+});
+
+test("a combo with no echo gets NO note — the fabrication guard", () => {
+  // ⚠️ The property that matters most. A fact printed on a combo that has none
+  // is exactly how the invented echo came back in an earlier round.
+  expect(describeCombos([[shirt, trousers, plainShoe]])).not.toContain("—");
+  expect(echoNote([shirt, trousers, plainShoe])).toBeNull();
+});
+
+test("an accent nothing supports is not called an echo", () => {
+  // Cream top, stone chinos, sky-accented shoe: the model wrote "echoing the
+  // top" about exactly this combo. Nothing here carries sky but the shoe.
+  const cream = { category: "Tops", subcategory: "Crewneck", colors: ["cream"] };
+  expect(echoNote([cream, trousers, swoosh])).toBeNull();
+});
+
+test("a dominant colour shared by two garments reads as a repeat, not an accent", () => {
+  // `rust` and not `navy`: navy is a NEUTRAL in the palette, and neutrals never
+  // echo (two navy pieces is a wardrobe, not a colour story).
+  const rustTop = { category: "Tops", subcategory: "Crewneck", colors: ["rust"] };
+  const rustShoe = { category: "Shoes", subcategory: "Loafers", colors: ["rust"] };
+  expect(echoNote([rustTop, trousers, rustShoe])).toBe(
+    "rust repeats across the crewneck and loafers",
+  );
+});
+
+test("neutrals never count as an echo — two white pieces is a wardrobe, not a move", () => {
+  const whiteTop = { category: "Tops", subcategory: "Tee", colors: ["white"] };
+  expect(echoNote([whiteTop, trousers, plainShoe])).toBeNull();
+});
+
+test("the echo note and the score cannot disagree — both read echoedAccents", () => {
+  // One implementation of "what echoes here", so a combo the scorer rewards is
+  // exactly a combo the sentence can describe.
+  const evidence = (it: { colors: string[]; accent_color?: string }) =>
+    it.accent_color ? [...it.colors, it.accent_color] : it.colors;
+  const combo = [shirt, trousers, swoosh];
+  expect(echoedAccents(combo.map(evidence))).toEqual(["sky"]);
+  expect(echoNote(combo)).not.toBeNull();
 });

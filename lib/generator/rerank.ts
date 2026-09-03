@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { forStructuredOutput } from "@/lib/ai/tagging-schema";
+import { echoedAccents } from "./styling/echo";
 
 // Text-only re-rank (CLAUDE.md Decision 3, mode 2): the model sees tag DESCRIPTIONS,
 // never images. It returns the best 3 with a look name + one-sentence "why".
@@ -59,8 +60,74 @@ function describeItem(it: DescItem): string {
   return `${it.subcategory ?? it.category}${detail ? ` (${detail})` : ""}`;
 }
 
+/** A garment's colours as the echo model sees them: its dominants plus its accent. */
+function colourEvidence(it: DescItem): string[] {
+  return it.accent_color ? [...it.colors, it.accent_color] : it.colors;
+}
+
+/** "the shirt", "the sneakers" — the same name `describeItem` prints, lowercased. */
+function itemName(it: DescItem): string {
+  return (it.subcategory ?? it.category).toLowerCase();
+}
+
+/** "the sneakers'" not "the sneakers's" — these lines are read by a model that writes prose. */
+function possessive(name: string): string {
+  return name.endsWith("s") ? `${name}'` : `${name}'s`;
+}
+
+/** "a and b" / "a, b and c" — prose, not a machine list. */
+function joinProse(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
+/**
+ * The combo's colour echo, stated as a fact — or null when it has none.
+ *
+ * ⚠️ **Hand the model the conclusion, not the ingredients.** `echoScore` already
+ * knows which accent repeats and across how many garments, and it now decides
+ * the ranking; asking the model to notice the same repeat from the raw lines
+ * failed twice, measured against real calls. Told only that echoes matter, it
+ * picked the plain sneaker over the echoing one in 9 of 9 runs; pushed harder,
+ * it invented an echo in an outfit that had none. This is the same move
+ * `DescItem`'s comment records for `pattern` on 2026-08-15.
+ *
+ * ⚠️ **Never printed unless it is true of THIS combo.** A fact asserted on a
+ * combo with no echo is precisely how the fabrication came back, so the note is
+ * derived from `echoedAccents` rather than from anything the caller passes in,
+ * and shares that function with the scorer — the sentence and the score cannot
+ * disagree.
+ */
+export function echoNote(combo: DescItem[]): string | null {
+  const echoes = echoedAccents(combo.map(colourEvidence));
+  if (!echoes.length) return null;
+
+  const clauses = echoes.map((colour) => {
+    const carries = (it: DescItem) =>
+      colourEvidence(it).some((c) => c.trim().toLowerCase() === colour);
+    const carriers = combo.filter(carries);
+    const viaAccent = carriers.filter((it) => it.accent_color?.trim().toLowerCase() === colour);
+    const viaBody = carriers.filter((it) => it.accent_color?.trim().toLowerCase() !== colour);
+    // Name the direction when exactly one piece carries the colour as an accent
+    // and something else wears it properly — that is the styling move, and "the
+    // sneaker's sky accent picks up the shirt" says it better than a symmetric
+    // "sky repeats across". Otherwise fall back to the symmetric form, which is
+    // true of every other shape (two accents, or two garments wearing it).
+    if (viaAccent.length === 1 && viaBody.length > 0) {
+      return `the ${possessive(itemName(viaAccent[0]))} ${colour} accent picks up the ${joinProse(viaBody.map(itemName))}`;
+    }
+    return `${colour} repeats across the ${joinProse(carriers.map(itemName))}`;
+  });
+  return clauses.join("; ");
+}
+
 export function describeCombos(combos: DescItem[][]): string {
-  return combos.map((c, i) => `${i}. ` + c.map(describeItem).join(" + ")).join("\n");
+  return combos
+    .map((c, i) => {
+      const note = echoNote(c);
+      return `${i}. ` + c.map(describeItem).join(" + ") + (note ? ` — ${note}` : "");
+    })
+    .join("\n");
 }
 
 /**
@@ -130,33 +197,33 @@ export type RerankResult = z.infer<typeof RerankSchema>;
 /**
  * The accent instruction.
  *
- * The deterministic half rewards an accent echoed across two garments (see
- * `lib/generator/styling/echo.ts` — the most reliable move in streetwear), so
- * the combos that reach the model are often winning ON that echo. Without this
- * line the model has the data and no reason to use it, and the "why" — the
- * product's differentiator — credits the outfit for something else.
+ * ⚠️ **This is deliberately SHORT, because `echoNote` now does the hard half.**
+ * Two earlier drafts asked the model to spot the repeat itself, and both were
+ * measured failing against real Haiku calls on 2026-09-03:
  *
- * ⚠️ Both halves are load-bearing, and a WEAKER first draft was measured
- * failing both against a real Haiku call on 2026-09-03. That draft said only
- * that an echo was "worth naming in the why", and the model (a) chose the plain
- * sneaker over the echoing one — nothing had told it the echo was a reason to
- * PREFER a combo, only to describe one — and (b) then wrote "white leather
- * sneakers and their sky accent echoing the top" about an outfit whose top was
- * CREAM. So it skipped the real echo and invented a false one. Hence: say
- * "prefer", and forbid the invention explicitly rather than trusting "ignore
- * it" to be read as "do not talk about it".
+ *   draft 1 — "an echo is worth naming in the why": the model chose the plain
+ *     sneaker over the echoing one, then wrote "their sky accent echoing the
+ *     top" about an outfit whose top was CREAM. It skipped the real echo and
+ *     invented a false one.
+ *   draft 2 — added "prefer that outfit over an otherwise identical one": the
+ *     fabrication stopped, but the preference was NOT honoured — 0 of 9 live
+ *     calls picked the echoing combo.
+ *
+ * So the echo is now computed and printed on the combo line (`echoNote`), and
+ * this rule only has to say what an accent is, that the stated echo is worth
+ * naming, and — the one half that measurably earned its place — that an echo
+ * must never be invented.
  *
  * ⚠️ **Placement is load-bearing and was measured.** Moving this line down
- * beside "Pick the best N" — where the choice is actually made, which is where
- * you would expect it to work harder — brought the fabricated echo straight
- * back (2 of 3 runs claimed a sky accent "echoes the pale cream tone"). Stated
- * up front with the other reading instructions, alongside how a piece is
- * listed, 3 of 3 runs stayed clean. It describes how to READ a line, so it
- * belongs with the format, not with the decision. Do not "improve" this by
- * moving it without re-running a live sample.
+ * beside "Pick the best N" — where the choice is made, which is where you would
+ * expect it to work harder — brought the fabricated echo straight back (2 of 3
+ * runs claimed a sky accent "echoes the pale cream tone"). Stated up front with
+ * the other reading instructions, 6 of 6 runs stayed clean. It describes how to
+ * READ a line, so it belongs with the format, not with the decision. Do not
+ * "improve" this by moving it without re-running a live sample.
  */
 export const RERANK_ACCENT_RULE =
-  "A piece may carry a small accent colour, written as \"sky accent\" — a logo, a sole, hardware; it is not one of the garment's main colours. When that accent repeats a colour actually worn elsewhere in the SAME outfit, that echo is a deliberate styling move: prefer that outfit over an otherwise identical one without it, and name the echo in the \"why\". When no other piece in the outfit carries that colour the accent is doing nothing — do not mention it, and never describe an accent as picking up or echoing a colour the outfit does not contain.";
+  "A piece may carry a small accent colour, written as \"sky accent\" — a logo, a sole, hardware; it is not one of the garment's main colours. Where an accent genuinely picks up a colour worn elsewhere in the outfit, the line says so after a dash: that echo is a deliberate styling move, worth preferring and worth naming in the \"why\". Never describe an accent as picking up or echoing a colour when the line does not say it does.";
 
 export const RERANK_VARIETY_RULE =
   "The three must be genuinely different outfits, not variations of one: no two may share the same top, and no two may share the same bottom. If the candidates cannot give you three that differ, prefer variety over a marginally higher-scoring repeat.";
