@@ -1,7 +1,7 @@
 import { colorHarmonyScore } from "@/lib/generator/color";
 import { temperatureCoherence } from "./temperature";
 import { pairingScore } from "./pairing-ratings";
-import { echoScore } from "./echo";
+import { echoScore, withAccent } from "./echo";
 
 /**
  * The four colour signals, weighted into one 0..1 score.
@@ -70,12 +70,7 @@ export function colourScore(
   // The ONE term the accent joins. Appended to its own garment's list so echo
   // still counts a colour once per garment, exactly as it did when the tagger
   // wrote the accent into `colors`.
-  const echo = echoScore(
-    perItemColours.map((colours, i) => {
-      const accent = perItemAccents[i];
-      return accent ? [...colours, accent] : colours;
-    }),
-  );
+  const echo = echoScore(perItemColours.map((colours, i) => withAccent(colours, perItemAccents[i])));
   if (echo != null) terms.push({ weight: W_ECHO, value: echo });
 
   const claimed = terms.reduce((sum, t) => sum + t.weight, 0);

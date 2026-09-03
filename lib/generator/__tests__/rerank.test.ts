@@ -374,3 +374,26 @@ test("the echo note and the score cannot disagree — both read echoedAccents", 
   expect(echoedAccents(combo.map(evidence))).toEqual(["sky"]);
   expect(echoNote(combo)).not.toBeNull();
 });
+
+test("an over-matched outfit gets NO note, so the line never argues with the score", () => {
+  // ⚠️ Three garments in the same accent is `echoScore`'s worst case (0.25,
+  // "matchy-matchy"), while RERANK_ACCENT_RULE tells the model a stated echo is
+  // worth preferring. The echo is real, so a note would not be a fabrication —
+  // it would be worse: the sentence advertising what the scorer penalises.
+  // ⚠️ An echo POINT is one EXTRA garment beyond the first, so three garments in
+  // one colour is 2 points (0.75, still rewarded and still named). Three points
+  // needs a second echo on top — here rust across three pieces plus sky across
+  // two — and that is where the scorer flips to 0.25.
+  const rust = (subcategory: string) => ({ category: "X", subcategory, colors: ["rust"] });
+  const forced = [
+    { category: "Tops", subcategory: "Crewneck", colors: ["rust", "sky"] },
+    rust("Chinos"),
+    rust("Loafers"),
+    { category: "Accessories", subcategory: "Scarf", colors: ["sky"] },
+  ];
+  expect(echoNote(forced)).toBeNull();
+  // …while the same colour across exactly two pieces is still named.
+  expect(echoNote([rust("Crewneck"), trousers, rust("Loafers")])).toBe(
+    "rust repeats across the crewneck and loafers",
+  );
+});

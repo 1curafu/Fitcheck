@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { forStructuredOutput } from "@/lib/ai/tagging-schema";
-import { echoedAccents } from "./styling/echo";
+import { echoedAccents, withAccent } from "./styling/echo";
 
 // Text-only re-rank (CLAUDE.md Decision 3, mode 2): the model sees tag DESCRIPTIONS,
 // never images. It returns the best 3 with a look name + one-sentence "why".
@@ -60,9 +60,16 @@ function describeItem(it: DescItem): string {
   return `${it.subcategory ?? it.category}${detail ? ` (${detail})` : ""}`;
 }
 
-/** A garment's colours as the echo model sees them: its dominants plus its accent. */
+/**
+ * A garment's colours as the echo model sees them.
+ *
+ * ⚠️ Delegates to `withAccent` rather than re-implementing `accent ? [...colours,
+ * accent] : colours`, because `colourScore` assembles the very same evidence for
+ * the SCORE. Two matching copies would agree by coincidence, and a change to
+ * either would silently desync this sentence from the ranking that produced it.
+ */
 function colourEvidence(it: DescItem): string[] {
-  return it.accent_color ? [...it.colors, it.accent_color] : it.colors;
+  return withAccent(it.colors, it.accent_color);
 }
 
 /** "the shirt", "the sneakers" — the same name `describeItem` prints, lowercased. */
@@ -187,14 +194,6 @@ export const RerankSchema = z.object({
 export type RerankResult = z.infer<typeof RerankSchema>;
 
 /**
- * The variety instruction.
- *
- * "Pick the best 3" alone produces three versions of one outfit: the model is
- * optimising a single notion of "best", and the candidates handed to it are
- * ranked, so the top of the list is naturally near-identical. Asking for the
- * best 3 without asking for three DIFFERENT ones gets exactly what it asks for.
- */
-/**
  * The accent instruction.
  *
  * ⚠️ **This is deliberately SHORT, because `echoNote` now does the hard half.**
@@ -225,6 +224,14 @@ export type RerankResult = z.infer<typeof RerankSchema>;
 export const RERANK_ACCENT_RULE =
   "A piece may carry a small accent colour, written as \"sky accent\" — a logo, a sole, hardware; it is not one of the garment's main colours. Where an accent genuinely picks up a colour worn elsewhere in the outfit, the line says so after a dash: that echo is a deliberate styling move, worth preferring and worth naming in the \"why\". Never describe an accent as picking up or echoing a colour when the line does not say it does.";
 
+/**
+ * The variety instruction.
+ *
+ * "Pick the best 3" alone produces three versions of one outfit: the model is
+ * optimising a single notion of "best", and the candidates handed to it are
+ * ranked, so the top of the list is naturally near-identical. Asking for the
+ * best 3 without asking for three DIFFERENT ones gets exactly what it asks for.
+ */
 export const RERANK_VARIETY_RULE =
   "The three must be genuinely different outfits, not variations of one: no two may share the same top, and no two may share the same bottom. If the candidates cannot give you three that differ, prefer variety over a marginally higher-scoring repeat.";
 
