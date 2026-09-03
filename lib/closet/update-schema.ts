@@ -26,4 +26,10 @@ export const UpdateSchema = z.object({
   formality: TagSchema.shape.formality,
   seasons: TagSchema.shape.seasons,
   price: z.number().nonnegative().nullable(),
+  accent_color: TagSchema.shape.accent_color,
+  branding: TagSchema.shape.branding,
+  fit: TagSchema.shape.fit,
+  length: TagSchema.shape.length,
+  bulk: TagSchema.shape.bulk,
+  distressing: TagSchema.shape.distressing,
 });
