@@ -12,6 +12,20 @@ export type CandidateItem = {
   /** Read together with `material` as warmth — see ./texture.ts. */
   texture: string | null;
   pattern: string | null;
+  /**
+   * The garment's ONE small contrast colour — a logo, a sole, a buckle.
+   *
+   * Carried through candidate building untouched (nothing here filters on it)
+   * so `scoreCombo` can hand it to the colour-ECHO term, and only that term —
+   * see the contract on `colourScore`.
+   *
+   * Optional, like every other tag field added after the fact: most garments
+   * genuinely have no accent, and a fixture or caller that does not care about
+   * one should not have to state `null`. The seam it closes is guarded by a
+   * test rather than by the type — `pipeline-integration.test.ts` walks
+   * buildCandidates → rankTopN and fails if the field stops arriving.
+   */
+  accent_color?: string | null;
 };
 
 export type CandidateArgs = {

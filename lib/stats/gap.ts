@@ -177,7 +177,7 @@ export function biggestGap(
       category: c.category,
       colors: c.colors,
       formality: c.formality,
-      // Untagged on purpose: seasons, material, texture and pattern are all
+      // Untagged on purpose: seasons, material, texture, pattern and accent are all
       // "no opinion" values downstream, so the simulated piece is scored as
       // neutrally as possible. A hypothetical garment should not win by being
       // given flattering tags nobody has bought yet.
@@ -185,6 +185,7 @@ export function biggestGap(
       material: null,
       pattern: "solid",
       texture: null,
+      accent_color: null,
     };
     const unlocks = countCombos([...closet, hypothetical], occasions) - before;
     if (unlocks > 0 && (!best || unlocks > best.unlocks)) {

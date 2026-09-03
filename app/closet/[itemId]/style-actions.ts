@@ -149,6 +149,7 @@ export async function styleWithItem(
       material: i.material,
       texture: i.texture,
       pattern: i.pattern,
+      accent_color: i.accent_color,
     }));
 
     const args = {
