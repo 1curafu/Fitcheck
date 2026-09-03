@@ -1,0 +1,45 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M1M158ED6Z7G47HCWKTBXEVC",
+  "strategy": "manual-commit",
+  "branch": "feat/scoring-foundations",
+  "checkpoints_count": 5,
+  "files_touched": [
+    "app/closet/[itemId]/style-actions.ts",
+    "app/generate/actions.ts",
+    "app/packing/actions.ts",
+    "app/stats/page.tsx",
+    "lib/generator/__tests__/pipeline-integration.test.ts",
+    "lib/generator/__tests__/score.test.ts",
+    "lib/generator/candidates.ts",
+    "lib/generator/score.ts",
+    "lib/generator/styling/__tests__/colour-score.test.ts",
+    "lib/generator/styling/colour-score.ts",
+    "lib/stats/gap.ts",
+    "scripts/calibrate-packing-floor.ts",
+    "scripts/dev-plan-trip.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 30,
+    "cache_creation_tokens": 899316,
+    "cache_read_tokens": 12551225,
+    "output_tokens": 16663,
+    "api_call_count": 16,
+    "subagent_tokens": {
+      "input_tokens": 144,
+      "cache_creation_tokens": 323353,
+      "cache_read_tokens": 6374230,
+      "output_tokens": 26236,
+      "api_call_count": 73
+    }
+  }
+}

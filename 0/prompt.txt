@@ -1,0 +1,94 @@
+<task-notification>
+<task-id>a6a4cc74a90f60220</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-1curafu-Desktop-Fitcheck-Fitcheck/6e8fba2c-73d4-4345-8911-9eda52ec6195/tasks/a6a4cc74a90f60220.output</output-file>
+<status>completed</status>
+<summary>Agent "Implement foundations task 1 budget" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>**Status: DONE.** Commit `16c04bca48890c6aeb1fa1a55233cebaee583f84` on `feat/scoring-foundations`. Full report at `.superpowers/sdd/2026-09-03-scoring-foundations/task-1-report.md`.
+
+**Tests:** 927/927 across 93 files (baseline 924 + the 3 added). `npx tsc --noEmit` exit 0, `npm run build` clean, lint identical to baseline (15 pre-existing problems, none in touched files). **No existing score fixture needed changing** — every one is a relative-order assertion, and the exact-equality ones hold because dropping a term now drops it from the denominator too.
+
+**Structure:** brief's `WEIGHTS` object, but one flat declarative `terms` list where `value: null` means "no evidence, drop it" — no conditional pushes, so a signal's presence is a property of its own line (matching `climateFit`'s existing `number | null` contract). Kept `colour` at **0.4** with `dna` as its own 0.15 term; the brief's `WEIGHTS` had silently folded dna into colour at 0.55, which would have changed a relative weight and made the measurement uninterpretable.
+
+**Ordering held.** Top-10/20/50 set-identical in all four measured contexts (bare, lean, climate, lean+climate); top 10 identical in order. `bare` is byte-identical at 750/750 combos — the algebraic proof the base weights didn't move. Spearman ρ: 1.00000 / 0.99999 / 0.99912 / 0.99763.
+
+**Reading of the movement:** one-sided and confined to mid-list. Max rise +81 of 750, and *every* top mover is a `Linen oxford shirt` outfit — linen at 14 °C scores badly on climate, and the old form charged it twice: once by scoring low, again by shrinking the colour/coherence terms it was winning on. That is precisely the bug. Max fall is −16 from rank 663 (mediocre base the old form amplified). No top-50 turnover anywhere.
+
+**Colour cases:** all three PASS, unchanged — 0.8833&gt;0.7125, 1.0000&gt;0.8775, 0.9250&gt;0.9025.
+
+**Concerns:** (1) `lean`'s real strength relative to `colour` drops from 1.79× to 0.75× — inherent to the fix, declared numbers untouched, but the Refine control was never actually running at its documented weight; revisit as its own decision if it feels weak. (2) The brief's Step-1 test **passes on unmodified code** (tolerance too loose — score rises +0.041); I kept it and added a sharper one asserting equal dilution, which failed 0.60 vs 1.02 before and passes to 6 dp after. (3) `RECENT_WEIGHT` in `rank.ts` is still subtractive, outside `scoreCombo` — out of scope, but the last place this property doesn't hold.</result>
+<usage><subagent_tokens>111377</subagent_tokens><tool_uses>31</tool_uses><duration_ms>511108</duration_ms></usage>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>a951aace8692e4950</task-id>
+<tool-use-id>toolu_01KHu71Q6ukqxS6d5VCV8w77</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-1curafu-Desktop-Fitcheck-Fitcheck/6e8fba2c-73d4-4345-8911-9eda52ec6195/tasks/a951aace8692e4950.output</output-file>
+<status>completed</status>
+<summary>Agent "Adversarial audit of merged develop" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>## Overall assessment
+
+**Not sound as a pair.** Each PR is internally coherent, but merging them silently disables the main behaviour PR #56 was built and tuned for. The generator reads `colors`; PR #57 changed the prompt so the thing the generator reasons about no longer lands in `colors`. All 927 tests pass because no test spans the seam.
+
+## Findings
+
+**CRITICAL — #57 moves the accent out of the field #56 reads. `lib/ai/tagging-prompt.ts:13-14` vs `lib/generator/styling/echo.ts:24`**
+Old prompt: "colors — the 1-3 dominant colours … Ignore small logos and hardware" — and the model *did* put contrast colours in `colors` (local DB: `Shoes {sky,white}`, `{white,sky}`). New prompt: "Judge the GARMENT BODY, not logos, soles or hardware — those go in accent_color." Nothing under `lib/generator/` reads `accent_color` (verified by grep; `score.ts:116` passes only `i.colors`).
+Concrete: sky shirt + stone trousers + white sneaker with a sky swoosh. Stored today → `echoScore([["sky"],["stone"],["white","sky"]]) = 1` (echo.test.ts:46), `colourScore = 1.0`. Captured tomorrow → `colors:["white"], accent_color:"sky"` → `echoScore([["sky"],["stone"],["white"]]) = 0.35` (echo.test.ts:64), `colourScore = 0.9025`. The reward case becomes the **orphan-accent penalty** — sign-inverted. Mirror case: white shirt + white trousers + swoosh sneaker was 0.9025 vs plain-white 0.925 (the "an accent that supports nothing is not free" rule); post-#57 both are 0.925, so that rule can never fire again. `pairingScore` and `colorHarmonyScore` lose the accent too, and `rerank.ts:39` (`DescItem.colors`) means the "why" sentence now calls a blue-swoosh sneaker "clean white sneakers".
+Worse, it's *inconsistent*: the backfill never rewrites `colors`, so pre-#57 rows keep the accent and post-#57 rows don't. Two identical sneakers rank differently by capture date, permanently.
+
+**IMPORTANT — backfill gates `bulk` on the model's category, not the row's. `scripts/backfill-styling-tags.ts:129`**
+`bulk: item.bulk ?? (tags.category === "Shoes" ? tags.bulk : null)`. `item.category` is selected (line 162) and typed (line 65) but **never used** — strong sign this was meant to be `item.category`. `tagsToItemRow` is not the same case: there `tags.category` *is* the category being written. Failure: a stored `Shoes` Chelsea boot whose cutout Haiku re-reads as `Accessories` gets `bulk` forced to null and never receives a sole value; conversely a stored `Accessories` tote read as `Shoes` gets `bulk:"Chunky"` persisted onto a non-shoe — precisely the invariant the comment on lines 125-128 claims to enforce.
+
+**IMPORTANT — the "fit is the user's answer" invariant holds on two writers of three. `components/capture/confirm-form.tsx:189-199`**
+The chips pre-select Haiku's guess and cannot be cleared, and `tagsToItemRow` writes `fit: tags.fit` verbatim. A user who scrolls past Fit stores the model's guess as if it were their answer. The backfill refuses to write `fit` for exactly this reason, and the edit sheet added toggle-off for exactly this reason (`item-edit-sheet.tsx:200-208`), so the later plan's "how many items carry a REAL fit" measurement is inflated by the one path that produces the most rows.
+
+**MINOR — `lib/closet/goes-with.ts:9-12` now asserts an alignment that ended with #56.** "Reuses the generator's own colour-harmony … rather than inventing a second opinion — if these two disagreed, the row would recommend pieces the stylist would never pair." The generator moved to `colourScore` (4 terms); goesWith still uses only `colorHarmonyScore`. Navy top + white vs cream trousers: generator prefers white on temperature, "Goes with" ties them at harmony 1.0 and orders by closet order.
+
+**MINOR — numbers in two places that must agree, don't.** `colour-table.ts:80` says the table stays "~741 cells instead of 1,482"; `pairing-ratings.ts:22` says "~861 cells rather than 1,722". 42 colours → 861/1722. 741 is the leftover 39-colour figure the same commit fixed in the header only.
+
+**MINOR — `pairingScore(flat)` is the one colour term not computed per garment. `colour-score.ts:43`** `temperatureCoherence` and `echoScore` get `perItemColours` with explicit comments about why; pairing gets the flattened set, so a single two-tone cream/white garment alone contributes `"cream|white": 3` → 0.5, scoring a manufacturer's colourway as if it were a styling decision.
+
+**MINOR — `pairing-ratings.ts:169-172` justifies `(mean-1)/4` with a case that cannot occur.** No entry in the table is rated 1; the lowest is 2 (`green|red`). The change is real (it steepens 4→0.75, 2→0.25) but the stated reason is unreachable.
+
+**MINOR — `lib/ai/__tests__/tag-item-prompt.test.ts:18-20`** — "the prompt tells the model that fit is a guess the user will correct" asserts only `PROMPT.toLowerCase()).toContain("null")`. Deleting the entire fit paragraph leaves it green ("null" appears in the accent_color, length and bulk lines).
+
+**MINOR — `app/closet/[itemId]/actions.ts:30`** writes `bulk` ungated while the other two writers gate on Shoes; only the sheet calls it today. **`components/closet/item-detail.tsx`** types all six fields but renders none — the Fit the user was asked for at capture is invisible afterwards. **`item-edit-sheet.tsx:414-424`**: the Wear select has no `""` option, so a legacy `distressing IS NULL` row renders with `selectedIndex = -1` (blank).
+
+## Checked and clean
+
+Degenerate inputs: `colors: []` (harmony 1.0, other three null → 1.0), one-item combos (`echoScore`/`temperatureCoherence` return null correctly), off-palette names (`temperatureOf` → "neutral", excluded; `pairingRating` → null; treated as an accent by `isNeutral`), no NaN or divide-by-zero anywhere in the four terms. `colourScore`'s claimed-weight arithmetic and its 0.30/0.12 comment are correct. All 91 pairing keys are lexicographically sorted with no duplicates. `COLOUR_TEMPERATURE` is `Record&lt;ColorName, …&gt;` so completeness is compiler-enforced; 42 colours confirmed. Signals weight rather than filter — no filter was added. `distressing` sentinel logic is sound on all three writers (`?? "None"` in both `parse-tags.ts:50` and the backfill). `updateItem`/`confirmItem` both re-validate through Zod; RLS unchanged; `select("*")` in `generate/actions.ts` and `style-actions.ts` picks up the new columns without a migration mismatch. `npm run test:run`: 93 files, 927 tests, green.</result>
+<usage><subagent_tokens>149716</subagent_tokens><tool_uses>30</tool_uses><duration_ms>451462</duration_ms></usage>
+</task-notification>
+
+---
+
+about the lean, what do want to do?
+
+---
+
+yeah, and then choose together on what saying our researches
+
+---
+
+<task-notification>
+<task-id>ad814ed44e2052121</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-1curafu-Desktop-Fitcheck-Fitcheck/6e8fba2c-73d4-4345-8911-9eda52ec6195/tasks/ad814ed44e2052121.output</output-file>
+<status>failed</status>
+<summary>Agent "Fix accent regression on develop" failed: Agent terminated early due to an API error: You've hit your session limit · resets 4:30pm (Europe/Zurich) (error type rate_limit, HTTP 429, request id req_011CegJY2Ry2PVh9hVebZn1s, model sent to the API: claude-opus-5)</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>Now the test fixtures:</result>
+</task-notification>
+
+---
+
+go
+
+---
+
+For shoes we should delete fit or im false, so if we choose shoes, fit part should disappear and maybe another fields, idk
