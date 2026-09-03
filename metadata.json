@@ -1,0 +1,36 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M1JQXZF4S6TPZH6KSGBDR5CX",
+  "strategy": "manual-commit",
+  "branch": "feat/item-detail-tags",
+  "checkpoints_count": 7,
+  "files_touched": [
+    "lib/ai/__tests__/parse-tags.test.ts",
+    "lib/ai/parse-tags.ts",
+    "scripts/__tests__/backfill-styling-tags.test.ts",
+    "scripts/backfill-styling-tags.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 46,
+    "cache_creation_tokens": 779113,
+    "cache_read_tokens": 16899410,
+    "output_tokens": 28473,
+    "api_call_count": 24,
+    "subagent_tokens": {
+      "input_tokens": 278,
+      "cache_creation_tokens": 539201,
+      "cache_read_tokens": 14519873,
+      "output_tokens": 9034,
+      "api_call_count": 132
+    }
+  }
+}
