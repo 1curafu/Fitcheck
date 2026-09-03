@@ -128,6 +128,7 @@ async function StatsBody() {
     material: i.material,
     texture: i.texture,
     pattern: i.pattern,
+    accent_color: i.accent_color,
   }));
   // Skipped entirely for a user who cannot see it — a few dozen passes over the
   // closet is cheap, but computing an answer nobody is shown is still waste.

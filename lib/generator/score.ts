@@ -14,6 +14,13 @@ export type ScoreItem = {
   /** Fibre and construction. Together they carry warmth — see ./texture.ts. */
   material?: string | null;
   texture?: string | null;
+  /**
+   * The garment's ONE small contrast colour — a logo, a sole, a buckle.
+   *
+   * Deliberately separate from `colors`, and it reaches exactly one signal:
+   * colour ECHO. See the contract on `colourScore`.
+   */
+  accent_color?: string | null;
 };
 export type Ctx = {
   aesthetic: string[];
@@ -146,7 +153,20 @@ export function scoreCombo(items: ScoreItem[], ctx: Ctx): number {
     // to know which garment each colour came from — an accent repeated across
     // two garments is an echo, the same accent listed twice on one garment is
     // not.
-    { weight: WEIGHTS.colour, value: colourScore(items.map((i) => i.colors)) },
+    //
+    // ⚠️ Accents go in a SECOND argument, not concatenated into `colors`.
+    // `colourScore` routes them to the echo term alone; a logo must not spend
+    // one of the three slots the harmony ceiling counts, nor answer for the
+    // garment in the pairing and temperature tables. `leanScore` below reads
+    // the dominant colours only, for the same reason — a shoelace should not
+    // satisfy a "lean into navy".
+    {
+      weight: WEIGHTS.colour,
+      value: colourScore(
+        items.map((i) => i.colors),
+        items.map((i) => i.accent_color),
+      ),
+    },
     { weight: WEIGHTS.coherence, value: formalityCoherence(items.map((i) => i.formality ?? 3)) },
     { weight: WEIGHTS.dna, value: items.length ? dnaHits / items.length : 0 },
     { weight: WEIGHTS.pattern, value: patternHarmony(items.map((i) => i.pattern)) },

@@ -191,6 +191,7 @@ export async function generate(input: {
       material: i.material,
       texture: i.texture,
       pattern: i.pattern,
+      accent_color: i.accent_color,
     }));
     // Occasion gives the context; the user's onboarding dress codes narrow it;
     // an explicit Refine formality overrides both.

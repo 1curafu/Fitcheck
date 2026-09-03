@@ -344,3 +344,59 @@ test("the score stays inside 0..1 with every signal active", () => {
   expect(s).toBeGreaterThanOrEqual(0);
   expect(s).toBeLessThanOrEqual(1);
 });
+
+// --- accent_color reaches the colour signals (the PR #56 / #57 seam) --------
+// ⚠️ THE TEST THAT WAS MISSING. PR #56 rewarded an accent repeated across two
+// garments; PR #57 then moved accents out of `colors` into their own column,
+// and nothing under lib/generator/ read it. Every test on either side stayed
+// green because none of them spanned the seam: the colour tests fed
+// `colourScore` hand-written arrays, and the score tests never set the new
+// field. The equivalence below is the property that was silently broken —
+// the SAME sneaker must score the same however the tagger recorded its accent.
+
+const accentBase = [
+  { category: "top", colors: ["sky"], formality: 3 },
+  { category: "bottom", colors: ["stone"], formality: 3 },
+];
+
+test("a sneaker's accent scores the same in accent_color as it did in colors", () => {
+  const inColors = scoreCombo(
+    [...accentBase, { category: "shoes", colors: ["white", "sky"], formality: 3 }],
+    CTX,
+  );
+  const inAccent = scoreCombo(
+    [...accentBase, { category: "shoes", colors: ["white"], formality: 3, accent_color: "sky" }],
+    CTX,
+  );
+  expect(inAccent).toBeCloseTo(inColors, 10);
+});
+
+test("the swoosh sneaker outranks the identical sneaker with no accent", () => {
+  const swoosh = scoreCombo(
+    [...accentBase, { category: "shoes", colors: ["white"], formality: 3, accent_color: "sky" }],
+    CTX,
+  );
+  const plain = scoreCombo(
+    [...accentBase, { category: "shoes", colors: ["white"], formality: 3 }],
+    CTX,
+  );
+  expect(swoosh).toBeGreaterThan(plain);
+});
+
+test("an accent nothing supports is not free — the orphan rule still fires", () => {
+  // A white shirt supports black, not sky. The two-tone shoe echoes nothing
+  // either, but it spends no colour doing it; the sky swoosh spends one.
+  const white = [
+    { category: "top", colors: ["white"], formality: 3 },
+    { category: "bottom", colors: ["stone"], formality: 3 },
+  ];
+  const supported = scoreCombo(
+    [...white, { category: "shoes", colors: ["white", "black"], formality: 3 }],
+    CTX,
+  );
+  const orphan = scoreCombo(
+    [...white, { category: "shoes", colors: ["white"], formality: 3, accent_color: "sky" }],
+    CTX,
+  );
+  expect(supported).toBeGreaterThan(orphan);
+});
