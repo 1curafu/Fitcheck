@@ -150,6 +150,7 @@ export async function styleWithItem(
       texture: i.texture,
       pattern: i.pattern,
       accent_color: i.accent_color,
+      subcategory: i.subcategory,
     }));
 
     const args = {
@@ -165,7 +166,7 @@ export async function styleWithItem(
       },
       season: currentSeason(now),
       excludeItemIds: [],
-      maxAccessories: 1,
+      maxAccessories: 2,
       rainGuard: prefs.rainGuard,
     };
     const aesthetic = profile?.archetype ? [profile.archetype] : [];

@@ -334,3 +334,67 @@ test("a merely warm day leaves the bar off entirely", () => {
   ];
   expect(buildCandidates(closet, warmNotHot).flat().map((i) => i.id)).toContain("t-knit");
 });
+
+// ---------------------------------------------------------------------------
+// Two accessories (cap raised 1 -> 2).
+//
+// ⚠️ `maxAccessories` was a BOOLEAN GATE before this: the builder read
+// `> 0` and appended exactly one accessory regardless of the number. Raising
+// the constant alone changed nothing, so these tests exercise the count, not
+// the config.
+// ---------------------------------------------------------------------------
+
+const watch = { id: "a2", category: "Accessories", subcategory: "Quartz watch", colors: ["silver"], formality: 3, seasons: ["spring"], material: "steel", texture: null, pattern: null }; // prettier-ignore
+const bracelet = { id: "a3", category: "Accessories", subcategory: "Chain bracelet", colors: ["silver"], formality: 3, seasons: ["spring"], material: "steel", texture: null, pattern: null }; // prettier-ignore
+const watch2 = { ...watch, id: "a4" }; // same subcategory as `watch`
+const two = { ...base, maxAccessories: 2 };
+const accessoriesIn = (c: { category: string }[]) => c.filter((i) => i.category === "Accessories");
+
+test("cap 2: a look may carry two accessories of DIFFERENT subcategories", () => {
+  const cands = buildCandidates([...items, watch, bracelet], two);
+  expect(cands.some((c) => accessoriesIn(c).length === 2)).toBe(true);
+  for (const c of cands) expect(accessoriesIn(c).length).toBeLessThanOrEqual(2);
+});
+
+test("cap 2: both variants are still offered — bare, and accessorised", () => {
+  const cands = buildCandidates([...items, watch, bracelet], two);
+  expect(cands.some((c) => accessoriesIn(c).length === 0)).toBe(true);
+  expect(cands.some((c) => accessoriesIn(c).length === 1)).toBe(true);
+});
+
+test("cap 2: never two of the SAME subcategory — two watches is worse than one", () => {
+  const cands = buildCandidates([...items, watch, watch2], two);
+  expect(cands.some((c) => accessoriesIn(c).length === 2)).toBe(false);
+  expect(cands.some((c) => accessoriesIn(c).length === 1)).toBe(true);
+});
+
+test("cap 2: an unknown subcategory SUPPRESSES the pair — silence is not evidence they differ", () => {
+  // `items`' own a1 carries no subcategory at all, like every row written
+  // before the field was threaded through.
+  const cands = buildCandidates([...items, { ...watch, subcategory: undefined }], two);
+  expect(cands.some((c) => accessoriesIn(c).length === 2)).toBe(false);
+});
+
+test("cap 2 is a MAXIMUM: a one-accessory and a no-accessory closet still dress completely", () => {
+  const one = buildCandidates([...items], two); // items has exactly one accessory
+  expect(one.length).toBeGreaterThan(0);
+  for (const c of one) expect(accessoriesIn(c).length).toBeLessThanOrEqual(1);
+
+  const none = buildCandidates(items.filter((i) => i.category !== "Accessories"), two);
+  expect(none.length).toBeGreaterThan(0);
+  expect(none.every((c) => accessoriesIn(c).length === 0)).toBe(true);
+});
+
+test("cap 2 does NOT cost garment coverage — the CAP still reaches the same tops, bottoms and shoes", () => {
+  // The regression this guards: pushing a SEPARATE two-accessory variant would
+  // have spent the fixed CAP on permutations of the same three garments, which
+  // is the exact failure the breadth-first walk was written to fix.
+  const closet = [...items, watch, bracelet];
+  const reach = (cap: number) => {
+    const flat = buildCandidates(closet, { ...base, maxAccessories: cap }).flat();
+    return ["Tops", "Bottoms", "Shoes"].map(
+      (cat) => new Set(flat.filter((i) => i.category === cat).map((i) => i.id)).size,
+    );
+  };
+  expect(reach(2)).toEqual(reach(1));
+});
