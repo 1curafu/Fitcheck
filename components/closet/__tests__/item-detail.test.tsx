@@ -98,7 +98,9 @@ test("escape closes the sheet without saving", async () => {
 // item-data-completeness plan added (fit, branding, accent colour, length,
 // bulk/sole, distressing) need a way back.
 test("the edit screen offers every new field", async () => {
-  renderDetail({ category: "Shoes", fit: "Regular", bulk: "Chunky" });
+  // Tops, not Shoes: Task 5 hides Fit/Length on footwear, so a category that
+  // can carry every field being asserted here is required.
+  renderDetail({ category: "Tops", fit: "Regular" });
   await userEvent.click(screen.getByRole("button", { name: /more/i }));
   expect(screen.getByLabelText("Fit")).toBeInTheDocument();
   expect(screen.getByLabelText("Branding")).toBeInTheDocument();
@@ -122,19 +124,17 @@ test("sole is offered for shoes and hidden for everything else", async () => {
   expect(screen.queryByLabelText("Sole")).not.toBeInTheDocument();
 });
 
-test("the update action carries all six new fields", async () => {
+test("the update action carries fit, branding, accent colour, length and wear", async () => {
+  // Tops, not Shoes: Fit and Length no longer coexist with Sole on one item,
+  // so this covers the five wearable-category fields; Sole gets its own test.
   updateItem.mockClear();
-  renderDetail({ category: "Shoes", fit: "Regular", bulk: "Chunky" });
+  renderDetail({ category: "Tops" });
   await userEvent.click(screen.getByRole("button", { name: /more/i }));
 
   await userEvent.click(screen.getByRole("button", { name: "Oversized" }));
   await userEvent.selectOptions(screen.getByLabelText("Branding"), "Large");
   await userEvent.selectOptions(screen.getByLabelText("Length"), "Cropped");
   await userEvent.selectOptions(screen.getByLabelText("Wear"), "Ripped");
-  // Sole/`bulk` only exists on a Shoes item — asserted here too, since this
-  // is the one path that confirms the control actually reaches the payload
-  // rather than just rendering.
-  await userEvent.selectOptions(screen.getByLabelText("Sole"), "Low profile");
   await userEvent.click(screen.getByRole("button", { name: /^sky$/i }));
   await userEvent.click(screen.getByRole("button", { name: /^save$/i }));
 
@@ -145,9 +145,56 @@ test("the update action carries all six new fields", async () => {
       branding: "Large",
       accent_color: "sky",
       length: "Cropped",
-      bulk: "Low profile",
       distressing: "Ripped",
+      bulk: null,
     }),
+  );
+});
+
+test("the update action carries bulk for a shoe", async () => {
+  updateItem.mockClear();
+  renderDetail({ category: "Shoes" });
+  await userEvent.click(screen.getByRole("button", { name: /more/i }));
+
+  await userEvent.selectOptions(screen.getByLabelText("Sole"), "Low profile");
+  await userEvent.click(screen.getByRole("button", { name: /^save$/i }));
+
+  expect(updateItem).toHaveBeenCalledWith(
+    "i1",
+    expect.objectContaining({ bulk: "Low profile", fit: null, fit_source: null, length: null }),
+  );
+});
+
+// ── Task 5: fit and length are body-referenced — a shoe has neither ─────────
+
+test("a shoe is not asked for fit or length; a top is, but not for sole", async () => {
+  renderDetail({ category: "Shoes" });
+  await userEvent.click(screen.getByRole("button", { name: /more/i }));
+  expect(screen.queryByLabelText("Fit")).not.toBeInTheDocument();
+  expect(screen.queryByLabelText("Length")).not.toBeInTheDocument();
+  expect(screen.getByLabelText("Sole")).toBeInTheDocument();
+
+  cleanup();
+  updateItem.mockClear();
+  renderDetail({ category: "Tops" });
+  await userEvent.click(screen.getByRole("button", { name: /more/i }));
+  expect(screen.getByLabelText("Fit")).toBeInTheDocument();
+  expect(screen.getByLabelText("Length")).toBeInTheDocument();
+  expect(screen.queryByLabelText("Sole")).not.toBeInTheDocument();
+});
+
+// ⚠️ Hiding the control is not enough — state survives behind it. `bulk`
+// needed the same write-time guard in `save()` for the same reason.
+test("the save guard nulls fit, fit_source and length when the category switches to Shoes, even though the controls were set before the switch", async () => {
+  updateItem.mockClear();
+  renderDetail({ category: "Tops", fit: "Relaxed", fit_source: "user", length: "Hip" });
+  await userEvent.click(screen.getByRole("button", { name: /more/i }));
+  await userEvent.click(screen.getByRole("button", { name: "Shoes" }));
+  await userEvent.click(screen.getByRole("button", { name: /^save$/i }));
+
+  expect(updateItem).toHaveBeenCalledWith(
+    "i1",
+    expect.objectContaining({ fit: null, fit_source: null, length: null }),
   );
 });
 
@@ -156,7 +203,8 @@ test("the update action carries all six new fields", async () => {
 // real value for "no wear" — None — so "Not set" must not be offered here,
 // unlike Branding/Length/Sole where null is a genuine answer.
 test("Wear has no way to set an unset answer, unlike Branding, Length and Sole", async () => {
-  renderDetail({ category: "Shoes" });
+  // Tops: Branding and Length coexist here (Length no longer renders on Shoes).
+  renderDetail({ category: "Tops" });
   await userEvent.click(screen.getByRole("button", { name: /more/i }));
 
   const wear = within(screen.getByLabelText("Wear"));
@@ -165,6 +213,11 @@ test("Wear has no way to set an unset answer, unlike Branding, Length and Sole",
 
   expect(within(screen.getByLabelText("Branding")).getByRole("option", { name: "Not set" })).toBeInTheDocument();
   expect(within(screen.getByLabelText("Length")).getByRole("option", { name: "Not set" })).toBeInTheDocument();
+
+  cleanup();
+  // Sole only renders for Shoes.
+  renderDetail({ category: "Shoes" });
+  await userEvent.click(screen.getByRole("button", { name: /more/i }));
   expect(within(screen.getByLabelText("Sole")).getByRole("option", { name: "Not set" })).toBeInTheDocument();
 });
 

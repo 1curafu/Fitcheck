@@ -1,5 +1,10 @@
 import { TagSchema, type Tags } from "./tagging-schema";
 
+// `fit` and `length` are BODY-REFERENCED — a hem placement and a fit correction
+// both require a body wearing the garment. Shoes, accessories and fragrance
+// have neither, the same argument that made `bulk` (below) footwear-only.
+const WEARABLE = new Set<Tags["category"]>(["Tops", "Bottoms", "Outerwear"]);
+
 export function parseTagText(text: string): Tags {
   let json: unknown;
   try {
@@ -37,14 +42,21 @@ export function tagsToItemRow(args: {
     seasons: tags.seasons,
     accent_color: tags.accent_color,
     branding: tags.branding,
-    fit: tags.fit,
+    // ⚠️ Category-gated on write, not merely hidden in the UI. The prompt asks
+    // the model to return null for these on footwear, but a prompt is guidance
+    // and this is an invariant — and a `fit` recorded against a sneaker is not
+    // just meaningless, it inflates the "how many items carry a real fit"
+    // count a later plan gates its proportion rules on.
+    fit: WEARABLE.has(tags.category) ? tags.fit : null,
     // ⚠️ A draft that reached this row untouched came from the model — the
     // confirm screen pre-selects the model's guess, so accepting it costs no
     // taps and leaves fit_source null. The confirm screen's and edit sheet's
     // Fit chips set "user" the moment a human actually taps one; anything
     // else that arrives here null is, by construction, the model's own guess.
-    fit_source: tags.fit_source ?? "model",
-    length: tags.length,
+    // Nulled alongside `fit` on a non-wearable category — a stale "user" on
+    // an absent fit is exactly what this column exists to prevent.
+    fit_source: WEARABLE.has(tags.category) ? (tags.fit_source ?? "model") : null,
+    length: WEARABLE.has(tags.category) ? tags.length : null,
     // ⚠️ Category-gated here, not trusted from the model. The prompt says
     // FOOTWEAR ONLY, but a prompt is guidance and this is an invariant: a sole
     // value on a knit would make the proportion rules compare a bulk that

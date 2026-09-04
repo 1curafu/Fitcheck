@@ -25,6 +25,11 @@ import {
 // the single source.
 const PICKABLE = CATEGORIES.filter((c) => c !== "Fragrance");
 
+// `fit` is body-referenced — a hem/cut correction needs a body wearing the
+// garment. Shoes, accessories and fragrance have none, the same argument
+// that made `bulk` (the sole field) shoes-only in the edit sheet.
+const WEARABLE = new Set<Tags["category"]>(["Tops", "Bottoms", "Outerwear"]);
+
 export function ConfirmForm({
   draft,
   saving,
@@ -130,7 +135,17 @@ export function ConfirmForm({
               key={c}
               variant="select"
               active={draft.tags.category === c}
-              onClick={() => onTags({ category: c })}
+              onClick={() =>
+                // ⚠️ Hiding the Fit control below is not enough — a value set
+                // while the category was wearable survives in `draft.tags`
+                // and would still be written. Clear it the moment the
+                // category switches away, same guard `bulk` needed.
+                onTags(
+                  WEARABLE.has(c)
+                    ? { category: c }
+                    : { category: c, fit: null, fit_source: null, length: null },
+                )
+              }
             >
               {c}
             </Chip>
@@ -180,25 +195,27 @@ export function ConfirmForm({
         </div>
       </div>
 
-      <div>
-        <Kicker className="mb-2 block">Fit</Kicker>
-        {/* ⚠️ The one tag we ASK rather than infer. Haiku can see a wide-leg trouser
-            is wide; it cannot know it was bought two sizes up on purpose, and
-            "oversized" is relative to a body the cutout does not contain. Its guess
-            arrives pre-selected, so this is one tap to correct and zero to accept. */}
-        <div className="flex flex-wrap gap-2">
-          {FIT_OPTIONS.map((f) => (
-            <Chip
-              key={f}
-              variant="select"
-              active={draft.tags.fit === f}
-              onClick={() => onTags({ fit: f, fit_source: "user" })}
-            >
-              {f}
-            </Chip>
-          ))}
+      {WEARABLE.has(draft.tags.category) && (
+        <div>
+          <Kicker className="mb-2 block">Fit</Kicker>
+          {/* ⚠️ The one tag we ASK rather than infer. Haiku can see a wide-leg trouser
+              is wide; it cannot know it was bought two sizes up on purpose, and
+              "oversized" is relative to a body the cutout does not contain. Its guess
+              arrives pre-selected, so this is one tap to correct and zero to accept. */}
+          <div className="flex flex-wrap gap-2">
+            {FIT_OPTIONS.map((f) => (
+              <Chip
+                key={f}
+                variant="select"
+                active={draft.tags.fit === f}
+                onClick={() => onTags({ fit: f, fit_source: "user" })}
+              >
+                {f}
+              </Chip>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div>
         <Kicker className="mb-2 block">Seasons</Kicker>

@@ -109,3 +109,45 @@ test("parseTagText defaults fit_source to null when the model's response omits i
   delete parsedRaw.fit_source; // the fixture never had the key, but be explicit
   expect(parseTagText(JSON.stringify(parsedRaw)).fit_source).toBeNull();
 });
+
+// ── Task 5: fit and length are body-referenced — a shoe has neither ─────────
+
+test("tagsToItemRow refuses a fit and length on a shoe even if the model returns them", () => {
+  const tags = TagSchema.parse({
+    ...JSON.parse(valid),
+    category: "Shoes",
+    fit: "Relaxed",
+    length: "Hip",
+  });
+  const row = tagsToItemRow({ userId: "u1", imageUrl: "a.jpg", cutoutUrl: null, tags });
+  expect(row.fit).toBeNull();
+  expect(row.length).toBeNull();
+});
+
+// A stale "user" on a fit the category can no longer have is exactly what
+// fit_source exists to prevent — see the same guard on the write path for bulk.
+test("tagsToItemRow also nulls fit_source when the category gate nulls fit", () => {
+  const tags = TagSchema.parse({
+    ...JSON.parse(valid),
+    category: "Shoes",
+    fit: "Relaxed",
+    fit_source: "user",
+    length: "Hip",
+  });
+  const row = tagsToItemRow({ userId: "u1", imageUrl: "a.jpg", cutoutUrl: null, tags });
+  expect(row.fit_source).toBeNull();
+});
+
+test("tagsToItemRow still carries fit and length on a wearable category", () => {
+  const tags = TagSchema.parse({
+    ...JSON.parse(valid),
+    category: "Tops",
+    fit: "Relaxed",
+    fit_source: "user",
+    length: "Hip",
+  });
+  const row = tagsToItemRow({ userId: "u1", imageUrl: "a.jpg", cutoutUrl: null, tags });
+  expect(row.fit).toBe("Relaxed");
+  expect(row.fit_source).toBe("user");
+  expect(row.length).toBe("Hip");
+});
