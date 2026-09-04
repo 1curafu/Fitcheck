@@ -16,6 +16,7 @@ import {
   MATERIALS,
   TEXTURES,
   PATTERNS,
+  FIT_OPTIONS,
 } from "@/lib/closet/vocab";
 
 // CATEGORIES is derived from TagSchema, so it includes Fragrance. A fragrance
@@ -175,6 +176,26 @@ export function ConfirmForm({
             >
               {n}
             </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <Kicker className="mb-2 block">Fit</Kicker>
+        {/* ⚠️ The one tag we ASK rather than infer. Haiku can see a wide-leg trouser
+            is wide; it cannot know it was bought two sizes up on purpose, and
+            "oversized" is relative to a body the cutout does not contain. Its guess
+            arrives pre-selected, so this is one tap to correct and zero to accept. */}
+        <div className="flex flex-wrap gap-2">
+          {FIT_OPTIONS.map((f) => (
+            <Chip
+              key={f}
+              variant="select"
+              active={draft.tags.fit === f}
+              onClick={() => onTags({ fit: f })}
+            >
+              {f}
+            </Chip>
           ))}
         </div>
       </div>

@@ -3,6 +3,11 @@ import {
   MATERIALS as AI_MATERIALS,
   TEXTURES as AI_TEXTURES,
   COLOR_NAMES,
+  BRANDING as AI_BRANDING,
+  FITS as AI_FITS,
+  LENGTHS as AI_LENGTHS,
+  BULKS as AI_BULKS,
+  DISTRESSING as AI_DISTRESSING,
 } from "@/lib/ai/tagging-schema";
 
 /**
@@ -37,6 +42,11 @@ export const FORMALITY_LABEL = [
 export const MATERIALS = AI_MATERIALS;
 export const TEXTURES = AI_TEXTURES;
 export { COLOR_NAMES };
+export const BRANDING_OPTIONS = AI_BRANDING;
+export const FIT_OPTIONS = AI_FITS;
+export const LENGTH_OPTIONS = AI_LENGTHS;
+export const BULK_OPTIONS = AI_BULKS;
+export const DISTRESSING_OPTIONS = AI_DISTRESSING;
 
 /** The only colour values that may reach the database, on either write path. */
 export type ColorName = (typeof COLOR_NAMES)[number];

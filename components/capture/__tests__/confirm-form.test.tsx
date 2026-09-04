@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { ConfirmForm } from "../confirm-form";
 import type { Draft } from "../use-capture";
 import type { Tags } from "@/lib/ai/tagging-schema";
+import { FIT_OPTIONS } from "@/lib/closet/vocab";
 
 const draft: Draft = {
   imagePath: "p",
@@ -15,6 +16,7 @@ const draft: Draft = {
     category: "Tops", subcategory: "Crew neck tee", colors: ["black"],
     pattern: "solid", material: "Cotton", texture: "Flat",
     formality: 2, seasons: ["Summer"],
+    accent_color: null, branding: null, fit: null, length: null, bulk: null, distressing: null,
   },
 };
 
@@ -37,10 +39,15 @@ test("renders the draft name and fires onSave", async () => {
   expect(onSave).toHaveBeenCalledOnce();
 });
 
-function renderConfirm(overrides: { onTags?: (p: Partial<Tags>) => void } = {}) {
+function renderConfirm(
+  overrides: { onTags?: (p: Partial<Tags>) => void; tags?: Partial<Tags> } = {},
+) {
+  const activeDraft = overrides.tags
+    ? { ...draft, tags: { ...draft.tags, ...overrides.tags } }
+    : draft;
   render(
     <ConfirmForm
-      draft={draft}
+      draft={activeDraft}
       saving={false}
       error={null}
       onDraft={() => {}}
@@ -117,4 +124,23 @@ test("offers a way out when the cutout is wrong", async () => {
   );
   await userEvent.click(screen.getByRole("button", { name: /retake/i }));
   expect(onRetake).toHaveBeenCalledOnce();
+});
+
+test("every fit option is offered", async () => {
+  renderConfirm();
+  for (const fit of FIT_OPTIONS) {
+    expect(screen.getByRole("button", { name: fit })).toBeInTheDocument();
+  }
+});
+
+test("tapping a fit reports it upward", async () => {
+  const onTags = vi.fn();
+  renderConfirm({ onTags });
+  await userEvent.click(screen.getByRole("button", { name: "Oversized" }));
+  expect(onTags).toHaveBeenCalledWith({ fit: "Oversized" });
+});
+
+test("the AI's draft fit starts selected so the user only corrects it", () => {
+  renderConfirm({ tags: { fit: "Relaxed" } });
+  expect(screen.getByRole("button", { name: "Relaxed" })).toHaveAttribute("aria-pressed", "true");
 });
