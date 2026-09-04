@@ -155,3 +155,37 @@ test("a fit the user tapped over the model's draft is recorded as theirs", async
   await userEvent.click(screen.getByRole("button", { name: "Oversized" }));
   expect(onTags).toHaveBeenCalledWith({ fit: "Oversized", fit_source: "user" });
 });
+
+// ── Task 5: fit is body-referenced — a shoe has none ─────────────────────────
+
+test("a shoe is not asked for fit", () => {
+  renderConfirm({ tags: { category: "Shoes" } });
+  expect(screen.queryByText("Fit")).not.toBeInTheDocument();
+  for (const fit of FIT_OPTIONS) {
+    expect(screen.queryByRole("button", { name: fit })).not.toBeInTheDocument();
+  }
+});
+
+test("a top is still asked for fit", () => {
+  renderConfirm({ tags: { category: "Tops" } });
+  expect(screen.getByText("Fit")).toBeInTheDocument();
+});
+
+// ⚠️ Hiding the control is not enough: state survives, and an unreachable
+// value would still be written. `bulk` needed the same guard for the same
+// reason — see item-edit-sheet's save().
+test("switching category to Shoes clears a fit already set", async () => {
+  const onTags = vi.fn();
+  renderConfirm({ onTags, tags: { category: "Tops", fit: "Relaxed" } });
+  await userEvent.click(screen.getByRole("button", { name: "Shoes" }));
+  expect(onTags).toHaveBeenCalledWith(
+    expect.objectContaining({ category: "Shoes", fit: null, fit_source: null }),
+  );
+});
+
+test("switching between two wearable categories leaves a set fit untouched", async () => {
+  const onTags = vi.fn();
+  renderConfirm({ onTags, tags: { category: "Tops", fit: "Relaxed" } });
+  await userEvent.click(screen.getByRole("button", { name: "Bottoms" }));
+  expect(onTags).toHaveBeenCalledWith({ category: "Bottoms" });
+});
