@@ -213,6 +213,20 @@ export const TagSchema = z.object({
 });
 export type Tags = z.infer<typeof TagSchema>;
 
+/**
+ * The categories worn ON A BODY, and so the only ones with a `fit` or a `length`.
+ *
+ * ⚠️ **One definition, deliberately.** This lived as three identical literals —
+ * in `parse-tags.ts`, the confirm screen and the edit sheet — which is a
+ * standing trap for the next category added (womenswear brings one-piece and
+ * skirt). Updating two of the three would leave the UI offering a Fit control
+ * whose value the write path silently nulls, and nothing would fail: the copies
+ * agreed on the categories that already existed, so no test and no type could
+ * see the disagreement. It is defined HERE rather than in `lib/closet/vocab.ts`
+ * because `parse-tags.ts` needs it and vocab already depends on this module.
+ */
+export const WEARABLE_CATEGORIES = new Set<Tags["category"]>(["Tops", "Bottoms", "Outerwear"]);
+
 // Anthropic structured outputs (output_config.format) only accept type/enum/shape
 // keywords — NOT the numeric (minimum/maximum/multipleOf), string (min/maxLength),
 // or array (min/maxItems/uniqueItems) validation keywords that z.toJSONSchema()

@@ -1,9 +1,8 @@
-import { TagSchema, type Tags } from "./tagging-schema";
+import { TagSchema, WEARABLE_CATEGORIES, type Tags } from "./tagging-schema";
 
 // `fit` and `length` are BODY-REFERENCED — a hem placement and a fit correction
 // both require a body wearing the garment. Shoes, accessories and fragrance
 // have neither, the same argument that made `bulk` (below) footwear-only.
-const WEARABLE = new Set<Tags["category"]>(["Tops", "Bottoms", "Outerwear"]);
 
 export function parseTagText(text: string): Tags {
   let json: unknown;
@@ -47,7 +46,7 @@ export function tagsToItemRow(args: {
     // and this is an invariant — and a `fit` recorded against a sneaker is not
     // just meaningless, it inflates the "how many items carry a real fit"
     // count a later plan gates its proportion rules on.
-    fit: WEARABLE.has(tags.category) ? tags.fit : null,
+    fit: WEARABLE_CATEGORIES.has(tags.category) ? tags.fit : null,
     // ⚠️ A draft that reached this row untouched came from the model — the
     // confirm screen pre-selects the model's guess, so accepting it costs no
     // taps and leaves fit_source null. The confirm screen's and edit sheet's
@@ -55,8 +54,8 @@ export function tagsToItemRow(args: {
     // else that arrives here null is, by construction, the model's own guess.
     // Nulled alongside `fit` on a non-wearable category — a stale "user" on
     // an absent fit is exactly what this column exists to prevent.
-    fit_source: WEARABLE.has(tags.category) ? (tags.fit_source ?? "model") : null,
-    length: WEARABLE.has(tags.category) ? tags.length : null,
+    fit_source: WEARABLE_CATEGORIES.has(tags.category) ? (tags.fit_source ?? "model") : null,
+    length: WEARABLE_CATEGORIES.has(tags.category) ? tags.length : null,
     // ⚠️ Category-gated here, not trusted from the model. The prompt says
     // FOOTWEAR ONLY, but a prompt is guidance and this is an invariant: a sole
     // value on a knit would make the proportion rules compare a bulk that

@@ -17,6 +17,7 @@ import {
   TEXTURES,
   PATTERNS,
   FIT_OPTIONS,
+  WEARABLE_CATEGORIES,
 } from "@/lib/closet/vocab";
 
 // CATEGORIES is derived from TagSchema, so it includes Fragrance. A fragrance
@@ -28,7 +29,6 @@ const PICKABLE = CATEGORIES.filter((c) => c !== "Fragrance");
 // `fit` is body-referenced — a hem/cut correction needs a body wearing the
 // garment. Shoes, accessories and fragrance have none, the same argument
 // that made `bulk` (the sole field) shoes-only in the edit sheet.
-const WEARABLE = new Set<Tags["category"]>(["Tops", "Bottoms", "Outerwear"]);
 
 export function ConfirmForm({
   draft,
@@ -141,7 +141,7 @@ export function ConfirmForm({
                 // and would still be written. Clear it the moment the
                 // category switches away, same guard `bulk` needed.
                 onTags(
-                  WEARABLE.has(c)
+                  WEARABLE_CATEGORIES.has(c)
                     ? { category: c }
                     : { category: c, fit: null, fit_source: null, length: null },
                 )
@@ -195,7 +195,7 @@ export function ConfirmForm({
         </div>
       </div>
 
-      {WEARABLE.has(draft.tags.category) && (
+      {WEARABLE_CATEGORIES.has(draft.tags.category) && (
         <div>
           <Kicker className="mb-2 block">Fit</Kicker>
           {/* ⚠️ The one tag we ASK rather than infer. Haiku can see a wide-leg trouser
