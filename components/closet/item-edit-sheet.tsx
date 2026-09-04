@@ -20,6 +20,7 @@ import {
   COLORS,
   COLOR_NAMES,
   FIT_OPTIONS,
+  WEARABLE_CATEGORIES,
   BRANDING_OPTIONS,
   LENGTH_OPTIONS,
   BULK_OPTIONS,
@@ -34,7 +35,6 @@ const PICKABLE = CATEGORIES.filter((c) => c !== "Fragrance");
 // `fit` and `length` are body-referenced — a hem/cut correction needs a body
 // wearing the garment. Shoes, accessories and fragrance have none, the same
 // argument that already made `bulk` (Sole, below) shoes-only.
-const WEARABLE = new Set<Tags["category"]>(["Tops", "Bottoms", "Outerwear"]);
 
 /**
  * The tag form, MOVED here from item-detail.tsx unchanged.
@@ -122,11 +122,11 @@ export function ItemEditSheet({
           // ⚠️ Category-gated on write, same reason as `bulk` below: hiding the
           // Fit/Length controls does not clear state set before the category
           // was switched away from a wearable one on this same save.
-          fit: WEARABLE.has(category) ? fit : null,
-          fit_source: WEARABLE.has(category) ? fitSource : null,
+          fit: WEARABLE_CATEGORIES.has(category) ? fit : null,
+          fit_source: WEARABLE_CATEGORIES.has(category) ? fitSource : null,
           branding,
           accent_color: accentColor,
-          length: WEARABLE.has(category) ? length : null,
+          length: WEARABLE_CATEGORIES.has(category) ? length : null,
           // Sole is meaningless off a shoe — an always-visible control invites a
           // value that would then make `proportion` reason about a sole on a
           // knit, so a non-Shoes category never persists one, even if it was
@@ -205,7 +205,7 @@ export function ItemEditSheet({
             </div>
           </div>
 
-          {WEARABLE.has(category) && (
+          {WEARABLE_CATEGORIES.has(category) && (
             <div>
               <Kicker className="mb-2 block">Fit</Kicker>
               {/* Same chip treatment as the confirm screen, but with ONE
@@ -399,7 +399,7 @@ export function ItemEditSheet({
             </Select>
           </div>
 
-          {WEARABLE.has(category) && (
+          {WEARABLE_CATEGORIES.has(category) && (
             <div>
               <Kicker className="mb-2 block">Length</Kicker>
               <Select
