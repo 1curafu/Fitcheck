@@ -1,0 +1,34 @@
+{
+  "cli_version": "0.10.5",
+  "checkpoint_id": "01M1YVKK2TN8YXQ2PB8EZAP33D",
+  "strategy": "manual-commit",
+  "branch": "feat/scoring-foundations",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "lib/generator/styling/__tests__/echo.test.ts",
+    "lib/generator/styling/echo.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 1022,
+    "cache_creation_tokens": 9306833,
+    "cache_read_tokens": 270643941,
+    "output_tokens": 618346,
+    "api_call_count": 529,
+    "subagent_tokens": {
+      "input_tokens": 66,
+      "cache_creation_tokens": 105895,
+      "cache_read_tokens": 3489584,
+      "output_tokens": 245,
+      "api_call_count": 34
+    }
+  }
+}
