@@ -151,3 +151,18 @@ test("tagsToItemRow still carries fit and length on a wearable category", () => 
   expect(row.fit_source).toBe("user");
   expect(row.length).toBe("Hip");
 });
+
+// An accent that repeats one of the garment's own colours is not a placement —
+// a navy logo on a navy shirt is invisible — and storing it let tonal dressing
+// claim the colour-echo reward the role rule exists to withhold.
+test("an accent repeating one of the garment's own colours is not stored", () => {
+  const tags = TagSchema.parse({ ...JSON.parse(valid), colors: ["navy", "white"], accent_color: "navy" });
+  const row = tagsToItemRow({ userId: "u1", imageUrl: "a.jpg", cutoutUrl: null, tags });
+  expect(row.accent_color).toBeNull();
+});
+
+test("a genuine contrast accent is stored untouched", () => {
+  const tags = TagSchema.parse({ ...JSON.parse(valid), colors: ["white"], accent_color: "sky" });
+  const row = tagsToItemRow({ userId: "u1", imageUrl: "a.jpg", cutoutUrl: null, tags });
+  expect(row.accent_color).toBe("sky");
+});

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { UpdateSchema } from "@/lib/closet/update-schema";
+import { resolveAccent } from "@/lib/ai/parse-tags";
 
 export async function updateItem(itemId: string, input: unknown) {
   const data = UpdateSchema.parse(input);
@@ -23,7 +24,9 @@ export async function updateItem(itemId: string, input: unknown) {
       price: data.price,
       formality: data.formality,
       seasons: data.seasons,
-      accent_color: data.accent_color,
+      // Same rule as the capture path: an accent repeating one of the item's
+      // own colours is not a placement and must not be stored. See resolveAccent.
+      accent_color: resolveAccent(data.colors, data.accent_color),
       branding: data.branding,
       fit: data.fit,
       fit_source: data.fit_source,
