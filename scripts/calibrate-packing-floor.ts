@@ -43,7 +43,7 @@ const WEATHER: Weather = { tempC: 19, rain: false, highC: 22, lowC: 14 };
 async function loadCloset(): Promise<CandidateItem[]> {
   const { data, error } = await db
     .from("items")
-    .select("id, category, colors, formality, seasons, material, texture, pattern, accent_color, user_id")
+    .select("id, category, subcategory, colors, formality, seasons, material, texture, pattern, accent_color, user_id")
     .eq("archived", false);
   if (error) throw error;
 
