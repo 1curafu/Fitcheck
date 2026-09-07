@@ -389,12 +389,48 @@ test("cap 2 does NOT cost garment coverage — the CAP still reaches the same to
   // The regression this guards: pushing a SEPARATE two-accessory variant would
   // have spent the fixed CAP on permutations of the same three garments, which
   // is the exact failure the breadth-first walk was written to fix.
-  const closet = [...items, watch, bracelet];
-  const reach = (cap: number) => {
-    const flat = buildCandidates(closet, { ...base, maxAccessories: cap }).flat();
-    return ["Tops", "Bottoms", "Shoes"].map(
-      (cat) => new Set(flat.filter((i) => i.category === cat).map((i) => i.id)).size,
+  //
+  // ⚠️ **The closet must be big enough that the CAP binds INSIDE the first
+  // pass, or this proves nothing.** Two earlier versions of this test were
+  // vacuous. The small fixture above yields 4 combos against a CAP of 200, so
+  // both sides were trivially equal. 14 of each was no better: the
+  // breadth-first walk reaches every top in pass 0 (14 x 3 = 42 combos), so
+  // even the forbidden third push left coverage untouched and the test still
+  // passed. 80 is chosen so the arithmetic discriminates — 80 x 2 = 160 fits
+  // under the cap and reaches every garment, while 80 x 3 = 240 exceeds it and
+  // strands the last 14 tops. Verified by introducing the regression and
+  // watching this fail.
+  const big = ["Tops", "Bottoms", "Shoes"].flatMap((category) =>
+    Array.from({ length: 80 }, (_, n) => ({
+      id: `${category}-${n}`, category, colors: ["navy"], formality: 3,
+      seasons: ["spring"], material: "cotton", texture: null, pattern: null,
+    })),
+  );
+  const closet = [...big, watch, bracelet];
+  const combos = (cap: number) => buildCandidates(closet, { ...base, maxAccessories: cap });
+  const reach = (cap: number) =>
+    ["Tops", "Bottoms", "Shoes"].map(
+      (cat) => new Set(combos(cap).flat().filter((i) => i.category === cat).map((i) => i.id)).size,
     );
-  };
-  expect(reach(2)).toEqual(reach(1));
+  // Absolute, not merely equal to cap 1: "the same as a broken baseline" is not
+  // the property worth pinning. Every top, bottom and shoe must still be
+  // reachable with two accessories in play.
+  expect(reach(2)).toEqual([80, 80, 80]);
+  expect(reach(1)).toEqual([80, 80, 80]);
+  expect(combos(2).length).toBeLessThanOrEqual(200);
+});
+
+test("a one-of-each closet never reaches a second accessory — accepted, and pinned so it is not a surprise", () => {
+  // `want` alternates on `t + d`, and a closet with one top, one bottom and one
+  // shoe has exactly one iteration (t=0, d=0), which is the count-1 branch. The
+  // alternative — keying on `combos.length` — would make the variant depend on
+  // how many combos happened to precede it, which is far harder to reason about
+  // for a case this marginal.
+  const tiny = [
+    items[0], items[1], items[2], // one top, one bottom, one shoe
+    watch, bracelet,
+  ];
+  const cands = buildCandidates(tiny, two);
+  expect(cands.length).toBeGreaterThan(0);
+  expect(Math.max(...cands.map((c) => accessoriesIn(c).length))).toBe(1);
 });
