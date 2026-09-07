@@ -18,6 +18,20 @@ export function parseTagText(text: string): Tags {
   return TagSchema.parse({ fit_source: null, ...(json as Record<string, unknown>) });
 }
 
+/**
+ * The accent to store: null when it merely repeats one of the garment's own
+ * colours.
+ *
+ * Exported because BOTH write paths need it — the capture path below and the
+ * edit sheet's update action. Two copies of this rule would be the same defect
+ * shape that `WEARABLE_CATEGORIES` was hoisted to prevent.
+ */
+export function resolveAccent(colors: string[], accent: string | null | undefined): string | null {
+  if (!accent) return null;
+  const a = accent.trim().toLowerCase();
+  return colors.some((c) => c.trim().toLowerCase() === a) ? null : accent;
+}
+
 export function tagsToItemRow(args: {
   userId: string;
   imageUrl: string;
@@ -39,7 +53,14 @@ export function tagsToItemRow(args: {
     texture: tags.texture,
     formality: tags.formality,
     seasons: tags.seasons,
-    accent_color: tags.accent_color,
+    // ⚠️ An accent that repeats one of the garment's own colours is dropped.
+    // It is not a placement — a navy logo on a navy shirt is invisible — and
+    // the accent ROLE is what lets a neutral join a colour echo, so storing it
+    // handed tonal dressing a reward the rule exists to withhold. `withAccent`
+    // in lib/generator/styling/echo.ts defends every read for the sake of rows
+    // written before this; this keeps new rows honest so the edit sheet does
+    // not offer a redundant accent back to the user.
+    accent_color: resolveAccent(tags.colors, tags.accent_color),
     branding: tags.branding,
     // ⚠️ Category-gated on write, not merely hidden in the UI. The prompt asks
     // the model to return null for these on footwear, but a prompt is guidance
