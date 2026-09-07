@@ -44,7 +44,22 @@ export type ItemColour = { colour: string; role: ColourRole };
 export function withAccent(colours: string[], accent?: string | null): ItemColour[] {
   const norm = (c: string) => c.trim().toLowerCase();
   const dominants: ItemColour[] = colours.map((c) => ({ colour: norm(c), role: "dominant" }));
-  return accent ? [...dominants, { colour: norm(accent), role: "accent" }] : dominants;
+  if (!accent) return dominants;
+
+  // ⚠️ **An accent that repeats its own garment's colour is not a placement.**
+  // A navy logo on a navy shirt is invisible; nobody reads it as a decision.
+  // Dropping it matters because the accent ROLE is what lets a neutral join an
+  // echo (see `accentCounts`), so keeping it would hand tonal dressing the
+  // reward the role rule exists to withhold: measured before this guard, a navy
+  // top tagged `accent_color: navy` worn with navy trousers scored 1.0000 and
+  // was announced as "a deliberate colour echo", while the SAME outfit without
+  // the redundant tag scored 0.5000 and was correctly called tonal. Nothing
+  // stops that tag being written — the schema does not forbid an accent equal
+  // to a dominant, and the edit sheet lets a user pick one.
+  const accentColour = norm(accent);
+  if (dominants.some((d) => d.colour === accentColour)) return dominants;
+
+  return [...dominants, { colour: accentColour, role: "accent" }];
 }
 
 /**

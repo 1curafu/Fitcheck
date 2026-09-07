@@ -273,3 +273,31 @@ test("a neutral dominant repeated across the outfit still counts once the accent
   ];
   expect(echoScore(tonalPlusAccent)).toBe(0.75);
 });
+
+// ---------------------------------------------------------------------------
+// An accent that repeats its own garment's colour is not a placement.
+// ---------------------------------------------------------------------------
+
+test("an accent equal to its own garment's dominant does NOT unlock an echo", () => {
+  // Same outfit twice: navy top, navy trousers, white shoe. Tonal dressing.
+  // The only difference is a redundant accent tag on the top.
+  const plain = [withAccent(["navy"]), withAccent(["navy"]), withAccent(["white"])];
+  const selfTagged = [withAccent(["navy"], "navy"), withAccent(["navy"]), withAccent(["white"])];
+  expect(echoScore(selfTagged)).toBe(echoScore(plain));
+  expect(echoedAccents(selfTagged)).toEqual([]);
+});
+
+test("a navy accent on a WHITE shoe still echoes a navy top — the rule that matters is unaffected", () => {
+  const combo = [withAccent(["navy"]), withAccent(["white"]), withAccent(["white"], "navy")];
+  expect(echoedAccents(combo)).toEqual(["navy"]);
+  expect(echoScore(combo)).toBe(1);
+});
+
+test("withAccent drops a redundant accent rather than tagging it", () => {
+  expect(withAccent(["navy", "white"], "navy")).toEqual([
+    { colour: "navy", role: "dominant" },
+    { colour: "white", role: "dominant" },
+  ]);
+  // Case and whitespace are normalised before the comparison.
+  expect(withAccent(["Navy"], " navy ")).toEqual([{ colour: "navy", role: "dominant" }]);
+});
