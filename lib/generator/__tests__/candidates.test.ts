@@ -504,3 +504,23 @@ test("the bag slot does NOT cost garment coverage", () => {
     );
   expect(reach({ maxAccessories: 2, maxBags: 1 })).toEqual([80, 80, 80]);
 });
+
+test("the second extras push never duplicates the first", () => {
+  // ⚠️ Found by mutation-testing this branch: making `sameItems` always return
+  // false was caught by NOTHING. When only one extras shape exists — a closet
+  // with accessories, no bags, and maxAccessories 1 — both pushes select the
+  // same shape and the same items, so without the guard the builder emits the
+  // identical combo twice, spending the CAP on a duplicate the ranker cannot
+  // tell apart.
+  // ⚠️ Exactly ONE accessory and no bags. With two, consecutive seeds pick
+  // different accessories and the duplicate never arises — which is why a
+  // first attempt at this test also failed to catch the mutation.
+  const oneShape = buildCandidates(items, { ...base, maxAccessories: 1 });
+  const keys = oneShape.map((c) => c.map((i) => i.id).sort().join("|"));
+  expect(new Set(keys).size).toBe(keys.length);
+
+  // And it must still hold once several shapes are in play.
+  const many = buildCandidates([...items, watch, bracelet, clutch, tote], withBags);
+  const manyKeys = many.map((c) => c.map((i) => i.id).sort().join("|"));
+  expect(new Set(manyKeys).size).toBe(manyKeys.length);
+});
