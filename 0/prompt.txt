@@ -479,3 +479,17 @@ its perfect, but if we will add outwear?
 <status>completed</status>
 <summary>Background command "Arrange garments side by side to use the landscape width" completed (exit code 0)</summary>
 </task-notification>
+
+---
+
+why it doesnt appear bag with 2 accesoirs?
+
+---
+
+<task-notification>
+<task-id>bl08lz4vg</task-id>
+<tool-use-id>toolu_01Dw4RNQMRWENBiau7eoweWe</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-1curafu-Desktop-Fitcheck-Fitcheck/707f7bed-62e8-4ce2-be62-cca0514fbec5/tasks/bl08lz4vg.output</output-file>
+<status>completed</status>
+<summary>Background command "Render a six-piece look" completed (exit code 0)</summary>
+</task-notification>
