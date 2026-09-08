@@ -33,7 +33,7 @@ export function contrastRatio(a: number, b: number): number {
 }
 
 /** WCAG's large-text threshold — the standard's own "distinguishable at a glance". */
-const CLEAR_SEPARATION = 3;
+export const CLEAR_SEPARATION = 3;
 
 /**
  * ⚠️ A garment's value is its MOST DOMINANT colour, not its darkest. The

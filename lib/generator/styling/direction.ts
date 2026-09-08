@@ -1,5 +1,5 @@
 import { colorHex } from "@/lib/closet/vocab";
-import { relativeLuminance, contrastRatio } from "./value";
+import { relativeLuminance, contrastRatio, CLEAR_SEPARATION } from "./value";
 
 /**
  * Which way round the light and dark sit — an asymmetry the pairing table
@@ -17,10 +17,24 @@ import { relativeLuminance, contrastRatio } from "./value";
  * whether a look is dressy. Its garments can.
  */
 
-/** Below this the two are too close for either to read as "the light one". */
-const MEANINGFUL = 1.5;
+/**
+ * Below this the two are too close for either to read as "the light one".
+ *
+ * ⚠️ The SAME threshold `valueContrast` uses, deliberately, and not a second
+ * number chosen by hand: you cannot say which garment is lighter if they do not
+ * read as different at all. Anchored to WCAG's large-text ratio rather than
+ * tuned — a threshold picked to make one wardrobe look right is exactly what
+ * this project forbids.
+ */
+export const MEANINGFUL_THRESHOLD = CLEAR_SEPARATION;
 
-/** At or above this the look is dressy enough for the seasonal reading to cost. */
+/**
+ * At or above this the look is dressy enough for the seasonal reading to cost.
+ *
+ * 4 is where this app's own formality scale puts business and classic tailoring,
+ * one step past smart casual at 3 — the level the research is describing when it
+ * calls white trousers "not an all-year business default".
+ */
 const DRESSY = 4;
 
 function valueOf(colours: readonly string[]): number | null {
@@ -51,7 +65,7 @@ export function valueDirection(items: readonly Garment[]): number | null {
   const up = valueOf(upper.colors);
   const low = valueOf(lower.colors);
   if (up == null || low == null) return null;
-  if (contrastRatio(up, low) < MEANINGFUL) return null;
+  if (contrastRatio(up, low) < MEANINGFUL_THRESHOLD) return null;
 
   if (up > low) return 1; // light top, dark bottom — the tailoring default
 
