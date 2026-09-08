@@ -140,3 +140,14 @@ test("a monochrome column is a choice, not a muddy accident", () => {
 test("a near-match is still a fault, however small the difference", () => {
   expect(valueContrast([["white"], ["cream"], ["white"]])!).toBeLessThan(0.2);
 });
+
+test("value and texture do not add up — the better mechanism wins", () => {
+  // ⚠️ Found by mutation: replacing `max` with a clamped sum survived every
+  // other test, because they all have one side at 0 or already at 1. It only
+  // shows when BOTH are partial — a muddy outfit carrying a single distinct
+  // texture. A sum would rescue it nearly to the top on half-evidence twice.
+  const partial = visualSeparation([["white"], ["cream"], ["beige"]], ["Cable knit", "Flat", "Flat"])!;
+  const textureAlone = 0.5; // one distinct texture
+  expect(partial).toBe(textureAlone);
+  expect(partial).toBeLessThan(0.76); // what a sum would have produced
+});
