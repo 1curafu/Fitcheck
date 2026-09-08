@@ -6,6 +6,16 @@ import { colourScore } from "./styling/colour-score";
 
 export type ScoreItem = {
   category: string;
+  /**
+   * The specific kind ("Quartz watch", "Chain bracelet").
+   *
+   * Read by `wristwearBonus` alone. Optional, like every field added after the
+   * fact — but note the consequence of omitting it: the wristwear reward
+   * silently never fires, because a missing subcategory is indistinguishable
+   * from "not a watch". `CandidateItem` carries the same field and every
+   * producer of one populates it, which is what keeps the two aligned.
+   */
+  subcategory?: string | null;
   colors: string[];
   formality: number | null;
   seasons?: string[];
@@ -82,6 +92,9 @@ const WEIGHTS = {
   lean: 0.3,
   climate: 0.28,
   metal: 0.1,
+  // Small on purpose — see `wristwearBonus`. It breaks a tie against an
+  // identical bare outfit; it must never outweigh a formality clash.
+  wristwear: 0.08,
 } as const;
 
 /**
@@ -105,6 +118,61 @@ export function formalityCoherence(formalities: number[]): number {
 }
 
 /**
+ * Categories whose formality is a RANGE rather than a point.
+ *
+ * A steel watch is business-safe and casual-acceptable; a leather bag crosses
+ * the same span. A jacket does not — it pins an outfit's register. So a small
+ * worn or carried object may sit one step outside the garments' range without
+ * that counting as incoherence.
+ *
+ * ⚠️ Not a licence to ignore it. Two steps out is still counted, because the
+ * research's own HARD rules are exactly the two-step cases: a rubber sports
+ * watch with black tie, a nylon bag against formal tailoring.
+ */
+const RANGED_FORMALITY = new Set(["Accessories", "Bags"]);
+
+/** How far outside the garments' range a small item may sit for free. */
+const RANGED_TOLERANCE = 1;
+
+/**
+ * `formalityCoherence`, but counting an accessory as the wide thing it is.
+ *
+ * ⚠️ Written because a f3 watch cost a f2 casual outfit 0.25 of its coherence —
+ * the same charge a f3 pair of trousers would take. Measured end to end, adding
+ * a well-matched steel watch to a casual look cost 0.0662 of the final score, so
+ * the generator dropped it from every casual outfit. That is the opposite of
+ * what a watch does in life, and the entire penalty came from this one term:
+ * the colour terms were unmoved, because a watch is hardware and carries no
+ * garment colour (see ./styling/metal.ts).
+ *
+ * `candidates.ts` already encodes this idea for shoes — `floorTolerance` lets a
+ * clean sneaker reach Work — and this is the same argument one layer up.
+ */
+export function formalityCoherenceOf(
+  items: { formality?: number | null; category?: string | null }[],
+): number {
+  const garments = items.filter((i) => !RANGED_FORMALITY.has(i.category ?? ""));
+  const ranged = items.filter((i) => RANGED_FORMALITY.has(i.category ?? ""));
+  const fOf = (i: { formality?: number | null }) => i.formality ?? 3;
+
+  // Nothing but accessories: fall back to treating them as ordinary items,
+  // because there is no garment range for them to sit outside OF.
+  if (garments.length < 2) return formalityCoherence(items.map(fOf));
+
+  const lo = Math.min(...garments.map(fOf));
+  const hi = Math.max(...garments.map(fOf));
+  let spread = hi - lo;
+
+  for (const i of ranged) {
+    const f = fOf(i);
+    // Distance outside the garment range, forgiven up to the tolerance.
+    const outside = f > hi ? f - hi : f < lo ? lo - f : 0;
+    spread = Math.max(spread, hi - lo + Math.max(0, outside - RANGED_TOLERANCE));
+  }
+  return Math.max(0, 1 - spread / 4);
+}
+
+/**
  * One patterned piece is a statement; two are an argument.
  *
  * Counts non-solid pieces: 0 or 1 is clean, each additional one costs. Floored
@@ -114,6 +182,40 @@ export function formalityCoherence(formalities: number[]): number {
 export function patternHarmony(patterns: (string | null | undefined)[]): number {
   const loud = patterns.filter((p) => p && p !== "solid").length;
   return loud <= 1 ? 1 : Math.max(0.3, 1 - (loud - 1) * 0.35);
+}
+
+/**
+ * A watch is worn unless it actively does not suit.
+ *
+ * ⚠️ **This is a REWARD, and the penalty half already existed.** The product
+ * owner's rule: "for a man it almost always suits, maybe in several outfits not
+ * — with a dress this watch doesn't fit, and we don't have another one, so we
+ * wouldn't give that watch." The dropping half is `formalityCoherenceOf` above,
+ * which still charges a watch that sits two steps outside the garments' range;
+ * this only makes a watch that DOES suit preferred over the bare twin, which
+ * the builder always offers alongside it.
+ *
+ * ⚠️ **Not keyed on gender**, deliberately, and it does not need to be. The
+ * outcome the owner described falls out of formality: a f3 steel watch is free
+ * against f2 casual and f3 smart, and costs 0.0662 against a f5 evening look —
+ * whether that look is a dress or a tuxedo. A gender switch would get the
+ * tuxedo wrong.
+ *
+ * ⚠️ Deliberately small. Measured: a suitable watch moves the final score about
+ * +0.005, which is enough to beat an identical bare outfit, while an unsuitable
+ * one still loses 0.066. The reward must never be able to drag a clashing watch
+ * into a look.
+ *
+ * Returns `null` — not 0 — when no watch is present, so an outfit without one
+ * claims no weight and is not penalised for the absence. Owning no watch must
+ * cost nothing.
+ */
+const WRISTWEAR = /watch/i;
+
+export function wristwearBonus(
+  items: { subcategory?: string | null }[],
+): number | null {
+  return items.some((i) => i.subcategory && WRISTWEAR.test(i.subcategory)) ? 1 : null;
 }
 
 /**
@@ -196,7 +298,7 @@ export function scoreCombo(items: ScoreItem[], ctx: Ctx): number {
         items.map((i) => (accentMetalTone(i.accent_color) ? null : i.accent_color)),
       ),
     },
-    { weight: WEIGHTS.coherence, value: formalityCoherence(items.map((i) => i.formality ?? 3)) },
+    { weight: WEIGHTS.coherence, value: formalityCoherenceOf(items) },
     { weight: WEIGHTS.pattern, value: patternHarmony(items.map((i) => i.pattern)) },
     // Metal is a PREFERENCE: one visible family is the safe default, a mix is a
     // style choice rather than a defect. Weighted well under `coherence` (0.3)
@@ -204,6 +306,7 @@ export function scoreCombo(items: ScoreItem[], ctx: Ctx): number {
     // metal consistency below register. Null below two metal elements, which is
     // most outfits, so a wardrobe without jewellery is untouched.
     { weight: WEIGHTS.metal, value: metalCoordination(items) },
+    { weight: WEIGHTS.wristwear, value: wristwearBonus(items) },
     { weight: WEIGHTS.lean, value: ctx.lean?.length ? leanScore(colors, ctx.lean) : null },
     { weight: WEIGHTS.climate, value: climateFit(items, ctx) },
   ];
