@@ -7,7 +7,9 @@ category — the family it belongs to:
   · Bottoms: trousers, chinos, jeans, shorts, skirts
   · Outerwear: coats, overcoats, blazers, jackets
   · Shoes: all footwear
-  · Accessories: belts, bags, hats, scarves, ties, watches, jewellery, sunglasses
+  · Bags: anything CARRIED — bags, totes, clutches, backpacks, wallets, purses
+  · Accessories: anything WORN that is not clothing — belts, hats, scarves, ties, \
+watches, jewellery, sunglasses
 subcategory — the specific type, in menswear vocabulary (e.g. "Oxford shirt", "Chinos", \
 "Penny loafers", "Chelsea boots", "Leather belt", "Field watch"). Be precise.
 colors — the 1-3 dominant colours, most-dominant first, from the colour list. \

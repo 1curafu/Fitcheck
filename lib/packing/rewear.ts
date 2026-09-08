@@ -11,7 +11,9 @@
  * tops (fine), ~4 bottoms (questionable) and ~4 pairs of shoes (nobody packs
  * that). Outerwear and shoes re-wear almost indefinitely; tops re-wear least.
  */
-const ALWAYS_REWEARABLE = new Set(["Outerwear", "Shoes", "Accessories"]);
+// A bag is carried for the whole trip, not re-chosen daily — the same argument
+// that put outerwear and shoes here.
+const ALWAYS_REWEARABLE = new Set(["Outerwear", "Shoes", "Bags", "Accessories"]);
 
 /** Meter positions 1–5, in the plain language the labelled meter requires. */
 export const REWEAR_LABELS = [

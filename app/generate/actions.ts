@@ -215,6 +215,7 @@ export async function generate(input: {
       season: currentSeason(now),
       excludeItemIds: [],
       maxAccessories: 2,
+      maxBags: 1,
       rainGuard: prefs.rainGuard,
     };
     const combos = buildCandidates(candItems, candidateArgs);

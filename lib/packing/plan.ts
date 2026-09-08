@@ -89,6 +89,7 @@ export function realBuilder(
       weather,
       excludeItemIds: [],
       maxAccessories: 1,
+      maxBags: 1,
       rainGuard: opts?.rainGuard,
     });
     if (combos.length === 0) return null;

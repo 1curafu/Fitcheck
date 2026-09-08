@@ -5,7 +5,7 @@ import { filterItems, type ClosetItem } from "@/lib/closet/filter";
 import { Chip, ChipRow } from "@/components/ui-fitcheck/chip";
 import { ItemCard } from "./item-card";
 
-const CATS = ["All", "Tops", "Bottoms", "Outerwear", "Shoes", "Accessories"];
+const CATS = ["All", "Tops", "Bottoms", "Outerwear", "Shoes", "Bags", "Accessories"];
 // Cycling heights give the prototype's masonry feel.
 const HEIGHTS = [160, 190, 150, 200, 170, 185, 155];
 

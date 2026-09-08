@@ -169,7 +169,7 @@ export const DISTRESSING = ["None", "Faded", "Ripped"] as const;
 // Categories + seasons match the prototype (Title case) so tags line up with
 // the closet filters and the generator.
 export const TagSchema = z.object({
-  category: z.enum(["Tops", "Bottoms", "Outerwear", "Shoes", "Accessories", "Fragrance"]),
+  category: z.enum(["Tops", "Bottoms", "Outerwear", "Shoes", "Bags", "Accessories", "Fragrance"]),
   subcategory: z.string().min(1),
   colors: z.array(z.enum(COLOR_NAMES)).min(1).max(3),
   pattern: z.enum(["solid", "striped", "check", "print", "other"]),

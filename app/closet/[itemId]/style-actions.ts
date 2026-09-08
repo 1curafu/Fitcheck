@@ -167,6 +167,7 @@ export async function styleWithItem(
       season: currentSeason(now),
       excludeItemIds: [],
       maxAccessories: 2,
+      maxBags: 1,
       rainGuard: prefs.rainGuard,
     };
     const aesthetic = profile?.archetype ? [profile.archetype] : [];

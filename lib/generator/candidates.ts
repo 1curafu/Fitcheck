@@ -60,6 +60,16 @@ export type CandidateArgs = {
   excludeItemIds: string[];
   maxAccessories: number;
   /**
+   * How many BAGS a look may carry. Optional and defaulting to none, so every
+   * existing caller and fixture keeps the behaviour it had before bags were a
+   * category of their own.
+   *
+   * Separate from `maxAccessories` because the two behave differently: you
+   * carry one bag but may wear a watch AND a bracelet, and a bag is a visible
+   * colour block where a watch case is hardware (see ./styling/metal.ts).
+   */
+  maxBags?: number;
+  /**
    * The user's rain-guard preference. Optional and defaulting ON, so every
    * existing caller and fixture keeps the protective behaviour it had before
    * the toggle existed.
@@ -169,6 +179,63 @@ function pickAccessories(list: CandidateItem[], seed: number, max: number): Cand
   return [first];
 }
 
+/**
+ * The optional pieces to hang on one base: accessories, a bag, or both.
+ *
+ * ⚠️ **Returns ONE variant, never a set.** The caller pushes it once, so the
+ * combo budget is spent on garments rather than on permutations of the same
+ * three. Offering every combination here would reintroduce exactly the failure
+ * the breadth-first walk exists to prevent: measured, a second extras push
+ * stranded 13 of 80 garments once the CAP bound.
+ *
+ * Which variant is chosen rotates with the seed, so across a pass the ranker
+ * sees bare looks, accessorised looks, bagged looks and both — and the score,
+ * not this function, decides which survives.
+ *
+ * Variants are built conditionally rather than filtered afterwards, so a closet
+ * with no bags never rotates through a bag-shaped hole and a closet with one
+ * accessory never offers the same single accessory twice under two names.
+ */
+function pickExtras(
+  accessories: CandidateItem[],
+  bags: CandidateItem[],
+  seed: number,
+  maxAccessories: number,
+  maxBags: number,
+): CandidateItem[] {
+  const canAcc = maxAccessories > 0 && accessories.length > 0;
+  const canBag = maxBags > 0 && bags.length > 0;
+
+  // ⚠️ The SHAPES are decided before anything is picked, so the list length
+  // does not depend on the seed. An earlier version appended the two-accessory
+  // variant only when that seed's first accessory happened to find a differing
+  // subcategory, which made `variants.length` vary between 3 and 4 as the seed
+  // moved — so `seed % length` addressed different variants on different
+  // iterations and "bag + accessory" was never reached at all. Measured on a
+  // six-top closet: 6 one-accessory, 4 bag, 2 two-accessory, and zero of the
+  // fourth shape. A rotation has to rotate over a fixed set.
+  const shapes: ("acc1" | "acc2" | "bag" | "bagacc")[] = [];
+  if (canAcc) shapes.push("acc1");
+  if (canBag) shapes.push("bag");
+  if (canAcc && maxAccessories >= 2) shapes.push("acc2");
+  if (canAcc && canBag) shapes.push("bagacc");
+  if (!shapes.length) return [];
+
+  const bag = () => [bags[seed % bags.length]];
+  // A shape that cannot be filled degrades rather than disappearing: a closet
+  // holding three bracelets yields one accessory where "acc2" asked for two.
+  switch (shapes[seed % shapes.length]) {
+    case "acc1":
+      return pickAccessories(accessories, seed, 1);
+    case "acc2":
+      return pickAccessories(accessories, seed, maxAccessories);
+    case "bag":
+      return bag();
+    case "bagacc":
+      return [...bag(), ...pickAccessories(accessories, seed, 1)];
+  }
+}
+
 function bySeasonFirst(list: CandidateItem[], season: string | undefined): CandidateItem[] {
   return [...list].sort(
     (x, y) => Number(inSeason(y.seasons, season)) - Number(inSeason(x.seasons, season)),
@@ -248,6 +315,7 @@ export function buildCandidates(items: CandidateItem[], a: CandidateArgs): Candi
   const shoes = by.Shoes ?? [];
   const outer = by.Outerwear ?? [];
   const accessories = by.Accessories ?? [];
+  const bags = by.Bags ?? [];
 
   // A combo needs all three required slots; without one there is nothing to build.
   if (!tops.length || !bottoms.length || !shoes.length) return [];
@@ -292,18 +360,18 @@ export function buildCandidates(items: CandidateItem[], a: CandidateArgs): Candi
       combos.push(base); // required base (± outerwear), no accessory
       if (combos.length >= CAP) break build;
 
-      if (a.maxAccessories > 0 && accessories.length) {
-        // ⚠️ Still exactly ONE push per base, whether it carries one accessory
-        // or two. Pushing a separate two-accessory variant alongside the
-        // one-accessory variant would spend the CAP on permutations of the
-        // same three garments — precisely the failure the breadth-first walk
-        // above exists to prevent. The COUNT alternates instead.
-        //
-        // Alternating on `t + d` rather than on `d` alone matters: `passes` is
-        // 1 for a closet with a single bottom and a single shoe, so keying on
-        // the pass would make the second accessory unreachable there.
-        const want = (t + d) % 2 === 0 ? 1 : a.maxAccessories;
-        combos.push([...base, ...pickAccessories(accessories, t + d, want)]);
+      // ⚠️ Still exactly ONE push per base, whatever it carries. A separate
+      // push per variant would spend the CAP on permutations of the same three
+      // garments — precisely the failure the breadth-first walk above exists to
+      // prevent, measured at 13 of 80 garments stranded. `pickExtras` returns
+      // one variant and rotates which one.
+      //
+      // Rotating on `t + d` rather than on `d` alone matters: `passes` is 1 for
+      // a closet with a single bottom and a single shoe, so keying on the pass
+      // would make every variant past the first unreachable there.
+      const extras = pickExtras(accessories, bags, t + d, a.maxAccessories, a.maxBags ?? 0);
+      if (extras.length) {
+        combos.push([...base, ...extras]);
         if (combos.length >= CAP) break build;
       }
     }

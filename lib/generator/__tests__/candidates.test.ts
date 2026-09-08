@@ -434,3 +434,76 @@ test("a one-of-each closet never reaches a second accessory — accepted, and pi
   expect(cands.length).toBeGreaterThan(0);
   expect(Math.max(...cands.map((c) => accessoriesIn(c).length))).toBe(1);
 });
+
+// ---------------------------------------------------------------------------
+// Bags: their own slot, capped at one.
+// ---------------------------------------------------------------------------
+
+const clutch = { id: "g1", category: "Bags", subcategory: "Clutch", colors: ["black"], formality: 3, seasons: ["spring"], material: "Faux leather", texture: null, pattern: null }; // prettier-ignore
+const tote = { id: "g2", category: "Bags", subcategory: "Tote", colors: ["tan"], formality: 2, seasons: ["spring"], material: "Canvas", texture: null, pattern: null }; // prettier-ignore
+const withBags = { ...base, maxAccessories: 2, maxBags: 1 };
+const bagsIn = (c: { category: string }[]) => c.filter((i) => i.category === "Bags");
+
+test("a look carries at most ONE bag, however many the closet holds", () => {
+  const cands = buildCandidates([...items, watch, bracelet, clutch, tote], withBags);
+  expect(cands.some((c) => bagsIn(c).length === 1)).toBe(true);
+  for (const c of cands) expect(bagsIn(c).length).toBeLessThanOrEqual(1);
+});
+
+test("bags are OFF unless asked for — every existing caller is unaffected", () => {
+  const cands = buildCandidates([...items, clutch, tote], { ...base, maxAccessories: 2 });
+  expect(cands.every((c) => bagsIn(c).length === 0)).toBe(true);
+  expect(cands.length).toBeGreaterThan(0);
+});
+
+test("a bag and an accessory can share a look, and so can neither", () => {
+  // ⚠️ Needs a closet with enough iterations to rotate through every variant.
+  // `pickExtras` returns ONE variant per base and rotates on `t + d`, so the
+  // four-variant case (accessory / bag / two accessories / bag + accessory) is
+  // only fully reachable once there are at least four distinct seeds. The base
+  // fixture above has one top and two shoes — two seeds — and never reaches the
+  // last variant. That is a property of spending one push per base, not a bug,
+  // and it is the same reason a one-of-each closet never sees two accessories.
+  const tops = Array.from({ length: 6 }, (_, n) => ({
+    id: `t${n}`, category: "Tops", colors: ["cream"], formality: 3,
+    seasons: ["spring"], material: "cotton", texture: null, pattern: null,
+  }));
+  const closet = [...tops, ...items.filter((i) => i.category !== "Tops"), watch, bracelet, clutch, tote];
+  const cands = buildCandidates(closet, withBags);
+  expect(cands.some((c) => bagsIn(c).length === 1 && accessoriesIn(c).length >= 1)).toBe(true);
+  expect(cands.some((c) => bagsIn(c).length === 0 && accessoriesIn(c).length === 0)).toBe(true);
+});
+
+test("a closet with bags but no accessories still dresses, and vice versa", () => {
+  const bagsOnly = buildCandidates([...items.filter((i) => i.category !== "Accessories"), clutch], withBags);
+  expect(bagsOnly.length).toBeGreaterThan(0);
+  expect(bagsOnly.some((c) => bagsIn(c).length === 1)).toBe(true);
+
+  const accOnly = buildCandidates([...items, watch, bracelet], withBags);
+  expect(accOnly.length).toBeGreaterThan(0);
+  expect(accOnly.every((c) => bagsIn(c).length === 0)).toBe(true);
+});
+
+test("the bag slot does NOT cost garment coverage", () => {
+  // Same guard as the accessory cap, and it needs the same saturating closet:
+  // 80 of each so the CAP binds inside the first pass. A second push per base
+  // is what this forbids.
+  const big = ["Tops", "Bottoms", "Shoes"].flatMap((category) =>
+    Array.from({ length: 80 }, (_, n) => ({
+      id: `${category}-${n}`, category, colors: ["navy"], formality: 3,
+      seasons: ["spring"], material: "cotton", texture: null, pattern: null,
+    })),
+  );
+  const closet = [...big, watch, bracelet, clutch, tote];
+  const reach = (args: object) =>
+    ["Tops", "Bottoms", "Shoes"].map(
+      (cat) =>
+        new Set(
+          buildCandidates(closet, { ...base, ...args } as never)
+            .flat()
+            .filter((i) => i.category === cat)
+            .map((i) => i.id),
+        ).size,
+    );
+  expect(reach({ maxAccessories: 2, maxBags: 1 })).toEqual([80, 80, 80]);
+});
