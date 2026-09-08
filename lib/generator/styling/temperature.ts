@@ -9,7 +9,7 @@ import { temperatureOf } from "./colour-table";
  *
  * Counts PER GARMENT, not per colour token. `perItemColours` mirrors
  * `echoScore`'s shape for the same reason: a garment is one vote, however many
- * colours it carries. A two-tone shoe (`["white", "sky"]`, both cool) must not
+ * colours it carries. A two-tone shoe (`["navy", "sky"]`, both cool) must not
  * cast two cool votes and flip dominance on its own — each garment contributes
  * at most one warm vote and at most one cool vote (one of each, if it genuinely
  * carries both).
