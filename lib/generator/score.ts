@@ -3,6 +3,7 @@ import { seasonFit } from "./season";
 import { accentMetalTone, isHardware, metalCoordination } from "./styling/metal";
 import { warmthFit } from "./texture";
 import { colourScore } from "./styling/colour-score";
+import { visualSeparation } from "./styling/value";
 
 export type ScoreItem = {
   category: string;
@@ -95,6 +96,18 @@ const WEIGHTS = {
   // Small on purpose — see `wristwearBonus`. It breaks a tie against an
   // identical bare outfit; it must never outweigh a formality clash.
   wristwear: 0.08,
+  /**
+   * Whether the outfit's pieces read as separate at all — by value, or failing
+   * that by surface.
+   *
+   * Weighted below `colour` (0.4) and `coherence` (0.3): it answers a narrower
+   * question than either, and a muddy outfit in the right colours is a milder
+   * fault than a formality clash. Above `pattern` (0.15), because pattern only
+   * counts loud pieces while this is the signal that judges a monochrome outfit
+   * at all — since achromatics stopped voting on temperature, 53% of the real
+   * closet's combos have no temperature opinion, and this is what replaces it.
+   */
+  separation: 0.2,
 } as const;
 
 /**
@@ -307,6 +320,16 @@ export function scoreCombo(items: ScoreItem[], ctx: Ctx): number {
     // most outfits, so a wardrobe without jewellery is untouched.
     { weight: WEIGHTS.metal, value: metalCoordination(items) },
     { weight: WEIGHTS.wristwear, value: wristwearBonus(items) },
+    // ⚠️ Hardware passes [] for colours here too, exactly as it does to
+    // `colourScore` — a steel watch is not a value block and must not be able
+    // to flatten or separate an outfit.
+    {
+      weight: WEIGHTS.separation,
+      value: visualSeparation(
+        items.map((i) => (isHardware(i.material, i.colors) ? [] : i.colors)),
+        items.map((i) => i.texture),
+      ),
+    },
     { weight: WEIGHTS.lean, value: ctx.lean?.length ? leanScore(colors, ctx.lean) : null },
     { weight: WEIGHTS.climate, value: climateFit(items, ctx) },
   ];
