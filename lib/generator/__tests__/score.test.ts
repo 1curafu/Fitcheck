@@ -1,4 +1,4 @@
-import { formalityCoherence, scoreCombo } from "../score";
+import { formalityCoherence, formalityCoherenceOf, wristwearBonus, scoreCombo } from "../score";
 
 const CTX = { aesthetic: [], band: [1, 5] as [number, number] };
 
@@ -529,4 +529,97 @@ test("a bag's silver buckle and a steel chain read as one metal system", () => {
   expect(scoreCombo([...neutralOutfit, bag, chain] as never, wearer)).toBeGreaterThan(
     scoreCombo([...neutralOutfit, bag, gold] as never, wearer),
   );
+});
+
+// ---------------------------------------------------------------------------
+// A watch is worn unless it actively does not suit.
+// ---------------------------------------------------------------------------
+
+const watch = { ...piece("w", "Accessories", ["silver"], 3, "Stainless steel"), subcategory: "Quartz watch" };
+const outfitAt = (f: number) => [
+  piece("t", "Tops", ["white"], f, "Cotton"),
+  piece("b", "Bottoms", ["navy"], f, "Wool"),
+  piece("s", "Shoes", ["black"], f, "Leather"),
+];
+
+test("a watch that suits is PREFERRED over the identical bare outfit", () => {
+  // ⚠️ The margin is asserted, not merely the sign. The formality tolerance
+  // alone already makes a suitable watch win by 0.0003 — real, but 23x weaker
+  // and swamped by any other difference between two outfits. This pins the
+  // DELIBERATE margin the reward exists to create; written as `> 0.003` it
+  // fails at 0.0003, which an assertion of `> bare` did not.
+  for (const f of [2, 3, 4]) {
+    const bare = scoreCombo(outfitAt(f) as never, wearer);
+    const worn = scoreCombo([...outfitAt(f), watch] as never, wearer);
+    expect(worn - bare).toBeGreaterThan(0.003);
+  }
+});
+
+test("a watch that does NOT suit is still dropped", () => {
+  // The product owner's case: "with a dress this watch doesn't fit, and we don't
+  // have another one, so we wouldn't give that watch." Two steps outside the
+  // garments' range is where the tolerance stops forgiving.
+  for (const f of [1, 5]) {
+    const bare = scoreCombo(outfitAt(f) as never, wearer);
+    const worn = scoreCombo([...outfitAt(f), watch] as never, wearer);
+    expect(worn).toBeLessThan(bare);
+  }
+});
+
+test("owning no watch costs nothing — the reward claims no weight", () => {
+  // `wristwearBonus` returns null, not 0, so the term is dropped rather than
+  // scored against an outfit that simply has no watch to offer.
+  expect(wristwearBonus([{ subcategory: "Oxford shirt" }])).toBeNull();
+  expect(wristwearBonus([])).toBeNull();
+  expect(wristwearBonus([{ subcategory: "Quartz watch" }])).toBe(1);
+  expect(wristwearBonus([{ subcategory: null }])).toBeNull();
+});
+
+test("the reward can never drag a clashing watch into a look", () => {
+  // Sizing check, not a behaviour check: the gap between a suitable and an
+  // unsuitable watch must stay far larger than the reward itself.
+  const suitable = scoreCombo([...outfitAt(3), watch] as never, wearer) - scoreCombo(outfitAt(3) as never, wearer);
+  const clashing = scoreCombo(outfitAt(5) as never, wearer) - scoreCombo([...outfitAt(5), watch] as never, wearer);
+  expect(clashing).toBeGreaterThan(suitable * 5);
+});
+
+// ---------------------------------------------------------------------------
+// An accessory's formality is a range, not a point.
+// ---------------------------------------------------------------------------
+
+test("an accessory one step outside the garments' range is free", () => {
+  // A f3 steel watch with a f2 casual outfit cost 0.25 of coherence before —
+  // the same charge f3 trousers would take — and the watch was dropped from
+  // every casual look as a result.
+  expect(formalityCoherenceOf([
+    { formality: 2, category: "Tops" },
+    { formality: 2, category: "Bottoms" },
+    { formality: 3, category: "Accessories" },
+  ])).toBe(1);
+});
+
+test("two steps outside is still counted — the research's HARD cases", () => {
+  // A rubber sports watch with black tie, a nylon bag against formal tailoring.
+  expect(formalityCoherenceOf([
+    { formality: 5, category: "Tops" },
+    { formality: 5, category: "Bottoms" },
+    { formality: 3, category: "Accessories" },
+  ])).toBeLessThan(1);
+});
+
+test("the tolerance does NOT apply to garments", () => {
+  // Only small worn or carried objects span registers; a jacket pins one.
+  expect(formalityCoherenceOf([
+    { formality: 2, category: "Tops" },
+    { formality: 2, category: "Bottoms" },
+    { formality: 3, category: "Outerwear" },
+  ])).toBeLessThan(1);
+});
+
+test("an accessory-only list falls back rather than dividing by nothing", () => {
+  // No garment range for them to sit outside OF.
+  expect(formalityCoherenceOf([
+    { formality: 1, category: "Accessories" },
+    { formality: 5, category: "Bags" },
+  ])).toBe(formalityCoherence([1, 5]));
 });
