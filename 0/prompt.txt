@@ -359,3 +359,7 @@ yes, go
 ---
 
 write 1. One acceptance criterion I wrote was not met. The plan said the camel bag "must end above bare." It ends equal (0.8455 both, up from 0.7924). The penalty is gone — that was the defect — but there's no reward, because camel-on-camel is two neutral dominants, i.e. tonal dressing, which your own accent-role rule declines to reward. Getting from "not penalised" to "preferred" needs the bag-intent work, which is future. I've recorded this in the plan rather than ticking the box as if it passed. in future plan, cause u can forget it
+
+---
+
+about last thing that shipped unproven, prove that and make branch review
