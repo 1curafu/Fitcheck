@@ -5,6 +5,7 @@ import { warmthFit } from "./texture";
 import { colourScore } from "./styling/colour-score";
 import { visualSeparation } from "./styling/value";
 import { valueDirection } from "./styling/direction";
+import { canonicalTrio } from "./styling/trios";
 
 export type ScoreItem = {
   category: string;
@@ -116,6 +117,13 @@ const WEIGHTS = {
    * rather than wrong.
    */
   direction: 0.15,
+  /**
+   * A documented trio. The only term that can say an outfit is actively GOOD —
+   * every other colour signal can merely decline to punish it. Weighted with
+   * `pattern` and `direction`: strong enough to lift a canonical look above an
+   * inoffensive one, not strong enough to carry an outfit that fails elsewhere.
+   */
+  canonical: 0.15,
 } as const;
 
 /**
@@ -355,6 +363,11 @@ export function scoreCombo(items: ScoreItem[], ctx: Ctx): number {
     // asks which garment is on top, because `pairingRating` sorts its key and
     // cannot tell `navy+white` from `white+navy`.
     { weight: WEIGHTS.direction, value: valueDirection(items) },
+    // ⚠️ Null, never 0, when nothing matches. The table lists outfits the
+    // research wrote down, not a definition of every good outfit — a miss must
+    // stay silent rather than become a penalty on the many fine combinations
+    // nobody published.
+    { weight: WEIGHTS.canonical, value: canonicalTrio(items) },
     {
       weight: WEIGHTS.separation,
       value: (() => {
