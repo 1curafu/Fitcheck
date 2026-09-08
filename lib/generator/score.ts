@@ -1,6 +1,6 @@
 import { leanScore } from "./color";
 import { seasonFit } from "./season";
-import { isHardware } from "./styling/metal";
+import { accentMetalTone, isHardware, metalCoordination } from "./styling/metal";
 import { warmthFit } from "./texture";
 import { colourScore } from "./styling/colour-score";
 
@@ -81,6 +81,7 @@ const WEIGHTS = {
   pattern: 0.15,
   lean: 0.3,
   climate: 0.28,
+  metal: 0.1,
 } as const;
 
 /**
@@ -187,11 +188,22 @@ export function scoreCombo(items: ScoreItem[], ctx: Ctx): number {
       weight: WEIGHTS.colour,
       value: colourScore(
         items.map((i) => (isHardware(i.material, i.colors) ? [] : i.colors)),
-        items.map((i) => i.accent_color),
+        // ⚠️ A METAL accent leaves too. Dropping only the metal item's body
+        // colour orphaned the bag's silver buckle: with the bracelet's silver
+        // gone there was nothing left for it to echo, so it scored 0.35 as an
+        // unsupported loud colour — WORSE than the 0.5 the same bag gets with no
+        // accent at all. Metal answers to `metalCoordination`, on both sides.
+        items.map((i) => (accentMetalTone(i.accent_color) ? null : i.accent_color)),
       ),
     },
     { weight: WEIGHTS.coherence, value: formalityCoherence(items.map((i) => i.formality ?? 3)) },
     { weight: WEIGHTS.pattern, value: patternHarmony(items.map((i) => i.pattern)) },
+    // Metal is a PREFERENCE: one visible family is the safe default, a mix is a
+    // style choice rather than a defect. Weighted well under `coherence` (0.3)
+    // so a metal clash can never outrank a formality clash — the research ranks
+    // metal consistency below register. Null below two metal elements, which is
+    // most outfits, so a wardrobe without jewellery is untouched.
+    { weight: WEIGHTS.metal, value: metalCoordination(items) },
     { weight: WEIGHTS.lean, value: ctx.lean?.length ? leanScore(colors, ctx.lean) : null },
     { weight: WEIGHTS.climate, value: climateFit(items, ctx) },
   ];
