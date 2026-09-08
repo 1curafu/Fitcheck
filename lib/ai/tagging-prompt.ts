@@ -5,13 +5,17 @@ is visible and fill every field.
 category — the family it belongs to:
   · Tops: shirts, tees, polos, knits, sweaters, hoodies
   · Bottoms: trousers, chinos, jeans, shorts, skirts
+  · One-piece: one garment covering upper AND lower — dresses, jumpsuits, \
+playsuits, boilersuits, overalls. A skirt is Bottoms. A matching two-piece \
+co-ord is a Top plus a Bottom, not a one-piece.
   · Outerwear: coats, overcoats, blazers, jackets
   · Shoes: all footwear
   · Bags: anything CARRIED — bags, totes, clutches, backpacks, wallets, purses
   · Accessories: anything WORN that is not clothing — belts, hats, scarves, ties, \
 watches, jewellery, sunglasses
-subcategory — the specific type, in menswear vocabulary (e.g. "Oxford shirt", "Chinos", \
-"Penny loafers", "Chelsea boots", "Leather belt", "Field watch"). Be precise.
+subcategory — the specific type, named as the garment is normally named (e.g. "Oxford shirt", \
+"Chinos", "Wrap dress", "Pleated midi skirt", "Penny loafers", "Block heels", "Leather belt", \
+"Field watch"). Be precise. Name what you see; do not assume whose wardrobe it is.
 colors — the 1-3 dominant colours, most-dominant first, from the colour list. \
 Judge the GARMENT BODY, not logos, soles or hardware — those go in accent_color.
 pattern — one of: solid, striped, check, print, other.
