@@ -106,19 +106,23 @@ test("nothing tagged is null, not zero", () => {
 });
 
 test("a tonal column is rescued by texture, and only by texture", () => {
-  const flatBlack = visualSeparation([["black"], ["black"], ["black"]], ["Flat", "Flat", "Flat"])!;
-  const texturedBlack = visualSeparation([["black"], ["black"], ["black"]], ["Cable knit", "Twill", "Flat"])!;
-  expect(flatBlack).toBe(0);
-  expect(texturedBlack).toBe(1);
+  expect(visualSeparation([["black"], ["black"], ["black"]], ["Flat", "Flat", "Flat"])).toBe(0);
+  // Rescued fully, which means "nothing to flag" — see below.
+  expect(visualSeparation([["black"], ["black"], ["black"]], ["Cable knit", "Twill", "Flat"])).toBeNull();
 });
 
-test("value and texture are alternatives, not additives", () => {
-  // An outfit already separated by value gains nothing from also being textured
-  // — a sum would double-count it and outrank a genuinely better look.
-  const byValue = visualSeparation([["navy"], ["white"], ["white"]], ["Flat", "Flat", "Flat"])!;
-  const both = visualSeparation([["navy"], ["white"], ["white"]], ["Cable knit", "Twill", "Flat"])!;
-  expect(byValue).toBe(1);
-  expect(both).toBe(1);
+test("a clearly separated outfit gets NO OPINION, not a full mark", () => {
+  // ⚠️ 197 of the real closet's 231 combos separate cleanly, so scoring them 1.0
+  // made this very nearly a constant — and a constant reorders looks here,
+  // because combos claim different weight SETS. It reordered the top two while
+  // having nothing to say about either. Null keeps it out of their ranking.
+  expect(visualSeparation([["navy"], ["white"], ["white"]], ["Flat", "Flat", "Flat"])).toBeNull();
+  expect(visualSeparation([["navy"], ["white"], ["white"]], ["Cable knit", "Twill", "Flat"])).toBeNull();
+});
+
+test("it still has an opinion about the outfits that need one", () => {
+  expect(visualSeparation([["camel"], ["beige"], ["camel"]], ["Flat", "Flat", "Flat"])).toBeLessThan(0.5);
+  expect(visualSeparation([["black"], ["black"], ["black"]], ["Flat", "Flat", "Flat"])).toBe(0);
 });
 
 test("the muddy trio is not rescued by flat surfaces", () => {
