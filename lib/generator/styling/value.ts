@@ -50,8 +50,24 @@ function garmentValue(colours: readonly string[]): number | null {
   return null;
 }
 
+/**
+ * Whether every garment carrying a colour wears the SAME one.
+ *
+ * ⚠️ One colour repeated is a monochrome column — a choice. Several colours that
+ * nearly match are an accident. Contrast alone cannot tell them apart: all-black
+ * and white/cream/beige both sit at the bottom of the ratio, and scored 0.7769
+ * against 0.7780 before this distinction existed.
+ */
+function isMonochrome(perItemColours: readonly (readonly string[])[]): boolean {
+  const dominants = perItemColours
+    .map((c) => c.find((x) => colorHex(x.trim().toLowerCase()))?.trim().toLowerCase())
+    .filter((c): c is string => !!c);
+  return dominants.length >= 2 && new Set(dominants).size === 1;
+}
+
 /** How clearly the garments separate by value, or null with nothing to compare. */
 export function valueContrast(perItemColours: readonly (readonly string[])[]): number | null {
+  if (isMonochrome(perItemColours)) return null;
   const values = perItemColours.map(garmentValue).filter((v): v is number => v != null);
   if (values.length < 2) return null;
 
@@ -99,8 +115,11 @@ export function visualSeparation(
   textures: readonly (string | null | undefined)[],
 ): number | null {
   const value = valueContrast(perItemColours);
-  const texture = textureVariety(textures);
-  if (value == null && texture == null) return null;
-  const separation = Math.max(value ?? 0, texture ?? 0);
+  // No colour verdict — a monochrome column, or too few garments — means there
+  // is nothing here to fault. Texture may RESCUE a weak contrast; it must never
+  // manufacture a penalty on its own, or a deliberate all-black outfit in flat
+  // weaves would be charged for it.
+  if (value == null) return null;
+  const separation = Math.max(value, textureVariety(textures) ?? 0);
   return separation >= 1 ? null : separation;
 }

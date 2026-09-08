@@ -46,10 +46,7 @@ test("the ratio, not the span, is what separates them", () => {
   expect(endorsed - trap).toBeGreaterThan(0.4);
 });
 
-test("a true tonal column scores zero — it is rescued by texture, not by colour", () => {
-  expect(valueContrast([["black"], ["black"], ["black"]])).toBe(0);
-  expect(valueContrast([["navy"], ["navy"], ["navy"]])).toBe(0);
-});
+
 
 test("null with nothing to compare", () => {
   expect(valueContrast([])).toBeNull();
@@ -103,10 +100,16 @@ test("nothing tagged is null, not zero", () => {
   expect(textureVariety([undefined, undefined])).toBeNull();
 });
 
-test("a tonal column is rescued by texture, and only by texture", () => {
-  expect(visualSeparation([["black"], ["black"], ["black"]], ["Flat", "Flat", "Flat"])).toBe(0);
-  // Rescued fully, which means "nothing to flag" — see below.
+test("a monochrome column is never faulted, textured or not", () => {
+  expect(visualSeparation([["black"], ["black"], ["black"]], ["Flat", "Flat", "Flat"])).toBeNull();
   expect(visualSeparation([["black"], ["black"], ["black"]], ["Cable knit", "Twill", "Flat"])).toBeNull();
+});
+
+test("texture rescues a weak contrast, but cannot create a penalty alone", () => {
+  const muddy = visualSeparation([["white"], ["cream"], ["beige"]], ["Flat", "Flat", "Flat"])!;
+  const rescued = visualSeparation([["white"], ["cream"], ["beige"]], ["Cable knit", "Twill", "Flat"]);
+  expect(muddy).toBeLessThan(0.5);
+  expect(rescued).toBeNull();
 });
 
 test("a clearly separated outfit gets NO OPINION, not a full mark", () => {
@@ -118,9 +121,22 @@ test("a clearly separated outfit gets NO OPINION, not a full mark", () => {
 
 test("it still has an opinion about the outfits that need one", () => {
   expect(visualSeparation([["camel"], ["beige"], ["camel"]], ["Flat", "Flat", "Flat"])).toBeLessThan(0.5);
-  expect(visualSeparation([["black"], ["black"], ["black"]], ["Flat", "Flat", "Flat"])).toBe(0);
+  expect(visualSeparation([["white"], ["cream"], ["white"]], ["Flat", "Flat", "Flat"])).toBeLessThan(0.2);
 });
 
 test("the muddy trio is not rescued by flat surfaces", () => {
   expect(visualSeparation([["camel"], ["beige"], ["camel"]], ["Flat", "Flat", "Flat"])).toBeLessThan(0.5);
+});
+
+test("a monochrome column is a choice, not a muddy accident", () => {
+  // ⚠️ Contrast alone cannot separate these: all-black and white/cream/beige
+  // both bottom out on the ratio, and scored 0.7769 against 0.7780. One colour
+  // repeated is deliberate; three that nearly match is not.
+  expect(valueContrast([["black"], ["black"], ["black"]])).toBeNull();
+  expect(valueContrast([["navy"], ["navy"], ["navy"]])).toBeNull();
+  expect(valueContrast([["white"], ["cream"], ["beige"]])!).toBeLessThan(0.5);
+});
+
+test("a near-match is still a fault, however small the difference", () => {
+  expect(valueContrast([["white"], ["cream"], ["white"]])!).toBeLessThan(0.2);
 });
