@@ -625,3 +625,11 @@ make also review previous branch about one-piece, maybe we skipped something or 
 ---
 
 did it
+
+---
+
+merged and go with 1 then 2 and then style-cta
+
+---
+
+after whole implementation of that make full branch review, write it in memory as default rule actually
