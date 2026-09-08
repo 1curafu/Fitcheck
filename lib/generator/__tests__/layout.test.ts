@@ -42,3 +42,56 @@ test("deterministic: same categories in same order → identical slots", () => {
     layoutForLook(pcs(["Tops", "Bottoms", "Shoes"])),
   );
 });
+
+test("accessories and bags never share a slot", () => {
+  // ⚠️ They all used to take one CORNER slot, so a watch, a bracelet and a bag
+  // were placed at identical coordinates and stacked. Seen in a real drop.
+  const slots = layoutForLook([
+    { category: "Tops" }, { category: "Bottoms" }, { category: "Shoes" },
+    { category: "Accessories" }, { category: "Accessories" }, { category: "Bags" },
+  ]);
+  const rails = slots.slice(3).map((s) => `${s.xPct},${s.yPct}`);
+  expect(new Set(rails).size).toBe(rails.length);
+});
+
+test("the rails sit clear of the middle column", () => {
+  const slots = layoutForLook([
+    { category: "Tops" }, { category: "Bottoms" }, { category: "Shoes" },
+    { category: "Accessories" }, { category: "Bags" },
+  ]);
+  const garments = slots.slice(0, 3);
+  const left = Math.min(...garments.map((s) => s.xPct));
+  const right = Math.max(...garments.map((s) => s.xPct + s.wPct));
+  for (const rail of slots.slice(3)) {
+    const clearOfLeft = rail.xPct + rail.wPct <= left;
+    const clearOfRight = rail.xPct >= right;
+    expect(clearOfLeft || clearOfRight).toBe(true);
+  }
+});
+
+test("rails alternate sides, so two accessories do not crowd one edge", () => {
+  const slots = layoutForLook([
+    { category: "Tops" }, { category: "Bottoms" }, { category: "Shoes" },
+    { category: "Accessories" }, { category: "Accessories" },
+  ]);
+  const [a, b] = slots.slice(3);
+  expect(a.xPct < 50).not.toBe(b.xPct < 50);
+});
+
+test("more small pieces than rails wraps rather than throwing", () => {
+  const many = [
+    { category: "Tops" }, { category: "Bottoms" }, { category: "Shoes" },
+    ...Array.from({ length: 6 }, () => ({ category: "Accessories" })),
+  ];
+  expect(() => layoutForLook(many)).not.toThrow();
+  expect(layoutForLook(many)).toHaveLength(9);
+});
+
+test("a look with no coat does not leave the top-right empty", () => {
+  // UPPER was only used when outerwear was present, so a three-piece look left
+  // the whole top-right quadrant blank.
+  const slots = layoutForLook([{ category: "Tops" }, { category: "Bottoms" }, { category: "Shoes" }]);
+  const covers = (x: number, y: number) =>
+    slots.some((s) => x >= s.xPct && x <= s.xPct + s.wPct && y >= s.yPct && y <= s.yPct + s.hPct);
+  expect(covers(70, 25)).toBe(true); // top-right of the stage
+});
