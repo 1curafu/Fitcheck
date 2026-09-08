@@ -301,3 +301,23 @@ test("withAccent drops a redundant accent rather than tagging it", () => {
   // Case and whitespace are normalised before the comparison.
   expect(withAccent(["Navy"], " navy ")).toEqual([{ colour: "navy", role: "dominant" }]);
 });
+
+test("unsupported bright colours accumulate — three is worse than one", () => {
+  // ⚠️ One, two and three unrelated brights all scored 0.35, because
+  // `hasLoudColour` is a yes/no. A rust sole, a teal buckle and a mustard strap
+  // are not one statement; they are three that do not know about each other.
+  const base = [withAccent(["white"]), withAccent(["navy"])];
+  const one = echoScore([...base, withAccent(["black"], "rust")])!;
+  const two = echoScore([...base, withAccent(["black"], "rust"), withAccent(["grey"], "teal")])!;
+  const three = echoScore([
+    ...base, withAccent(["black"], "rust"), withAccent(["grey"], "teal"), withAccent(["stone"], "mustard"),
+  ])!;
+  expect(one).toBe(two); // two is still within the research's ceiling
+  expect(three).toBeLessThan(two);
+});
+
+test("a restrained outfit is still unpenalised, and an echo still wins", () => {
+  const base = [withAccent(["white"]), withAccent(["navy"])];
+  expect(echoScore([...base, withAccent(["black"])])).toBe(0.5);
+  expect(echoScore([withAccent(["rust"]), withAccent(["navy"]), withAccent(["white"], "rust")])).toBe(1);
+});

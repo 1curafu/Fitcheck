@@ -772,3 +772,19 @@ test("ONE garment is enough to define the range — a dress look has exactly one
     { formality: 3, category: "Shoes" },
   ])).toBe(1);
 });
+
+test("a documented trio is rewarded, through scoreCombo", () => {
+  // ⚠️ The MARGIN is asserted, not the ordering. No pair of outfits flips order
+  // on this term alone — it is a nudge, not a trump — so a plain "canonical
+  // beats non-canonical" comparison passes with the term unwired. Measured: a
+  // canonical trio gains 0.0135, a miss gains nothing.
+  const trio = (top: string, bottom: string, shoes: string) => [
+    { ...piece("t", "Tops", [top], 3, "Cotton"), texture: "Flat" },
+    { ...piece("b", "Bottoms", [bottom], 3, "Cotton"), texture: "Flat" },
+    { ...piece("s", "Shoes", [shoes], 3, "Cotton"), texture: "Flat" },
+  ];
+  // light / navy / light is a documented row; light / navy / dark is not.
+  const canonical = scoreCombo(trio("white", "navy", "grey") as never, wearer);
+  const unlisted = scoreCombo(trio("white", "navy", "black") as never, wearer);
+  expect(canonical - unlisted).toBeGreaterThan(0.018);
+});

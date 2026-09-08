@@ -138,6 +138,23 @@ function hasLoudColour(counts: Map<string, number>): boolean {
 }
 
 /**
+ * How many DISTINCT loud colours the outfit is carrying unsupported.
+ *
+ * ⚠️ One, two and three unrelated bright accents used to score identically:
+ * `hasLoudColour` is a yes/no, so a rust sole, a teal buckle and a mustard strap
+ * cost exactly what a single rust sole cost. The research puts a ceiling on it —
+ * "penalise outfits where more than two high-saturation accent items carry
+ * distinct non-neutral colours" — and calls three or more a theme that has to be
+ * extremely deliberate.
+ */
+function loudColourCount(counts: Map<string, number>): number {
+  return [...counts.keys()].filter((colour) => !isNeutral(colour)).length;
+}
+
+/** The research's ceiling: past this, unsupported brights are clutter. */
+const MAX_UNSUPPORTED_ACCENTS = 2;
+
+/**
  * The most echo points an outfit can carry and still be doing something good.
  *
  * Past this it is "matchy-matchy" — the documented failure, scored 0.25 by
@@ -226,7 +243,11 @@ export function echoScore(perItem: ItemColour[][]): number | null {
     // Small on purpose. A neutral base plus ONE accent is a legitimate classic
     // structure, not an error — this only breaks a tie between two shoes for
     // the same outfit, and must never outweigh temperature or pairing.
-    return hasLoudColour(counts) ? 0.35 : 0.5;
+    const loud = loudColourCount(counts);
+    if (!loud) return 0.5;
+    // Past the ceiling the outfit is not making one unsupported statement, it is
+    // making several that do not know about each other.
+    return loud > MAX_UNSUPPORTED_ACCENTS ? 0.2 : 0.35;
   }
   if (echoPoints === 1) return 1;
   if (echoPoints === MAX_REWARDED_ECHO_POINTS) return 0.75; // still readable, past the ideal
