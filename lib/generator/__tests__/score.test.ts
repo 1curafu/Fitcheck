@@ -623,3 +623,49 @@ test("an accessory-only list falls back rather than dividing by nothing", () => 
     { formality: 5, category: "Bags" },
   ])).toBe(formalityCoherence([1, 5]));
 });
+
+// ---------------------------------------------------------------------------
+// Separation, through scoreCombo.
+//
+// ⚠️ Found by mutation: setting the separation term's weight to 0 — disconnecting
+// the feature entirely — survived every test on the branch, because they all
+// exercised `visualSeparation` directly. A unit test of a signal is not a test
+// that the scorer consumes it.
+// ---------------------------------------------------------------------------
+
+const flat = (id: string, cat: string, colors: string[]) => ({
+  ...piece(id, cat, colors, 3, "Cotton"),
+  texture: "Flat",
+});
+
+test("a muddy outfit scores below a separated one, through scoreCombo", () => {
+  const muddy = [flat("t", "Tops", ["white"]), flat("b", "Bottoms", ["cream"]), flat("s", "Shoes", ["beige"])];
+  const separated = [flat("t", "Tops", ["navy"]), flat("b", "Bottoms", ["white"]), flat("s", "Shoes", ["white"])];
+  expect(scoreCombo(muddy as never, wearer)).toBeLessThan(scoreCombo(separated as never, wearer) - 0.05);
+});
+
+test("a monochrome column is not faulted, through scoreCombo", () => {
+  const mono = [flat("t", "Tops", ["black"]), flat("b", "Bottoms", ["black"]), flat("s", "Shoes", ["black"])];
+  const muddy = [flat("t", "Tops", ["white"]), flat("b", "Bottoms", ["cream"]), flat("s", "Shoes", ["beige"])];
+  expect(scoreCombo(mono as never, wearer)).toBeGreaterThan(scoreCombo(muddy as never, wearer));
+});
+
+test("hardware cannot alter an outfit's separation", () => {
+  // ⚠️ Both watches are Stainless steel, so warmth is held constant and ONLY
+  // the colour varies. An earlier version compared steel against faux leather
+  // and passed either way, because those differ in `warmthFit` too — the same
+  // confound that made an earlier hardware test meaningless.
+  //
+  // A black watch against a pale outfit would manufacture strong contrast if
+  // hardware were passed through; a silver one would not. Excluded, they are
+  // indistinguishable.
+  const base = [flat("t", "Tops", ["white"]), flat("b", "Bottoms", ["cream"]), flat("s", "Shoes", ["beige"])];
+  const steel = (colour: string) => ({
+    ...piece("w", "Accessories", [colour], 3, "Stainless steel"),
+    texture: "Flat",
+    subcategory: "Field watch",
+  });
+  expect(scoreCombo([...base, steel("silver")] as never, wearer)).toBe(
+    scoreCombo([...base, steel("black")] as never, wearer),
+  );
+});
