@@ -69,3 +69,10 @@ test("the three slots occupy distinct positions", () => {
   const keys = slots.map((s) => `${s.xPct},${s.yPct}`);
   expect(new Set(keys).size).toBe(slots.length);
 });
+
+test("a dress is drawn as the upper piece", () => {
+  // ⚠️ The upper band listed Outerwear and Tops only, so a one-piece look drew
+  // no body garment at all. Found by mutation: nothing caught it.
+  const picked = thumbnailPieces([p("One-piece", "dress.webp"), p("Shoes")]);
+  expect(picked.some((c) => c.imageUrl === "dress.webp")).toBe(true);
+});

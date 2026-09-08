@@ -745,3 +745,30 @@ test("the same two colours score differently by direction, through scoreCombo", 
   ];
   expect(scoreCombo(canon as never, wearer)).toBeGreaterThan(scoreCombo(inverted as never, wearer));
 });
+
+test("a shoe one step outside the garments' range is free", () => {
+  // ⚠️ `candidates.ts` already gives footwear a wider eligibility band — "a clean
+  // minimal leather sneaker is genuinely valid smart-casual work wear" — and
+  // scoring never inherited it. Found by mutation: removing Shoes from the
+  // ranged set was caught by nothing.
+  expect(formalityCoherenceOf([
+    { formality: 3, category: "Tops" },
+    { formality: 3, category: "Bottoms" },
+    { formality: 2, category: "Shoes" },
+  ])).toBe(1);
+  // Two steps out is still charged.
+  expect(formalityCoherenceOf([
+    { formality: 4, category: "Tops" },
+    { formality: 4, category: "Bottoms" },
+    { formality: 2, category: "Shoes" },
+  ])).toBeLessThan(1);
+});
+
+test("ONE garment is enough to define the range — a dress look has exactly one", () => {
+  // ⚠️ Requiring two sent a one-piece look down the fallback path where the
+  // tolerance did not apply at all. Found by mutation: nothing caught it.
+  expect(formalityCoherenceOf([
+    { formality: 4, category: "One-piece" },
+    { formality: 3, category: "Shoes" },
+  ])).toBe(1);
+});
