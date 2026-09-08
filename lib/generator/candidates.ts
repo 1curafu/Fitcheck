@@ -81,7 +81,20 @@ export type CandidateArgs = {
   rainGuard?: boolean;
 };
 
-const CAP = 200;
+/**
+ * How many candidate combos ranking may see.
+ *
+ * ⚠️ Raised 200 -> 300 when a SECOND extras variant per base was added, and the
+ * two numbers must move together. The property that matters is that pass 0
+ * reaches every top, which needs `tops * pushesPerIteration <= CAP`: at 2 pushes
+ * and 200 that held to 100 tops, and at 3 pushes and 300 it still does. Raising
+ * the pushes alone would have cut it to 66 — the same stranding the
+ * breadth-first walk was written to fix.
+ *
+ * The cost is scoring ~50% more combos, which is pure local arithmetic; the
+ * model still only ever sees the top handful, so this does not change AI spend.
+ */
+const CAP = 300;
 
 function gcd(x: number, y: number): number {
   return y === 0 ? x : gcd(y, x % y);
@@ -196,6 +209,13 @@ function pickAccessories(list: CandidateItem[], seed: number, max: number): Cand
  * with no bags never rotates through a bag-shaped hole and a closet with one
  * accessory never offers the same single accessory twice under two names.
  */
+/** Whether two extras picks are the same set of items, so one can be skipped. */
+function sameItems(a: CandidateItem[], b: CandidateItem[]): boolean {
+  if (a.length !== b.length) return false;
+  const ids = new Set(a.map((i) => i.id));
+  return b.every((i) => ids.has(i.id));
+}
+
 function pickExtras(
   accessories: CandidateItem[],
   bags: CandidateItem[],
@@ -369,9 +389,26 @@ export function buildCandidates(items: CandidateItem[], a: CandidateArgs): Candi
       // Rotating on `t + d` rather than on `d` alone matters: `passes` is 1 for
       // a closet with a single bottom and a single shoe, so keying on the pass
       // would make every variant past the first unreachable there.
-      const extras = pickExtras(accessories, bags, t + d, a.maxAccessories, a.maxBags ?? 0);
-      if (extras.length) {
-        combos.push([...base, ...extras]);
+      // TWO extras variants per base, not one.
+      //
+      // With one, adding bags as a fourth shape diluted the others and the
+      // best-scoring look stopped being generated at all: measured on the real
+      // closet, the top combo fell from "Oxford + trousers + sneakers + chain
+      // bracelet + quartz watch" at 0.9455 to the same outfit bare at 0.9404,
+      // because that base drew a different shape. The ranker cannot choose what
+      // the builder never builds.
+      //
+      // Consecutive seeds address consecutive shapes, so the two pushes are
+      // always different kinds of look — a bare-ish and an accessorised one for
+      // the same garments, which is exactly the choice ranking should be given.
+      const extrasA = pickExtras(accessories, bags, t + d, a.maxAccessories, a.maxBags ?? 0);
+      if (extrasA.length) {
+        combos.push([...base, ...extrasA]);
+        if (combos.length >= CAP) break build;
+      }
+      const extrasB = pickExtras(accessories, bags, t + d + 1, a.maxAccessories, a.maxBags ?? 0);
+      if (extrasB.length && !sameItems(extrasA, extrasB)) {
+        combos.push([...base, ...extrasB]);
         if (combos.length >= CAP) break build;
       }
     }

@@ -417,22 +417,19 @@ test("cap 2 does NOT cost garment coverage — the CAP still reaches the same to
   // reachable with two accessories in play.
   expect(reach(2)).toEqual([80, 80, 80]);
   expect(reach(1)).toEqual([80, 80, 80]);
-  expect(combos(2).length).toBeLessThanOrEqual(200);
+  expect(combos(2).length).toBeLessThanOrEqual(300); // the CAP, raised with the second extras push
 });
 
-test("a one-of-each closet never reaches a second accessory — accepted, and pinned so it is not a surprise", () => {
-  // `want` alternates on `t + d`, and a closet with one top, one bottom and one
-  // shoe has exactly one iteration (t=0, d=0), which is the count-1 branch. The
-  // alternative — keying on `combos.length` — would make the variant depend on
-  // how many combos happened to precede it, which is far harder to reason about
-  // for a case this marginal.
-  const tiny = [
-    items[0], items[1], items[2], // one top, one bottom, one shoe
-    watch, bracelet,
-  ];
+test("even a one-of-each closet reaches both extras shapes", () => {
+  // ⚠️ This USED to be a documented limitation. With one extras variant per
+  // base, a closet holding one top, one bottom and one shoe had a single
+  // iteration, drew a single shape, and could never show two accessories. The
+  // second push at `seed + 1` reaches the next shape, so the smallest possible
+  // closet now gets the same choice a large one does.
+  const tiny = [items[0], items[1], items[2], watch, bracelet];
   const cands = buildCandidates(tiny, two);
   expect(cands.length).toBeGreaterThan(0);
-  expect(Math.max(...cands.map((c) => accessoriesIn(c).length))).toBe(1);
+  expect(Math.max(...cands.map((c) => accessoriesIn(c).length))).toBe(2);
 });
 
 // ---------------------------------------------------------------------------
