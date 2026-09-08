@@ -28,6 +28,8 @@ function emptyCopy(missing: string | null | undefined, occasionLabel: string): s
       return `No tops that suit ${occasionLabel} — add one, or try another occasion.`;
     case "Bottoms":
       return `No bottoms that suit ${occasionLabel} — add a pair, or try another occasion.`;
+    case "One-piece":
+      return `No dresses that suit ${occasionLabel} — add one, or try another occasion.`;
     default:
       return "Add a few more pieces to unlock outfits";
   }

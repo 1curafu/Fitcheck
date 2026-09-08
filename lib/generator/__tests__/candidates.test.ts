@@ -537,3 +537,82 @@ test("a look can carry a bag AND two accessories — the caps allow it", () => {
   const cands = buildCandidates(closet, withBags);
   expect(cands.some((c) => bagsIn(c).length === 1 && accessoriesIn(c).length === 2)).toBe(true);
 });
+
+// ---------------------------------------------------------------------------
+// One-piece garments: a look is EITHER top+bottom+shoes OR one-piece+shoes.
+//
+// ⚠️ A garment shape, never a gender. A boilersuit takes the same slot as a
+// wrap dress, and nothing here reads a user attribute.
+// ---------------------------------------------------------------------------
+
+const dress = { id: "d1", category: "One-piece", subcategory: "Wrap dress", colors: ["navy"], formality: 4, seasons: ["spring"], material: "Viscose", texture: null, pattern: null }; // prettier-ignore
+const jumpsuit = { id: "d2", category: "One-piece", subcategory: "Boilersuit", colors: ["olive"], formality: 2, seasons: ["spring"], material: "Cotton", texture: null, pattern: null }; // prettier-ignore
+const onePieceIn = (c: { category: string }[]) => c.filter((i) => i.category === "One-piece");
+
+test("a dress-and-shoes closet produces outfits", () => {
+  // Before this, `buildCandidates` required Tops AND Bottoms and returned
+  // nothing at all for a wardrobe of dresses.
+  const shoesOnly = items.filter((i) => i.category === "Shoes");
+  const cands = buildCandidates([dress, jumpsuit, ...shoesOnly], base);
+  expect(cands.length).toBeGreaterThan(0);
+  for (const c of cands) {
+    expect(onePieceIn(c)).toHaveLength(1);
+    expect(c.filter((i) => i.category === "Bottoms")).toHaveLength(0);
+  }
+});
+
+test("a separates-only closet is completely unchanged", () => {
+  const before = buildCandidates(items, base);
+  const after = buildCandidates([...items], base);
+  expect(after).toEqual(before);
+  expect(after.every((c) => onePieceIn(c).length === 0)).toBe(true);
+});
+
+test("a mixed closet offers BOTH shapes", () => {
+  const cands = buildCandidates([...items, dress, jumpsuit], base);
+  expect(cands.some((c) => onePieceIn(c).length === 1)).toBe(true);
+  expect(cands.some((c) => c.some((i) => i.category === "Bottoms"))).toBe(true);
+});
+
+test("a one-piece is never worn WITH a top or bottom", () => {
+  const cands = buildCandidates([...items, dress, jumpsuit], base);
+  for (const c of cands) {
+    if (onePieceIn(c).length) {
+      expect(c.filter((i) => i.category === "Tops")).toHaveLength(0);
+      expect(c.filter((i) => i.category === "Bottoms")).toHaveLength(0);
+    }
+  }
+});
+
+test("the budget goes to whichever shape can actually build, not 50/50", () => {
+  // ⚠️ Round-robin, not an even split: thirty separates and two dresses must
+  // not hand half the cap to two dresses repeated.
+  const many = ["Tops", "Bottoms"].flatMap((category) =>
+    Array.from({ length: 20 }, (_, n) => ({
+      id: `${category}-${n}`, category, colors: ["navy"], formality: 3,
+      seasons: ["spring"], material: "cotton", texture: null, pattern: null,
+    })),
+  );
+  const shoesOnly = items.filter((i) => i.category === "Shoes");
+  const cands = buildCandidates([...many, ...shoesOnly, dress], base);
+  const dressLooks = cands.filter((c) => onePieceIn(c).length).length;
+  expect(dressLooks).toBeGreaterThan(0);
+  expect(dressLooks).toBeLessThan(cands.length / 2);
+});
+
+test("a coat layers over a dress", () => {
+  const shoesOnly = items.filter((i) => i.category === "Shoes");
+  const outer = items.filter((i) => i.category === "Outerwear");
+  const cands = buildCandidates([dress, ...shoesOnly, ...outer], { ...base, weather: { tempC: 8, rain: false } });
+  expect(cands.length).toBeGreaterThan(0);
+  expect(cands.every((c) => c.some((i) => i.category === "Outerwear"))).toBe(true);
+});
+
+test("missingCategory does not tell a dress wardrobe it has no trousers", () => {
+  const shoesOnly = items.filter((i) => i.category === "Shoes");
+  expect(missingCategory([dress, ...shoesOnly], base)).toBeNull();
+  // Shoes block BOTH shapes, so they are named first.
+  expect(missingCategory([dress], base)).toBe("Shoes");
+  // A separates closet still reports its own gap.
+  expect(missingCategory(items.filter((i) => i.category !== "Bottoms"), base)).toBe("Bottoms");
+});

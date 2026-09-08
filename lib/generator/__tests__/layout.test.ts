@@ -132,3 +132,54 @@ test("garments never collide with the rails", () => {
     for (const rail of slots.slice(4)) expect(overlaps(g, rail)).toBe(false);
   }
 });
+
+test("a one-piece look has its own template and fills the stage", () => {
+  // ⚠️ A dress look has TWO garments. Under the old role-based templates it
+  // used the three-garment layout and left the right half of the stage empty —
+  // the same fault the outerwear-only UPPER slot had.
+  const slots = layoutForLook([{ category: "One-piece" }, { category: "Shoes" }]);
+  expect(slots).toHaveLength(2);
+  expect(overlaps(slots[0], slots[1])).toBe(false);
+  const covers = (x: number, y: number) =>
+    slots.some((s) => x >= s.xPct && x <= s.xPct + s.wPct && y >= s.yPct && y <= s.yPct + s.hPct);
+  expect(covers(65, 30)).toBe(true); // the right of the stage is used
+});
+
+test("a dress and a coat do not collide", () => {
+  // Both wanted the anchor under the role-based model, which placed them at
+  // identical coordinates.
+  const slots = layoutForLook([
+    { category: "Outerwear" }, { category: "One-piece" }, { category: "Shoes" },
+  ]);
+  expect(overlaps(slots[0], slots[1])).toBe(false);
+  expect(overlaps(slots[1], slots[2])).toBe(false);
+  expect(overlaps(slots[0], slots[2])).toBe(false);
+});
+
+test("the coat is the anchor when one is worn, whatever it covers", () => {
+  const withDress = layoutForLook([{ category: "One-piece" }, { category: "Outerwear" }, { category: "Shoes" }]);
+  const outerSlot = withDress[1];
+  const dressSlot = withDress[0];
+  // Reading order puts the coat first, so it takes the largest, highest-z slot.
+  expect(outerSlot.z).toBeGreaterThanOrEqual(dressSlot.z);
+});
+
+test("garments are placed in reading order regardless of input order", () => {
+  const shuffled = layoutForLook([
+    { category: "Shoes" }, { category: "Bottoms" }, { category: "Outerwear" }, { category: "Tops" },
+  ]);
+  // Shoes came first in the input but must not take the anchor.
+  const anchor = shuffled.reduce((a, b) => (b.z > a.z ? b : a));
+  expect(shuffled[0]).not.toBe(anchor);
+  expect(shuffled[2].z).toBe(anchor.z); // the outerwear, third in the input
+});
+
+test("a one-piece look still gets its accessories on the rails", () => {
+  const slots = layoutForLook([
+    { category: "One-piece" }, { category: "Shoes" },
+    { category: "Accessories" }, { category: "Bags" },
+  ]);
+  const rails = slots.slice(2);
+  expect(new Set(rails.map((s) => `${s.xPct},${s.yPct}`)).size).toBe(2);
+  for (const g of slots.slice(0, 2)) for (const r of rails) expect(overlaps(g, r)).toBe(false);
+});

@@ -44,7 +44,8 @@ export const MAX_THUMB_PIECES = 3;
 type Candidate = { category: string; imageUrl: string };
 
 /** One upper-body piece, the bottoms, the shoes — in that reading order. */
-const UPPER = ["Outerwear", "Tops"];
+// A one-piece occupies the upper band; it has no separate bottom to draw.
+const UPPER = ["Outerwear", "One-piece", "Tops"];
 
 /**
  * Choose and position the cutouts for one day's cell.

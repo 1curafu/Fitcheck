@@ -1,4 +1,5 @@
-import { biggestGap, slotCounts, GAP_CANDIDATES } from "../gap";
+import { SEPARATES_SHAPE, ONE_PIECE_SHAPE } from "@/lib/generator/candidates";
+import { biggestGap, slotCounts, GAP_CANDIDATES, candidatesFor } from "../gap";
 import type { CandidateItem } from "@/lib/generator/candidates";
 
 const base = { occasions: ["everyday", "work"] as const };
@@ -178,7 +179,9 @@ test("the candidates are all placeable by the generator", () => {
   // and carry a colour the palette knows — otherwise `colorHarmonyScore` cannot
   // place it and the unlock count is measuring a piece we could not style.
   for (const c of GAP_CANDIDATES) {
-    expect(["Tops", "Bottoms", "Shoes", "Outerwear"]).toContain(c.category);
+    // ⚠️ Sourced from the builder rather than restated, so adding a category
+    // there cannot silently leave this list behind.
+    expect([...SEPARATES_SHAPE, ...ONE_PIECE_SHAPE, "Outerwear"]).toContain(c.category);
     expect(c.formality).toBeGreaterThanOrEqual(1);
     expect(c.formality).toBeLessThanOrEqual(5);
     expect(c.colors.length).toBeGreaterThan(0);
@@ -211,4 +214,40 @@ test("a wardrobe that can already build something still reports a share", () => 
     piece("o1", "Outerwear"),
   ];
   expect(biggestGap(complete, ["everyday"])!.share).toBeGreaterThan(0);
+});
+
+// ---------------------------------------------------------------------------
+// Advice that fits either wardrobe, inferred rather than asked.
+// ---------------------------------------------------------------------------
+
+test("a dress wardrobe is never told to buy a white oxford shirt", () => {
+  // ⚠️ The list was menswear-only. This is the user-visible wrong answer.
+  const dressCloset = [
+    { id: "d", category: "One-piece", colors: ["navy"], formality: 4, seasons: [], material: null, texture: null, pattern: null },
+    { id: "s", category: "Shoes", colors: ["black"], formality: 4, seasons: [], material: null, texture: null, pattern: null },
+  ];
+  const labels = candidatesFor(dressCloset as never).map((c) => c.label);
+  expect(labels).not.toContain("A white shirt");
+  expect(labels).not.toContain("Grey wool trousers");
+  expect(labels).toContain("Black leather shoes"); // shoes suit everyone
+});
+
+test("a separates wardrobe is never told to buy a dress", () => {
+  const closet = [
+    { id: "t", category: "Tops", colors: ["white"], formality: 3, seasons: [], material: null, texture: null, pattern: null },
+    { id: "b", category: "Bottoms", colors: ["navy"], formality: 3, seasons: [], material: null, texture: null, pattern: null },
+  ];
+  const labels = candidatesFor(closet as never).map((c) => c.label);
+  expect(labels).not.toContain("A black dress");
+  expect(labels).toContain("A white shirt");
+});
+
+test("a mixed wardrobe sees both", () => {
+  const closet = [
+    { id: "t", category: "Tops", colors: ["white"], formality: 3, seasons: [], material: null, texture: null, pattern: null },
+    { id: "d", category: "One-piece", colors: ["navy"], formality: 4, seasons: [], material: null, texture: null, pattern: null },
+  ];
+  const labels = candidatesFor(closet as never).map((c) => c.label);
+  expect(labels).toContain("A black dress");
+  expect(labels).toContain("A white shirt");
 });
