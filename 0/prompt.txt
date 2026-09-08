@@ -291,3 +291,7 @@ how to create this labels
 ---
 
 did it, cool
+
+---
+
+go, but if task is ready and reviewed, ask me if u can start with next task
