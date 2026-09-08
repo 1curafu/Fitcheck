@@ -1,5 +1,6 @@
 import { leanScore } from "./color";
 import { seasonFit } from "./season";
+import { isHardware } from "./styling/metal";
 import { warmthFit } from "./texture";
 import { colourScore } from "./styling/colour-score";
 
@@ -169,10 +170,23 @@ export function scoreCombo(items: ScoreItem[], ctx: Ctx): number {
     // garment in the pairing and temperature tables. `leanScore` below reads
     // the dominant colours only, for the same reason — a shoelace should not
     // satisfy a "lean into navy".
+    //
+    // ⚠️ A HARDWARE item contributes no dominant colours. A steel watch case is
+    // not a garment hue: counted as one it spent a slot against the three-colour
+    // ceiling, so adding a well-matched watch measurably LOWERED an outfit
+    // (0.9010 -> 0.8930 on an all-neutral look). The research: "silver hardware
+    // is normally not garment hue", and accessories are "structured style
+    // objects rather than extra colours". Metal gets its own signal instead —
+    // see ./styling/metal.ts.
+    //
+    // ⚠️ Its ACCENT still counts. A navy watch dial picking up a navy knit is a
+    // real echo, which the research rates low-medium rather than zero — so the
+    // body colour is dropped and the accent survives, exactly the split the
+    // dominant/accent routing above already makes for garments.
     {
       weight: WEIGHTS.colour,
       value: colourScore(
-        items.map((i) => i.colors),
+        items.map((i) => (isHardware(i.material, i.colors) ? [] : i.colors)),
         items.map((i) => i.accent_color),
       ),
     },

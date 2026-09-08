@@ -419,3 +419,84 @@ test("an accent nothing supports is not free — the orphan rule still fires", (
   );
   expect(supported).toBeGreaterThan(orphan);
 });
+
+// ---------------------------------------------------------------------------
+// Hardware is not a garment colour.
+//
+// Measured before this rule: an all-neutral outfit scored 0.9010, and adding a
+// steel watch took it to 0.8930 — a well-matched accessory made the outfit
+// worse, because `silver` is a non-neutral palette colour and spent a slot
+// against the three-colour ceiling.
+// ---------------------------------------------------------------------------
+
+const wearer = { aesthetic: [], band: [1, 5] as [number, number], season: "Autumn", tempC: 18 };
+const piece = (
+  id: string,
+  category: string,
+  colors: string[],
+  formality: number,
+  material: string,
+) => ({ id, category, colors, formality, seasons: ["Autumn"], material, texture: "Flat", pattern: "solid" });
+
+const neutralOutfit = [
+  piece("t", "Tops", ["white"], 3, "Cotton"),
+  piece("b", "Bottoms", ["navy"], 3, "Wool"),
+  piece("s", "Shoes", ["black"], 3, "Leather"),
+];
+
+test("a steel watch no longer costs the outfit anything", () => {
+  const bare = scoreCombo(neutralOutfit as never, wearer);
+  const withWatch = scoreCombo(
+    [...neutralOutfit, piece("w", "Accessories", ["silver"], 3, "Stainless steel")] as never,
+    wearer,
+  );
+  expect(withWatch).toBeGreaterThanOrEqual(bare);
+});
+
+test("a SILVER GARMENT still counts against the palette", () => {
+  // ⚠️ Material held CONSTANT, colour varied. An earlier version of this test
+  // compared Stainless steel against Polyester and passed with the rule removed,
+  // because those two materials also differ in `warmthFit` — it was measuring
+  // warmth, not the palette. Silver is a non-neutral colour, white is not, so on
+  // cloth the silver version must score lower.
+  const silverCloth = scoreCombo(
+    [...neutralOutfit, piece("a", "Accessories", ["silver"], 3, "Polyester")] as never,
+    wearer,
+  );
+  const whiteCloth = scoreCombo(
+    [...neutralOutfit, piece("a", "Accessories", ["white"], 3, "Polyester")] as never,
+    wearer,
+  );
+  expect(silverCloth).toBeLessThan(whiteCloth);
+});
+
+test("the same silver on HARDWARE costs nothing", () => {
+  // The pair to the test above: identical colour, identical slot, and the only
+  // difference that matters is whether the item is cloth or hardware.
+  const silverSteel = scoreCombo(
+    [...neutralOutfit, piece("a", "Accessories", ["silver"], 3, "Stainless steel")] as never,
+    wearer,
+  );
+  const whiteSteel = scoreCombo(
+    [...neutralOutfit, piece("a", "Accessories", ["white"], 3, "Stainless steel")] as never,
+    wearer,
+  );
+  expect(silverSteel).toBe(whiteSteel);
+});
+
+test("a hardware item's ACCENT still reaches the echo term", () => {
+  // A navy dial picking up the navy trousers. The body colour is dropped, the
+  // accent is not — the research rates a watch dial a low-medium echo source.
+  const plainDial = scoreCombo(
+    [...neutralOutfit, piece("w", "Accessories", ["silver"], 3, "Stainless steel")] as never,
+    wearer,
+  );
+  const navyDial = scoreCombo(
+    [
+      ...neutralOutfit,
+      { ...piece("w", "Accessories", ["silver"], 3, "Stainless steel"), accent_color: "navy" },
+    ] as never,
+    wearer,
+  );
+  expect(navyDial).toBeGreaterThan(plainDial);
+});
