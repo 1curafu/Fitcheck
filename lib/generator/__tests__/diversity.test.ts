@@ -98,3 +98,19 @@ test("a combo missing a category is not treated as sharing one", () => {
   ];
   expect(diversify(shoesOnly, 2)).toHaveLength(2);
 });
+
+test("two looks built on the SAME dress are not both fresh", () => {
+  // ⚠️ Tiering read only Tops and Bottoms ids, so a one-piece look had neither
+  // and every dress look counted as fresh — three near-identical dress outfits
+  // could all reach tier 1. Found by mutation: nothing caught it.
+  const dress = { id: "d1", category: "One-piece" };
+  const looks = [
+    { items: [dress, { id: "s1", category: "Shoes" }], score: 0.9 },
+    { items: [dress, { id: "s2", category: "Shoes" }], score: 0.89 },
+    { items: [{ id: "d2", category: "One-piece" }, { id: "s1", category: "Shoes" }], score: 0.8 },
+  ];
+  // The third look wears a different dress, so it must outrank the repeat.
+  const picked = diversify(looks as never, 2);
+  const ids = picked.map((p) => p.items.find((i) => i.category === "One-piece")!.id);
+  expect(new Set(ids).size).toBe(2);
+});

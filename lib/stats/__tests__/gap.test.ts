@@ -251,3 +251,28 @@ test("a mixed wardrobe sees both", () => {
   expect(labels).toContain("A black dress");
   expect(labels).toContain("A white shirt");
 });
+
+test("biggestGap only ever proposes a candidate the closet's shape allows", () => {
+  // ⚠️ HONEST NOTE: `candidatesFor` is currently REDUNDANT and this test cannot
+  // prove otherwise. Measured across four closet shapes, filtering changes the
+  // answer in none of them — a dress never wins for a separates closet because
+  // a top or bottom always unlocks at least as much, and tops and bottoms
+  // unlock ZERO for a dress-only closet, so `unlocks > 0` already excludes
+  // them. The filter is kept as a guard for when the candidate pool grows, not
+  // because it changes behaviour today.
+  //
+  // What this pins is the invariant, which stays true either way.
+  const item = (id: string, category: string) => ({
+    id, category, colors: ["navy"], formality: 3,
+    seasons: [], material: null, texture: null, pattern: null,
+  });
+  for (const closet of [
+    [item("t", "Tops"), item("b", "Bottoms"), item("s", "Shoes")],
+    [item("d", "One-piece"), item("s", "Shoes"), item("s2", "Shoes")],
+    [item("t", "Tops"), item("d", "One-piece"), item("s", "Shoes")],
+  ]) {
+    const best = biggestGap(closet as never, ["everyday"]);
+    if (!best) continue;
+    expect(candidatesFor(closet as never).map((c) => c.label)).toContain(best.candidate.label);
+  }
+});

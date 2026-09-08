@@ -166,3 +166,16 @@ test("a genuine contrast accent is stored untouched", () => {
   const row = tagsToItemRow({ userId: "u1", imageUrl: "a.jpg", cutoutUrl: null, tags });
   expect(row.accent_color).toBe("sky");
 });
+
+test("a one-piece keeps its fit and length — a dress has both", () => {
+  // ⚠️ Omitting One-piece from WEARABLE_CATEGORIES would silently null both on
+  // write, which is the exact trap that set was hoisted into one definition to
+  // prevent. Found by mutation: nothing caught its removal.
+  const tags = TagSchema.parse({
+    ...JSON.parse(valid), category: "One-piece", subcategory: "Wrap dress",
+    fit: "Tailored", length: "Midi",
+  });
+  const row = tagsToItemRow({ userId: "u1", imageUrl: "a.jpg", cutoutUrl: null, tags });
+  expect(row.fit).toBe("Tailored");
+  expect(row.length).toBe("Midi");
+});
