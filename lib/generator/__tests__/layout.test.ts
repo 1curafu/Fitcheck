@@ -1,3 +1,4 @@
+import type { Slot } from "../types";
 import { layoutForLook, staggerOrder } from "../layout";
 const pcs = (cats: string[]) => cats.map((category, i) => ({ itemId: `i${i}`, category }));
 // Every independently hand-authored template (pieceCount × hasOuterwear):
@@ -94,4 +95,40 @@ test("a look with no coat does not leave the top-right empty", () => {
   const covers = (x: number, y: number) =>
     slots.some((s) => x >= s.xPct && x <= s.xPct + s.wPct && y >= s.yPct && y <= s.yPct + s.hPct);
   expect(covers(70, 25)).toBe(true); // top-right of the stage
+});
+
+/** Do two slots overlap by more than a hair? */
+function overlaps(a: Slot, b: Slot): boolean {
+  const ox = Math.min(a.xPct + a.wPct, b.xPct + b.wPct) - Math.max(a.xPct, b.xPct);
+  const oy = Math.min(a.yPct + a.hPct, b.yPct + b.hPct) - Math.max(a.yPct, b.yPct);
+  return ox > 1 && oy > 1;
+}
+
+test("no two GARMENTS overlap, with or without outerwear", () => {
+  // ⚠️ With a coat, UPPER used to sit almost exactly on ANCHOR, so the top was
+  // buried underneath it. Four garments cannot sit where three do.
+  for (const cats of [
+    ["Tops", "Bottoms", "Shoes"],
+    ["Outerwear", "Tops", "Bottoms", "Shoes"],
+  ]) {
+    const slots = layoutForLook(cats.map((category) => ({ category })));
+    for (let i = 0; i < slots.length; i++) {
+      for (let j = i + 1; j < slots.length; j++) {
+        expect(
+          overlaps(slots[i], slots[j]),
+          `${cats[i]} overlaps ${cats[j]}`,
+        ).toBe(false);
+      }
+    }
+  }
+});
+
+test("garments never collide with the rails", () => {
+  const slots = layoutForLook([
+    { category: "Outerwear" }, { category: "Tops" }, { category: "Bottoms" },
+    { category: "Shoes" }, { category: "Accessories" }, { category: "Bags" },
+  ]);
+  for (const g of slots.slice(0, 4)) {
+    for (const rail of slots.slice(4)) expect(overlaps(g, rail)).toBe(false);
+  }
 });
