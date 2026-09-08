@@ -164,5 +164,21 @@ export function visualSeparation(
   const value = valueContrast(perItemColours);
   const texture = textureVariety(textures);
   if (value == null && texture == null) return null;
-  return Math.max(value ?? 0, texture ?? 0);
+  const separation = Math.max(value ?? 0, texture ?? 0);
+
+  // ⚠️ A clearly separated outfit gets NO OPINION, not a full mark.
+  //
+  // Scoring it 1.0 looked harmless and was not. 197 of the real closet's 231
+  // combos separate cleanly, so the term was very nearly a constant — and a
+  // constant is not free here, because combos claim different weight SETS (one
+  // carrying two metal items also claims `metalCoordination`). Adding 0.2 at
+  // value 1.0 to two looks with different denominators reorders them, and it
+  // reordered the top two while saying nothing about either: measured, the
+  // camera-bag look rose past the watch-and-bracelet look purely through
+  // normalisation, both scoring 1.00 here.
+  //
+  // Returning null keeps this a signal about the outfits it has something to
+  // say about — the muddy and the tonal-flat — and keeps it out of the ranking
+  // of the ones it does not. Same contract as `climateFit` and `echoScore`.
+  return separation >= 1 ? null : separation;
 }
