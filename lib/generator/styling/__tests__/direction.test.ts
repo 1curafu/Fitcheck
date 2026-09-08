@@ -1,4 +1,5 @@
-import { valueDirection } from "../direction";
+import { valueDirection, MEANINGFUL_THRESHOLD } from "../direction";
+import { CLEAR_SEPARATION } from "../value";
 
 const top = (colors: string[], formality = 3) => ({ category: "Tops", colors, formality });
 const bottom = (colors: string[], formality = 3) => ({ category: "Bottoms", colors, formality });
@@ -35,4 +36,11 @@ test("null when there is no upper-over-lower pair at all", () => {
   expect(valueDirection([])).toBeNull();
   // A colour outside the palette contributes no value.
   expect(valueDirection([top(["notacolour"]), bottom(["navy"])])).toBeNull();
+});
+
+test("the threshold is the one value contrast uses, not a second hand-picked number", () => {
+  // ⚠️ Anchored, not tuned. You cannot say which garment is lighter if the two
+  // do not read as different at all, so direction reuses the separation
+  // threshold rather than inventing one.
+  expect(MEANINGFUL_THRESHOLD).toBe(CLEAR_SEPARATION);
 });
