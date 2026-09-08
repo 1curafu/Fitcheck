@@ -29,6 +29,7 @@ export const UpdateSchema = z.object({
   accent_color: TagSchema.shape.accent_color,
   branding: TagSchema.shape.branding,
   fit: TagSchema.shape.fit,
+  fit_source: TagSchema.shape.fit_source,
   length: TagSchema.shape.length,
   bulk: TagSchema.shape.bulk,
   distressing: TagSchema.shape.distressing,

@@ -26,7 +26,7 @@ async function main() {
 
   const { data: closet } = await db
     .from("items")
-    .select("id, name, subcategory, category, colors, formality, seasons, material, texture, pattern")
+    .select("id, name, subcategory, category, colors, formality, seasons, material, texture, pattern, accent_color")
     .eq("user_id", me.id)
     .eq("archived", false);
   const items = (closet ?? []) as unknown as CandidateItem[];

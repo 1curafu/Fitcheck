@@ -191,6 +191,8 @@ export async function generate(input: {
       material: i.material,
       texture: i.texture,
       pattern: i.pattern,
+      accent_color: i.accent_color,
+      subcategory: i.subcategory,
     }));
     // Occasion gives the context; the user's onboarding dress codes narrow it;
     // an explicit Refine formality overrides both.
@@ -212,7 +214,7 @@ export async function generate(input: {
       },
       season: currentSeason(now),
       excludeItemIds: [],
-      maxAccessories: 1,
+      maxAccessories: 2,
       rainGuard: prefs.rainGuard,
     };
     const combos = buildCandidates(candItems, candidateArgs);
@@ -268,6 +270,7 @@ export async function generate(input: {
             material: it.material,
             texture: it.texture,
             pattern: it.pattern,
+            accent_color: it.accent_color,
           };
         }),
       ),

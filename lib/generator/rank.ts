@@ -3,7 +3,7 @@ import { scoreCombo, type ScoreItem, type Ctx } from "./score";
 /**
  * How much of the score a fully-repeated combo gives up on a regenerate.
  *
- * Sized like LEAN_WEIGHT in score.ts and for the same reason: big enough to
+ * Sized like `WEIGHTS.lean` in score.ts and for the same reason: big enough to
  * decisively reorder near-ties (which is what the top of a ranked shortlist
  * is), small enough that a genuinely better outfit repeating one piece still
  * beats a mediocre fresh one. It is a preference, never an eliminator.

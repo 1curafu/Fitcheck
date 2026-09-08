@@ -7,13 +7,19 @@ export type ScoreItem = {
   category: string;
   colors: string[];
   formality: number | null;
-  style_tags?: string[];
   seasons?: string[];
   /** "solid" | "striped" | "check" | "print" | "other". Null = no opinion. */
   pattern?: string | null;
   /** Fibre and construction. Together they carry warmth — see ./texture.ts. */
   material?: string | null;
   texture?: string | null;
+  /**
+   * The garment's ONE small contrast colour — a logo, a sole, a buckle.
+   *
+   * Deliberately separate from `colors`, and it reaches exactly one signal:
+   * colour ECHO. See the contract on `colourScore`.
+   */
+  accent_color?: string | null;
 };
 export type Ctx = {
   aesthetic: string[];
@@ -38,29 +44,43 @@ export type Ctx = {
 };
 
 /**
- * How much of the score the colour lean is allowed to claim when one is asked
- * for. High enough to reorder the top 20 decisively, low enough that a combo
- * missing the colour still beats an incoherent one that has it — the lean is a
- * preference, never an eliminator.
- */
-const LEAN_WEIGHT = 0.3;
-
-/**
- * Climate — "does this suit the weather?" — is ONE term, not two.
+ * Every signal's weight, in one place. A signal claims its weight ONLY when it
+ * has evidence, and the total is normalised over whatever claimed — so a
+ * signal's influence relative to any other is fixed by these two numbers and
+ * nothing else.
  *
- * Season and warmth answer the same question with different evidence, so they
- * share a weight instead of competing for the score. Adding warmth as a third
- * independent preference would have pushed the total past 0.5 and squeezed
- * colour, formality and DNA below half whenever a Refine lean was also active;
- * merging keeps the budget bounded by construction and gives weather a single,
- * better-informed vote. Future weather work (wind, humidity) belongs inside
- * this term, not beside it.
+ * ⚠️ Replaces a subtractive budget in which `lean` and `climate` carved their
+ * share out of the base, so a term's real influence depended on which OTHER
+ * terms happened to apply: with both preferences active the base retained only
+ * `1 - 0.3 - 0.28 = 0.42`, dropping `colour` to `0.4 × 0.42 = 0.168` while
+ * `lean` kept a full 0.3 — and a reviewer separately measured `harmony` falling
+ * from 0.40 to 0.12 of the final score through the same mechanism. Adding any
+ * new signal was therefore a negotiation with every existing one rather than a
+ * decision about the signal, which is what made a value-contrast term
+ * unschedulable.
  *
- * Slightly above the 0.2 season alone used to carry — the term now reads a real
- * temperature rather than only the month — and still low enough that an
- * off-season combo which actually works beats an in-season mess.
+ * The numbers below are UNCHANGED — the same relative proportions the
+ * subtractive form declared; only the combination moved. Adding a signal is now
+ * one entry here and one line in `terms`.
+ *
+ * `colour`, `coherence` and `pattern` are the always-present terms and sum to
+ * 0.85, so a context with no preferences at all normalises over what claimed.
+ *
+ * `lean` is high enough to reorder the top 20 decisively, low enough that a
+ * combo missing the colour still beats an incoherent one that has it — the lean
+ * is a preference, never an eliminator.
+ *
+ * `climate` sits slightly above the 0.2 that season alone used to carry — the
+ * term now reads a real temperature rather than only the month — and still low
+ * enough that an off-season combo which actually works beats an in-season mess.
  */
-const CLIMATE_WEIGHT = 0.28;
+const WEIGHTS = {
+  colour: 0.4,
+  coherence: 0.3,
+  pattern: 0.15,
+  lean: 0.3,
+  climate: 0.28,
+} as const;
 
 /**
  * Within climate, how much of the vote the thermometer gets over the tag.
@@ -97,6 +117,12 @@ export function patternHarmony(patterns: (string | null | undefined)[]): number 
 /**
  * How well the combo suits today, on whichever evidence exists.
  *
+ * Climate — "does this suit the weather?" — is ONE term, not two. Season and
+ * warmth answer the same question with different evidence, so they share
+ * `WEIGHTS.climate` instead of competing for the score, and weather gets a
+ * single, better-informed vote. Future weather work (wind, humidity) belongs
+ * inside this term, not beside it.
+ *
  * Returns null when there is neither a temperature nor a season, so the caller
  * can drop the term entirely rather than fold in a meaningless 0.5.
  */
@@ -108,25 +134,57 @@ function climateFit(items: ScoreItem[], ctx: Ctx): number | null {
   return WARMTH_SHARE * warmth + (1 - WARMTH_SHARE) * season;
 }
 
+/** A signal's declared weight and what it scored, or null when it has no evidence. */
+type Term = { weight: number; value: number | null };
+
 export function scoreCombo(items: ScoreItem[], ctx: Ctx): number {
   const colors = items.flatMap((i) => i.colors);
-  // ⚠️ Pass the PER-ITEM grouping, not the flattened list: `echoScore` needs to
-  // know which garment each colour came from — an accent repeated across two
-  // garments is an echo, the same accent listed twice on one garment is not.
-  const colour = colourScore(items.map((i) => i.colors));
-  const coherence = formalityCoherence(items.map((i) => i.formality ?? 3));
-  const dnaHits = items.filter((i) => i.style_tags?.some((t) => ctx.aesthetic.includes(t))).length;
-  const dna = items.length ? dnaHits / items.length : 0;
-  const pattern = patternHarmony(items.map((i) => i.pattern));
-  const base = 0.4 * colour + 0.3 * coherence + 0.15 * dna + 0.15 * pattern;
 
-  // Each preference claims its weight only when it applies, so with neither one
-  // set the score is byte-identical to what it was before either landed.
-  const climate = climateFit(items, ctx);
-  const wl = ctx.lean?.length ? LEAN_WEIGHT : 0;
-  const wc = climate == null ? 0 : CLIMATE_WEIGHT;
-  return Math.min(
-    1,
-    base * (1 - wl - wc) + wl * leanScore(colors, ctx.lean ?? []) + wc * (climate ?? 0),
-  );
+  // ⚠️ `dna` was here and was ALWAYS ZERO. `style_tags` had no DB column and no
+  // producer anywhere in the repo, so `dnaHits` never exceeded 0 — a constant
+  // 15% removed from every outfit, discriminating nothing. Deleted rather than
+  // revived: the aesthetic already reaches the model through the rerank prompt,
+  // and a deterministic aesthetic signal needs a real producer behind it, which
+  // is its own piece of work.
+  //
+  // ⚠️ The weight is NOT redistributed here. With Task 1's additive budget the
+  // term simply stops claiming its share and normalisation absorbs it, which is
+  // a uniform rescale and provably cannot reorder anything. Moving the 0.15 to
+  // `colour` was measured to reorder the tail — a deliberate reweighting that
+  // belongs in its own change where it can be judged on its own evidence.
+
+  // One line per signal. A `null` value means "no evidence" — the term is
+  // DROPPED, never folded in as a neutral 0.5, and the rest renormalise over
+  // what is left. That is the same contract `colourScore` and `climateFit`
+  // already use one level down.
+  const terms: Term[] = [
+    // ⚠️ Pass the PER-ITEM grouping, not the flattened list: `echoScore` needs
+    // to know which garment each colour came from — an accent repeated across
+    // two garments is an echo, the same accent listed twice on one garment is
+    // not.
+    //
+    // ⚠️ Accents go in a SECOND argument, not concatenated into `colors`.
+    // `colourScore` routes them to the echo term alone; a logo must not spend
+    // one of the three slots the harmony ceiling counts, nor answer for the
+    // garment in the pairing and temperature tables. `leanScore` below reads
+    // the dominant colours only, for the same reason — a shoelace should not
+    // satisfy a "lean into navy".
+    {
+      weight: WEIGHTS.colour,
+      value: colourScore(
+        items.map((i) => i.colors),
+        items.map((i) => i.accent_color),
+      ),
+    },
+    { weight: WEIGHTS.coherence, value: formalityCoherence(items.map((i) => i.formality ?? 3)) },
+    { weight: WEIGHTS.pattern, value: patternHarmony(items.map((i) => i.pattern)) },
+    { weight: WEIGHTS.lean, value: ctx.lean?.length ? leanScore(colors, ctx.lean) : null },
+    { weight: WEIGHTS.climate, value: climateFit(items, ctx) },
+  ];
+
+  const claimed = terms.filter((t): t is Term & { value: number } => t.value != null);
+  const total = claimed.reduce((sum, t) => sum + t.weight, 0);
+  if (!total) return 0;
+  const scored = claimed.reduce((sum, t) => sum + t.weight * t.value, 0);
+  return Math.min(1, Math.max(0, scored / total));
 }

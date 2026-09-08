@@ -1,0 +1,11 @@
+-- Did a human answer `fit`, or is it still the model's opening guess?
+--
+-- `fit` is the one tag the USER answers: "oversized" is relative to a body a
+-- flat cutout does not contain. The confirm screen PRE-SELECTS the model's
+-- draft so accepting it costs no taps — which means a value nobody looked at is
+-- stored identically to one somebody chose.
+--
+-- A later plan gates its proportion rules on how many items carry a REAL fit.
+-- Without this column that gate counts guesses as answers and the rules get
+-- scored on data nobody vouched for. Nullable: every existing row predates it.
+alter table public.items add column if not exists fit_source text;

@@ -20,6 +20,7 @@ import {
   COLORS,
   COLOR_NAMES,
   FIT_OPTIONS,
+  WEARABLE_CATEGORIES,
   BRANDING_OPTIONS,
   LENGTH_OPTIONS,
   BULK_OPTIONS,
@@ -30,6 +31,10 @@ import {
 // See the note in confirm-form.tsx — CATEGORIES carries Fragrance because it is
 // derived from TagSchema; the picker offers the wearable families.
 const PICKABLE = CATEGORIES.filter((c) => c !== "Fragrance");
+
+// `fit` and `length` are body-referenced — a hem/cut correction needs a body
+// wearing the garment. Shoes, accessories and fragrance have none, the same
+// argument that already made `bulk` (Sole, below) shoes-only.
 
 /**
  * The tag form, MOVED here from item-detail.tsx unchanged.
@@ -68,6 +73,7 @@ export function ItemEditSheet({
   const [subcategory, setSubcategory] = useState(item.subcategory ?? "");
   const [price, setPrice] = useState(item.price?.toString() ?? "");
   const [fit, setFit] = useState<Tags["fit"]>(item.fit ?? null);
+  const [fitSource, setFitSource] = useState<Tags["fit_source"]>(item.fit_source ?? null);
   const [branding, setBranding] = useState<Tags["branding"]>(item.branding ?? null);
   const [length, setLength] = useState<Tags["length"]>(item.length ?? null);
   const [bulk, setBulk] = useState<Tags["bulk"]>(item.bulk ?? null);
@@ -113,10 +119,14 @@ export function ItemEditSheet({
           price: price.trim() === "" ? null : Number(price),
           formality,
           seasons: seasons.length ? seasons : ["Spring"],
-          fit,
+          // ⚠️ Category-gated on write, same reason as `bulk` below: hiding the
+          // Fit/Length controls does not clear state set before the category
+          // was switched away from a wearable one on this same save.
+          fit: WEARABLE_CATEGORIES.has(category) ? fit : null,
+          fit_source: WEARABLE_CATEGORIES.has(category) ? fitSource : null,
           branding,
           accent_color: accentColor,
-          length,
+          length: WEARABLE_CATEGORIES.has(category) ? length : null,
           // Sole is meaningless off a shoe — an always-visible control invites a
           // value that would then make `proportion` reason about a sole on a
           // knit, so a non-Shoes category never persists one, even if it was
@@ -195,30 +205,41 @@ export function ItemEditSheet({
             </div>
           </div>
 
-          <div>
-            <Kicker className="mb-2 block">Fit</Kicker>
-            {/* Same chip treatment as the confirm screen, but with ONE
-                deliberate divergence: these chips toggle off. `fit` is nullable
-                and is treated as the USER's answer, not the model's — a later
-                plan gates its proportion rules on what fraction of items have a
-                real value here, so an accidental tap must be undoable back to
-                "I don't know" rather than silently promoted to a fact. The
-                confirm screen does not need this: it pre-selects the model's
-                draft, so its chips are a correction affordance over an
-                always-present value, never a way to express "unset". */}
-            <div role="group" aria-label="Fit" className="flex flex-wrap gap-2">
-              {FIT_OPTIONS.map((f) => (
-                <Chip
-                  key={f}
-                  variant="select"
-                  active={fit === f}
-                  onClick={() => setFit(fit === f ? null : f)}
-                >
-                  {f}
-                </Chip>
-              ))}
+          {WEARABLE_CATEGORIES.has(category) && (
+            <div>
+              <Kicker className="mb-2 block">Fit</Kicker>
+              {/* Same chip treatment as the confirm screen, but with ONE
+                  deliberate divergence: these chips toggle off. `fit` is nullable
+                  and is treated as the USER's answer, not the model's — a later
+                  plan gates its proportion rules on what fraction of items have a
+                  real value here, so an accidental tap must be undoable back to
+                  "I don't know" rather than silently promoted to a fact. The
+                  confirm screen does not need this: it pre-selects the model's
+                  draft, so its chips are a correction affordance over an
+                  always-present value, never a way to express "unset".
+
+                  ⚠️ Every tap here is a human decision, so fitSource follows fit
+                  in lockstep: setting a fit records "user", and clearing it back
+                  to null must clear fitSource too — a stale "user" left on a null
+                  fit would say someone vouched for an absent value. */}
+              <div role="group" aria-label="Fit" className="flex flex-wrap gap-2">
+                {FIT_OPTIONS.map((f) => (
+                  <Chip
+                    key={f}
+                    variant="select"
+                    active={fit === f}
+                    onClick={() => {
+                      const next = fit === f ? null : f;
+                      setFit(next);
+                      setFitSource(next === null ? null : "user");
+                    }}
+                  >
+                    {f}
+                  </Chip>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {category === "Shoes" && (
             <div>
@@ -378,21 +399,23 @@ export function ItemEditSheet({
             </Select>
           </div>
 
-          <div>
-            <Kicker className="mb-2 block">Length</Kicker>
-            <Select
-              aria-label="Length"
-              value={length ?? ""}
-              onChange={(e) => setLength((e.target.value || null) as Tags["length"])}
-            >
-              <option value="">Not set</option>
-              {LENGTH_OPTIONS.map((l) => (
-                <option key={l} value={l}>
-                  {l}
-                </option>
-              ))}
-            </Select>
-          </div>
+          {WEARABLE_CATEGORIES.has(category) && (
+            <div>
+              <Kicker className="mb-2 block">Length</Kicker>
+              <Select
+                aria-label="Length"
+                value={length ?? ""}
+                onChange={(e) => setLength((e.target.value || null) as Tags["length"])}
+              >
+                <option value="">Not set</option>
+                {LENGTH_OPTIONS.map((l) => (
+                  <option key={l} value={l}>
+                    {l}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          )}
 
           <div>
             <Kicker className="mb-2 block">Wear</Kicker>

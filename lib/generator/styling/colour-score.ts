@@ -1,7 +1,7 @@
 import { colorHarmonyScore } from "@/lib/generator/color";
 import { temperatureCoherence } from "./temperature";
 import { pairingScore } from "./pairing-ratings";
-import { echoScore } from "./echo";
+import { echoScore, withAccent } from "./echo";
 
 /**
  * The four colour signals, weighted into one 0..1 score.
@@ -31,7 +31,32 @@ const W_TEMPERATURE = 0.3;
 const W_PAIRING = 0.25;
 const W_ECHO = 0.15;
 
-export function colourScore(perItemColours: string[][]): number {
+/**
+ * @param perItemColours the DOMINANT colours of each garment, in order.
+ * @param perItemAccents each garment's `accent_color` — a logo, a sole, a
+ *   buckle — aligned by index with `perItemColours`. Omit or pass null for a
+ *   garment with none.
+ *
+ * ⚠️ **The accent reaches `echoScore` and nothing else.** It is a tier below a
+ * dominant colour, not a peer: `colorHarmonyScore` counts distinct accents
+ * against a three-colour ceiling, so folding a swoosh in would make a two-tone
+ * sneaker read as a loud outfit; `pairingScore` and `temperatureCoherence`
+ * reason about what the garment IS, and a shoelace should not be able to
+ * satisfy a colour preference or flip an outfit's temperature. Echo is the one
+ * signal that asks "does this small colour pick something else up?", which is
+ * exactly what an accent is for.
+ *
+ * The parameter exists at all because PR #57 moved logos, soles and hardware
+ * out of `colors` into `accent_color`, which silently disconnected the echo
+ * reward PR #56 had just built — a blue-swoosh sneaker scored identically to a
+ * plain white one. Passing accents SEPARATELY rather than concatenating them
+ * into `colors` at the call site is what keeps that fix from leaking into the
+ * other three terms.
+ */
+export function colourScore(
+  perItemColours: string[][],
+  perItemAccents: (string | null | undefined)[] = [],
+): number {
   const flat = perItemColours.flat();
   const harmony = colorHarmonyScore(flat);
 
@@ -42,7 +67,10 @@ export function colourScore(perItemColours: string[][]): number {
   if (temperature != null) terms.push({ weight: W_TEMPERATURE, value: temperature });
   const pairing = pairingScore(flat);
   if (pairing != null) terms.push({ weight: W_PAIRING, value: pairing });
-  const echo = echoScore(perItemColours);
+  // The ONE term the accent joins. Appended to its own garment's list so echo
+  // still counts a colour once per garment, exactly as it did when the tagger
+  // wrote the accent into `colors`.
+  const echo = echoScore(perItemColours.map((colours, i) => withAccent(colours, perItemAccents[i])));
   if (echo != null) terms.push({ weight: W_ECHO, value: echo });
 
   const claimed = terms.reduce((sum, t) => sum + t.weight, 0);

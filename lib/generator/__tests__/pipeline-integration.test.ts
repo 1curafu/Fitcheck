@@ -197,3 +197,51 @@ test("real heat excludes insulation but never a wool trouser (fibre alone never 
   expect(ids).toContain("b-wool"); // weight and weave decide, and we store neither
   expect(ids).not.toContain("b-fleece"); // insulation: no weave rescues it
 });
+
+/**
+ * accent_color survives candidate building and reaches ranking.
+ *
+ * The seam PR #56 and #57 broke between them: the colour model rewards an
+ * accent echoed across two garments, the tagger moved accents into their own
+ * column, and `CandidateItem` did not carry the column — so the reward became
+ * unreachable in production while every unit test on both sides stayed green.
+ * This walks the real sequence, buildCandidates -> rankTopN, and asserts the
+ * swoosh sneaker wins the shortlist over the otherwise identical plain one.
+ */
+test("a sneaker whose accent_color echoes the shirt outranks the plain one", () => {
+  const ALL = ["Spring", "Summer", "Autumn", "Winter"];
+  const mk = (
+    id: string,
+    category: string,
+    colors: string[],
+    accent_color: string | null = null,
+  ): CandidateItem => ({
+    id,
+    category,
+    colors,
+    formality: 3,
+    seasons: ALL,
+    material: "cotton",
+    texture: null,
+    pattern: null,
+    accent_color,
+  });
+  const pool = [
+    mk("top", "Tops", ["sky"]),
+    mk("bottom", "Bottoms", ["stone"]),
+    mk("shoe-swoosh", "Shoes", ["white"], "sky"),
+    mk("shoe-plain", "Shoes", ["white"]),
+  ];
+  const band: [number, number] = [1, 5];
+  const combos = buildCandidates(pool, {
+    band,
+    weather: { tempC: 18, rain: false },
+    season: "Summer",
+    excludeItemIds: [],
+    maxAccessories: 0,
+  });
+  expect(combos.length).toBe(2);
+  const ranked = rankTopN(combos, { aesthetic: [], band }, combos.length);
+  expect(ranked[0].items.map((i) => i.id)).toContain("shoe-swoosh");
+  expect(ranked[0].score).toBeGreaterThan(ranked[1].score);
+});

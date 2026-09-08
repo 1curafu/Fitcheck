@@ -8,6 +8,7 @@ import {
   LENGTHS as AI_LENGTHS,
   BULKS as AI_BULKS,
   DISTRESSING as AI_DISTRESSING,
+  WEARABLE_CATEGORIES,
 } from "@/lib/ai/tagging-schema";
 
 /**
@@ -21,6 +22,9 @@ import {
  */
 
 export const CATEGORIES = TagSchema.shape.category.options;
+// Re-exported so a screen has ONE place to shop for closet vocabulary; the set
+// itself is defined beside TagSchema, which is what names the categories.
+export { WEARABLE_CATEGORIES };
 export const SEASONS = TagSchema.shape.seasons.element.options;
 
 export const FORMALITY_LABEL = [

@@ -12,6 +12,36 @@ export type CandidateItem = {
   /** Read together with `material` as warmth — see ./texture.ts. */
   texture: string | null;
   pattern: string | null;
+  /**
+   * The garment's ONE small contrast colour — a logo, a sole, a buckle.
+   *
+   * Carried through candidate building untouched (nothing here filters on it)
+   * so `scoreCombo` can hand it to the colour-ECHO term, and only that term —
+   * see the contract on `colourScore`.
+   *
+   * Optional, like every other tag field added after the fact: most garments
+   * genuinely have no accent, and a fixture or caller that does not care about
+   * one should not have to state `null`.
+   *
+   * ⚠️ **The TYPE is the guard here, not a test.** `buildCandidates` passes
+   * item REFERENCES through and never reconstructs them, so removing this field
+   * would leave it on the runtime object and every test would still pass —
+   * only `tsc` would object, at the mapping sites in `app/generate/actions.ts`
+   * and friends. Deleting it is a compile error there; it is not a test failure
+   * anywhere.
+   */
+  accent_color?: string | null;
+  /**
+   * The garment's specific kind ("Chain bracelet", "Quartz watch").
+   *
+   * Used for ONE thing: stopping a two-accessory look from being two of the
+   * same thing. Optional for the same reason `accent_color` is — a caller that
+   * never asks for a second accessory has no use for it — but note the
+   * asymmetry with that field: an absent `subcategory` is not neutral here, it
+   * SUPPRESSES the second accessory (see `pickAccessories`). Silence is not
+   * evidence that two items differ.
+   */
+  subcategory?: string | null;
 };
 
 export type CandidateArgs = {
@@ -113,6 +143,30 @@ function isEligible(i: CandidateItem, a: CandidateArgs, bars: WeatherBars): bool
   // winter.
   const f = i.formality ?? 3;
   return f >= lo - floorTolerance(i.category) && f <= hi + 0.5;
+}
+
+/**
+ * The accessories to hang on one base, at most `max` of them.
+ *
+ * ⚠️ **Two is a ceiling, not a target, and the second one has to EARN its
+ * place.** Two bracelets — or a watch and a second watch — is worse than one,
+ * so a second pick is only made from a DIFFERENT subcategory. When nothing in
+ * the list qualifies (a closet of three bracelets, or a caller that does not
+ * carry `subcategory` through at all) this returns a single accessory. An
+ * unprovable duplicate is not worth styling.
+ */
+function pickAccessories(list: CandidateItem[], seed: number, max: number): CandidateItem[] {
+  const first = list[seed % list.length];
+  if (max < 2 || list.length < 2) return [first];
+  const kind = (i: CandidateItem) => i.subcategory?.trim().toLowerCase() || null;
+  const firstKind = kind(first);
+  for (let k = 1; k < list.length; k++) {
+    const next = list[(seed + k) % list.length];
+    const nextKind = kind(next);
+    // Both kinds must be KNOWN and different.
+    if (firstKind && nextKind && firstKind !== nextKind) return [first, next];
+  }
+  return [first];
 }
 
 function bySeasonFirst(list: CandidateItem[], season: string | undefined): CandidateItem[] {
@@ -239,7 +293,17 @@ export function buildCandidates(items: CandidateItem[], a: CandidateArgs): Candi
       if (combos.length >= CAP) break build;
 
       if (a.maxAccessories > 0 && accessories.length) {
-        combos.push([...base, accessories[(t + d) % accessories.length]]); // optional, capped accent
+        // ⚠️ Still exactly ONE push per base, whether it carries one accessory
+        // or two. Pushing a separate two-accessory variant alongside the
+        // one-accessory variant would spend the CAP on permutations of the
+        // same three garments — precisely the failure the breadth-first walk
+        // above exists to prevent. The COUNT alternates instead.
+        //
+        // Alternating on `t + d` rather than on `d` alone matters: `passes` is
+        // 1 for a closet with a single bottom and a single shoe, so keying on
+        // the pass would make the second accessory unreachable there.
+        const want = (t + d) % 2 === 0 ? 1 : a.maxAccessories;
+        combos.push([...base, ...pickAccessories(accessories, t + d, want)]);
         if (combos.length >= CAP) break build;
       }
     }

@@ -1,4 +1,8 @@
-import { TagSchema, type Tags } from "./tagging-schema";
+import { TagSchema, WEARABLE_CATEGORIES, type Tags } from "./tagging-schema";
+
+// `fit` and `length` are BODY-REFERENCED — a hem placement and a fit correction
+// both require a body wearing the garment. Shoes, accessories and fragrance
+// have neither, the same argument that made `bulk` (below) footwear-only.
 
 export function parseTagText(text: string): Tags {
   let json: unknown;
@@ -7,7 +11,25 @@ export function parseTagText(text: string): Tags {
   } catch {
     throw new Error("Tagging response was not JSON");
   }
-  return TagSchema.parse(json);
+  // The model is never asked for fit_source (see tagging-schema.ts), so its
+  // response never carries the key. Default it to null here rather than
+  // leaving it undefined — TagSchema requires the key to be present, and
+  // tagsToItemRow is where an untouched null becomes "model".
+  return TagSchema.parse({ fit_source: null, ...(json as Record<string, unknown>) });
+}
+
+/**
+ * The accent to store: null when it merely repeats one of the garment's own
+ * colours.
+ *
+ * Exported because BOTH write paths need it — the capture path below and the
+ * edit sheet's update action. Two copies of this rule would be the same defect
+ * shape that `WEARABLE_CATEGORIES` was hoisted to prevent.
+ */
+export function resolveAccent(colors: string[], accent: string | null | undefined): string | null {
+  if (!accent) return null;
+  const a = accent.trim().toLowerCase();
+  return colors.some((c) => c.trim().toLowerCase() === a) ? null : accent;
 }
 
 export function tagsToItemRow(args: {
@@ -31,10 +53,30 @@ export function tagsToItemRow(args: {
     texture: tags.texture,
     formality: tags.formality,
     seasons: tags.seasons,
-    accent_color: tags.accent_color,
+    // ⚠️ An accent that repeats one of the garment's own colours is dropped.
+    // It is not a placement — a navy logo on a navy shirt is invisible — and
+    // the accent ROLE is what lets a neutral join a colour echo, so storing it
+    // handed tonal dressing a reward the rule exists to withhold. `withAccent`
+    // in lib/generator/styling/echo.ts defends every read for the sake of rows
+    // written before this; this keeps new rows honest so the edit sheet does
+    // not offer a redundant accent back to the user.
+    accent_color: resolveAccent(tags.colors, tags.accent_color),
     branding: tags.branding,
-    fit: tags.fit,
-    length: tags.length,
+    // ⚠️ Category-gated on write, not merely hidden in the UI. The prompt asks
+    // the model to return null for these on footwear, but a prompt is guidance
+    // and this is an invariant — and a `fit` recorded against a sneaker is not
+    // just meaningless, it inflates the "how many items carry a real fit"
+    // count a later plan gates its proportion rules on.
+    fit: WEARABLE_CATEGORIES.has(tags.category) ? tags.fit : null,
+    // ⚠️ A draft that reached this row untouched came from the model — the
+    // confirm screen pre-selects the model's guess, so accepting it costs no
+    // taps and leaves fit_source null. The confirm screen's and edit sheet's
+    // Fit chips set "user" the moment a human actually taps one; anything
+    // else that arrives here null is, by construction, the model's own guess.
+    // Nulled alongside `fit` on a non-wearable category — a stale "user" on
+    // an absent fit is exactly what this column exists to prevent.
+    fit_source: WEARABLE_CATEGORIES.has(tags.category) ? (tags.fit_source ?? "model") : null,
+    length: WEARABLE_CATEGORIES.has(tags.category) ? tags.length : null,
     // ⚠️ Category-gated here, not trusted from the model. The prompt says
     // FOOTWEAR ONLY, but a prompt is guidance and this is an invariant: a sole
     // value on a knit would make the proportion rules compare a bulk that

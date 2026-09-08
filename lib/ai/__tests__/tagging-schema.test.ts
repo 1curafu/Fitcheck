@@ -26,6 +26,7 @@ const valid = {
   accent_color: null,
   branding: null,
   fit: null,
+  fit_source: null,
   length: null,
   bulk: null,
   distressing: null,
@@ -119,6 +120,7 @@ test("colors are constrained to the palette, not free text", () => {
     accent_color: null,
     branding: null,
     fit: null,
+    fit_source: null,
     length: null,
     bulk: null,
     distressing: null,
@@ -144,7 +146,7 @@ test("the new fields accept a valid draft", () => {
     category: "Shoes", subcategory: "Sneakers", colors: ["white"],
     pattern: "solid", material: "Leather", texture: "Flat",
     formality: 2, seasons: ["Spring"],
-    accent_color: "sky", branding: "Small", fit: null, length: null, bulk: "Low profile", distressing: "None",
+    accent_color: "sky", branding: "Small", fit: null, fit_source: null, length: null, bulk: "Low profile", distressing: "None",
   });
   expect(parsed.accent_color).toBe("sky");
   expect(parsed.bulk).toBe("Low profile");
@@ -155,7 +157,7 @@ test("the new fields are all nullable — a model that cannot tell says so", () 
     category: "Tops", subcategory: "Tee", colors: ["navy"],
     pattern: "solid", material: "Cotton", texture: "Flat",
     formality: 1, seasons: ["Summer"],
-    accent_color: null, branding: null, fit: null, length: null, bulk: null, distressing: null,
+    accent_color: null, branding: null, fit: null, fit_source: null, length: null, bulk: null, distressing: null,
   });
   expect(parsed.accent_color).toBeNull();
 });
@@ -166,7 +168,7 @@ test("accent_color is constrained to the 42-colour vocabulary", () => {
       category: "Shoes", subcategory: "Sneakers", colors: ["white"],
       pattern: "solid", material: "Leather", texture: "Flat",
       formality: 2, seasons: ["Spring"],
-      accent_color: "chartreuse", branding: null, fit: null, length: null, bulk: null, distressing: null,
+      accent_color: "chartreuse", branding: null, fit: null, fit_source: null, length: null, bulk: null, distressing: null,
     }),
   ).toThrow();
 });
@@ -184,4 +186,21 @@ test("the new vocabularies are non-empty and stable", () => {
   expect(LENGTHS).toEqual(["Cropped", "Natural waist", "Hip", "Knee", "Midi", "Ankle", "Floor"]);
   expect(BULKS).toEqual(["Low profile", "Regular", "Chunky"]);
   expect(DISTRESSING).toEqual(["None", "Faded", "Ripped"]);
+});
+
+// ── Task 3: fit_source — was `fit` answered by a human, or still a guess? ───
+
+test("fit_source accepts model, user, and null", () => {
+  expect(() => TagSchema.parse({ ...valid, fit_source: "model" })).not.toThrow();
+  expect(() => TagSchema.parse({ ...valid, fit_source: "user" })).not.toThrow();
+  expect(() => TagSchema.parse({ ...valid, fit_source: null })).not.toThrow();
+});
+
+test("fit_source rejects a value outside the two-way enum", () => {
+  expect(() => TagSchema.parse({ ...valid, fit_source: "guessed" })).toThrow();
+});
+
+test("fit_source is never sent to the model — it cannot know its own provenance", () => {
+  const props = (taggingJsonSchema as { properties: Record<string, unknown> }).properties;
+  expect(props.fit_source).toBeUndefined();
 });
