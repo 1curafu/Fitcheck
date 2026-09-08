@@ -89,9 +89,7 @@ test('"Flat" is absence, not a texture', () => {
 });
 
 test("two distinct textures already read as deliberate", () => {
-  // ⚠️ Not three. The real closet is 21 Flat / 4 Twill / 4 Cable knit / 1 Fine
-  // knit, so a three-texture rule would almost never fire — the same no-op the
-  // accessory cap hit on a closet with no accessories.
+  // A pairing is the smallest arrangement that reads as chosen.
   expect(textureVariety(["Cable knit", "Twill", "Flat"])).toBe(1);
   expect(textureVariety(["Cable knit", "Twill", "Suede"])).toBe(1);
 });
@@ -112,10 +110,8 @@ test("a tonal column is rescued by texture, and only by texture", () => {
 });
 
 test("a clearly separated outfit gets NO OPINION, not a full mark", () => {
-  // ⚠️ 197 of the real closet's 231 combos separate cleanly, so scoring them 1.0
-  // made this very nearly a constant — and a constant reorders looks here,
-  // because combos claim different weight SETS. It reordered the top two while
-  // having nothing to say about either. Null keeps it out of their ranking.
+  // ⚠️ Scoring these 1.0 made the term near-constant, and a constant still
+  // reorders looks whose claimed weight SETS differ.
   expect(visualSeparation([["navy"], ["white"], ["white"]], ["Flat", "Flat", "Flat"])).toBeNull();
   expect(visualSeparation([["navy"], ["white"], ["white"]], ["Cable knit", "Twill", "Flat"])).toBeNull();
 });
