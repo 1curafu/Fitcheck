@@ -247,3 +247,7 @@ and did u add a support@fitcheck.space to our template?
 ---
 
 [Image #9] again, maybe because it doesnt render svg and thats why i did png files
+
+---
+
+[Image #10] it doesnt work in apple mail, we should but fix it and right now on the top our logo not centred or there should be text, idk or maybe better delete logo from top, what do u think
