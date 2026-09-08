@@ -19,15 +19,41 @@ import type { ColorName } from "@/lib/closet/vocab";
 export type Temperature = "warm" | "cool" | "neutral";
 
 export const COLOUR_TEMPERATURE: Record<ColorName, Temperature> = {
-  // Achromatic — the cool-neutral spine
-  black: "cool", charcoal: "cool", grey: "cool", silver: "cool", white: "cool",
+  // Achromatic — NEUTRAL, not cool.
+  //
+  // ⚠️ Changed 2026-09-08 after a measured inversion. With these as cool, a
+  // white shirt + camel trousers + white sneakers counted 2 cool against 1 warm
+  // and read as COOL-dominant; adding a camel bag made it a 2-2 "clash". Scored:
+  // bare 0.8367, + black bag 0.8344, + camel bag 0.7924 — the engine preferred a
+  // black bag to a camel one for a camel outfit, while the research rates a bag
+  // echoing the lower as one of the strongest moves available.
+  //
+  // The principle is the one already stated below for `taupe` and `green`: a
+  // colour that leans neither way must not manufacture a split the eye does not
+  // see. A white shirt does not make an outfit read cool the way a navy one
+  // does; black and grey are grounds that let warm or cool hues lead.
+  //
+  // Research confidence, which is NOT uniform: black, charcoal, grey, silver,
+  // white are High; `stone` below is Medium-high; `denim` is Medium and the
+  // weakest of the seven, because the label spans cold indigo and warm faded
+  // washes — `indigo` stays cool as the way to say "definitely cool denim".
+  //
+  // ⚠️ This is the TEMPERATURE axis only. `vocab.ts` still marks silver
+  // `neutral: false`, and that stays: a silver garment is a deliberate colour
+  // choice against the three-colour ceiling even though it votes on neither
+  // temperature. Palette class and temperature are different questions — the
+  // same separation `echo.ts` makes between a colour's class and its role.
+  black: "neutral", charcoal: "neutral", grey: "neutral", silver: "neutral", white: "neutral",
   // ⚠️ ivory and cream are WHITE WITH YELLOW UNDERTONES, not white. This one
   // row is the difference between the right shoe and the wrong one.
   ivory: "warm", cream: "warm",
   // Warm neutrals / earths
   // ⚠️ `stone` is the documented exception: a pale GREY-beige, the coolest of an
-  // otherwise-warm family. Both research rounds independently flagged it.
-  stone: "cool",
+  // otherwise-warm family. Both earlier research rounds independently flagged
+  // it — but the temperature research judges grey-beige too ambiguous to cast a
+  // full cool vote (Medium-high confidence), which is the same reason `taupe`
+  // below is neutral. Neutral avoids a false cool count either way.
+  stone: "neutral",
   sand: "warm", beige: "warm",
   // `taupe` is a grey-brown sitting between warm beige and cool grey — the
   // research's explicit advice is to treat it as temperature-neutral in practice
@@ -36,7 +62,11 @@ export const COLOUR_TEMPERATURE: Record<ColorName, Temperature> = {
   khaki: "warm", camel: "warm", tan: "warm", caramel: "warm",
   chocolate: "warm", brown: "warm",
   // Blues
-  navy: "cool", indigo: "cool", denim: "cool", blue: "cool", sky: "cool", teal: "cool",
+  // ⚠️ `denim` is neutral, and it is the weakest row in this table (Medium
+  // confidence). The label covers cold indigo and warm faded stonewash alike,
+  // so one temperature cannot be right for both. `indigo` stays cool and is the
+  // tag to use for dark denim that genuinely reads cool.
+  navy: "cool", indigo: "cool", denim: "neutral", blue: "cool", sky: "cool", teal: "cool",
   // Greens — split by undertone, not by being green
   olive: "warm",   // yellow-based
   sage: "cool",    // grey-green

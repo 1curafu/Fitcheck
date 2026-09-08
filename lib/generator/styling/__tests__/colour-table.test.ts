@@ -14,14 +14,30 @@ test("the table invents no colour outside the vocabulary", () => {
 });
 
 // The defect this whole plan exists to fix: these two are indistinguishable today.
-test("cream is warm and white is cool", () => {
+// ⚠️ The row this table was built for, and it SURVIVES the achromatic change:
+// cream is white with a yellow undertone and stays warm, while plain white is
+// now neutral rather than cool. "Not warm" and "cool" are different answers, and
+// keeping them apart is what makes a cream shoe and a white one score
+// differently — the original reason this file exists.
+test("cream is warm and white is neutral", () => {
   expect(temperatureOf("cream")).toBe("warm");
-  expect(temperatureOf("white")).toBe("cool");
+  expect(temperatureOf("ivory")).toBe("warm");
+  expect(temperatureOf("white")).toBe("neutral");
 });
 
-test("stone is the documented exception in a warm beige family", () => {
-  expect(temperatureOf("stone")).toBe("cool");
+test("the achromatics cast no temperature vote", () => {
+  for (const c of ["black", "charcoal", "grey", "silver", "white"]) {
+    expect(temperatureOf(c)).toBe("neutral");
+  }
+});
+
+test("stone and denim are neutral: labels too broad to vote", () => {
+  // stone is a grey-beige, denim covers cold indigo and warm faded washes.
+  expect(temperatureOf("stone")).toBe("neutral");
+  expect(temperatureOf("denim")).toBe("neutral");
+  // The colours either side of them are unaffected.
   expect(temperatureOf("beige")).toBe("warm");
+  expect(temperatureOf("indigo")).toBe("cool"); // the way to say "cool denim"
 });
 
 test("lookup is case- and whitespace-insensitive, like isNeutral", () => {

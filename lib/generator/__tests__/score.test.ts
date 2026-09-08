@@ -374,8 +374,15 @@ test("the aesthetic does not silently claim score weight it cannot use", () => {
   const withAesthetic = scoreCombo(items, { aesthetic: ["smart_casual"], band: [1, 5] });
   const without = scoreCombo(items, { aesthetic: [], band: [1, 5] });
   expect(withAesthetic).toBe(without);
-  // and the freed weight must actually go somewhere, not vanish:
-  expect(withAesthetic).toBeGreaterThan(0.9);
+  // and the freed weight must actually go somewhere, not vanish.
+  //
+  // ⚠️ This literal was 0.9 until 2026-09-08 and the move is NOT about the
+  // weight budget: `white` became temperature-neutral, so navy/white/brown went
+  // from 2-cool-1-warm (0.917) to an even 1-1 split (0.5). The term is doing
+  // exactly what it should — this outfit genuinely has one cool and one warm
+  // garment on a white ground — and the aesthetic claiming nothing is still
+  // what the assertion above pins.
+  expect(withAesthetic).toBeGreaterThan(0.85);
 });
 
 test("a sneaker's accent scores the same in accent_color as it did in colors", () => {
