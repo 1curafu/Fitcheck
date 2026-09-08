@@ -500,3 +500,26 @@ test("a hardware item's ACCENT still reaches the echo term", () => {
   );
   expect(navyDial).toBeGreaterThan(plainDial);
 });
+
+// ⚠️ The defect the metal term was written to close, and it was SELF-INFLICTED:
+// dropping a metal item's body colour left a bag's silver buckle with nothing to
+// echo, so it scored 0.35 as an unsupported loud colour — worse than the 0.5 the
+// same bag gets carrying no accent at all. A metal accent is hardware and must
+// leave the colour palette on the same terms its body does.
+test("a metal accent is not an orphaned loud colour", () => {
+  const bagPlain = { ...piece("g", "Accessories", ["black"], 3, "Faux leather") };
+  const bagBuckle = { ...bagPlain, accent_color: "silver" };
+  expect(scoreCombo([...neutralOutfit, bagBuckle] as never, wearer)).toBeGreaterThanOrEqual(
+    scoreCombo([...neutralOutfit, bagPlain] as never, wearer),
+  );
+});
+
+test("a bag's silver buckle and a steel chain read as one metal system", () => {
+  const bag = { ...piece("g", "Accessories", ["black"], 3, "Faux leather"), accent_color: "silver" };
+  const chain = piece("c", "Accessories", ["silver"], 3, "Stainless steel");
+  const gold = piece("c", "Accessories", ["gold"], 3, "Gold");
+  // Same number of items, same slots — only the metal families differ.
+  expect(scoreCombo([...neutralOutfit, bag, chain] as never, wearer)).toBeGreaterThan(
+    scoreCombo([...neutralOutfit, bag, gold] as never, wearer),
+  );
+});
