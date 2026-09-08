@@ -18,29 +18,35 @@
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px; width:100%;">
 
             <!--
-              Header lockup.
+              Header mark.
 
-              ⚠️ ABSOLUTE URL, not `{{ .SiteURL }}`. The template variable
-              depends on the Site URL configured in the Supabase dashboard, and
-              a trailing slash there produces `//brand/...`, which Vercel answers
-              with a 308 redirect — Gmail's image proxy does not follow those, so
-              the logo silently breaks. Verified: `//brand/email-lockup.png`
-              returns 308, the single-slash form returns 200.
+              ⚠️ THE SQUARE MARK, not the wide lockup. `fitcheck-lockup-light.png`
+              was tried here and read as an off-centre logo: the file is 336x68
+              but its exported artwork is only the mark on the left, because the
+              wordmark did not survive the SVG-to-PNG export (the source SVG
+              fills its text `#0E0E10`, so it is not a colour problem). Anything
+              wide re-opens that; a square mark cannot be lopsided.
 
-              ⚠️ The asset must be COMMITTED. `fitcheck-lockup-light.png` sat
-              untracked once, so it existed locally, never deployed, and the
-              header rendered as a broken image in real inboxes.
+              ⚠️ ABSOLUTE URL, not `{{ .SiteURL }}`. That variable takes whatever
+              Site URL the dashboard holds, and a trailing slash yields
+              `//brand/...`, which Vercel answers with a 308 — Gmail's image proxy
+              does not follow redirects, so the logo breaks silently. Measured:
+              double slash 308, single slash 200.
 
-              ⚠️ PNG, never SVG — Gmail strips SVG images entirely.
+              ⚠️ The asset must be COMMITTED, and PNG. `fitcheck-lockup-light.png`
+              sat untracked once, so it existed locally and 404'd everywhere else;
+              and Gmail strips SVG images entirely.
 
-              Sized 336x68 and displayed at 130x26, so it stays sharp on retina.
-              `height` is a real number: `height="auto"` is not a valid HTML
-              attribute value and Outlook mis-sizes it.
+              ⚠️ Assume it will NOT render. Apple Mail and Outlook block remote
+              images by default, so `alt` carries the brand on its own and no
+              information lives only in this image.
+
+              96x96 shown at 44x44, so it stays sharp on retina.
             -->
             <tr>
               <td align="center" style="padding-bottom:28px;">
-                <img src="https://fitcheck.space/brand/email-lockup.png" width="130" height="26" alt="Fitcheck"
-                     style="display:block; width:130px; height:26px; border:0; outline:none; text-decoration:none;" />
+                <img src="https://fitcheck.space/brand/email-mark-96.png" width="44" height="44" alt="Fitcheck"
+                     style="display:block; width:44px; height:44px; border:0; outline:none; text-decoration:none;" />
               </td>
             </tr>
 
