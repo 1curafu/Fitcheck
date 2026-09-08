@@ -524,3 +524,16 @@ test("the second extras push never duplicates the first", () => {
   const manyKeys = many.map((c) => c.map((i) => i.id).sort().join("|"));
   expect(new Set(manyKeys).size).toBe(manyKeys.length);
 });
+
+test("a look can carry a bag AND two accessories — the caps allow it", () => {
+  // ⚠️ Measured 0 of 231 combos before this shape existed, while every other
+  // permitted shape appeared ~38 times. `maxBags: 1` with `maxAccessories: 2`
+  // was promising a combination the builder could never build.
+  const tops = Array.from({ length: 8 }, (_, n) => ({
+    id: `t${n}`, category: "Tops", colors: ["cream"], formality: 3,
+    seasons: ["spring"], material: "cotton", texture: null, pattern: null,
+  }));
+  const closet = [...tops, ...items.filter((i) => i.category !== "Tops"), watch, bracelet, clutch, tote];
+  const cands = buildCandidates(closet, withBags);
+  expect(cands.some((c) => bagsIn(c).length === 1 && accessoriesIn(c).length === 2)).toBe(true);
+});

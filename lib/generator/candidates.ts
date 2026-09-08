@@ -234,11 +234,16 @@ function pickExtras(
   // iterations and "bag + accessory" was never reached at all. Measured on a
   // six-top closet: 6 one-accessory, 4 bag, 2 two-accessory, and zero of the
   // fourth shape. A rotation has to rotate over a fixed set.
-  const shapes: ("acc1" | "acc2" | "bag" | "bagacc")[] = [];
+  const shapes: ("acc1" | "acc2" | "bag" | "bagacc" | "bagacc2")[] = [];
   if (canAcc) shapes.push("acc1");
   if (canBag) shapes.push("bag");
   if (canAcc && maxAccessories >= 2) shapes.push("acc2");
   if (canAcc && canBag) shapes.push("bagacc");
+  // ⚠️ The caps allow a bag AND two accessories, so a shape has to produce it.
+  // Without this, `maxBags: 1` with `maxAccessories: 2` promised a combination
+  // the builder could never build: measured 0 of 231 combos carried a bag with
+  // two accessories, while every other permitted shape appeared ~38 times.
+  if (canAcc && canBag && maxAccessories >= 2) shapes.push("bagacc2");
   if (!shapes.length) return [];
 
   const bag = () => [bags[seed % bags.length]];
@@ -253,6 +258,8 @@ function pickExtras(
       return bag();
     case "bagacc":
       return [...bag(), ...pickAccessories(accessories, seed, 1)];
+    case "bagacc2":
+      return [...bag(), ...pickAccessories(accessories, seed, maxAccessories)];
   }
 }
 
