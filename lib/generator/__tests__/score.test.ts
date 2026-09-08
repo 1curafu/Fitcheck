@@ -723,3 +723,25 @@ test("shoes still vote in a separates look", () => {
     scoreCombo([top, bottom, pale] as never, wearer),
   );
 });
+
+test("the same two colours score differently by direction, through scoreCombo", () => {
+  // ⚠️ Found by mutation: unwiring the direction term survived every test,
+  // because they all exercised `valueDirection` directly. A unit test of a
+  // signal is not a test that the scorer consumes it.
+  const shoes = { ...piece("s", "Shoes", ["brown"], 4, "Leather"), texture: "Flat" };
+  // ⚠️ Material held CONSTANT — only the colours swap. An earlier version gave
+  // the top Cotton and the bottom Wool and then reversed both, so `warmthFit`
+  // differed and the test passed with the direction term removed. That is the
+  // THIRD time a swapped-material fixture has faked a result here.
+  const canon = [
+    { ...piece("t", "Tops", ["white"], 4, "Cotton"), texture: "Flat" },
+    { ...piece("b", "Bottoms", ["navy"], 4, "Cotton"), texture: "Flat" },
+    shoes,
+  ];
+  const inverted = [
+    { ...piece("t", "Tops", ["navy"], 4, "Cotton"), texture: "Flat" },
+    { ...piece("b", "Bottoms", ["white"], 4, "Cotton"), texture: "Flat" },
+    shoes,
+  ];
+  expect(scoreCombo(canon as never, wearer)).toBeGreaterThan(scoreCombo(inverted as never, wearer));
+});

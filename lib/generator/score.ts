@@ -4,6 +4,7 @@ import { accentMetalTone, isHardware, metalCoordination } from "./styling/metal"
 import { warmthFit } from "./texture";
 import { colourScore } from "./styling/colour-score";
 import { visualSeparation } from "./styling/value";
+import { valueDirection } from "./styling/direction";
 
 export type ScoreItem = {
   category: string;
@@ -108,6 +109,13 @@ const WEIGHTS = {
    * closet's combos have no temperature opinion, and this is what replaces it.
    */
   separation: 0.2,
+  /**
+   * Which way round the light and dark sit. Weighted with `pattern` (0.15):
+   * it is a real, repeatedly-sourced rule but a narrower one than colour or
+   * formality, and the research frames the inverted direction as SEASONAL
+   * rather than wrong.
+   */
+  direction: 0.15,
 } as const;
 
 /**
@@ -343,6 +351,10 @@ export function scoreCombo(items: ScoreItem[], ctx: Ctx): number {
     // out, "good" contrast), so the engine recommended trainers with a formal
     // dress. A coat still counts, because a camel coat over a black dress is a
     // real relationship the research names.
+    // ⚠️ The one asymmetric colour signal. Every other reads a set; this one
+    // asks which garment is on top, because `pairingRating` sorts its key and
+    // cannot tell `navy+white` from `white+navy`.
+    { weight: WEIGHTS.direction, value: valueDirection(items) },
     {
       weight: WEIGHTS.separation,
       value: (() => {
