@@ -391,3 +391,7 @@ i also wanna say u, dont look on my garderobe, cause i dont have whole type of c
 ---
 
 are we done with this plan?
+
+---
+
+if we are done, make branch review, and if all good, give me commands to push pr
