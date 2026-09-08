@@ -431,3 +431,12 @@ test("an over-matched outfit gets NO note, so the line never argues with the sco
     "rust repeats across the crewneck and loafers",
   );
 });
+
+test("the variety rule covers a one-piece, not only tops and bottoms", () => {
+  // ⚠️ A dress look has neither a top nor a bottom, so wording the rule around
+  // those two left the model free to return three outfits built on the same
+  // dress — the hole `diversity.ts` had, in prose, where a grep for category
+  // names could not find it.
+  expect(RERANK_VARIETY_RULE).toMatch(/dress/i);
+  expect(RERANK_VARIETY_RULE).not.toMatch(/same top, and no two may share the same bottom/);
+});

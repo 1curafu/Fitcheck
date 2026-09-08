@@ -236,13 +236,18 @@ export const RERANK_ACCENT_RULE =
 /**
  * The variety instruction.
  *
+ * ⚠️ "the main garment", not "the top and the bottom". A one-piece look has
+ * NEITHER, so the older wording left the model free to return three outfits
+ * built on the same dress — the same hole `diversity.ts` had, and one a grep for
+ * category names could not find because the prompt is prose.
+ *
  * "Pick the best 3" alone produces three versions of one outfit: the model is
  * optimising a single notion of "best", and the candidates handed to it are
  * ranked, so the top of the list is naturally near-identical. Asking for the
  * best 3 without asking for three DIFFERENT ones gets exactly what it asks for.
  */
 export const RERANK_VARIETY_RULE =
-  "The three must be genuinely different outfits, not variations of one: no two may share the same top, and no two may share the same bottom. If the candidates cannot give you three that differ, prefer variety over a marginally higher-scoring repeat.";
+  "The three must be genuinely different outfits, not variations of one: no two may share the same main garment — the top, the bottom, or the dress. If the candidates cannot give you three that differ, prefer variety over a marginally higher-scoring repeat.";
 
 type Pick = { combo_index: number; name: string; why: string };
 
