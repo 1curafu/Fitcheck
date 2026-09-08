@@ -295,3 +295,7 @@ did it, cool
 ---
 
 go, but if task is ready and reviewed, ask me if u can start with next task
+
+---
+
+if task 1 fully done, go with task 2
