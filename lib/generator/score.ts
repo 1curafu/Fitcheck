@@ -138,11 +138,19 @@ export function formalityCoherence(formalities: number[]): number {
  * worn or carried object may sit one step outside the garments' range without
  * that counting as incoherence.
  *
+ * ⚠️ SHOES belong here too, and `candidates.ts` already says why: its
+ * `floorTolerance` gives footwear a wider eligibility band because "a clean
+ * minimal leather sneaker is genuinely valid smart-casual work wear". Scoring
+ * never inherited that, so a dress with sneakers — an ordinary modern outfit —
+ * took the full two-step charge and the engine preferred heels in every
+ * register. The research agrees: white sneakers are described as near-universal
+ * anchors.
+ *
  * ⚠️ Not a licence to ignore it. Two steps out is still counted, because the
  * research's own HARD rules are exactly the two-step cases: a rubber sports
  * watch with black tie, a nylon bag against formal tailoring.
  */
-const RANGED_FORMALITY = new Set(["Accessories", "Bags"]);
+const RANGED_FORMALITY = new Set(["Accessories", "Bags", "Shoes"]);
 
 /** How far outside the garments' range a small item may sit for free. */
 const RANGED_TOLERANCE = 1;
@@ -168,9 +176,11 @@ export function formalityCoherenceOf(
   const ranged = items.filter((i) => RANGED_FORMALITY.has(i.category ?? ""));
   const fOf = (i: { formality?: number | null }) => i.formality ?? 3;
 
-  // Nothing but accessories: fall back to treating them as ordinary items,
-  // because there is no garment range for them to sit outside OF.
-  if (garments.length < 2) return formalityCoherence(items.map(fOf));
+  // ⚠️ ONE garment is enough to define the range, and this matters for a
+  // one-piece look: a dress plus shoes has a single garment, and requiring two
+  // sent it down the fallback path where the tolerance did not apply at all.
+  // Nothing but ranged items has no range to sit outside of.
+  if (!garments.length) return formalityCoherence(items.map(fOf));
 
   const lo = Math.min(...garments.map(fOf));
   const hi = Math.max(...garments.map(fOf));
@@ -323,12 +333,26 @@ export function scoreCombo(items: ScoreItem[], ctx: Ctx): number {
     // ⚠️ Hardware passes [] for colours here too, exactly as it does to
     // `colourScore` — a steel watch is not a value block and must not be able
     // to flatten or separate an outfit.
+    // ⚠️ SHOES DO NOT VOTE when the look is built on a one-piece. With separates,
+    // the contrast between top and bottom IS the outfit's structure. With a
+    // dress, the dress carries the colour story and the shoe is meant to recede
+    // — the research's advice is a neutral or nude shoe precisely so it
+    // disappears. Judging a dress against its shoe inverted the ranking:
+    // measured, a navy dress scored 0.7681 with black heels (perfect formality,
+    // "poor" contrast) against 0.7823 with white sneakers (two formality steps
+    // out, "good" contrast), so the engine recommended trainers with a formal
+    // dress. A coat still counts, because a camel coat over a black dress is a
+    // real relationship the research names.
     {
       weight: WEIGHTS.separation,
-      value: visualSeparation(
-        items.map((i) => (isHardware(i.material, i.colors) ? [] : i.colors)),
-        items.map((i) => i.texture),
-      ),
+      value: (() => {
+        const hasOnePiece = items.some((i) => i.category === "One-piece");
+        const voting = items.filter((i) => !(hasOnePiece && i.category === "Shoes"));
+        return visualSeparation(
+          voting.map((i) => (isHardware(i.material, i.colors) ? [] : i.colors)),
+          voting.map((i) => i.texture),
+        );
+      })(),
     },
     { weight: WEIGHTS.lean, value: ctx.lean?.length ? leanScore(colors, ctx.lean) : null },
     { weight: WEIGHTS.climate, value: climateFit(items, ctx) },

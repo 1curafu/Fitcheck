@@ -669,3 +669,57 @@ test("hardware cannot alter an outfit's separation", () => {
     scoreCombo([...base, steel("black")] as never, wearer),
   );
 });
+
+// ---------------------------------------------------------------------------
+// A one-piece carries the colour story; its shoe is meant to recede.
+// ---------------------------------------------------------------------------
+
+test("the DRESS decides the shoe — casual takes sneakers, formal takes heels", () => {
+  // ⚠️ Not a blanket rule either way. A jersey day dress with white sneakers is
+  // an ordinary outfit; a slip dress with them is not. The dress's own formality
+  // is what separates them, exactly as it does for a watch — no dress-specific
+  // rule and no user attribute.
+  //
+  // The bug this replaced: value contrast was judging a dress against its shoe,
+  // so a navy dress scored 0.7681 with black heels (perfect formality, "poor"
+  // contrast) against 0.7823 with white sneakers, and the engine recommended
+  // trainers with a formal dress. A dress carries the colour story; the shoe is
+  // meant to recede.
+  const heels = { ...piece("h", "Shoes", ["black"], 4, "Leather"), texture: "Flat" };
+  const sneakers = { ...piece("s", "Shoes", ["white"], 2, "Canvas"), texture: "Flat" };
+  const dressAt = (f: number) => ({ ...piece("d", "One-piece", ["navy"], f, "Viscose"), texture: "Flat" });
+
+  for (const f of [2, 3]) {
+    expect(scoreCombo([dressAt(f), sneakers] as never, wearer)).toBeGreaterThan(
+      scoreCombo([dressAt(f), heels] as never, wearer),
+    );
+  }
+  for (const f of [4, 5]) {
+    expect(scoreCombo([dressAt(f), heels] as never, wearer)).toBeGreaterThan(
+      scoreCombo([dressAt(f), sneakers] as never, wearer),
+    );
+  }
+});
+
+test("a coat over a dress is still judged on contrast", () => {
+  // Only the SHOE is excused. A near-match coat over a dress is still a fault:
+  // charcoal on black is the muddy case, camel on black is not.
+  const dress = { ...piece("d", "One-piece", ["black"], 4, "Viscose"), texture: "Flat" };
+  const heels = { ...piece("h", "Shoes", ["black"], 4, "Leather"), texture: "Flat" };
+  const camel = { ...piece("o", "Outerwear", ["camel"], 4, "Wool"), texture: "Flat" };
+  const charcoal = { ...piece("o", "Outerwear", ["charcoal"], 4, "Wool"), texture: "Flat" };
+  expect(scoreCombo([dress, heels, camel] as never, wearer)).toBeGreaterThan(
+    scoreCombo([dress, heels, charcoal] as never, wearer),
+  );
+});
+
+test("shoes still vote in a separates look", () => {
+  // The exemption is scoped to one-piece looks only.
+  const top = { ...piece("t", "Tops", ["white"], 3, "Cotton"), texture: "Flat" };
+  const bottom = { ...piece("b", "Bottoms", ["cream"], 3, "Wool"), texture: "Flat" };
+  const pale = { ...piece("s", "Shoes", ["beige"], 3, "Leather"), texture: "Flat" };
+  const dark = { ...piece("s", "Shoes", ["black"], 3, "Leather"), texture: "Flat" };
+  expect(scoreCombo([top, bottom, dark] as never, wearer)).toBeGreaterThan(
+    scoreCombo([top, bottom, pale] as never, wearer),
+  );
+});

@@ -23,15 +23,48 @@ import type { UiOccasion } from "@/lib/generator/types";
 export type GapCandidate = { label: string; category: string; colors: string[]; formality: number };
 
 export const GAP_CANDIDATES: GapCandidate[] = [
-  { label: "A camel overcoat", category: "Outerwear", colors: ["camel"], formality: 4 },
-  { label: "Grey wool trousers", category: "Bottoms", colors: ["grey"], formality: 4 },
+  // Staples that suit any wardrobe.
   { label: "A navy knit", category: "Tops", colors: ["navy"], formality: 3 },
-  { label: "Brown leather loafers", category: "Shoes", colors: ["brown"], formality: 4 },
-  { label: "A white oxford shirt", category: "Tops", colors: ["white"], formality: 4 },
+  { label: "A white shirt", category: "Tops", colors: ["white"], formality: 4 },
+  { label: "Grey wool trousers", category: "Bottoms", colors: ["grey"], formality: 4 },
   { label: "Dark denim", category: "Bottoms", colors: ["denim"], formality: 2 },
+  { label: "A camel overcoat", category: "Outerwear", colors: ["camel"], formality: 4 },
   { label: "Clean white sneakers", category: "Shoes", colors: ["white"], formality: 2 },
+  { label: "Brown leather loafers", category: "Shoes", colors: ["brown"], formality: 4 },
+  { label: "Black leather shoes", category: "Shoes", colors: ["black"], formality: 5 },
+  // Suggested only to a wardrobe that already shows it wears them — see
+  // `candidatesFor`.
+  { label: "A black dress", category: "One-piece", colors: ["black"], formality: 4 },
+  { label: "A navy day dress", category: "One-piece", colors: ["navy"], formality: 3 },
 ];
 
+/**
+ * The candidates worth proposing to THIS closet.
+ *
+ * ⚠️ Inferred from the wardrobe, never declared by the user. The product owner
+ * asked whether to ask gender at onboarding; the answer was no, because
+ * inference can only be less specific while a declared attribute can be WRONG —
+ * stale when a wardrobe changes, wrong for a man who wears skirts, and awkward
+ * for anyone non-binary. A closet holding dresses has already proven it wears
+ * dresses better than any answer could.
+ *
+ * The rule is narrow on purpose: a category is only suggested if the closet
+ * already contains one, EXCEPT for the shapes every wardrobe needs. Before this,
+ * the list was menswear-only and would tell someone who wears dresses to buy a
+ * white oxford shirt and brown loafers.
+ */
+export function candidatesFor(closet: CandidateItem[]): GapCandidate[] {
+  const owns = new Set(closet.map((i) => i.category));
+  // Shoes and outerwear are worn over everything; a top or bottom is only
+  // proposed to a wardrobe that is not exclusively one-pieces.
+  const universal = new Set(["Shoes", "Outerwear"]);
+  const onlyOnePieces = owns.has("One-piece") && !owns.has("Tops") && !owns.has("Bottoms");
+  return GAP_CANDIDATES.filter((c) => {
+    if (universal.has(c.category)) return true;
+    if (c.category === "One-piece") return owns.has("One-piece");
+    return !onlyOnePieces;
+  });
+}
 /**
  * The conditions the simulation runs against — a cold day and a mild one.
  *
@@ -171,7 +204,7 @@ export function biggestGap(
   const before = countCombos(closet, occasions);
   let best: { candidate: GapCandidate; unlocks: number; share: number | null } | null = null;
 
-  for (const c of GAP_CANDIDATES) {
+  for (const c of candidatesFor(closet)) {
     const hypothetical: CandidateItem = {
       id: "__hypothetical__",
       category: c.category,

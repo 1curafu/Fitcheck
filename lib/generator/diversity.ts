@@ -36,8 +36,12 @@ export function diversify<T extends { items: Keyed[]; score: number }>(
   const tier3: T[] = [];
 
   for (const r of ranked) {
-    const top = slotId(r.items, "Tops");
-    const bottom = slotId(r.items, "Bottoms");
+    // ⚠️ A one-piece IS the top and the bottom. Reading only Tops and Bottoms
+    // made every dress look "fresh", so three near-identical dress outfits
+    // could all reach tier 1 and the day's set would repeat the same dress.
+    const onePiece = slotId(r.items, "One-piece");
+    const top = onePiece ?? slotId(r.items, "Tops");
+    const bottom = onePiece ?? slotId(r.items, "Bottoms");
     // A missing slot cannot collide — a shoes-only combo is not "sharing" a
     // top with anything, so it counts as fresh.
     const freshTop = top === undefined || !usedTops.has(top);

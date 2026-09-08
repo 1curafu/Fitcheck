@@ -116,8 +116,23 @@ function decorrelatedStride(n: number): number {
 }
 
 /** The required slots — a combo cannot exist without one of each. */
-export const REQUIRED_CATEGORIES = ["Tops", "Bottoms", "Shoes"] as const;
-export type RequiredCategory = (typeof REQUIRED_CATEGORIES)[number];
+/**
+ * The two shapes a look can take.
+ *
+ * ⚠️ A one-piece fills the upper AND lower slot, so a dress look genuinely has
+ * no `Bottoms` and is not missing one. Treating the separates shape as the only
+ * valid one is what made a dress unrepresentable: `buildCandidates` returned
+ * nothing, and `missingCategory` told a dress wardrobe it had no trousers.
+ *
+ * ⚠️ A garment shape, never a gender. A boilersuit takes the same slot as a
+ * wrap dress.
+ */
+export const SEPARATES_SHAPE = ["Tops", "Bottoms", "Shoes"] as const;
+export const ONE_PIECE_SHAPE = ["One-piece", "Shoes"] as const;
+
+/** Kept for callers that ask "which slot is empty" — see `missingCategory`. */
+export const REQUIRED_CATEGORIES = SEPARATES_SHAPE;
+export type RequiredCategory = (typeof SEPARATES_SHAPE)[number] | "One-piece";
 
 /**
  * How far BELOW a band's floor an item may still qualify.
@@ -270,7 +285,9 @@ function bySeasonFirst(list: CandidateItem[], season: string | undefined): Candi
 }
 
 function isRequired(c: string): c is RequiredCategory {
-  return (REQUIRED_CATEGORIES as readonly string[]).includes(c);
+  // One-piece counts: a dress-only closet must get the same material-relief
+  // treatment on a sweltering day that a top-and-trousers closet gets.
+  return [...SEPARATES_SHAPE, ...ONE_PIECE_SHAPE].includes(c as never);
 }
 
 /**
@@ -324,7 +341,95 @@ export function eligibility(items: CandidateItem[], a: CandidateArgs): Record<st
  */
 export function missingCategory(items: CandidateItem[], a: CandidateArgs): RequiredCategory | null {
   const counts = eligibility(items, a);
-  return REQUIRED_CATEGORIES.find((c) => counts[c] === 0) ?? null;
+  const has = (c: string) => (counts[c] ?? 0) > 0;
+
+  // Either shape being complete means nothing is missing.
+  const canSeparates = SEPARATES_SHAPE.every(has);
+  const canOnePiece = ONE_PIECE_SHAPE.every(has);
+  if (canSeparates || canOnePiece) return null;
+
+  // ⚠️ Shoes first: they block BOTH shapes, so naming a missing top to someone
+  // who owns dresses and no shoes would send them after the wrong thing.
+  if (!has("Shoes")) return "Shoes";
+  // Reaching here means neither shape is complete AND shoes exist, so the gap
+  // is in the separates. A one-piece closet cannot reach this line: with shoes
+  // it satisfies `canOnePiece` above, and without them it was answered as Shoes.
+  return SEPARATES_SHAPE.find((c) => !has(c)) ?? null;
+}
+
+/**
+ * Round-robin two lists into one, capped.
+ *
+ * ⚠️ Round-robin rather than an even split, and this matters for a mixed
+ * wardrobe: a closet with thirty separates and two dresses should not hand half
+ * the budget to two dresses repeated. Taking one from each in turn lets the
+ * shorter list run out and the longer one carry on, so each shape gets a share
+ * of the cap proportional to what it can actually build.
+ */
+function interleave(a: CandidateItem[][], b: CandidateItem[][], cap: number): CandidateItem[][] {
+  const out: CandidateItem[][] = [];
+  for (let i = 0; out.length < cap && (i < a.length || i < b.length); i++) {
+    if (i < a.length && out.length < cap) out.push(a[i]);
+    if (i < b.length && out.length < cap) out.push(b[i]);
+  }
+  return out;
+}
+
+/**
+ * Walk one base shape breadth-first, pushing a bare look and up to two
+ * accessorised variants per base.
+ *
+ * `uppers` is whatever occupies the first slot — tops for separates, one-pieces
+ * for a dress look — and `lowers` is empty for a one-piece, which is exactly
+ * what having no bottoms means.
+ */
+function walkShape(
+  uppers: CandidateItem[],
+  lowers: CandidateItem[],
+  shoes: CandidateItem[],
+  outer: CandidateItem[],
+  needsOuterwear: boolean,
+  accessories: CandidateItem[],
+  bags: CandidateItem[],
+  a: CandidateArgs,
+  cap: number,
+): CandidateItem[][] {
+  if (!uppers.length || !shoes.length) return [];
+  const combos: CandidateItem[][] = [];
+  const passes = Math.max(lowers.length || 1, shoes.length);
+  const shoeStride = decorrelatedStride(shoes.length);
+
+  build: for (let d = 0; d < passes; d++) {
+    for (let t = 0; t < uppers.length; t++) {
+      const s = shoes[(t + d * shoeStride) % shoes.length];
+      const core = lowers.length
+        ? [uppers[t], lowers[(t + d) % lowers.length], s]
+        : [uppers[t], s];
+
+      // Outerwear is a PREFERENCE, not a requirement: layer it in when the cold
+      // calls for it and the closet has one, but never refuse to dress someone
+      // who owns no coat — that silently killed every outfit below 15°. The
+      // index rotates too; it was pinned to [0], so one coat was worn on every
+      // cold day and every other coat was unreachable.
+      const base =
+        needsOuterwear && outer.length ? [...core, outer[(t + d) % outer.length]] : core;
+
+      combos.push(base);
+      if (combos.length >= cap) break build;
+
+      const extrasA = pickExtras(accessories, bags, t + d, a.maxAccessories, a.maxBags ?? 0);
+      if (extrasA.length) {
+        combos.push([...base, ...extrasA]);
+        if (combos.length >= cap) break build;
+      }
+      const extrasB = pickExtras(accessories, bags, t + d + 1, a.maxAccessories, a.maxBags ?? 0);
+      if (extrasB.length && !sameItems(extrasA, extrasB)) {
+        combos.push([...base, ...extrasB]);
+        if (combos.length >= cap) break build;
+      }
+    }
+  }
+  return combos;
 }
 
 export function buildCandidates(items: CandidateItem[], a: CandidateArgs): CandidateItem[][] {
@@ -333,96 +438,29 @@ export function buildCandidates(items: CandidateItem[], a: CandidateArgs): Candi
   // Season ordering and material relief both live in `eligibleByCategory`, so
   // this function, `eligibility` and `missingCategory` can never disagree about
   // what the closet can do. Ordering in-season-first matters because the CAP
-  // below truncates the combo list, and the breadth-first walk indexes outerwear
-  // and accessories modulo their list length — so the earliest passes reach the
-  // seasonally right coat and accessory.
+  // truncates the combo list, and the walk indexes outerwear and accessories
+  // modulo their list length — so the earliest passes reach the seasonally right
+  // coat and accessory.
   const by = eligibleByCategory(items, a);
   const tops = by.Tops ?? [];
   const bottoms = by.Bottoms ?? [];
+  const onePieces = by["One-piece"] ?? [];
   const shoes = by.Shoes ?? [];
   const outer = by.Outerwear ?? [];
   const accessories = by.Accessories ?? [];
   const bags = by.Bags ?? [];
 
-  // A combo needs all three required slots; without one there is nothing to build.
-  if (!tops.length || !bottoms.length || !shoes.length) return [];
+  // ⚠️ TWO valid shapes. A dress look genuinely has no bottoms; requiring them
+  // is what made a one-piece unrepresentable.
+  const separates =
+    tops.length && bottoms.length
+      ? walkShape(tops, bottoms, shoes, outer, needsOuterwear, accessories, bags, a, CAP)
+      : [];
+  const onePiece = walkShape(onePieces, [], shoes, outer, needsOuterwear, accessories, bags, a, CAP);
 
-  const combos: CandidateItem[][] = [];
-
-  // BREADTH-FIRST, not a nested product.
-  //
-  // This used to be three nested loops followed by `.slice(0, CAP)`. Because the
-  // loops were top-major, every combination of the FIRST top was generated
-  // before the second top was reached — so the cap was spent inside one top. A
-  // closet with 20 of each category reached 1 top and 5 bottoms out of 20, which
-  // is both reported symptoms at once: most of the wardrobe invisible to
-  // ranking, and every look sharing a garment because there was only one to
-  // share. Small closets stayed under the cap, which is why tests never saw it.
-  //
-  // Each pass `d` walks all tops once, pairing each with a different bottom and
-  // shoe, so pass 0 alone touches every top, bottom and shoe. Later passes add
-  // fresh pairings rather than exhausting one corner of the space. The shoe
-  // offset uses a stride coprime with the shoe count so pairings do not repeat
-  // early AND every shoe is still reachable — a fixed stride of 2 failed the
-  // second half of that on any even-length list (see `decorrelatedStride`).
-  const passes = Math.max(bottoms.length, shoes.length);
-  const shoeStride = decorrelatedStride(shoes.length);
-
-  build: for (let d = 0; d < passes; d++) {
-    for (let t = 0; t < tops.length; t++) {
-      const b = bottoms[(t + d) % bottoms.length];
-      const s = shoes[(t + d * shoeStride) % shoes.length];
-
-      // Outerwear is a PREFERENCE, not a requirement: layer it in when the cold
-      // calls for it and the closet has one, but never refuse to dress someone
-      // who owns no coat — that silently killed every outfit below 15°.
-      // The weather strip's "Later" advice is what tells them to take a layer.
-      // The index rotates too: it was pinned to [0], so one coat was worn on
-      // every cold day and every other coat was unreachable.
-      const base =
-        needsOuterwear && outer.length
-          ? [tops[t], b, s, outer[(t + d) % outer.length]]
-          : [tops[t], b, s];
-
-      combos.push(base); // required base (± outerwear), no accessory
-      if (combos.length >= CAP) break build;
-
-      // ⚠️ Still exactly ONE push per base, whatever it carries. A separate
-      // push per variant would spend the CAP on permutations of the same three
-      // garments — precisely the failure the breadth-first walk above exists to
-      // prevent, measured at 13 of 80 garments stranded. `pickExtras` returns
-      // one variant and rotates which one.
-      //
-      // Rotating on `t + d` rather than on `d` alone matters: `passes` is 1 for
-      // a closet with a single bottom and a single shoe, so keying on the pass
-      // would make every variant past the first unreachable there.
-      // TWO extras variants per base, not one.
-      //
-      // With one, adding bags as a fourth shape diluted the others and the
-      // best-scoring look stopped being generated at all: measured on the real
-      // closet, the top combo fell from "Oxford + trousers + sneakers + chain
-      // bracelet + quartz watch" at 0.9455 to the same outfit bare at 0.9404,
-      // because that base drew a different shape. The ranker cannot choose what
-      // the builder never builds.
-      //
-      // Consecutive seeds address consecutive shapes, so the two pushes are
-      // always different kinds of look — a bare-ish and an accessorised one for
-      // the same garments, which is exactly the choice ranking should be given.
-      const extrasA = pickExtras(accessories, bags, t + d, a.maxAccessories, a.maxBags ?? 0);
-      if (extrasA.length) {
-        combos.push([...base, ...extrasA]);
-        if (combos.length >= CAP) break build;
-      }
-      const extrasB = pickExtras(accessories, bags, t + d + 1, a.maxAccessories, a.maxBags ?? 0);
-      if (extrasB.length && !sameItems(extrasA, extrasB)) {
-        combos.push([...base, ...extrasB]);
-        if (combos.length >= CAP) break build;
-      }
-    }
-  }
-
-  // Colour is deliberately NOT filtered here. The Refine palette is a lean, and
-  // leans are expressed by ranking (`scoreCombo`'s lean term), not by exclusion —
-  // the same soft-preference model outerwear moved to above.
-  return combos;
+  return interleave(separates, onePiece, CAP);
 }
+
+// Colour is deliberately NOT filtered anywhere above. The Refine palette is a
+// lean, and leans are expressed by ranking (`scoreCombo`'s lean term), not by
+// exclusion — the same soft-preference model outerwear uses.

@@ -10,26 +10,22 @@ import type { Slot } from "./types";
 
 type PieceLite = { category: string };
 
-const SLOTS = {
-  // The garments run down the MIDDLE; small carried and worn pieces sit in rails
-  // down either side.
-  //
-  // ⚠️ Every accessory used to land on one CORNER slot, so a watch, a bracelet
-  // and a bag were placed at identical coordinates and stacked on top of each
-  // other — visible in the real drop, where the bracelet sat on the bag. Looks
-  // now routinely carry five pieces rather than three, which this template
-  // predates.
-  //
-  // ⚠️ UPPER was only ever used when the look had outerwear, so a look without a
-  // coat left the whole top-right quadrant empty. The middle column is sized to
-  // fill the stage on its own.
-  // The rails, kept narrow so the middle keeps the width, and square-ish so a
-  // watch or a bag is not squashed into a letterbox.
-  RAIL_L1: { xPct: 1, yPct: 24, wPct: 18, hPct: 30, rotationDeg: -6, z: 1 },
-  RAIL_R1: { xPct: 81, yPct: 24, wPct: 18, hPct: 30, rotationDeg: 6, z: 1 },
-  RAIL_L2: { xPct: 1, yPct: 60, wPct: 18, hPct: 30, rotationDeg: 4, z: 1 },
-  RAIL_R2: { xPct: 81, yPct: 60, wPct: 18, hPct: 30, rotationDeg: -5, z: 1 },
-} satisfies Record<string, Slot>;
+/**
+ * The side rails: small carried and worn pieces, alternating left and right.
+ *
+ * ⚠️ Every accessory used to land on ONE slot, so a watch, a bracelet and a bag
+ * were placed at identical coordinates and stacked — seen in a real drop with
+ * the bracelet on top of the camera bag.
+ *
+ * Kept narrow so the garments keep the width, and square-ish so a watch or a bag
+ * is not squashed into a letterbox.
+ */
+const RAILS: Slot[] = [
+  { xPct: 1, yPct: 24, wPct: 18, hPct: 30, rotationDeg: -6, z: 1 },
+  { xPct: 81, yPct: 24, wPct: 18, hPct: 30, rotationDeg: 6, z: 1 },
+  { xPct: 1, yPct: 60, wPct: 18, hPct: 30, rotationDeg: 4, z: 1 },
+  { xPct: 81, yPct: 60, wPct: 18, hPct: 30, rotationDeg: -5, z: 1 },
+];
 
 /**
  * The garments, arranged for the stage's shape.
@@ -40,55 +36,72 @@ const SLOTS = {
  * anchor made every piece small, and a 62%-tall one hid the trousers behind the
  * shirt so only the lower legs showed. The garments use the width instead.
  *
- * ⚠️ Two templates, because four garments cannot sit where three do. With a
- * coat, `UPPER` and `ANCHOR` previously overlapped almost exactly and the top
- * was buried under it.
+ * ⚠️ Chosen by COUNT, not by role. Role names could not express a dress look: a
+ * one-piece and a coat both wanted the anchor and would have overlapped exactly,
+ * the same collision the top and coat had. A look carries two, three or four
+ * garments whatever they are, and the first slot is always the anchor.
  */
-const TRIO = {
-  ANCHOR: { xPct: 20, yPct: 2, wPct: 30, hPct: 64, rotationDeg: -4, z: 3 },
-  UPPER: { xPct: 20, yPct: 2, wPct: 30, hPct: 64, rotationDeg: -4, z: 3 },
-  SIDE: { xPct: 51, yPct: 2, wPct: 29, hPct: 64, rotationDeg: 3, z: 2 },
-  LOWER: { xPct: 36, yPct: 66, wPct: 28, hPct: 32, rotationDeg: 5, z: 2 },
-} satisfies Record<string, Slot>;
+const GARMENT_TEMPLATES: Record<2 | 3 | 4, Slot[]> = {
+  // A one-piece and shoes. Nothing else needs the width, so the dress takes it.
+  2: [
+    { xPct: 26, yPct: 1, wPct: 48, hPct: 68, rotationDeg: -3, z: 3 },
+    { xPct: 34, yPct: 68, wPct: 32, hPct: 30, rotationDeg: 5, z: 2 },
+  ],
+  // Top, bottom, shoes — or coat, dress, shoes.
+  3: [
+    { xPct: 20, yPct: 2, wPct: 30, hPct: 64, rotationDeg: -4, z: 3 },
+    { xPct: 51, yPct: 2, wPct: 29, hPct: 64, rotationDeg: 3, z: 2 },
+    { xPct: 36, yPct: 66, wPct: 28, hPct: 32, rotationDeg: 5, z: 2 },
+  ],
+  // Coat, top, bottom, shoes — a 2x2 block, which a landscape stage fits.
+  4: [
+    { xPct: 20, yPct: 1, wPct: 29, hPct: 53, rotationDeg: -4, z: 3 },
+    { xPct: 51, yPct: 2, wPct: 28, hPct: 48, rotationDeg: 3, z: 2 },
+    { xPct: 20, yPct: 55, wPct: 29, hPct: 43, rotationDeg: -3, z: 2 },
+    { xPct: 53, yPct: 58, wPct: 24, hPct: 38, rotationDeg: 5, z: 2 },
+  ],
+};
 
-/** Coat, top, trousers, shoes — a 2x2 block, which a landscape stage fits. */
-const QUAD = {
-  ANCHOR: { xPct: 20, yPct: 1, wPct: 29, hPct: 53, rotationDeg: -4, z: 3 },
-  UPPER: { xPct: 51, yPct: 2, wPct: 28, hPct: 48, rotationDeg: 3, z: 2 },
-  SIDE: { xPct: 20, yPct: 55, wPct: 29, hPct: 43, rotationDeg: -3, z: 2 },
-  LOWER: { xPct: 53, yPct: 58, wPct: 24, hPct: 38, rotationDeg: 5, z: 2 },
-} satisfies Record<string, Slot>;
+/**
+ * Reading order: outer layer, then the body, then the lower half, then shoes.
+ *
+ * A one-piece ranks with tops because it is the body garment; under a coat it
+ * sits where a top would.
+ */
+const READING_ORDER: Record<string, number> = {
+  Outerwear: 0,
+  "One-piece": 1,
+  Tops: 1,
+  Bottoms: 2,
+  Shoes: 3,
+};
 
-const RAILS = ["RAIL_L1", "RAIL_R1", "RAIL_L2", "RAIL_R2"] as const;
-
-type Role = keyof typeof TRIO;
-
-function roleFor(category: string, hasOuter: boolean): Role | null {
-  switch (category) {
-    case "Outerwear":
-      return "ANCHOR";
-    case "Tops":
-      return hasOuter ? "UPPER" : "ANCHOR";
-    case "Bottoms":
-      return "SIDE";
-    case "Shoes":
-      return "LOWER";
-    default:
-      return null; // Accessories, Bags and anything else take a rail
-  }
+function isGarment(category: string): boolean {
+  return category in READING_ORDER;
 }
 
 export function layoutForLook(pieces: PieceLite[]): Slot[] {
-  const hasOuter = pieces.some((p) => p.category === "Outerwear");
+  const garments = pieces
+    .map((p, i) => ({ i, rank: READING_ORDER[p.category] }))
+    .filter((g): g is { i: number; rank: number } => g.rank !== undefined)
+    .sort((a, b) => a.rank - b.rank || a.i - b.i);
+
+  // More garments than any template holds is not a crash: the extras reuse the
+  // last slot rather than dropping out of the look.
+  const size = Math.min(4, Math.max(2, garments.length)) as 2 | 3 | 4;
+  const template = GARMENT_TEMPLATES[size];
+  const slotFor = new Map<number, Slot>();
+  garments.forEach((g, n) => slotFor.set(g.i, template[Math.min(n, template.length - 1)]));
+
   let rail = 0;
-  return pieces.map((p) => {
-    const role = roleFor(p.category, hasOuter);
-    if (role) return { ...(hasOuter ? QUAD : TRIO)[role] };
+  return pieces.map((p, i) => {
+    const slot = slotFor.get(i);
+    if (slot) return { ...slot };
     // Rails are handed out in order and wrap, so a look with more small pieces
     // than rails degrades to overlap rather than to a crash.
-    const slot = SLOTS[RAILS[rail % RAILS.length]];
+    const r = RAILS[rail % RAILS.length];
     rail += 1;
-    return { ...slot };
+    return { ...r };
   });
 }
 
