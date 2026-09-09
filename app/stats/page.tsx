@@ -10,6 +10,7 @@ import { biggestGap, slotCounts } from "@/lib/stats/gap";
 import { StatsView } from "@/components/stats/stats-view";
 import type { CandidateItem } from "@/lib/generator/candidates";
 import type { UiOccasion } from "@/lib/generator/types";
+import { toCandidateItem } from "@/lib/generator/from-row";
 
 /** All four, so the gap answers "what should I buy", not "what suits Tuesday". */
 const ALL_OCCASIONS: UiOccasion[] = ["everyday", "work", "weekend", "evening"];
@@ -119,21 +120,7 @@ async function StatsBody() {
   );
   const entitlements = entitlementsFor(profile?.tier);
 
-  const closet: CandidateItem[] = items.map((i) => ({
-    id: i.id,
-    category: i.category,
-    colors: i.colors ?? [],
-    formality: i.formality,
-    seasons: i.seasons ?? [],
-    material: i.material,
-    texture: i.texture,
-    pattern: i.pattern,
-    accent_color: i.accent_color,
-    subcategory: i.subcategory,
-    bulk: i.bulk,
-    branding: i.branding,
-    distressing: i.distressing,
-  }));
+  const closet: CandidateItem[] = items.map(toCandidateItem);
   // Skipped entirely for a user who cannot see it — a few dozen passes over the
   // closet is cheap, but computing an answer nobody is shown is still waste.
   const gap = entitlements.gapAnalysis
