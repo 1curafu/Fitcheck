@@ -826,3 +826,7 @@ put .env.example inside, its only example file?
 ---
 
 full branch review maden?
+
+---
+
+we cant fix it right now?
