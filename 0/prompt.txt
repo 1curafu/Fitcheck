@@ -657,3 +657,7 @@ hint: use 'git pull' before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 
 Creating pull request for feat/canonical-trios into develop in 1curafu/Fitcheck
+
+---
+
+merged, go
