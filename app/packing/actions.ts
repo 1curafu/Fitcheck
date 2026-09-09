@@ -11,6 +11,7 @@ import { narrateTrip } from "@/lib/packing/narrate";
 import { saveTrip, loadTrip, replaceCapsule, saveTripLooks } from "@/lib/packing/store";
 import { PackingLockedError } from "@/lib/packing/errors";
 import type { CandidateItem } from "@/lib/generator/candidates";
+import { CANDIDATE_SELECT, toCandidateItem } from "@/lib/generator/from-row";
 
 export type PlanTripInput = {
   destinationLabel: string;
@@ -56,9 +57,9 @@ export async function planTrip(input: PlanTripInput): Promise<{ tripId: string }
 
   const { data: closet } = await supabase
     .from("items")
-    .select("id, name, subcategory, category, colors, formality, seasons, material, texture, pattern, accent_color, bulk, branding, distressing")
+    .select(`${CANDIDATE_SELECT}, name`)
     .eq("archived", false);
-  const items = (closet ?? []) as unknown as CandidateItem[];
+  const items = (closet ?? []).map((r) => toCandidateItem(r as never));
 
   const forecast = await fetchTripForecast(
     input.lat,
@@ -222,9 +223,9 @@ export async function editCapsule(
 
   const { data: closet } = await supabase
     .from("items")
-    .select("id, name, subcategory, category, colors, formality, seasons, material, texture, pattern, accent_color, bulk, branding, distressing")
+    .select(`${CANDIDATE_SELECT}, name`)
     .eq("archived", false);
-  const items = (closet ?? []) as unknown as CandidateItem[];
+  const items = (closet ?? []).map((r) => toCandidateItem(r as never));
 
   const days = expandDays(trip.startDate, trip.endDate, trip.occasionMix);
   const forecast = await fetchTripForecast(trip.lat, trip.lon, days.map((d) => d.date));

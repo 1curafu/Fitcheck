@@ -39,6 +39,7 @@ import type {
   UiOccasion,
   WeatherPayload,
 } from "@/lib/generator/types";
+import { stylistInputFor, toCandidateItem } from "@/lib/generator/from-row";
 
 export async function generate(input: {
   occasion: UiOccasion;
@@ -182,21 +183,7 @@ export async function generate(input: {
       throw e;
     }
 
-    const candItems: CandidateItem[] = items.map((i) => ({
-      id: i.id,
-      category: i.category,
-      colors: i.colors ?? [],
-      formality: i.formality,
-      seasons: i.seasons ?? [],
-      material: i.material,
-      texture: i.texture,
-      pattern: i.pattern,
-      accent_color: i.accent_color,
-      subcategory: i.subcategory,
-      bulk: i.bulk,
-      branding: i.branding,
-      distressing: i.distressing,
-    }));
+    const candItems: CandidateItem[] = items.map(toCandidateItem);
     // Occasion gives the context; the user's onboarding dress codes narrow it;
     // an explicit Refine formality overrides both.
     const band = applyFormalityOverride(
@@ -262,28 +249,12 @@ export async function generate(input: {
     // fewer fresh looks rather than the set growing a fourth tab.
     const pinnedStored = (stored ?? []).filter((s) => s.worn);
 
-    // Rules the sources disagree about travel to the stylist instead of being
-    // silently resolved by a score. De-duplicated: the same judgement call
-    // raised by ten candidates is still one question.
-    const contested = [...new Set(top.flatMap((t) => t.verdict.contested))];
+    const { combos: described, contested } = stylistInputFor(top, byId);
 
     const { picks } = await rerank({
       contested,
       want: MAX_PICKS - pinnedStored.length,
-      combos: top.map((t) =>
-        t.items.map((ci) => {
-          const it = byId.get(ci.id)!;
-          return {
-            category: it.category,
-            subcategory: it.subcategory,
-            colors: it.colors ?? [],
-            material: it.material,
-            texture: it.texture,
-            pattern: it.pattern,
-            accent_color: it.accent_color,
-          };
-        }),
-      ),
+      combos: described,
       aesthetic,
       occasion: input.occasion,
       weatherLabel: f.condition,

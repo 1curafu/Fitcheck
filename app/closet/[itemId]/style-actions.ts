@@ -24,6 +24,7 @@ import {
 } from "@/lib/outfits/styled-store";
 import { resolveLocation } from "@/lib/weather/location";
 import type { LookDraft, LookPiece, WeatherPayload } from "@/lib/generator/types";
+import { stylistInputFor, toCandidateItem } from "@/lib/generator/from-row";
 
 export type StyleResult =
   | { status: "ok"; outfitIds: string[] }
@@ -140,21 +141,7 @@ export async function styleWithItem(
      * defect fixed in PR #14.
      */
     const pool = items.filter((i) => i.category !== subject.category || i.id === itemId);
-    const candItems: CandidateItem[] = pool.map((i) => ({
-      id: i.id,
-      colors: i.colors ?? [],
-      category: i.category,
-      formality: i.formality,
-      seasons: i.seasons ?? [],
-      material: i.material,
-      texture: i.texture,
-      pattern: i.pattern,
-      accent_color: i.accent_color,
-      subcategory: i.subcategory,
-      bulk: i.bulk,
-      branding: i.branding,
-      distressing: i.distressing,
-    }));
+    const candItems: CandidateItem[] = pool.map(toCandidateItem);
 
     const args = {
       weather: {
@@ -222,28 +209,12 @@ export async function styleWithItem(
     // model twenty variations of one idea, because ranking clusters.
     const shortlist = shortlistFor(pinned);
 
-    // Rules the sources disagree about travel to the stylist instead of being
-    // silently resolved by a score. De-duplicated: the same judgement call
-    // raised by ten candidates is still one question.
-    const contested = [...new Set(shortlist.flatMap((t) => t.verdict.contested))];
+    const { combos, contested } = stylistInputFor(shortlist, byId);
 
     const { picks } = await rerank({
       contested,
       want: STYLED_LOOKS,
-      combos: shortlist.map((t) =>
-        t.items.map((ci) => {
-          const it = byId.get(ci.id)!;
-          return {
-            category: it.category,
-            subcategory: it.subcategory,
-            colors: it.colors ?? [],
-            material: it.material,
-            texture: it.texture,
-            pattern: it.pattern,
-            accent_color: it.accent_color,
-          };
-        }),
-      ),
+      combos,
       aesthetic,
       occasion,
       weatherLabel: f.condition,
