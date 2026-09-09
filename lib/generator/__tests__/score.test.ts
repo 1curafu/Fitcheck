@@ -169,8 +169,14 @@ test("three patterns are worse than two, and still not zero", () => {
 // temperature against real cloth leads; the month tag grounds it.
 
 test("with no tempC in context the warmth term is inert", () => {
-  const warm = oneP.map((i) => ({ ...i, texture: "Chunky knit" }));
-  const light = oneP.map((i) => ({ ...i, texture: "Fine knit" }));
+  // ⚠️ Textures chosen so the TEXTURE MATRIX has no opinion on either, leaving
+  // warmth as the only thing that could differ. The original fixture used
+  // Chunky knit against Fine knit and started failing when the matrix landed —
+  // "Chunky knit|Chunky knit" is a rated pair (two bulky knits compound) while
+  // Fine knit against itself is unrated, so the two outfits differed for a
+  // reason that had nothing to do with warmth.
+  const warm = oneP.map((i) => ({ ...i, texture: "Fleece-back" }));
+  const light = oneP.map((i) => ({ ...i, texture: "Ribbed" }));
   expect(scoreCombo(warm, ctx)).toBe(scoreCombo(light, ctx));
 });
 
@@ -825,3 +831,43 @@ test("a leather shoe against wool is untouched by the footwear rule", () => {
     scoreCombo([top, wool, slim] as never, wearer),
   );
 });
+
+// ---------------------------------------------------------------------------
+// Material and texture pairings, through scoreCombo.
+// ---------------------------------------------------------------------------
+
+// ⚠️ These use a context with NO season and NO temperature, so `climateFit`
+// returns null and the warmth term is inert. That is the only way to isolate
+// these two rules through `scoreCombo`: material and texture BOTH feed
+// `itemWarmth`, so at any real temperature an outfit built to differ only in
+// material also differs in warmth. Written the obvious way first, both tests
+// passed with the terms unwired — the fifth and sixth time that confound has
+// faked a result in this file.
+const noClimate = { aesthetic: [], band: [1, 5] as [number, number] };
+
+test("a season conflict in the cloth is scored, through scoreCombo", () => {
+  const top = (mat: string) => ({ ...piece("t", "Tops", ["white"], 3, mat), texture: "Flat" });
+  const bottom = { ...piece("b", "Bottoms", ["navy"], 3, "Linen"), texture: "Flat" };
+  const shoes = { ...piece("s", "Shoes", ["brown"], 3, "Leather"), texture: "Flat" };
+  // Linen + Fleece is a season conflict (rated 1); Linen + Polyester is not (3).
+  expect(scoreCombo([top("Fleece"), bottom, shoes] as never, noClimate)).toBeLessThan(
+    scoreCombo([top("Polyester"), bottom, shoes] as never, noClimate),
+  );
+});
+
+test("two bulky knits compound, through scoreCombo", () => {
+  const outfit = (t1: string, t2: string) => [
+    { ...piece("t", "Tops", ["white"], 3, "Wool"), texture: t1 },
+    { ...piece("b", "Bottoms", ["navy"], 3, "Wool"), texture: t2 },
+    { ...piece("s", "Shoes", ["brown"], 3, "Leather"), texture: "Flat" },
+  ];
+  expect(scoreCombo(outfit("Chunky knit", "Chunky knit") as never, noClimate)).toBeLessThan(
+    scoreCombo(outfit("Chunky knit", "Fine knit") as never, noClimate),
+  );
+});
+
+// ⚠️ There is deliberately NO integration test for "an unrated pair drops out".
+// Every pair of materials differs in `itemWarmth`, so two outfits built to differ
+// only in an unrated material still differ in warmth — the confound that has
+// faked a result in this file five times. The null behaviour is covered where it
+// can actually be isolated, in material-matrix.test.ts.
