@@ -44,6 +44,9 @@ export type CandidateItem = {
   subcategory?: string | null;
   /** Sole bulk, carried through for `footwearAgainstOutfit`. */
   bulk?: string | null;
+  /** Branding prominence and visible wear, carried through for the rule registry. */
+  branding?: string | null;
+  distressing?: string | null;
 };
 
 export type CandidateArgs = {

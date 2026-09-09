@@ -1,4 +1,5 @@
 import {
+  buildRerankPrompt,
   dedupePicks,
   type DescItem,
   echoNote,
@@ -439,4 +440,35 @@ test("the variety rule covers a one-piece, not only tops and bottoms", () => {
   // names could not find it.
   expect(RERANK_VARIETY_RULE).toMatch(/dress/i);
   expect(RERANK_VARIETY_RULE).not.toMatch(/same top, and no two may share the same bottom/);
+});
+
+// Contested rules reach the stylist rather than being silently resolved.
+const PROMPT_ARGS = {
+  combos: [[{ category: "Tops", colors: ["navy"], name: "Navy shirt" }]],
+  aesthetic: [], occasion: "work", weatherLabel: "clear", tempC: 18, want: 3,
+};
+
+test("contested guidance reaches the model when a combo triggers it", () => {
+  const prompt = buildRerankPrompt({
+    ...PROMPT_ARGS,
+    contested: ["black with navy: judge it in this outfit"],
+  } as never);
+  expect(prompt).toContain("black with navy");
+  expect(prompt).toContain("Judgement calls");
+});
+
+test("no contested guidance means no extra prompt text", () => {
+  const prompt = buildRerankPrompt({ ...PROMPT_ARGS, contested: [] } as never);
+  expect(prompt).not.toContain("Judgement calls");
+});
+
+test("the guidance sits before the instruction, not inside the candidate list", () => {
+  // ⚠️ Placement is the whole point: after the candidates it reads as guidance
+  // about them, inside the list it reads as part of one outfit's description.
+  const prompt = buildRerankPrompt({
+    ...PROMPT_ARGS,
+    contested: ["black with brown: contested"],
+  } as never);
+  expect(prompt.indexOf("Judgement calls")).toBeGreaterThan(prompt.indexOf("Navy shirt"));
+  expect(prompt.indexOf("Judgement calls")).toBeLessThan(prompt.indexOf("Pick the best"));
 });

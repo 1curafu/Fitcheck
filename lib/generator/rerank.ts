@@ -308,6 +308,52 @@ export function stubbedRerank(comboCount: number, want: number): RerankResult {
   return { picks };
 }
 
+/**
+ * The rerank prompt, as a pure function.
+ *
+ * Exported so the prompt can be asserted on without an API key or a network
+ * call — the guidance the model receives is product surface, not an
+ * implementation detail.
+ */
+export function buildRerankPrompt(a: {
+  combos: DescItem[][];
+  aesthetic: string[];
+  occasion: string;
+  weatherLabel: string;
+  tempC: number;
+  nowC?: number;
+  want: number;
+  contested?: string[];
+}): string {
+  const want = a.want;
+  // Say the peak out loud when the day still has to climb into it, or the model
+  // reasons about the morning and writes a sentence the outfit contradicts.
+  const climbing = a.nowC != null && a.tempC - a.nowC >= 3;
+  // ⚠️ Placed AFTER the candidate list and BEFORE "Pick the best", so it reads
+  // as guidance about the candidates rather than as part of one outfit's
+  // description.
+  const judgement = a.contested?.length
+    ? `\n\nJudgement calls — good stylists genuinely disagree about these, so decide for THIS outfit rather than applying a blanket rule:\n${a.contested
+        .map((c) => `· ${c}`)
+        .join("\n")}`
+    : "";
+  const weather = climbing
+    ? `${a.weatherLabel}, ${a.nowC}°C now, rising to ${a.tempC}°C — these outfits are chosen for the warmest part of the day, so describe them for that, not for the current chill`
+    : `${a.weatherLabel}, ${a.tempC}°C`;
+  return `You are a personal stylist. The user's aesthetic is ${
+    a.aesthetic.join(", ") || "understated, modern menswear"
+  }. Occasion: ${a.occasion}. Weather: ${weather}.
+Each piece is listed as: name (colours, fabric, weave, pattern, accent) — fabric and weave are given where known, and a pattern is named only when the piece is not plain. Prefer outfits whose fabrics suit the temperature above, and avoid putting two patterned pieces together.
+${RERANK_ACCENT_RULE}
+Here are candidate outfits (already filtered and scored), one per line:
+${describeCombos(a.combos)}
+${judgement}
+
+Pick the best ${want}. ${RERANK_VARIETY_RULE}
+
+For each return: its combo_index; a short evocative NAME (≤4 words and at most ${NAME_MAX} characters, e.g. "The Off-Duty Camel"); and ONE warm, specific sentence ("why") that references the colours/pieces (e.g. "the camel knit warms the grey trousers and picks up the loafers"). Only claim a fabric or weave that is actually listed for that piece. Return exactly ${want} pick${want === 1 ? "" : "s"}, each with a DIFFERENT combo_index.`;
+}
+
 export async function rerank(args: {
   combos: DescItem[][];
   aesthetic: string[];
@@ -333,6 +379,16 @@ export async function rerank(args: {
    * of three — the index tabs are 01/02/03 and a fourth does not fit at 390px.
    */
   want?: number;
+  /**
+   * Rules the sources genuinely disagree about, from the rule registry.
+   *
+   * ⚠️ These are scored ZERO deterministically and decided here instead. Black
+   * with navy is not wrong — it works when texture or pattern separates the two,
+   * which is a whole-outfit judgement a scoring function cannot see and a
+   * stylist can. Silently picking a side is the one thing the research asks the
+   * engine not to do.
+   */
+  contested?: string[];
 }): Promise<RerankResult> {
   const want = Math.max(1, Math.min(args.want ?? MAX_PICKS, MAX_PICKS));
 
@@ -344,23 +400,7 @@ export async function rerank(args: {
     };
   }
 
-  // Say the peak out loud when the day still has to climb into it, or the model
-  // reasons about the morning and writes a sentence the outfit contradicts.
-  const climbing = args.nowC != null && args.tempC - args.nowC >= 3;
-  const weather = climbing
-    ? `${args.weatherLabel}, ${args.nowC}°C now, rising to ${args.tempC}°C — these outfits are chosen for the warmest part of the day, so describe them for that, not for the current chill`
-    : `${args.weatherLabel}, ${args.tempC}°C`;
-  const prompt = `You are a personal stylist. The user's aesthetic is ${
-    args.aesthetic.join(", ") || "understated, modern menswear"
-  }. Occasion: ${args.occasion}. Weather: ${weather}.
-Each piece is listed as: name (colours, fabric, weave, pattern, accent) — fabric and weave are given where known, and a pattern is named only when the piece is not plain. Prefer outfits whose fabrics suit the temperature above, and avoid putting two patterned pieces together.
-${RERANK_ACCENT_RULE}
-Here are candidate outfits (already filtered and scored), one per line:
-${describeCombos(args.combos)}
-
-Pick the best ${want}. ${RERANK_VARIETY_RULE}
-
-For each return: its combo_index; a short evocative NAME (≤4 words and at most ${NAME_MAX} characters, e.g. "The Off-Duty Camel"); and ONE warm, specific sentence ("why") that references the colours/pieces (e.g. "the camel knit warms the grey trousers and picks up the loafers"). Only claim a fabric or weave that is actually listed for that piece. Return exactly ${want} pick${want === 1 ? "" : "s"}, each with a DIFFERENT combo_index.`;
+  const prompt = buildRerankPrompt({ ...args, want, contested: args.contested });
 
   const client = new Anthropic(); // lazy: keeps this module importable in tests without a key
   const res = await client.messages.create({

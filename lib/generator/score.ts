@@ -45,6 +45,15 @@ export type ScoreItem = {
    * colour ECHO. See the contract on `colourScore`.
    */
   accent_color?: string | null;
+  /**
+   * How loud the garment's branding is, and whether it is visibly distressed.
+   *
+   * ⚠️ Both were DEAD DATA until the rule registry — tagged on every item, shown
+   * on the item screen, editable in the sheet, and read by nothing in the
+   * generator. The same defect `bulk` and `accent_color` each had.
+   */
+  branding?: string | null;
+  distressing?: string | null;
 };
 export type Ctx = {
   aesthetic: string[];
