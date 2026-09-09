@@ -151,6 +151,7 @@ export async function styleWithItem(
       pattern: i.pattern,
       accent_color: i.accent_color,
       subcategory: i.subcategory,
+          bulk: i.bulk,
     }));
 
     const args = {

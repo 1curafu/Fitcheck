@@ -130,6 +130,7 @@ async function StatsBody() {
     pattern: i.pattern,
     accent_color: i.accent_color,
     subcategory: i.subcategory,
+      bulk: i.bulk,
   }));
   // Skipped entirely for a user who cannot see it — a few dozen passes over the
   // closet is cheap, but computing an answer nobody is shown is still waste.
