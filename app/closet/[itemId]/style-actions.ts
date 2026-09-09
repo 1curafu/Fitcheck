@@ -151,7 +151,9 @@ export async function styleWithItem(
       pattern: i.pattern,
       accent_color: i.accent_color,
       subcategory: i.subcategory,
-          bulk: i.bulk,
+      bulk: i.bulk,
+      branding: i.branding,
+      distressing: i.distressing,
     }));
 
     const args = {
@@ -220,7 +222,13 @@ export async function styleWithItem(
     // model twenty variations of one idea, because ranking clusters.
     const shortlist = shortlistFor(pinned);
 
+    // Rules the sources disagree about travel to the stylist instead of being
+    // silently resolved by a score. De-duplicated: the same judgement call
+    // raised by ten candidates is still one question.
+    const contested = [...new Set(shortlist.flatMap((t) => t.verdict.contested))];
+
     const { picks } = await rerank({
+      contested,
       want: STYLED_LOOKS,
       combos: shortlist.map((t) =>
         t.items.map((ci) => {

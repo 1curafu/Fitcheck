@@ -193,7 +193,9 @@ export async function generate(input: {
       pattern: i.pattern,
       accent_color: i.accent_color,
       subcategory: i.subcategory,
-          bulk: i.bulk,
+      bulk: i.bulk,
+      branding: i.branding,
+      distressing: i.distressing,
     }));
     // Occasion gives the context; the user's onboarding dress codes narrow it;
     // an explicit Refine formality overrides both.
@@ -260,7 +262,13 @@ export async function generate(input: {
     // fewer fresh looks rather than the set growing a fourth tab.
     const pinnedStored = (stored ?? []).filter((s) => s.worn);
 
+    // Rules the sources disagree about travel to the stylist instead of being
+    // silently resolved by a score. De-duplicated: the same judgement call
+    // raised by ten candidates is still one question.
+    const contested = [...new Set(top.flatMap((t) => t.verdict.contested))];
+
     const { picks } = await rerank({
+      contested,
       want: MAX_PICKS - pinnedStored.length,
       combos: top.map((t) =>
         t.items.map((ci) => {
