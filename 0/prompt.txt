@@ -822,3 +822,7 @@ did u make a branch review for last pr?
 ---
 
 put .env.example inside, its only example file?
+
+---
+
+full branch review maden?
