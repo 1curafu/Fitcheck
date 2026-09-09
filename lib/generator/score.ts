@@ -7,6 +7,7 @@ import { visualSeparation } from "./styling/value";
 import { valueDirection } from "./styling/direction";
 import { canonicalTrio } from "./styling/trios";
 import { footwearAgainstOutfit } from "./styling/footwear";
+import { materialScore, textureScore } from "./styling/material-matrix";
 
 export type ScoreItem = {
   category: string;
@@ -141,6 +142,18 @@ const WEIGHTS = {
    * register question this one is a special case of.
    */
   footwear: 0.2,
+  /**
+   * Rated material and texture pairings. Colour has had this treatment since
+   * `pairing-ratings.ts`; cloth never did — `material` reached only rain
+   * exclusion, warmth and hardware detection, and nothing rated one material
+   * against another.
+   *
+   * Weighted together with `pattern`: real evidence, but thinner than colour's
+   * and covering fewer pairs, so it should nudge rather than decide. Both drop
+   * out entirely when no pair in the outfit is rated.
+   */
+  material: 0.15,
+  texture: 0.15,
 } as const;
 
 /**
@@ -390,6 +403,11 @@ export function scoreCombo(items: ScoreItem[], ctx: Ctx): number {
     // dress its owner. Same rule `eligibleByCategory` follows — a filter may
     // narrow a required slot, never empty it.
     { weight: WEIGHTS.footwear, value: footwearAgainstOutfit(items) },
+    // ⚠️ One value PER GARMENT, not a de-duplicated set: two chunky knits in one
+    // outfit is the compounding the research warns about, and de-duplicating
+    // would make that rule unreachable.
+    { weight: WEIGHTS.material, value: materialScore(items.map((i) => i.material)) },
+    { weight: WEIGHTS.texture, value: textureScore(items.map((i) => i.texture)) },
     {
       weight: WEIGHTS.separation,
       value: (() => {
