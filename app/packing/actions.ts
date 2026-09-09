@@ -56,7 +56,7 @@ export async function planTrip(input: PlanTripInput): Promise<{ tripId: string }
 
   const { data: closet } = await supabase
     .from("items")
-    .select("id, name, subcategory, category, colors, formality, seasons, material, texture, pattern, accent_color")
+    .select("id, name, subcategory, category, colors, formality, seasons, material, texture, pattern, accent_color, bulk")
     .eq("archived", false);
   const items = (closet ?? []) as unknown as CandidateItem[];
 
@@ -222,7 +222,7 @@ export async function editCapsule(
 
   const { data: closet } = await supabase
     .from("items")
-    .select("id, name, subcategory, category, colors, formality, seasons, material, texture, pattern, accent_color")
+    .select("id, name, subcategory, category, colors, formality, seasons, material, texture, pattern, accent_color, bulk")
     .eq("archived", false);
   const items = (closet ?? []) as unknown as CandidateItem[];
 

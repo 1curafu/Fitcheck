@@ -6,6 +6,7 @@ import { colourScore } from "./styling/colour-score";
 import { visualSeparation } from "./styling/value";
 import { valueDirection } from "./styling/direction";
 import { canonicalTrio } from "./styling/trios";
+import { footwearAgainstOutfit } from "./styling/footwear";
 
 export type ScoreItem = {
   category: string;
@@ -27,6 +28,15 @@ export type ScoreItem = {
   /** Fibre and construction. Together they carry warmth — see ./texture.ts. */
   material?: string | null;
   texture?: string | null;
+  /**
+   * Footwear sole bulk. Read by `footwearAgainstOutfit` alone.
+   *
+   * ⚠️ This field was DEAD from the day it was captured until now: the tagger
+   * recorded it on every shoe, the edit sheet offered it, the item screen showed
+   * it, and nothing in the generator read it — the same shape as `accent_color`
+   * being written and never scored, which was the original reported bug.
+   */
+  bulk?: string | null;
   /**
    * The garment's ONE small contrast colour — a logo, a sole, a buckle.
    *
@@ -124,6 +134,13 @@ const WEIGHTS = {
    * inoffensive one, not strong enough to carry an outfit that fails elsewhere.
    */
   canonical: 0.15,
+  /**
+   * Whether the shoe suits what it is worn with. A STRONG rule in the research —
+   * a rubber sole against worsted wool is stated outright, not as a preference —
+   * so it sits above `pattern` but below `coherence`, which answers the broader
+   * register question this one is a special case of.
+   */
+  footwear: 0.2,
 } as const;
 
 /**
@@ -368,6 +385,11 @@ export function scoreCombo(items: ScoreItem[], ctx: Ctx): number {
     // stay silent rather than become a penalty on the many fine combinations
     // nobody published.
     { weight: WEIGHTS.canonical, value: canonicalTrio(items) },
+    // ⚠️ A WEIGHT, never a filter, even for the case the research states
+    // outright: a closet of one wool trouser and one canvas sneaker still has to
+    // dress its owner. Same rule `eligibleByCategory` follows — a filter may
+    // narrow a required slot, never empty it.
+    { weight: WEIGHTS.footwear, value: footwearAgainstOutfit(items) },
     {
       weight: WEIGHTS.separation,
       value: (() => {

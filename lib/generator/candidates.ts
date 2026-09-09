@@ -42,6 +42,8 @@ export type CandidateItem = {
    * evidence that two items differ.
    */
   subcategory?: string | null;
+  /** Sole bulk, carried through for `footwearAgainstOutfit`. */
+  bulk?: string | null;
 };
 
 export type CandidateArgs = {

@@ -784,7 +784,44 @@ test("a documented trio is rewarded, through scoreCombo", () => {
     { ...piece("s", "Shoes", [shoes], 3, "Cotton"), texture: "Flat" },
   ];
   // light / navy / light is a documented row; light / navy / dark is not.
+  //
+  // ⚠️ This threshold is a MEASURED WINDOW, not a constant: 0.0113 without the
+  // term, 0.0173 with it. Adding any scoring term changes the denominator every
+  // other term divides by, so the window moves — it already broke once when the
+  // footwear rule landed. Re-measure rather than nudging the number until it
+  // passes; the point is that it must fail with the term unwired.
   const canonical = scoreCombo(trio("white", "navy", "grey") as never, wearer);
   const unlisted = scoreCombo(trio("white", "navy", "black") as never, wearer);
-  expect(canonical - unlisted).toBeGreaterThan(0.018);
+  expect(canonical - unlisted).toBeGreaterThan(0.015);
+});
+
+test("a chunky canvas sneaker is faulted against wool, through scoreCombo", () => {
+  // ⚠️ Only BULK varies. An earlier version compared a Wool bottom against a
+  // Cotton one and passed with the term unwired, because those differ in
+  // `warmthFit` too — the FOURTH time a swapped-material fixture has faked a
+  // result in this file. Nothing but `footwearAgainstOutfit` reads `bulk`, so
+  // varying it isolates this rule exactly.
+  //
+  // `bulk` was captured on every shoe and read by nothing in the generator until
+  // now — the same shape as accent_color being written and never scored, which
+  // was the original reported bug.
+  const wool = { ...piece("b", "Bottoms", ["navy"], 4, "Wool"), texture: "Flat" };
+  const top = { ...piece("t", "Tops", ["white"], 4, "Cotton"), texture: "Flat" };
+  const canvas = (bulk: string) => ({
+    ...piece("s", "Shoes", ["white"], 3, "Canvas"), texture: "Flat", bulk,
+  });
+  expect(scoreCombo([top, wool, canvas("Chunky")] as never, wearer)).toBeLessThan(
+    scoreCombo([top, wool, canvas("Low profile")] as never, wearer),
+  );
+});
+
+test("a leather shoe against wool is untouched by the footwear rule", () => {
+  const wool = { ...piece("b", "Bottoms", ["navy"], 4, "Wool"), texture: "Flat" };
+  const top = { ...piece("t", "Tops", ["white"], 4, "Cotton"), texture: "Flat" };
+  const leather = { ...piece("s", "Shoes", ["brown"], 4, "Leather"), texture: "Flat", bulk: "Chunky" };
+  const slim = { ...piece("s", "Shoes", ["brown"], 4, "Leather"), texture: "Flat", bulk: "Low profile" };
+  // Bulk changes the sole ladder but never blocks a leather shoe here.
+  expect(scoreCombo([top, wool, leather] as never, wearer)).toBe(
+    scoreCombo([top, wool, slim] as never, wearer),
+  );
 });
