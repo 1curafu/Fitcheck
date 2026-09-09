@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { StyleCta } from "../style-cta";
 
@@ -120,7 +120,14 @@ test("the button stays available to a gated user", async () => {
   const button = screen.getByRole("button", { name: /style an outfit/i });
   await userEvent.click(button);
   await screen.findByRole("dialog");
-  expect(button).toBeEnabled();
+  // ⚠️ `waitFor`, not a bare assertion, and the reason is a real race rather
+  // than test flimsiness: the button is `disabled={pending}` from a transition,
+  // and React can paint the upgrade sheet on a render where the transition has
+  // not finished. Asserting the instant the dialog appears samples an arbitrary
+  // frame — it passed alone and failed roughly one full run in four, because a
+  // loaded run interleaves differently. What the product promises is that the
+  // button comes BACK, so that is what this waits for.
+  await waitFor(() => expect(button).toBeEnabled());
 });
 
 test("an empty result explains itself too", async () => {
