@@ -1,0 +1,378 @@
+{
+  "cli_version": "0.10.5",
+  "checkpoint_id": "01M23PBQ75EM8N0SE35ZW0VJS8",
+  "session_id": "8dbc8706-da4b-488c-b8be-7203d3d08172",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-09T18:19:56.941252Z",
+  "branch": "fix/style-cta-flake",
+  "checkpoints_count": 1,
+  "save_step_count": 2,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "claude-opus-5",
+  "turn_id": "d7c6dbb51a83",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 2440,
+    "cache_creation_tokens": 12925743,
+    "cache_read_tokens": 614471468,
+    "output_tokens": 1276028,
+    "api_call_count": 1243,
+    "subagent_tokens": {
+      "input_tokens": 0,
+      "cache_creation_tokens": 0,
+      "cache_read_tokens": 0,
+      "output_tokens": 0,
+      "api_call_count": 0
+    }
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "claude-skill-toolu_01CScy16atJ8ujQqGa3s1mKn",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "superpowers:brainstorming"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "d165a26eabcb",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 28,
+        "end": 29,
+        "entry_ids": [
+          "7b25e143-7dc2-491b-9a54-1ef2558617b4"
+        ],
+        "tool_use_id": "toolu_01CScy16atJ8ujQqGa3s1mKn"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01CScy16atJ8ujQqGa3s1mKn"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: superpowers:brainstorming",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01GzGfS5XfMFv3nfReJFxrhg",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "claude-api"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "d165a26eabcb",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 102,
+        "end": 103,
+        "entry_ids": [
+          "4e7ce676-8ca2-440e-8c2e-908d7fde82e9"
+        ],
+        "tool_use_id": "toolu_01GzGfS5XfMFv3nfReJFxrhg"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01GzGfS5XfMFv3nfReJFxrhg"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: claude-api",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01JFNZV41iTUPAwr4mPkgGLD",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "superpowers:writing-plans"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "d165a26eabcb",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 434,
+        "end": 435,
+        "entry_ids": [
+          "efc56410-88ee-4b1d-aa5a-9db97448321e"
+        ],
+        "tool_use_id": "toolu_01JFNZV41iTUPAwr4mPkgGLD"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01JFNZV41iTUPAwr4mPkgGLD"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: superpowers:writing-plans",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_01MZPByVwcf7CQr1pCqFztDu",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "superpowers:subagent-driven-development"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "d165a26eabcb",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 574,
+        "end": 575,
+        "entry_ids": [
+          "5ed8fce8-a2c6-438f-b93b-6082c6b6edb4"
+        ],
+        "tool_use_id": "toolu_01MZPByVwcf7CQr1pCqFztDu"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_01MZPByVwcf7CQr1pCqFztDu"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: superpowers:subagent-driven-development",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "claude-skill-toolu_0118Bw7KXcM3GmScipnJ9Cut",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "superpowers:finishing-a-development-branch"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "d165a26eabcb",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 1706,
+        "end": 1707,
+        "entry_ids": [
+          "68e7d340-f0d2-4e90-ac40-b685d665b625"
+        ],
+        "tool_use_id": "toolu_0118Bw7KXcM3GmScipnJ9Cut"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_0118Bw7KXcM3GmScipnJ9Cut"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: superpowers:finishing-a-development-branch",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 188
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 11974,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".github/workflows/ci.yml": 108,
+        "LOCAL_DEV.md": 130,
+        "app/auth/callback/route.ts": 25,
+        "app/auth/signout/route.ts": 8,
+        "app/closet/upload/page.tsx": 23,
+        "app/globals.css": 179,
+        "app/layout.tsx": 49,
+        "app/onboarding/actions.ts": 48,
+        "app/onboarding/capture/page.tsx": 30,
+        "app/onboarding/page.tsx": 31,
+        "app/outfits/[id]/actions.ts": 188,
+        "components.json": 25,
+        "components/auth/email-sign-in.tsx": 66,
+        "components/auth/oauth-buttons.tsx": 33,
+        "components/billing/pro-card.tsx": 48,
+        "components/billing/upgrade-sheet.tsx": 162,
+        "components/capture/__tests__/onboarding-capture.test.tsx": 23,
+        "components/capture/__tests__/progress-strip.test.tsx": 11,
+        "components/capture/__tests__/viewfinder.test.tsx": 14,
+        "components/capture/progress-strip.tsx": 22,
+        "components/capture/viewfinder.tsx": 55,
+        "components/closet/__tests__/color-picker.test.tsx": 75,
+        "components/closet/__tests__/item-card.test.tsx": 20,
+        "components/closet/__tests__/style-cta.test.tsx": 150,
+        "components/closet/color-picker.tsx": 99,
+        "components/closet/item-card.tsx": 54,
+        "components/closet/item-view.tsx": 221,
+        "components/closet/style-cta.tsx": 96,
+        "components/diary/__tests__/diary-grid.test.tsx": 107,
+        "components/diary/diary-grid.tsx": 227,
+        "components/generate/__tests__/flat-lay.test.tsx": 73,
+        "components/generate/__tests__/index-tabs.test.tsx": 20,
+        "components/generate/__tests__/occasion-refine.test.tsx": 56,
+        "components/generate/__tests__/stylist-view.test.tsx": 209,
+        "components/generate/__tests__/weather-strip.test.tsx": 113,
+        "components/generate/__tests__/why-quote.test.tsx": 13,
+        "components/generate/flat-lay.tsx": 70,
+        "components/generate/index-tabs.tsx": 38,
+        "components/generate/occasion-row.tsx": 58,
+        "components/generate/refine-sheet.tsx": 107,
+        "components/generate/stylist.tsx": 341,
+        "components/generate/weather-strip.tsx": 136,
+        "components/generate/why-quote.tsx": 24,
+        "components/onboarding/quiz.tsx": 189,
+        "components/outfits/__tests__/outfit-detail.test.tsx": 144,
+        "components/outfits/__tests__/wear-confirm-sheet.test.tsx": 96,
+        "components/outfits/wear-confirm-sheet.tsx": 83,
+        "components/outfits/wear-confirm.tsx": 44,
+        "components/profile/__tests__/profile-hub.test.tsx": 128,
+        "components/settings/settings-view.tsx": 331,
+        "components/shell/__tests__/mobile-nav.test.tsx": 53,
+        "components/shell/grain.tsx": 12,
+        "components/shell/mobile-nav.tsx": 62,
+        "components/shell/mobile-shell.tsx": 11,
+        "components/stats/__tests__/stats-view.test.tsx": 125,
+        "components/stats/stats-view.tsx": 262,
+        "components/ui-fitcheck/__tests__/chip.test.tsx": 49,
+        "components/ui-fitcheck/__tests__/kicker.test.tsx": 14,
+        "components/ui-fitcheck/__tests__/surface.test.tsx": 29,
+        "components/ui-fitcheck/chip.tsx": 49,
+        "components/ui-fitcheck/kicker.tsx": 25,
+        "components/ui-fitcheck/select.tsx": 41,
+        "components/ui-fitcheck/surface.tsx": 22,
+        "components/ui/button.tsx": 58,
+        "components/weather/__tests__/location-picker.test.tsx": 62,
+        "components/weather/__tests__/location-sheet.test.tsx": 135,
+        "components/weather/location-sheet.tsx": 111,
+        "e2e/closet.spec.ts": 51,
+        "e2e/global.setup.ts": 70,
+        "e2e/shell-privacy.spec.ts": 127,
+        "e2e/smoke.spec.ts": 45,
+        "e2e/stats.spec.ts": 94,
+        "eslint.config.mjs": 18,
+        "lib/__tests__/motion.test.ts": 11,
+        "lib/billing/__tests__/tiers.test.ts": 155,
+        "lib/billing/entitlements.ts": 113,
+        "lib/billing/errors.ts": 26,
+        "lib/closet/__tests__/filter.test.ts": 23,
+        "lib/closet/__tests__/normalize-material.test.ts": 45,
+        "lib/closet/__tests__/vocab.test.ts": 87,
+        "lib/closet/__tests__/wear-stats.test.ts": 49,
+        "lib/closet/filter.ts": 18,
+        "lib/closet/goes-with.ts": 38,
+        "lib/closet/normalize-material.ts": 23,
+        "lib/closet/wear-stats.ts": 34,
+        "lib/diary/__tests__/logs.test.ts": 85,
+        "lib/diary/__tests__/month.test.ts": 63,
+        "lib/diary/__tests__/streak.test.ts": 40,
+        "lib/diary/logs.ts": 48,
+        "lib/diary/month.ts": 75,
+        "lib/diary/streak.ts": 32,
+        "lib/format/days.ts": 18,
+        "lib/format/money.ts": 19,
+        "lib/generator/__tests__/color.test.ts": 97,
+        "lib/generator/__tests__/coverage.test.ts": 78,
+        "lib/generator/__tests__/rules.test.ts": 235,
+        "lib/generator/__tests__/season.test.ts": 43,
+        "lib/generator/__tests__/shortlist-size.test.ts": 67,
+        "lib/generator/__tests__/texture.test.ts": 235,
+        "lib/generator/rules.ts": 192,
+        "lib/generator/season.ts": 44,
+        "lib/generator/texture.ts": 224,
+        "lib/generator/types.ts": 74,
+        "lib/images/__tests__/encode.test.ts": 43,
+        "lib/images/__tests__/options.test.ts": 10,
+        "lib/images/encode.ts": 53,
+        "lib/motion.ts": 17,
+        "lib/onboarding/questions.ts": 112,
+        "lib/outfits/__tests__/confirm.test.ts": 67,
+        "lib/outfits/__tests__/local-date.test.ts": 37,
+        "lib/outfits/__tests__/predict-occasion.test.ts": 43,
+        "lib/outfits/__tests__/quota.test.ts": 35,
+        "lib/outfits/__tests__/reassemble.test.ts": 63,
+        "lib/outfits/__tests__/styled.test.ts": 114,
+        "lib/outfits/__tests__/wear.test.ts": 41,
+        "lib/outfits/confirm.ts": 49,
+        "lib/outfits/daily.ts": 131,
+        "lib/outfits/local-date.ts": 44,
+        "lib/outfits/overrides.ts": 19,
+        "lib/outfits/predict-occasion.ts": 45,
+        "lib/outfits/quota.ts": 73,
+        "lib/outfits/reassemble.ts": 71,
+        "lib/outfits/styled-store.ts": 134,
+        "lib/outfits/styled.ts": 79,
+        "lib/outfits/wear.ts": 38,
+        "lib/profile/__tests__/identity.test.ts": 78,
+        "lib/profile/__tests__/preferences.test.ts": 68,
+        "lib/profile/identity.ts": 66,
+        "lib/profile/preferences.ts": 61,
+        "lib/stats/__tests__/aggregate.test.ts": 100,
+        "lib/stats/aggregate.ts": 71,
+        "lib/storage/__tests__/url-cache.test.ts": 53,
+        "lib/storage/url-cache.ts": 50,
+        "lib/supabase/client.ts": 8,
+        "lib/supabase/proxy.ts": 29,
+        "lib/utils.ts": 6,
+        "lib/weather/__tests__/advice.test.ts": 189,
+        "lib/weather/__tests__/format.test.ts": 48,
+        "lib/weather/__tests__/geolocate.test.ts": 63,
+        "lib/weather/__tests__/location.test.ts": 204,
+        "lib/weather/__tests__/planning.test.ts": 99,
+        "lib/weather/advice.ts": 85,
+        "lib/weather/format.ts": 27,
+        "lib/weather/geolocate.ts": 50,
+        "lib/weather/location.ts": 183,
+        "lib/weather/planning.ts": 86,
+        "playwright.config.ts": 62,
+        "postcss.config.mjs": 7,
+        "scripts/backfill-item-tags.ts": 57,
+        "supabase/.gitignore": 8,
+        "supabase/migrations/20260614170628_profiles.sql": 58,
+        "supabase/migrations/20260615114702_items.sql": 39,
+        "supabase/migrations/20260718090000_outfits.sql": 49,
+        "supabase/migrations/20260718090100_item_category_fragrance.sql": 5,
+        "supabase/migrations/20260721090000_authenticated_grants.sql": 13,
+        "supabase/migrations/20260721100000_profile_location.sql": 15,
+        "supabase/migrations/20260722100000_outfits_daily.sql": 19,
+        "supabase/migrations/20260723100000_occasion_overrides.sql": 20,
+        "supabase/migrations/20260724090000_item_texture.sql": 6,
+        "supabase/migrations/20260729090000_service_role_grants.sql": 19,
+        "supabase/migrations/20260730090000_wear_logs_idempotent.sql": 24,
+        "supabase/migrations/20260731090000_outfits_styled_item.sql": 26,
+        "supabase/migrations/20260804120000_billing_entitlements.sql": 58,
+        "supabase/migrations/20260806090000_profile_preferences.sql": 10,
+        "supabase/migrations/20260810090000_styled_look_set.sql": 26,
+        "supabase/migrations/20260813090000_outfit_viewed_at.sql": 19,
+        "tsconfig.json": 34,
+        "vitest.config.ts": 24,
+        "vitest.d.ts": 1,
+        "vitest.setup.ts": 17
+      }
+    }
+  ]
+}
