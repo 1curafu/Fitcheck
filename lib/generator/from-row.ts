@@ -17,13 +17,12 @@ import type { DescItem } from "./rerank";
  * producer could drop a field with no test and no type error. `from-row.test.ts`
  * is the guard the type cannot be.
  *
- * ⚠️ What this still does NOT catch, stated plainly: a producer that ignores this
- * function and writes its own literal. The sweep confirms it — swapping
- * `items.map(toCandidateItem)` for an inline object in the generate action fails
- * no test, because a server action has no unit coverage. The exposure is now one
- * line per producer instead of thirteen fields across four of them, and adding a
- * column here without mapping it does fail, but a fifth producer going its own
- * way would need an integration test to catch.
+ * ⚠️ A producer that ignored this function and wrote its own literal would still
+ * fail nothing here — server actions have no unit coverage, and the sweep
+ * confirmed that hole. `__tests__/producers.test.ts` closes it at the source
+ * level, which is the only level that can see it: the fields are optional so an
+ * incomplete literal compiles, and making two of them required costs 113 type
+ * errors across ~100 fixtures.
  */
 export const CANDIDATE_COLUMNS = [
   "id",
