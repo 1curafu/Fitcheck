@@ -7,6 +7,7 @@ import { signItemImages, displayPath } from "@/lib/storage/signed";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { MobileNav } from "@/components/shell/mobile-nav";
 import { ClosetGrid } from "@/components/closet/closet-grid";
+import { WhatsNew } from "@/components/shell/whats-new";
 
 /**
  * The Closet, split into a prerendered SHELL and a streamed body.
@@ -26,6 +27,16 @@ export default function ClosetPage() {
   return (
     <div className="flex min-h-dvh flex-1 flex-col">
       <main className="screen-top flex flex-1 flex-col gap-5 pb-8">
+        {/* ⚠️ Part of the SHELL, and allowed to be: the release note is the same
+            for every user, and the only per-user part — whether they have seen
+            it — is read from localStorage in an effect, never on the server. So
+            it prerenders as nothing and appears on hydration, with no session
+            read to block the cached fragment.
+
+            Mounted on a screen rather than in `MobileShell` for the reason the
+            wear confirmation is: in the shell it would appear mid-capture and
+            mid-edit, where an interruption costs most. */}
+        <WhatsNew />
         <Suspense fallback={<ClosetHeader />}>
           <ClosetBody />
         </Suspense>
