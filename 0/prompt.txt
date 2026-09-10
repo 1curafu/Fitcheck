@@ -858,3 +858,39 @@ merged
 ---
 
 are u sure mate '/Users/1curafu/Desktop/Fitcheck/Fitcheck/docs/superpowers/plans/styling-research-backlog.md'
+
+---
+
+okay, we will start but later, i will say, so can we push all commits code from develop to main to give users try our new features, but firsty i want to build new function like show a small pop up notification that will shortly say whats new, what fixed
+
+---
+
+<task-notification>
+<task-id>bj2dn7gbm</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-1curafu-Desktop-Fitcheck-Fitcheck/707f7bed-62e8-4ce2-be62-cca0514fbec5/tasks/bj2dn7gbm.output</output-file>
+<status>completed</status>
+<summary>Background command "Build and insights gates" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+make it further, BUT WHY DEVELOP BRANCH IS A DEFAULT BRANCH, it should be main and developo branch is only pre production brooooo
+
+---
+
+maybe just make pop up menu about update, then tap on it and it will open list
+
+---
+
+and move it to closet page, not generator
+
+---
+
+<task-notification>
+<task-id>buh87y3q5</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-1curafu-Desktop-Fitcheck-Fitcheck/707f7bed-62e8-4ce2-be62-cca0514fbec5/tasks/buh87y3q5.output</output-file>
+<status>completed</status>
+<summary>Background command "All gates" completed (exit code 0)</summary>
+</task-notification>
