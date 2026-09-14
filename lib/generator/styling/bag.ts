@@ -28,8 +28,18 @@ type Piece = { category: string; colors: readonly string[]; subcategory?: string
 const ECHO = 1;
 const BLEND = 0.85;
 const CONTRAST = 0.85;
-/** Matches nothing, competes with nothing. Safe, not coordinated. */
-const PLAIN = 0.7;
+/**
+ * Matches nothing, competes with nothing. "Safe but not mandatory" in the
+ * sources — just under blend, which IS a coordinated choice there (+7).
+ *
+ * ⚠️ This constant decides whether a plain neutral bag is ever SHOWN, and was
+ * measured before being chosen: at 0.7 the black bag on a light outfit scored
+ * 0.9405 against 0.9600 bare, and the engine would rather show no bag than an
+ * uncoordinated one; at 0.85 it is 0.9542, but that equals blend and erases a
+ * distinction the sources make. Dropping the term (null) fails the echo
+ * criterion outright, because the value-contrast terms favour the black bag.
+ */
+const PLAIN = 0.8;
 const CLUTTER = 0.4;
 
 function dominant(piece: Piece): string | null {
