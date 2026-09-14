@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
@@ -52,6 +53,12 @@ async function WelcomeBody() {
           <span className="h-px flex-1 bg-[--border]" />
         </div>
         <EmailSignIn />
+        <p className="mt-5 text-center text-[11.5px] text-muted-dim">
+          By continuing you agree to the{" "}
+          <Link href="/terms" className="text-muted-foreground underline underline-offset-2">Terms</Link>
+          {" "}and{" "}
+          <Link href="/privacy" className="text-muted-foreground underline underline-offset-2">Privacy Policy</Link>.
+        </p>
       </div>
     </main>
   );
