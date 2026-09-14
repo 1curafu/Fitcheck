@@ -1,0 +1,40 @@
+{
+  "cli_version": "0.10.5",
+  "checkpoint_id": "01M2GWZ4G77E5J5TQ9J1EJF2X7",
+  "strategy": "manual-commit",
+  "branch": "fix/try-another-placement",
+  "checkpoints_count": 11,
+  "files_touched": [
+    "app/closet/[itemId]/page.tsx",
+    "app/outfits/[id]/page.tsx",
+    "components/closet/__tests__/item-detail.test.tsx",
+    "components/closet/__tests__/style-cta.test.tsx",
+    "components/closet/item-detail.tsx",
+    "components/closet/style-cta.tsx",
+    "components/outfits/__tests__/outfit-detail.test.tsx",
+    "components/outfits/outfit-detail.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 2798,
+    "cache_creation_tokens": 13789021,
+    "cache_read_tokens": 679081063,
+    "output_tokens": 1399107,
+    "api_call_count": 1426,
+    "subagent_tokens": {
+      "input_tokens": 0,
+      "cache_creation_tokens": 0,
+      "cache_read_tokens": 0,
+      "output_tokens": 0,
+      "api_call_count": 0
+    }
+  }
+}
