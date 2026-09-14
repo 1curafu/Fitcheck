@@ -36,7 +36,7 @@ const FAMILY: Record<string, string> = {
   burgundy: "burgundy", maroon: "burgundy",
 };
 
-function familyOf(colour: string): string | null {
+export function familyOf(colour: string): string | null {
   return FAMILY[colour.trim().toLowerCase()] ?? null;
 }
 

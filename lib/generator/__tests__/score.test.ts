@@ -871,3 +871,19 @@ test("two bulky knits compound, through scoreCombo", () => {
 // only in an unrated material still differ in warmth — the confound that has
 // faked a result in this file five times. The null behaviour is covered where it
 // can actually be isolated, in material-matrix.test.ts.
+
+// The bags plan's carried-forward criterion, unmet through two releases and
+// then inverted: a bag that echoes must be PREFERRED over both bare and unrelated.
+test("a bag that echoes the trousers beats no bag, and beats an unrelated bag", () => {
+  const ctx = { aesthetic: [], band: [1, 5] as [number, number] };
+  const base = [
+    piece("t", "Tops", ["white"], 3, "Cotton"),
+    piece("b", "Bottoms", ["camel"], 3, "Cotton"),
+    piece("s", "Shoes", ["white"], 2, "Canvas"),
+  ];
+  const bare = scoreCombo(base as never, ctx);
+  const black = scoreCombo([...base, piece("g", "Bags", ["black"], 3, "Leather")] as never, ctx);
+  const camel = scoreCombo([...base, piece("g", "Bags", ["camel"], 3, "Leather")] as never, ctx);
+  expect(camel).toBeGreaterThan(bare);
+  expect(camel).toBeGreaterThan(black);
+});
