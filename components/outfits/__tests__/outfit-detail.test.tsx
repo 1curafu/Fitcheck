@@ -142,3 +142,22 @@ test("back returns to where you came from when there is history", async () => {
   expect(push).not.toHaveBeenCalled();
   spy.mockRestore();
 });
+
+// "Try another look" belongs to the look that has a piece to keep.
+vi.mock("@/app/closet/[itemId]/style-actions", () => ({ styleWithItem: vi.fn() }));
+
+test("a look styled around a piece offers to try another", () => {
+  render(<OutfitDetail outfit={outfit} pieces={pieces} worn={false} favorite={false} styledItemId="i1" />);
+  expect(screen.getByRole("button", { name: /try another look/i })).toBeInTheDocument();
+});
+
+test("a daily-drop look does not — it regenerates as a set, from the stylist", () => {
+  render(<OutfitDetail outfit={outfit} pieces={pieces} worn={false} favorite={false} />);
+  expect(screen.queryByRole("button", { name: /try another look/i })).not.toBeInTheDocument();
+});
+
+test("wear and favourite are still there beside it", () => {
+  render(<OutfitDetail outfit={outfit} pieces={pieces} worn={false} favorite={false} styledItemId="i1" />);
+  expect(screen.getByRole("button", { name: /favourite/i })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /wear/i })).toBeInTheDocument();
+});

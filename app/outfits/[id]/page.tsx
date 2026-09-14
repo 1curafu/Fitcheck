@@ -50,7 +50,7 @@ async function OutfitBody({ params }: { params: Promise<{ id: string }> }) {
   const { data: outfit } = await supabase
     .from("outfits")
     .select(
-      "id, look_name, occasion, ai_reasoning, weather_snapshot, is_favorite, layout",
+      "id, look_name, occasion, ai_reasoning, weather_snapshot, is_favorite, layout, styled_item_id",
     )
     .eq("id", id)
     .maybeSingle();
@@ -125,6 +125,7 @@ async function OutfitBody({ params }: { params: Promise<{ id: string }> }) {
       pieces={pieces}
       worn={isWornToday(logs ?? [], today)}
       favorite={outfit.is_favorite ?? false}
+      styledItemId={outfit.styled_item_id ?? null}
     />
   );
 }

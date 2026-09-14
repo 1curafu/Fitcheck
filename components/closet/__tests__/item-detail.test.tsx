@@ -45,7 +45,6 @@ function renderDetail(itemOverrides: Partial<DetailItem> = {}) {
       brandSuggestions={[]}
       stats={{ wears: 30, costPerWear: "€3.00", lastWorn: "Yesterday" }}
       goesWith={[]}
-    styledToday={false}
     />,
   );
 }

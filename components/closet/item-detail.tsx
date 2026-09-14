@@ -44,7 +44,6 @@ export function ItemDetail({
   brandSuggestions,
   stats,
   goesWith,
-  styledToday,
 }: {
   item: DetailItem;
   imageUrl: string;
@@ -52,7 +51,6 @@ export function ItemDetail({
   stats: { wears: number; costPerWear: string | null; lastWorn: string };
   goesWith: GoesWithCard[];
   /** Whether this piece already has a styled set today — read on the server. */
-  styledToday: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   /**
@@ -88,7 +86,7 @@ export function ItemDetail({
         // serialised — React cannot give it positional identity and warns that
         // every child in a list needs a key. Creating it inside this client
         // component keeps ItemView presentational without that round trip.
-        styleCta={<StyleCta itemId={item.id} styledToday={styledToday} />}
+        styleCta={<StyleCta itemId={item.id} />}
       />
       {editing && (
         <ItemEditSheet
