@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bookmark } from "lucide-react";
 import { toggleWear, toggleFavorite, noteOutfitViewed } from "@/app/outfits/[id]/actions";
+import { TryAnotherLook } from "./try-another-look";
 import { WeatherAttribution } from "@/components/weather/attribution";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { wearLabel } from "@/lib/outfits/wear";
@@ -24,6 +25,7 @@ export function OutfitDetail({
   pieces,
   worn,
   favorite,
+  styledItemId = null,
 }: {
   outfit: {
     id: string;
@@ -35,6 +37,8 @@ export function OutfitDetail({
   pieces: DetailPiece[];
   worn: boolean;
   favorite: boolean;
+  /** The piece this look was styled around, when it came from "Style an outfit with this". */
+  styledItemId?: string | null;
 }) {
   const router = useRouter();
   // Optimistic rather than local state: both toggles revalidate this route, so
@@ -187,7 +191,12 @@ export function OutfitDetail({
       {/* Same additive inset as the bottom nav — `pb-[30px]` was a hard-coded
           home-indicator allowance, which is 30px of dead space in a browser tab
           where the toolbar already occupies that band. */}
-      <div className="sticky bottom-0 z-30 flex gap-3 bg-gradient-to-t from-canvas from-60% to-transparent px-[22px] pb-[calc(env(safe-area-inset-bottom)+14px)] pt-[14px]">
+      {/* A two-column grid, not a row: the favourite square owns the first
+          column and the primary the second, and "Try another look" spans
+          both beneath them at full width — without a third button squeezing
+          Wear. Only a look styled around a piece has a piece to keep; the daily
+          drop regenerates as a set, from the stylist. */}
+      <div className="sticky bottom-0 z-30 grid grid-cols-[56px_1fr] gap-3 bg-gradient-to-t from-canvas from-60% to-transparent px-[22px] pb-[calc(env(safe-area-inset-bottom)+14px)] pt-[14px]">
         <button
           type="button"
           aria-label="Favourite"
@@ -215,12 +224,21 @@ export function OutfitDetail({
               await toggleWear(outfit.id);
             })
           }
-          className={`min-h-[54px] flex-1 rounded-[14px] text-[15.5px] font-semibold transition-colors ${
+          className={`min-h-[54px] rounded-[14px] text-[15.5px] font-semibold transition-colors ${
             isWorn ? "bg-surface-2 text-value" : "bg-foreground text-canvas"
           }`}
         >
           {wearLabel(isWorn)}
         </button>
+        {styledItemId && (
+          // Spans both columns and centres: a hairline PILL at natural width,
+          // not a second filled block. A filled full-width version was tried
+          // and read as two competing primaries stacked, and buried the last
+          // piece card under the gradient. Secondaries here are pills (Refine).
+          <div className="col-span-2 -mt-1">
+            <TryAnotherLook itemId={styledItemId} />
+          </div>
+        )}
       </div>
     </div>
   );
