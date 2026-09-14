@@ -28,15 +28,25 @@ import { isNeutral } from "@/lib/generator/color";
  */
 const FAMILY: Record<string, string> = {
   white: "light", ivory: "light", cream: "light", stone: "light", sand: "light",
-  beige: "light", grey: "light", silver: "light",
+  beige: "light", grey: "light", silver: "light", taupe: "light",
   black: "dark", charcoal: "dark",
-  navy: "navy", indigo: "navy", denim: "denim", blue: "navy", sky: "sky",
+  navy: "navy", indigo: "navy", denim: "denim", blue: "navy", sky: "sky", teal: "teal",
   brown: "brown", chocolate: "brown", caramel: "brown", tan: "tan", camel: "tan",
   khaki: "olive", olive: "olive",
   burgundy: "burgundy", maroon: "burgundy",
+  // ⚠️ Every colour below was ABSENT until 2026-09-15. The map was written for
+  // the documented trios, which are all neutrals, and `bag.ts` then reused it —
+  // so a rust bag with rust shoes could never read as an echo. Now a partition
+  // of the whole vocabulary; a test holds it there. Same coarseness as above:
+  // terracotta with rust is one colour story to a human eye.
+  red: "red", coral: "red", rust: "red", terracotta: "red", orange: "red",
+  forest: "green", green: "green", sage: "green", mint: "green",
+  mustard: "yellow", yellow: "yellow", gold: "yellow",
+  purple: "purple", plum: "purple", lavender: "purple",
+  pink: "pink",
 };
 
-function familyOf(colour: string): string | null {
+export function familyOf(colour: string): string | null {
   return FAMILY[colour.trim().toLowerCase()] ?? null;
 }
 

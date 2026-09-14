@@ -1,4 +1,5 @@
-import { canonicalTrio, TRIO_FAMILIES, KNOWN_FAMILIES } from "../trios";
+import { COLORS } from "@/lib/closet/vocab";
+import { canonicalTrio, TRIO_FAMILIES, KNOWN_FAMILIES, familyOf } from "../trios";
 
 const look = (top: string, bottom: string, shoes: string) => [
   { category: "Tops", colors: [top] },
@@ -43,4 +44,11 @@ test("every family a row names is reachable from a real palette colour", () => {
   for (const family of TRIO_FAMILIES) {
     expect(KNOWN_FAMILIES).toContain(family);
   }
+});
+
+test("every colour in the vocabulary belongs to a family", () => {
+  // ⚠️ Eighteen did not, for a week. The map was written for the documented
+  // trios, then reused by the bag rule, which silently could not see a rust bag
+  // echoing rust shoes. A new colour without a family is a bag that cannot echo.
+  for (const c of COLORS) expect(familyOf(c.name), c.name).not.toBeNull();
 });
