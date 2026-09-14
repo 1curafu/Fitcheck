@@ -60,3 +60,12 @@ test("the bag's dominant colour is judged, never its hardware", () => {
     bagCoordination([...base, p("Bags", ["black"])]),
   );
 });
+
+test("echo works for loud colours too, not only the neutrals the trio map started with", () => {
+  const rustShoes = [p("Tops", ["white"]), p("Bottoms", ["navy"]), p("Shoes", ["rust"])];
+  expect(bagCoordination([...rustShoes, p("Bags", ["rust"])])).toBe(1);
+  // Same family, different name: terracotta reads as rust.
+  expect(bagCoordination([...rustShoes, p("Bags", ["terracotta"])])).toBe(1);
+  const forestCoat = [p("Tops", ["white"]), p("Bottoms", ["navy"]), p("Shoes", ["brown"]), p("Outerwear", ["forest"])];
+  expect(bagCoordination([...forestCoat, p("Bags", ["sage"])])).toBe(1);
+});
