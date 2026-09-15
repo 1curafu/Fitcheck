@@ -1,5 +1,5 @@
 import imageCompression from "browser-image-compression";
-import { removeBackground } from "@imgly/background-removal";
+import { segment, configureRuntime, U2NETP } from "./segment";
 import { compressionOptions, THUMB_MAX_PX } from "./options";
 import { encodeCutout, type CutoutMediaType } from "./encode";
 import { encodeThumb, type ThumbMediaType } from "./thumb";
@@ -25,8 +25,12 @@ export async function processImage(file: File): Promise<{
   thumbMediaType: ThumbMediaType | null;
 }> {
   const original = await imageCompression(file, compressionOptions());
-  const raw = await removeBackground(original); // @imgly WASM, on-device
-  // @imgly hands back an uncompressed PNG. It is the blob users actually see
+  // ⚠️ The model sees the ORIGINAL file; the cutout is built on the compressed
+  // one. encode.ts documents why compression hurts model accuracy, and the old
+  // library was handed the compressed JPEG for as long as it was here.
+  configureRuntime();
+  const raw = await segment(file, U2NETP, original); // our ONNX pipeline, on-device
+  // segment() hands back an uncompressed PNG. It is the blob users actually see
   // (displayPath prefers the cutout), so it gets compressed too.
   const { blob: cutout, mediaType: cutoutMediaType } = await encodeCutout(raw);
 
