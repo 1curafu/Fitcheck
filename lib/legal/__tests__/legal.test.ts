@@ -66,3 +66,27 @@ test("the cookie section matches what the app sets: sign-in cookies only, no con
   expect(policy).toMatch(/only the cookies it needs to keep you signed in/i);
   expect(policy).toMatch(/notice rather than asked for consent/i);
 });
+
+// From the 2026-09-15 legal review (docs/research/fitcheck-privacy-terms-review.md).
+test("#3 — the policy admits the original photo may show the wearer, because it is stored", () => {
+  // `app/closet/upload/actions.ts` uploads `original.jpg` next to the cutout.
+  expect(text(PRIVACY)).toMatch(/shows you wearing the item, we store that photo/);
+  expect(text(PRIVACY)).toMatch(/never sent to the AI/);
+});
+
+test("#4 — every US-side processor is named in the transfers section", () => {
+  const transfers = PRIVACY.sections.find((s) => s.heading === "Data leaving Europe")!.paragraphs.join(" ");
+  for (const name of ["Anthropic", "Resend", "Google", "Stripe"]) expect(transfers).toContain(name);
+});
+
+test("#2 — the withdrawal waiver describes a checkout confirmation, not a ToS assertion", () => {
+  // Art. 16(m) CRD: the waiver needs an affirmative act at purchase. The
+  // checkbox itself ships with Stripe (L3); the text must not claim it early.
+  const t = text(TERMS);
+  expect(t).toMatch(/expressly confirm at checkout/);
+  expect(t).toMatch(/Without that confirmation, your 14-day right is unaffected/);
+});
+
+test("#6 — paying subscribers get to confirm materially adverse changes", () => {
+  expect(text(TERMS)).toMatch(/paying Pro subscriber.*actively confirm/);
+});

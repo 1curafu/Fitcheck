@@ -30,6 +30,7 @@ export const PRIVACY: LegalDocument = {
         "Your account: your email address, and if you sign in with Google, the name and profile picture Google shares.",
         "Your style answers from the short quiz: how you like to dress, what you would rather not wear.",
         "Your wardrobe: the photos you upload, the cut-out versions we make of them, and the tags describing each piece — colour, fabric, formality and so on. You can edit every tag.",
+        "If a photo you upload shows you wearing the item, we store that photo as you took it. We keep the original only so the cut-out can be re-made with better tools later; it is never sent to the AI, never used to identify you, and never shown to anyone but you.",
         "Your looks: the outfits the app suggests, the ones you favourite, and the days you say you wore one.",
         "Your location, only if you give it: a city or coordinates and a time zone, so the weather in your looks is your weather. You can clear it in Settings.",
         "Your payment status, once subscriptions exist: whether you are on the free or paid plan. Card details go to Stripe and never reach us.",
@@ -64,7 +65,7 @@ export const PRIVACY: LegalDocument = {
     {
       heading: "Data leaving Europe",
       paragraphs: [
-        "Anthropic and Resend are in the United States. Transfers to them rest on the EU–US Data Privacy Framework where the provider is certified, and on the European Commission's Standard Contractual Clauses otherwise, which Switzerland recognises with its own addendum.",
+        "Anthropic, Resend, Google and Stripe are based in, or process data through, the United States. Transfers to them rest on the EU–US Data Privacy Framework where the provider is certified, and on the European Commission's Standard Contractual Clauses otherwise, which Switzerland recognises with its own addendum. Where they offer it, Google and Stripe handle Swiss and EU users through their European entities.",
       ],
     },
     {

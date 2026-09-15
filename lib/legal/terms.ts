@@ -44,7 +44,7 @@ export const TERMS: LegalDocument = {
       paragraphs: [
         "The free plan is meant to be genuinely useful and stays free. The paid plan, Fitcheck Pro, adds features and lifts limits; what it includes and what it costs are shown before you buy, and the price includes any VAT that applies.",
         "Pro is a monthly subscription billed by Stripe. It renews each month until you cancel, which you can do at any time from the app; you keep Pro until the end of the period you have paid for, and nothing further is charged. Refunds for a period already started are at our discretion, except where the law gives you a right to one.",
-        "If you are a consumer in the EU, you have a 14-day right to withdraw from a purchase. Because Pro starts working the moment you subscribe, you agree that it begins immediately and that you lose the right to withdraw once it has begun — the standard rule for digital services.",
+        "If you are a consumer in the EU, you normally have a 14-day right to withdraw from a purchase. Because Pro starts working the moment you subscribe, we ask you to expressly confirm at checkout that you want it to start immediately and accept losing that right once it has. Without that confirmation, your 14-day right is unaffected.",
         "We may change Pro's price with at least 30 days' notice by email. If you do not want the new price, cancel before it takes effect.",
       ],
     },
@@ -76,7 +76,7 @@ export const TERMS: LegalDocument = {
     {
       heading: "Changes",
       paragraphs: [
-        "If we change these terms in a way that matters, the date at the top moves and the app tells you on your next visit. Continuing to use Fitcheck after that means you accept the change; if you do not, delete your account and we will not hold you to it.",
+        "If we change these terms in a way that matters, the date at the top moves and the app tells you on your next visit. Continuing to use Fitcheck after that means you accept the change. If you are a paying Pro subscriber and a change is materially worse for you, we will ask you to actively confirm it before it applies, and you can cancel instead at no cost. If you do not accept a change, delete your account and we will not hold you to it.",
       ],
     },
   ],
