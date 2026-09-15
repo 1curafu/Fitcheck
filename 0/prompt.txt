@@ -1045,3 +1045,7 @@ how to disable that in replay, and maybe then install vercel analytics if its fr
 <status>completed</status>
 <summary>Background command "Suite, build, insights" completed (exit code 0)</summary>
 </task-notification>
+
+---
+
+'/Users/1curafu/Desktop/Fitcheck/Fitcheck/docs/research/fitcheck-privacy-terms-review.md' look at this and about vat, maybe better to use paddle instead of stripe, but for now it doesnt make sense
