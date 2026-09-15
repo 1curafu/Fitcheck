@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Libre_Caslon_Text, Hanken_Grotesk } from "next/font/google";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next";
 import { MobileShell } from "@/components/shell/mobile-shell";
 
 const serif = Libre_Caslon_Text({
@@ -43,6 +44,10 @@ export default function RootLayout({
     <html lang="en" className={`${serif.variable} ${sans.variable} h-full`}>
       <body className="flex min-h-full flex-col">
         <MobileShell>{children}</MobileShell>
+        {/* Cookieless page-view counting — a daily-rotating hash, nothing stored
+            on the device — which is what lets the cookie notice stay a notice.
+            Disclosed in /privacy; a test holds the policy to that. */}
+        <Analytics />
       </body>
     </html>
   );

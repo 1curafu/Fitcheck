@@ -325,6 +325,12 @@ export function SettingsView({
             Sign out
           </button>
         </form>
+
+        <p className="mt-6 text-center text-[11.5px] text-muted-dim">
+          <Link href="/privacy" className="text-muted-foreground underline underline-offset-2">Privacy Policy</Link>
+          {" · "}
+          <Link href="/terms" className="text-muted-foreground underline underline-offset-2">Terms of Service</Link>
+        </p>
       </div>
     </div>
   );
