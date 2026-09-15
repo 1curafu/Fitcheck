@@ -1,0 +1,19 @@
+<!doctype html><meta charset="utf-8" /><title>imgly baseline</title>
+<script type="importmap">
+{ "imports": {
+  "onnxruntime-web": "/scratch/ort121/node_modules/onnxruntime-web/dist/ort.min.mjs",
+  "onnxruntime-web/webgpu": "/scratch/ort121/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs"
+} }
+</script>
+<!-- ⚠️ @imgly and ORT 1.21.0 live in scratch/ort121, NOT in the app's
+     package.json: the app no longer depends on @imgly, and must not. ORT 1.21: @imgly does not declare onnxruntime-web,
+     it dynamically imports whatever is installed, and fetches WASM for the
+     version it was built against from its own CDN. The app ran 1.21 until this
+     branch; the baseline must too, or the JS and WASM disagree. -->
+<script type="module">
+import { removeBackground } from "/scratch/ort121/node_modules/@imgly/background-removal/dist/index.mjs";
+const toBlob = (b64, type) => fetch(`data:${type};base64,${b64}`).then((r) => r.blob());
+const toB64 = async (blob) => { const bytes = new Uint8Array(await blob.arrayBuffer()); let s = ""; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); };
+window.harness = { async run(b64, type) { const t0 = performance.now(); const out = await removeBackground(await toBlob(b64, type)); return { png: await toB64(out), ms: Math.round(performance.now() - t0) }; } };
+window.harnessReady = true;
+</script>

@@ -48,14 +48,15 @@ export function CookieNotice() {
   if (seen) return null;
 
   return (
-    // ⚠️ TOP, not bottom. Every important control in this app lives at the
-    // bottom — the nav, the capture button, Wear, Style — and a bottom bar sat
-    // on top of all of them until dismissed. The top has only a screen title
-    // beneath it, and only until OK.
+    // ⚠️ IN THE FLOW, not fixed. A fixed bottom bar covered the nav and the
+    // capture button; a fixed top bar covered the back button on every detail
+    // page — the e2e suite's clicks timed out on it. A static block at the top
+    // of the shell pushes the screen down by its own height once, overlaps
+    // nothing, and disappears on OK.
     <div
       role="region"
       aria-label="Cookie notice"
-      className="fixed inset-x-0 top-0 z-[90] mx-auto max-w-[440px] px-4 pt-[calc(env(safe-area-inset-top)+10px)]"
+      className="px-4 pt-[calc(env(safe-area-inset-top)+10px)]"
     >
       <div className="surface-card flex items-center gap-3 rounded-[14px] px-4 py-3">
         <p className="flex-1 text-[12.5px] leading-[1.45] text-muted-foreground">

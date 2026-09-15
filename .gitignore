@@ -70,8 +70,8 @@ Test assets/
 # Sentry Config File
 .env.sentry-build-plugin
 
-# cutout parity harness artefacts
-scratch/
-
 # onnxruntime-web runtime, copied from node_modules by scripts/copy-ort.mjs
 public/ort/
+
+# cutout parity harness artefacts
+scratch/

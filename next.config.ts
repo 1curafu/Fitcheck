@@ -36,6 +36,20 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "10mb",
     },
   },
+  /**
+   * The segmentation model and its runtime are fetched once and never change
+   * for a given deploy: Decision 2 accepts a one-time download, not a
+   * per-session one. Both paths carry a content hash in practice (ORT by
+   * version, the model by our export), so a year is safe.
+   */
+  async headers() {
+    return [
+      {
+        source: "/(models|ort)/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
+    ];
+  },
 };
 
 export default withSentryConfig(nextConfig, {
