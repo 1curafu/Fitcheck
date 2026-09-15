@@ -103,6 +103,7 @@ test("a normal four-word name survives untouched", () => {
   expect(out.picks[0].name).toBe(name);
 });
 test("rerankJsonSchema POSITIVELY describes the shape AND is free of validation keywords", () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- walking an untyped JSON schema
   const js: any = rerankJsonSchema;
   expect(js.type).toBe("object");
   const item = js.properties.picks.items.properties;
