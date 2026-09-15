@@ -11,25 +11,35 @@ const text = (d: typeof PRIVACY) =>
  * must be named in it, so adding a tracking SDK without updating the policy
  * fails the suite rather than shipping a policy that has quietly become false.
  */
-const PROCESSORS: { pkg: RegExp; name: string }[] = [
-  { pkg: /@supabase\//, name: "Supabase" },
-  { pkg: /@anthropic-ai\//, name: "Anthropic" },
-  { pkg: /@sentry\//, name: "Sentry" },
-  { pkg: /@vercel\/analytics/, name: "Vercel" },
-  { pkg: /^stripe$|@stripe\//, name: "Stripe" },
-  { pkg: /posthog|mixpanel|amplitude|segment|hotjar|fullstory|gtag|google-analytics/, name: "" },
+/**
+ * ⚠️ Each entry names the dependency AND the sentence the policy must carry for
+ * it — not merely the vendor's name. A retroactive mutation sweep found the
+ * name-only version too loose twice: "Anthropic" survived being cut from the
+ * processors list because the transfers section still said it, and Vercel
+ * Analytics survived being undisclosed because Vercel was named as the host.
+ */
+const PROCESSORS: { pkg: RegExp; name: string; says: RegExp }[] = [
+  { pkg: /@supabase\//, name: "Supabase", says: /Supabase \(EU, Frankfurt\) — stores your account/ },
+  { pkg: /@anthropic-ai\//, name: "Anthropic", says: /Anthropic \(USA\) — the AI that tags your clothes/ },
+  { pkg: /@sentry\//, name: "Sentry", says: /Sentry \(EU\) — receives error reports/ },
+  { pkg: /@vercel\/analytics/, name: "Vercel Analytics", says: /counts page views without cookies/ },
+  { pkg: /^stripe$|@stripe\//, name: "Stripe", says: /Stripe — handles payment/ },
+  { pkg: /posthog|mixpanel|amplitude|segment|hotjar|fullstory|gtag|google-analytics/, name: "", says: /$^/ },
 ];
 
-test("every data-handling dependency in package.json is named in the privacy policy", () => {
+const processorsSection = () =>
+  PRIVACY.sections.find((s) => s.heading === "Who else sees it")!.bullets!.join("\n");
+
+test("every data-handling dependency in package.json is disclosed, in the processors list, with what it receives", () => {
   const deps = Object.keys(JSON.parse(readFileSync("package.json", "utf8")).dependencies ?? {});
-  const policy = text(PRIVACY);
+  const section = processorsSection();
   for (const dep of deps) {
-    for (const { pkg, name } of PROCESSORS) {
+    for (const { pkg, name, says } of PROCESSORS) {
       if (!pkg.test(dep)) continue;
       // A blank name is a tool the policy has no wording for at all — adding it
       // is a policy decision first, a code change second.
       expect(name, `${dep} needs a privacy-policy decision before it ships`).not.toBe("");
-      expect(policy, `${dep} is installed but ${name} is not in the privacy policy`).toContain(name);
+      expect(section, `${dep} is installed but the processors list does not say what ${name} receives`).toMatch(says);
     }
   }
 });
