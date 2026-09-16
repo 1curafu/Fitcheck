@@ -1387,3 +1387,7 @@ about models i agreed, make flag about fal.ai
 <task-notification>
 <summary>Commit security review found: Authorization (IDOR / arbitrary file deletion) in app/closet/upload/actions.ts</summary>
 </task-notification>
+
+---
+
+are we actually done with background model implementation, should we do something else with it? Also add to roadmap that we did now and add make a manifest file and proxy file to be able to be found in google search
