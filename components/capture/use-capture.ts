@@ -3,12 +3,19 @@
 import { useEffect, useState } from "react";
 import { processImage, blobToBase64 } from "@/lib/images/process";
 import { uploadAndTag, confirmItem, discardDraft } from "@/app/closet/upload/actions";
-import type { Tags } from "@/lib/ai/tagging-schema";
+import { rotateBlob } from "@/lib/images/rotate";
+import { encodeCutout } from "@/lib/images/encode";
+import { encodeThumb } from "@/lib/images/thumb";
+import { THUMB_MAX_PX } from "@/lib/images/options";
+import type { Rotation, Tags } from "@/lib/ai/tagging-schema";
 
 export type Draft = {
   imagePath: string;
   cutoutPath: string;
   thumbPath: string | null;
+  /** The uploaded cutout, unrotated. `cutoutUrl` always shows it turned by `rotation`. */
+  baseCutout: Blob;
+  rotation: Rotation;
   cutoutUrl: string;
   name: string;
   brand: string;
@@ -48,11 +55,14 @@ export function useCapture(options?: { onSaved?: () => void }) {
         thumbB64,
         thumbMediaType,
       });
+      const shown = await rotateBlob(cutout, res.rotation);
       setDraft({
         imagePath: res.imagePath,
         cutoutPath: res.cutoutPath,
         thumbPath: res.thumbPath,
-        cutoutUrl: URL.createObjectURL(cutout),
+        baseCutout: cutout,
+        rotation: res.rotation,
+        cutoutUrl: URL.createObjectURL(shown),
         name: res.tags.subcategory,
         brand: "",
         tags: res.tags,
@@ -93,6 +103,13 @@ export function useCapture(options?: { onSaved?: () => void }) {
     setDraft((d) => (d ? { ...d, ...patch } : d));
   }
 
+  async function rotate() {
+    if (!draft) return;
+    const next = ((draft.rotation + 90) % 360) as Rotation;
+    const shown = await rotateBlob(draft.baseCutout, next);
+    setDraft((d) => (d ? { ...d, rotation: next, cutoutUrl: URL.createObjectURL(shown) } : d));
+  }
+
   function updateTags(patch: Partial<Tags>) {
     setDraft((d) => (d ? { ...d, tags: { ...d.tags, ...patch } } : d));
   }
@@ -111,6 +128,17 @@ export function useCapture(options?: { onSaved?: () => void }) {
     setSaving(true);
     setError(null);
     try {
+      let rotated = null;
+      if (draft.rotation !== 0) {
+        const { blob, mediaType } = await encodeCutout(await rotateBlob(draft.baseCutout, draft.rotation));
+        const thumb = await encodeThumb(blob, THUMB_MAX_PX);
+        rotated = {
+          cutoutB64: await blobToBase64(blob),
+          mediaType,
+          thumbB64: thumb ? await blobToBase64(thumb.blob) : null,
+          thumbMediaType: thumb?.mediaType ?? null,
+        };
+      }
       await confirmItem({
         imagePath: draft.imagePath,
         cutoutPath: draft.cutoutPath,
@@ -118,6 +146,7 @@ export function useCapture(options?: { onSaved?: () => void }) {
         name: draft.name || null,
         brand: draft.brand || null,
         tags: draft.tags,
+        rotated,
       });
       options?.onSaved?.();
       setDraft(null);
@@ -129,5 +158,5 @@ export function useCapture(options?: { onSaved?: () => void }) {
     }
   }
 
-  return { phase, draft, error, saving, capture, discard, updateDraft, updateTags, toggleSeason, save };
+  return { phase, draft, error, saving, capture, discard, updateDraft, updateTags, toggleSeason, rotate, save };
 }

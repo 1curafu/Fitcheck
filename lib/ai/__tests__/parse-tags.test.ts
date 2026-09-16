@@ -1,4 +1,4 @@
-import { parseTagText, tagsToItemRow } from "../parse-tags";
+import { parseTagText, parseTaggingResponse, tagsToItemRow } from "../parse-tags";
 import { TagSchema } from "../tagging-schema";
 
 const valid = JSON.stringify({
@@ -178,4 +178,14 @@ test("a one-piece keeps its fit and length — a dress has both", () => {
   const row = tagsToItemRow({ userId: "u1", imageUrl: "a.jpg", cutoutUrl: null, tags });
   expect(row.fit).toBe("Tailored");
   expect(row.length).toBe("Midi");
+});
+
+test("parseTaggingResponse splits rotation from the tags", () => {
+  const { tags, rotation } = parseTaggingResponse(JSON.stringify({ ...JSON.parse(valid), rotation: 90 }));
+  expect(rotation).toBe(90);
+  expect("rotation" in tags).toBe(false);
+});
+
+test("a response without rotation is upright", () => {
+  expect(parseTaggingResponse(valid).rotation).toBe(0);
 });

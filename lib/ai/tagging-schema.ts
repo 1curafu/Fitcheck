@@ -214,6 +214,19 @@ export const TagSchema = z.object({
 export type Tags = z.infer<typeof TagSchema>;
 
 /**
+ * Degrees CLOCKWISE to turn the photo so the item is upright as worn. Not a
+ * tag: it is baked into the stored cutout at confirm time and never persisted.
+ */
+export const ROTATIONS = [0, 90, 180, 270] as const;
+export type Rotation = (typeof ROTATIONS)[number];
+export const RotationSchema = z.literal(ROTATIONS);
+
+/** What the model answers: every tag a photo can settle, plus which way is up. */
+export const TaggingResponseSchema = TagSchema.omit({ fit_source: true }).extend({
+  rotation: RotationSchema,
+});
+
+/**
  * The categories worn ON A BODY, and so the only ones with a `fit` or a `length`.
  *
  * ⚠️ **One definition, deliberately.** This lived as three identical literals —
@@ -261,5 +274,5 @@ export function forStructuredOutput(node: unknown): unknown {
 // `fit`, and the model cannot answer that question about its own output. Every
 // other field goes to the model because a photo can settle it; this one can't.
 export const taggingJsonSchema = forStructuredOutput(
-  z.toJSONSchema(TagSchema.omit({ fit_source: true })),
+  z.toJSONSchema(TaggingResponseSchema),
 ) as Record<string, unknown>;
