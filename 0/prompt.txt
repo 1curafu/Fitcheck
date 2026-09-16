@@ -1223,3 +1223,11 @@ check which is better for us, neon yuh or zak
 ---
 
 so we need only one
+
+---
+
+okay, i will do it, go with L1b
+
+---
+
+work
