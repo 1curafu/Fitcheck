@@ -9,6 +9,9 @@ test("the first step carries the agreement, where the account becomes real", () 
   render(<Quiz />);
   expect(screen.getByRole("link", { name: /terms/i })).toHaveAttribute("href", "/terms");
   expect(screen.getByRole("link", { name: /privacy policy/i })).toHaveAttribute("href", "/privacy");
+  // The policy says 16+, and the legal review rated self-declaration as enough —
+  // but only if the app actually asks. This is where it asks.
+  expect(screen.getByText(/16 or older/)).toBeInTheDocument();
 });
 
 test("later steps do not repeat it — once, at the point of agreement", async () => {

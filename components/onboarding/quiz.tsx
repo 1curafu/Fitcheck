@@ -192,7 +192,7 @@ export function Quiz() {
           already left. */}
       {step === 0 && (
         <p className="mt-3 text-center text-[11px] text-muted-dim">
-          By continuing you agree to the{" "}
+          By continuing you confirm you are 16 or older and agree to the{" "}
           <Link href="/terms" className="text-muted-foreground underline underline-offset-2">Terms</Link>
           {" "}and{" "}
           <Link href="/privacy" className="text-muted-foreground underline underline-offset-2">Privacy Policy</Link>.
