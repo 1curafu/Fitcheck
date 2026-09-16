@@ -27,7 +27,8 @@ const tagItemMock = vi.fn(async (_cutoutBase64: string, _mediaType: string): Pro
 }));
 
 vi.mock("@/lib/ai/tag-item", () => ({
-  tagItem: (cutoutBase64: string, mediaType: string) => tagItemMock(cutoutBase64, mediaType),
+  // The real action returns the tags beside a `rotation`; the backfill only reads the tags.
+  tagItem: async (cutoutBase64: string, mediaType: string) => ({ tags: await tagItemMock(cutoutBase64, mediaType), rotation: 0 }),
 }));
 
 vi.mock("@supabase/supabase-js", () => ({
