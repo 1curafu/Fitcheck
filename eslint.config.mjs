@@ -19,6 +19,9 @@ const eslintConfig = defineConfig([
     "public/ort/**",
     // Local-only harness artefacts and throwaway scripts; gitignored.
     "scratch/**",
+    // Local-only documentation, research and saved legal documents; gitignored.
+    // A saved web page brings its scripts with it, and none of it is ours.
+    "docs/**",
   ]),
 ]);
 
