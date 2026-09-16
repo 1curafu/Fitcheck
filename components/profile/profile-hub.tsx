@@ -163,6 +163,15 @@ export function ProfileHub({
       </div>
 
       <ProCard tier={tier} />
+
+      {/* A signed-in user never sees the sign-in screen again, so without this
+          the policies live only behind Settings. The hub is the screen people
+          come to for "everything about my account". */}
+      <p className="mt-6 text-center text-[11.5px] text-muted-dim">
+        <Link href="/privacy" className="text-muted-foreground underline underline-offset-2">Privacy Policy</Link>
+        {" · "}
+        <Link href="/terms" className="text-muted-foreground underline underline-offset-2">Terms of Service</Link>
+      </p>
     </div>
   );
 }

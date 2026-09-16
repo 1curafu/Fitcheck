@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useState, useTransition } from "react";
 import { QUESTIONS } from "@/lib/onboarding/questions";
 import { saveStyleProfile } from "@/app/onboarding/actions";
@@ -184,6 +186,18 @@ export function Quiz() {
       >
         {pending ? "Saving…" : q.cta}
       </button>
+      {/* On the FIRST step only: this is the moment an account becomes real,
+          and the Terms say continuing is agreement — so the agreement has to be
+          in view where it is made, not only on a sign-in screen the user has
+          already left. */}
+      {step === 0 && (
+        <p className="mt-3 text-center text-[11px] text-muted-dim">
+          By continuing you confirm you are 16 or older and agree to the{" "}
+          <Link href="/terms" className="text-muted-foreground underline underline-offset-2">Terms</Link>
+          {" "}and{" "}
+          <Link href="/privacy" className="text-muted-foreground underline underline-offset-2">Privacy Policy</Link>.
+        </p>
+      )}
     </main>
   );
 }
