@@ -1,4 +1,4 @@
-import { toModelInput, U2NETP } from "../segment";
+import { toModelInput, maskBounds, U2NETP } from "../segment";
 
 test("the model is a parameter, and u2netp's is the one rembg uses", () => {
   // Wrong normalisation is the failure mode the plan warns about: plausible,
@@ -25,4 +25,11 @@ test("preprocess ignores alpha", () => {
   const clear = new Uint8ClampedArray([255, 255, 255, 0]);
   const cfg = { mean: [0, 0, 0] as const, std: [1, 1, 1] as const };
   expect(Array.from(toModelInput(opaque, 1, 1, cfg))).toEqual(Array.from(toModelInput(clear, 1, 1, cfg)));
+});
+
+test("maskBounds finds the confident pixels' box, and null for an empty mask", () => {
+  const n = 8; const m = new Float32Array(n * n);
+  m[2 * n + 3] = 0.9; m[5 * n + 6] = 0.7; m[7 * n + 0] = 0.2; // the last is below threshold
+  expect(maskBounds(m, n)).toEqual({ x: 3, y: 2, w: 4, h: 4 });
+  expect(maskBounds(new Float32Array(n * n), n)).toBeNull();
 });

@@ -1,5 +1,5 @@
 import imageCompression from "browser-image-compression";
-import { segment, configureRuntime, U2NETP } from "./segment";
+import { segment, configureRuntime, U2NETP, U2NETP_REFINE } from "./segment";
 import { compressionOptions, THUMB_MAX_PX } from "./options";
 import { encodeCutout, type CutoutMediaType } from "./encode";
 import { encodeThumb, type ThumbMediaType } from "./thumb";
@@ -29,7 +29,7 @@ export async function processImage(file: File): Promise<{
   // one. encode.ts documents why compression hurts model accuracy, and the old
   // library was handed the compressed JPEG for as long as it was here.
   configureRuntime();
-  const raw = await segment(file, U2NETP, original); // our ONNX pipeline, on-device
+  const raw = await segment(file, U2NETP, original, U2NETP_REFINE); // our ONNX pipeline, on-device
   // segment() hands back an uncompressed PNG. It is the blob users actually see
   // (displayPath prefers the cutout), so it gets compressed too.
   const { blob: cutout, mediaType: cutoutMediaType } = await encodeCutout(raw);

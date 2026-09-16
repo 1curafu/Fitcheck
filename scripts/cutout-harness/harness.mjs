@@ -1,4 +1,4 @@
-import { segment, configureRuntime, U2NETP } from "/scratch/harness-build/segment.js";
+import { segment, configureRuntime, U2NETP, U2NETP_REFINE } from "/scratch/harness-build/segment.js";
 import { alphaCoverage, maskIoU } from "/scratch/harness-build/mask-metrics.js";
 
 configureRuntime("/public/ort/");
@@ -20,7 +20,8 @@ const pixels = async (blob) => {
 window.harness = {
   // ⚠️ The SHIPPED config, not one the harness writes for itself. A sweep found
   // the harness blind to a wrong `mean` because it carried its own copy.
-  async ours(b64, type, override = {}, compressFirst = false) {
+  async ours(b64, type, override = {}, compressFirst = false, refine = null) {
+    refine ??= U2NETP_REFINE;
     const model = { ...U2NETP, url: "/public" + U2NETP.url, ...override };
     let input = await toBlob(b64, type);
     // Approximates lib/images/options.ts (1280px, JPEG) — what the OLD library
@@ -33,7 +34,7 @@ window.harness = {
       input = await c.convertToBlob({ type: "image/jpeg", quality: 0.8 });
     }
     const t0 = performance.now();
-    const out = await segment(input, model, await toBlob(b64, type));
+    const out = await segment(input, model, await toBlob(b64, type), refine);
     return { png: await toB64(out), ms: Math.round(performance.now() - t0) };
   },
   async compare(pngA, pngB) {
