@@ -1,0 +1,24 @@
+{
+  "cli_version": "0.10.5",
+  "checkpoint_id": "01M2P3638K2RZ9QW2ZDN3T7MZC",
+  "strategy": "manual-commit",
+  "branch": "feat/cutout-rotation",
+  "checkpoints_count": 21,
+  "files_touched": null,
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 4058,
+    "cache_creation_tokens": 19253460,
+    "cache_read_tokens": 1011241661,
+    "output_tokens": 1847279,
+    "api_call_count": 2062
+  }
+}
