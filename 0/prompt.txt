@@ -1127,3 +1127,11 @@ privacy and terms are only visible in setting, also we need to add in plan creat
 ---
 
 go
+
+---
+
+go with 1, then i will say u whats next, dont forget also do updates 1 and 2 for our cutout model
+
+---
+
+1 is  Privacy/Terms visibility. They're on the sign-in screen, in the cookie notice and in Settings — but a signed-in user only ever meets Settings. Added as O2: a footer line on the Profile hub and on the onboarding's first screen (consent at account creation, which the Terms assume). write in roadmap updrade for cutout background model update 1 and 2
