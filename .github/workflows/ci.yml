@@ -1,15 +1,18 @@
 name: CI
 
-# Runs on every PR into main and on pushes to main. The `main` ruleset requires
-# this to pass before a PR can merge. Deliberately does NOT run `npm run lint`:
-# main currently has 5 pre-existing eslint errors, so a lint gate would block
-# every merge until those are cleaned up (their own task). Add lint here once
-# `npm run lint` is green on main.
+# Runs on every PR into develop or main and on pushes to both. The `main`
+# ruleset requires this to pass before a PR can merge.
+#
+# ⚠️ Until 2026-09-16 this fired only for PRs INTO main. Every feature PR targets
+# develop, so not one of them was ever checked — #78 shipped a cookie notice
+# covering every detail page's back button, and the e2e job below would have
+# caught it. Lint is included now that it is green (the six pre-existing errors
+# were fixed or excluded in the same change).
 on:
   pull_request:
-    branches: [main]
+    branches: [develop, main]
   push:
-    branches: [main]
+    branches: [develop, main]
 
 # A newer push to the same branch cancels the older in-flight run.
 concurrency:
@@ -41,6 +44,9 @@ jobs:
 
       - name: Type-check
         run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
 
       - name: Production build
         run: npm run build

@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Design prototypes exported from the canvas tool — not app code, not shipped.
+    "styling/**",
     // Generated at build time from node_modules (scripts/copy-ort.mjs) and
     // gitignored; a vendored runtime is not ours to lint.
     "public/ort/**",

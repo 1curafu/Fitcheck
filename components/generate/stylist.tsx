@@ -228,6 +228,7 @@ export function Stylist() {
     const restoredOccasion = OCCASIONS.find((o) => o === sp.get("occasion")) ?? null;
     urlOccasionRef.current = restoredOccasion;
     desiredLookRef.current = Number(sp.get("look")) || null;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reads the URL on mount; a lazy initial state would hydrate differently from the server
     if (restoredOccasion) setOccasion(restoredOccasion);
 
     predictDefaultOccasion()
@@ -256,6 +257,7 @@ export function Stylist() {
   useEffect(() => {
     if (!seeded) return; // wait for the prediction, so generate runs once
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the effect IS the fetch; "loading" is its first state
     setStatus("loading");
     generate({ occasion, formality, lean, city: city ?? undefined }).then((res) => {
       if (cancelled) return;

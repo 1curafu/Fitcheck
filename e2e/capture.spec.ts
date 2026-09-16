@@ -21,7 +21,10 @@ test("a real photo becomes a cutout on the confirm screen, on-device", async ({ 
   });
 
   await page.goto("/closet/upload");
-  await page.locator('input[type="file"]').setInputFiles("Test assets/IMG_7913.jpg");
+  // ⚠️ A DRAWN shirt, not a photo. `Test assets/` is the owner's wardrobe and is
+  // gitignored — the repo is public. This fixture has no copyright, and u2netp
+  // segments it at 0.34 coverage, comfortably inside the band asserted below.
+  await page.locator('input[type="file"]').setInputFiles("e2e/fixtures/garment.jpg");
 
   // The confirm screen renders the cutout on the stage. Give the WASM runtime
   // and a 4.6 MB model time to arrive on a cold cache.
@@ -45,7 +48,7 @@ test("a real photo becomes a cutout on the confirm screen, on-device", async ({ 
     for (let i = 3; i < d.length; i += 4) sum += d[i];
     return sum / 255 / (d.length / 4);
   });
-  // IMG_7913 measures 0.463 in the harness; anything in this band is a real mask.
+  // The fixture measures 0.34 in the harness; anything in this band is a real mask.
   expect(coverage).toBeGreaterThan(0.2);
   expect(coverage).toBeLessThan(0.8);
 });
