@@ -32,6 +32,7 @@ export function CaptureFlow() {
           onToggleSeason={cap.toggleSeason}
           onSave={cap.save}
           onRetake={cap.discard}
+          onRotate={cap.rotate}
         />
       )}
     </main>

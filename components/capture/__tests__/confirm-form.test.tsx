@@ -9,6 +9,8 @@ const draft: Draft = {
   imagePath: "p",
   cutoutPath: "c",
   thumbPath: null,
+  baseCutout: new Blob(),
+  rotation: 0,
   cutoutUrl: "blob:x",
   name: "Tee",
   brand: "",
@@ -32,6 +34,7 @@ test("renders the draft name and fires onSave", async () => {
       onToggleSeason={() => {}}
       onSave={onSave}
       onRetake={() => {}}
+      onRotate={() => {}}
     />,
   );
   expect(screen.getByDisplayValue("Tee")).toBeInTheDocument();
@@ -55,6 +58,7 @@ function renderConfirm(
       onToggleSeason={() => {}}
       onSave={() => {}}
       onRetake={() => {}}
+      onRotate={() => {}}
     />,
   );
 }
@@ -120,6 +124,7 @@ test("offers a way out when the cutout is wrong", async () => {
       onToggleSeason={() => {}}
       onSave={() => {}}
       onRetake={onRetake}
+      onRotate={() => {}}
     />,
   );
   await userEvent.click(screen.getByRole("button", { name: /retake/i }));
@@ -188,4 +193,23 @@ test("switching between two wearable categories leaves a set fit untouched", asy
   renderConfirm({ onTags, tags: { category: "Tops", fit: "Relaxed" } });
   await userEvent.click(screen.getByRole("button", { name: "Bottoms" }));
   expect(onTags).toHaveBeenCalledWith({ category: "Bottoms" });
+});
+
+test("offers a Rotate button next to Retake", async () => {
+  const onRotate = vi.fn();
+  render(
+    <ConfirmForm
+      draft={draft}
+      saving={false}
+      error={null}
+      onDraft={() => {}}
+      onTags={() => {}}
+      onToggleSeason={() => {}}
+      onSave={() => {}}
+      onRetake={() => {}}
+      onRotate={onRotate}
+    />,
+  );
+  await userEvent.click(screen.getByRole("button", { name: "Rotate" }));
+  expect(onRotate).toHaveBeenCalledOnce();
 });

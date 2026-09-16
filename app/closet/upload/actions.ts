@@ -103,7 +103,7 @@ export async function confirmItem(input: {
   let thumbPath = input.thumbPath ?? null;
   if (input.rotated) {
     // Same defence as discardDraft: client-supplied paths, checked against the caller.
-    if (!cutoutPath.startsWith(`${user.id}/`)) throw new Error("Not your upload");
+    for (const p of [cutoutPath, thumbPath]) if (p && !p.startsWith(`${user.id}/`)) throw new Error("Not your upload");
     const base = cutoutPath.slice(0, cutoutPath.lastIndexOf("/"));
     const nextCutout = `${base}/${cutoutFilename(input.rotated.mediaType)}`;
     const { error } = await supabase.storage

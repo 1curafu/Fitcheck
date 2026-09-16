@@ -2,8 +2,17 @@ import { renderHook, act } from "@testing-library/react";
 import { useCapture } from "../use-capture";
 
 vi.mock("@/lib/images/process", () => ({
-  processImage: vi.fn(async () => ({ original: new Blob(), cutout: new Blob() })),
+  processImage: vi.fn(async () => ({ original: new Blob(), cutout: new Blob(["cut"]) })),
   blobToBase64: vi.fn(async () => "b64"),
+}));
+vi.mock("@/lib/images/rotate", () => ({
+  rotateBlob: vi.fn(async (b: Blob, r: number) => (r === 0 ? b : new Blob([`turned-${r}`]))),
+}));
+vi.mock("@/lib/images/encode", () => ({
+  encodeCutout: vi.fn(async (b: Blob) => ({ blob: b, mediaType: "image/webp" })),
+}));
+vi.mock("@/lib/images/thumb", () => ({
+  encodeThumb: vi.fn(async () => ({ blob: new Blob(["thumb"]), mediaType: "image/webp" })),
 }));
 vi.mock("@/app/closet/upload/actions", () => ({
   uploadAndTag: vi.fn(async () => ({
@@ -18,6 +27,7 @@ vi.mock("@/app/closet/upload/actions", () => ({
       category: "Tops", subcategory: "Tee", colors: ["black"],
       pattern: "solid", material: "Cotton", formality: 2, seasons: ["Summer"],
     },
+    rotation: 0,
   })),
   confirmItem: vi.fn(async () => undefined),
   discardDraft: vi.fn(async () => undefined),
@@ -124,5 +134,61 @@ describe("discard", () => {
     });
     expect(result.current.phase).toBe("aim");
     expect(result.current.error).toBeNull();
+  });
+});
+
+describe("rotation", () => {
+  test("the model's rotation is applied to the preview before the user sees it", async () => {
+    const { uploadAndTag } = await import("@/app/closet/upload/actions");
+    const { rotateBlob } = await import("@/lib/images/rotate");
+    vi.mocked(uploadAndTag).mockResolvedValueOnce({
+      itemId: "i", imagePath: "u/i/original.jpg", cutoutPath: "u/i/cutout.png", thumbPath: null,
+      tags: { category: "Tops", subcategory: "Tee", colors: ["black"], pattern: "solid", material: "Cotton", formality: 2, seasons: ["Summer"] } as never,
+      rotation: 90,
+    });
+    const { result } = renderHook(() => useCapture());
+    await act(async () => {
+      await result.current.capture(new File([], "x.jpg"));
+    });
+    expect(result.current.draft?.rotation).toBe(90);
+    expect(vi.mocked(rotateBlob)).toHaveBeenLastCalledWith(expect.any(Blob), 90);
+  });
+
+  test("rotate advances a quarter turn and wraps", async () => {
+    const { result } = renderHook(() => useCapture());
+    await act(async () => {
+      await result.current.capture(new File([], "x.jpg"));
+    });
+    for (const expected of [90, 180, 270, 0]) {
+      await act(async () => {
+        await result.current.rotate();
+      });
+      expect(result.current.draft?.rotation).toBe(expected);
+    }
+  });
+
+  test("save sends the rotated cutout and thumb only when turned", async () => {
+    const { confirmItem } = await import("@/app/closet/upload/actions");
+    const { result } = renderHook(() => useCapture());
+    await act(async () => {
+      await result.current.capture(new File([], "x.jpg"));
+    });
+    await act(async () => {
+      await result.current.save();
+    });
+    expect(vi.mocked(confirmItem).mock.lastCall?.[0]).toMatchObject({ rotated: null });
+
+    await act(async () => {
+      await result.current.capture(new File([], "x.jpg"));
+    });
+    await act(async () => {
+      await result.current.rotate();
+    });
+    await act(async () => {
+      await result.current.save();
+    });
+    expect(vi.mocked(confirmItem).mock.lastCall?.[0]).toMatchObject({
+      rotated: { cutoutB64: "b64", mediaType: "image/webp", thumbB64: "b64", thumbMediaType: "image/webp" },
+    });
   });
 });
