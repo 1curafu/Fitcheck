@@ -65,17 +65,20 @@ export async function uploadAndTag(form: {
     if (!error) thumbPath = `${base}/${thumbName}`;
   }
 
-  const tags = await tagItem(form.cutoutB64, form.mediaType);
+  const { tags, rotation } = await tagItem(form.cutoutB64, form.mediaType);
   return {
     itemId,
     imagePath: `${base}/original.jpg`,
     cutoutPath: `${base}/${cutoutName}`,
     thumbPath,
     tags,
+    rotation,
   };
 }
 
-// Re-validate the (possibly user-edited) tags and insert the item.
+// Re-validate the (possibly user-edited) tags and insert the item. When the
+// user rotated the cutout, the rotated blobs replace the uploaded ones first,
+// so the row only ever points at upright images.
 export async function confirmItem(input: {
   imagePath: string;
   cutoutPath: string;
@@ -83,6 +86,12 @@ export async function confirmItem(input: {
   name?: string | null;
   brand?: string | null;
   tags: unknown;
+  rotated?: {
+    cutoutB64: string;
+    mediaType: CutoutMediaType;
+    thumbB64: string | null;
+    thumbMediaType: ThumbMediaType | null;
+  } | null;
 }) {
   const supabase = await createClient();
   const {
@@ -90,13 +99,47 @@ export async function confirmItem(input: {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
+  let cutoutPath = input.cutoutPath;
+  let thumbPath = input.thumbPath ?? null;
+  if (input.rotated) {
+    // Same defence as discardDraft: client-supplied paths, checked against the caller.
+    if (!cutoutPath.startsWith(`${user.id}/`)) throw new Error("Not your upload");
+    const base = cutoutPath.slice(0, cutoutPath.lastIndexOf("/"));
+    const nextCutout = `${base}/${cutoutFilename(input.rotated.mediaType)}`;
+    const { error } = await supabase.storage
+      .from("wardrobe")
+      .upload(nextCutout, Buffer.from(input.rotated.cutoutB64, "base64"), {
+        contentType: input.rotated.mediaType,
+        upsert: true,
+      });
+    if (error) throw error;
+    const stale: (string | null)[] = [cutoutPath !== nextCutout ? cutoutPath : null];
+    cutoutPath = nextCutout;
+
+    let nextThumb: string | null = null;
+    if (input.rotated.thumbB64 && input.rotated.thumbMediaType) {
+      nextThumb = `${base}/${thumbFilename(input.rotated.thumbMediaType)}`;
+      const { error: thumbError } = await supabase.storage
+        .from("wardrobe")
+        .upload(nextThumb, Buffer.from(input.rotated.thumbB64, "base64"), {
+          contentType: input.rotated.thumbMediaType,
+          upsert: true,
+        });
+      if (thumbError) nextThumb = null;
+    }
+    if (thumbPath && thumbPath !== nextThumb) stale.push(thumbPath);
+    thumbPath = nextThumb;
+    const remove = stale.filter((p): p is string => !!p);
+    if (remove.length) await supabase.storage.from("wardrobe").remove(remove);
+  }
+
   const tags = TagSchema.parse(input.tags);
   const row = {
     ...tagsToItemRow({
       userId: user.id,
       imageUrl: input.imagePath,
-      cutoutUrl: input.cutoutPath,
-      thumbUrl: input.thumbPath ?? null,
+      cutoutUrl: cutoutPath,
+      thumbUrl: thumbPath,
       tags,
     }),
     name: input.name ?? tags.subcategory,
