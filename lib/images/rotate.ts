@@ -5,8 +5,13 @@ export function rotatedSize(width: number, height: number, rotation: Rotation) {
 }
 
 /** Quarter-turn rotation of RGBA pixels, clockwise. Exact: no resampling. */
-export function rotateRGBA(data: Uint8ClampedArray, width: number, height: number, rotation: Rotation) {
-  if (rotation === 0) return { data, width, height };
+export function rotateRGBA(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  rotation: Rotation,
+): { data: Uint8ClampedArray<ArrayBuffer>; width: number; height: number } {
+  if (rotation === 0) return { data: new Uint8ClampedArray(data), width, height };
   const { width: w2, height: h2 } = rotatedSize(width, height, rotation);
   const out = new Uint8ClampedArray(data.length);
   for (let y = 0; y < height; y++) {

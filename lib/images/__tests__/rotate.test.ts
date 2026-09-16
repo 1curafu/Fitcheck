@@ -30,7 +30,7 @@ test("270 clockwise puts the right pixel on top", () => {
 
 test("a 2×2 image rotated four times comes back", () => {
   const sq = new Uint8ClampedArray([...px(1, 0, 0), ...px(2, 0, 0), ...px(3, 0, 0), ...px(4, 0, 0)]);
-  let cur = { data: sq, width: 2, height: 2 };
+  let cur: { data: Uint8ClampedArray; width: number; height: number } = { data: sq, width: 2, height: 2 };
   for (let i = 0; i < 4; i++) cur = rotateRGBA(cur.data, cur.width, cur.height, 90);
   expect(Array.from(cur.data)).toEqual(Array.from(sq));
   const once = rotateRGBA(sq, 2, 2, 90);
