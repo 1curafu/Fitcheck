@@ -35,3 +35,10 @@ test("every enum value the schema accepts is named in the prompt", () => {
     expect(PROMPT).toContain(value);
   }
 });
+
+test("the prompt defines rotation as clockwise quarter turns and names the flat-lay exceptions", () => {
+  expect(PROMPT).toContain("rotation");
+  expect(PROMPT).toContain("CLOCKWISE");
+  for (const r of ["0", "90", "180", "270"]) expect(PROMPT).toContain(r);
+  expect(PROMPT.toLowerCase()).toContain("belt");
+});

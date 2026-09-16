@@ -2,7 +2,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { taggingJsonSchema } from "./tagging-schema";
-import { parseTagText } from "./parse-tags";
+import { parseTaggingResponse } from "./parse-tags";
 import { PROMPT } from "./tagging-prompt";
 
 // Constructed lazily inside tagItem(), not at module scope: a module-level
@@ -24,11 +24,12 @@ function getClient() {
  * module, where every export must be an async Server Action.
  */
 function stubbedTags() {
-  return parseTagText(
+  return parseTaggingResponse(
     JSON.stringify({
       category: "Tops", subcategory: "Oxford shirt", colors: ["white"], pattern: "solid",
       material: "Cotton", texture: "Flat", formality: 3, seasons: ["Spring", "Autumn"],
       accent_color: null, branding: "None", fit: "Regular", length: "Hip", bulk: null, distressing: "None",
+      rotation: 0,
     }),
   );
 }
@@ -53,5 +54,5 @@ export async function tagItem(
     ],
   });
   const text = res.content.find((b) => b.type === "text")?.text ?? "{}";
-  return parseTagText(text); // validated Tags (a draft shown on the confirm screen)
+  return parseTaggingResponse(text); // validated draft tags + rotation, for the confirm screen
 }
