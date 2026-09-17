@@ -1423,3 +1423,7 @@ After it's merged, one thing only you can do: Google Search Console → add fitc
 ---
 
 should we maybe push updates from dev branch to main?
+
+---
+
+go, #86 merged
