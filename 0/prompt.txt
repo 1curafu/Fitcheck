@@ -1465,3 +1465,43 @@ go
 ---
 
 merged
+
+---
+
+1) [iphone] › e2e/capture-exif.spec.ts:30:5 › an EXIF-rotated photo gets the same cutout as the upright one 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('.surface-stage img').first()
+    Expected: visible
+    Timeout: 90000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 90000ms
+      - waiting for locator('.surface-stage img').first()
+
+
+      15 |   await page.locator('input[type="file"]').setInputFiles(fixture);
+      16 |   const cutout = page.locator(".surface-stage img").first();
+    > 17 |   await expect(cutout).toBeVisible({ timeout: 90_000 });
+         |                        ^
+      18 |   return cutout.evaluate(async (img: HTMLImageElement) => {
+      19 |     const bmp = await createImageBitmap(await (await fetch(img.src)).blob());
+      20 |     const c = new OffscreenCanvas(bmp.width, bmp.height);
+        at cutoutAlpha (/home/runner/work/Fitcheck/Fitcheck/e2e/capture-exif.spec.ts:17:24)
+        at /home/runner/work/Fitcheck/Fitcheck/e2e/capture-exif.spec.ts:34:19
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/capture-exif-an-EXIF-rotat-9f7c8-e-cutout-as-the-upright-one-iphone/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/capture-exif-an-EXIF-rotat-9f7c8-e-cutout-as-the-upright-one-iphone/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/capturt one 
+  29 passed (2.7m)
+Notice:   1 failed
+    [iphone] › e2e/capture-exif.spec.ts:30:5 › an EXIF-rotated photo gets the same cutout as the upright one 
+  29 passed (2.7m)
+Error: Process completed with exit code 1.
