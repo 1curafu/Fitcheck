@@ -25,6 +25,20 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.3.0",
+    date: "2026-09-17",
+    headline: "Adding clothes is faster, and they come out the right way up.",
+    added: [
+      "Background removal now runs in under a second — and downloads 5× less",
+      "Photographed sideways? It's turned upright for you — and there's a Rotate button",
+      "Privacy policy and terms, written in plain language, linked where they matter",
+    ],
+    fixed: [
+      "White garments on pale backgrounds no longer lose their edges",
+      "Trouser hems and shirt cuffs keep their shape in the cutout",
+    ],
+  },
+  {
     version: "0.2.0",
     date: "2026-09-09",
     headline: "Your looks just got smarter.",
