@@ -63,8 +63,10 @@ function write(version: string) {
  * inline condition survived a mutation sweep — it would flash the notes at a
  * first-time user and no test could see it. Here it is one obvious assertion.
  */
-export function shouldShow(seen: string | null, current: string): boolean {
-  if (seen === null) return false; // never been here — nothing to catch up on
+export function shouldShow(seen: string | null, current: string, returning = false): boolean {
+  // Empty storage is not proof of a first visit: a home-screen app and Safari
+  // keep separate storage, and site data gets cleared. The account's age is.
+  if (seen === null) return returning;
   return seen !== current;
 }
 
@@ -73,7 +75,8 @@ function subscribe(notify: () => void) {
   return () => void listeners.delete(notify);
 }
 
-export function WhatsNew() {
+/** `returning`: the account predates this release, so the note is owed whatever storage says. */
+export function WhatsNew({ returning = false }: { returning?: boolean } = {}) {
   // The server has no localStorage, so it answers "already seen" and renders
   // nothing — the card appears on hydration, and no markup differs.
   const seen = useSyncExternalStore(subscribe, read, () => CURRENT_RELEASE.version);
@@ -82,10 +85,10 @@ export function WhatsNew() {
   // used Fitcheck has nothing to catch up on, and "Fixed: ..." as a first
   // impression reads as an app that was broken.
   useEffect(() => {
-    if (read() === null) write(CURRENT_RELEASE.version);
-  }, []);
+    if (!returning && read() === null) write(CURRENT_RELEASE.version);
+  }, [returning]);
 
-  if (!shouldShow(seen, CURRENT_RELEASE.version)) return null;
+  if (!shouldShow(seen, CURRENT_RELEASE.version, returning)) return null;
 
   return (
     <WhatsNewCard

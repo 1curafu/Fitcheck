@@ -1,5 +1,5 @@
 import { minMaxNormalise } from "./mask-metrics";
-import { guidedFilter, luminance, sharpenAlpha } from "./refine";
+import { guidedFilter, luminance, punchBackground, sharpenAlpha } from "./refine";
 
 /**
  * ⚠️ Loaded lazily, never at module scope. onnxruntime-web computes its worker
@@ -66,6 +66,8 @@ export type RefineOptions = {
    * Skipped when the box already covers most of the frame (nothing to gain).
    */
   zoom?: { padFrac: number; maxAreaFrac: number; square?: boolean };
+  /** Flood background-coloured kept pixels out from the exterior (refine.ts). `true` = defaults. */
+  punch?: true | { tol?: number; maxSpread?: number; maxGarmentShare?: number };
 };
 
 /**
@@ -91,6 +93,7 @@ export const U2NETP: SegmentModel = {
  * The refinement that ships, chosen on the parity harness (2026-09-16), every
  * image against the visually correct reference:
  *   stage 0 → sharpen :  under-bar 11 → 10,  worst 0.770 → 0.801, no image regressed.
+ *   sharpen → + punch :  white shirt 0.924 → 0.971, black knit's arm gaps cleared, 0 regressed.
  *
  * Two more were built, measured, and do NOT ship:
  * - the guided filter: at a harmless radius it gained nothing, at a useful one
@@ -104,6 +107,9 @@ export const U2NETP: SegmentModel = {
  */
 export const U2NETP_REFINE: RefineOptions = {
   sharpen: [0.2, 0.8],
+  // 2026-09-17: the black knit's arm gaps came out as white slabs on the stage.
+  // Measured: 2 images up (white shirt cuffs +0.046, the knit), 0 down, +60 ms.
+  punch: true,
 };
 
 /** RGBA pixels → NCHW float tensor data, RGB, per-channel normalised. Alpha is ignored. */
@@ -266,6 +272,13 @@ export async function segmentMask(
   }
   const full = fctx.getImageData(0, 0, width, height);
 
+  if (refine.punch) {
+    const photo = draw(bitmap, width, height).getContext("2d")!.getImageData(0, 0, width, height).data;
+    const alpha = new Float32Array(width * height);
+    for (let i = 0; i < alpha.length; i++) alpha[i] = full.data[i * 4 + 3] / 255;
+    const q = punchBackground(photo, alpha, width, height, refine.punch === true ? {} : refine.punch);
+    for (let i = 0; i < q.length; i++) full.data[i * 4 + 3] = Math.round(q[i] * 255);
+  }
   if (refine.guided) {
     // The photo at the mask's resolution is the guide.
     const photo = draw(bitmap, width, height).getContext("2d")!.getImageData(0, 0, width, height).data;

@@ -97,3 +97,105 @@ export function luminance(rgba: Uint8ClampedArray): Float32Array {
   }
   return out;
 }
+
+/**
+ * `punchBackground` — where the model is confidently wrong AND the photo can
+ * prove it. u2netp fills concave gaps (between an arm and a torso, inside a
+ * bag's handle) at full alpha; on the dark stage they show as white slabs. When
+ * the background is one flat colour, any kept pixel of that colour that is
+ * reachable from the outside through more of that colour cannot be garment.
+ *
+ * Flood from the transparent exterior into kept pixels within `tol` of the
+ * background colour, then keep only the flooded regions that reach at least
+ * `minDepthFrac` of the image into the mask. Three refusals keep it safe: a
+ * background that is not flat (nothing to match against); a garment that shares
+ * the background's colour (a white shirt on white — every pixel would qualify);
+ * a region that only hugs the outline (that is the edge of a pale garment, not
+ * a gap — measured: it nibbled a white sneaker); and a region with no width
+ * anywhere (that is a seam's shadow, not a gap — measured: it cracked a pair of
+ * cream trousers along the inseam). Enclosed regions are never reached, so a
+ * print the colour of the background survives.
+ */
+export function punchBackground(
+  rgba: Uint8ClampedArray,
+  alpha: Float32Array,
+  w: number,
+  h: number,
+  opts: {
+    tol?: number;
+    maxSpread?: number;
+    maxGarmentShare?: number;
+    minDepthFrac?: number;
+    minWidthFrac?: number;
+  } = {},
+): Float32Array {
+  const { tol = 10, maxSpread = 18, maxGarmentShare = 0.08, minDepthFrac = 0.015, minWidthFrac = 0.004 } = opts;
+  const n = w * h;
+  const EXT = 0.05, KEPT = 0.5;
+
+  let sr = 0, sg = 0, sb = 0, count = 0;
+  for (let i = 0; i < n; i++) if (alpha[i] < EXT) { sr += rgba[i * 4]; sg += rgba[i * 4 + 1]; sb += rgba[i * 4 + 2]; count++; }
+  if (count < n * 0.05) return alpha;
+  const br = sr / count, bg = sg / count, bb = sb / count;
+  const dist = (i: number) => Math.hypot(rgba[i * 4] - br, rgba[i * 4 + 1] - bg, rgba[i * 4 + 2] - bb);
+  let spread = 0;
+  for (let i = 0; i < n; i++) if (alpha[i] < EXT) spread += dist(i);
+  if (spread / count > maxSpread) return alpha;
+
+  let kept = 0, keptLikeBg = 0;
+  for (let i = 0; i < n; i++) if (alpha[i] >= KEPT) { kept++; if (dist(i) <= tol) keptLikeBg++; }
+  if (kept === 0 || keptLikeBg / kept > maxGarmentShare) return alpha;
+
+  const neighbours = (i: number, f: (j: number) => void) => {
+    const x = i % w, y = (i - x) / w;
+    if (x > 0) f(i - 1); if (x < w - 1) f(i + 1); if (y > 0) f(i - w); if (y < h - 1) f(i + w);
+  };
+
+  // Depth: BFS steps from the exterior through anything — how far inside a pixel sits.
+  const depth = new Int32Array(n).fill(-1);
+  const queue = new Int32Array(n);
+  let head = 0, tail = 0;
+  for (let i = 0; i < n; i++) if (alpha[i] < EXT) { depth[i] = 0; queue[tail++] = i; }
+  while (head < tail) {
+    const i = queue[head++];
+    neighbours(i, (j) => { if (depth[j] < 0) { depth[j] = depth[i] + 1; queue[tail++] = j; } });
+  }
+
+  // Flood from the exterior through background-coloured kept pixels only.
+  const reached = new Uint8Array(n);
+  head = 0; tail = 0;
+  for (let i = 0; i < n; i++) if (alpha[i] < EXT) { reached[i] = 1; queue[tail++] = i; }
+  while (head < tail) {
+    const i = queue[head++];
+    neighbours(i, (j) => { if (!reached[j] && dist(j) <= tol) { reached[j] = 1; queue[tail++] = j; } });
+  }
+
+  // Each flooded region is punched only if it reaches deep enough to be a gap
+  // and is wide enough somewhere to be one: a pixel whose whole (2r+1)² block
+  // is flooded exists only where the region is at least 2r+1 across.
+  const minDepth = Math.max(2, Math.round(Math.max(w, h) * minDepthFrac));
+  const r = Math.max(1, Math.round(Math.max(w, h) * minWidthFrac));
+  const flooded = (i: number) => reached[i] && alpha[i] >= EXT;
+  const wide = (i: number) => {
+    const x = i % w, y = (i - x) / w;
+    if (x < r || y < r || x >= w - r || y >= h - r) return false;
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (!flooded(i + dy * w + dx)) return false;
+    return true;
+  };
+  const out = alpha.slice();
+  const labelled = new Uint8Array(n);
+  const region = new Int32Array(n);
+  for (let s = 0; s < n; s++) {
+    if (!flooded(s) || labelled[s]) continue;
+    let rh = 0, rt = 0, deepest = 0, hasWidth = false;
+    region[rt++] = s; labelled[s] = 1;
+    while (rh < rt) {
+      const i = region[rh++];
+      if (depth[i] > deepest) deepest = depth[i];
+      if (!hasWidth && wide(i)) hasWidth = true;
+      neighbours(i, (j) => { if (flooded(j) && !labelled[j]) { labelled[j] = 1; region[rt++] = j; } });
+    }
+    if (deepest >= minDepth && hasWidth) for (let k = 0; k < rt; k++) out[region[k]] = 0;
+  }
+  return out;
+}
