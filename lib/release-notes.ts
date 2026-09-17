@@ -25,6 +25,17 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.3.1",
+    date: "2026-09-17",
+    headline: "Cleaner cutouts, and Rotate where you can see it.",
+    added: ["The Rotate button now sits on the photo, so you watch it turn"],
+    fixed: [
+      "Gaps between a sleeve and the body no longer come out as white patches",
+      "Retake no longer looks like a rotate button",
+      "This card shows up after an update on the home-screen app too",
+    ],
+  },
+  {
     version: "0.3.0",
     date: "2026-09-17",
     headline: "Adding clothes is faster, and they come out the right way up.",
