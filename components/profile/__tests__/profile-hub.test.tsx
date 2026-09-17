@@ -126,3 +126,11 @@ describe("the Pro card", () => {
     expect(sheet).toHaveTextContent(/gap analysis/i);
   });
 });
+
+test("the policies are reachable from the hub, not only from Settings", () => {
+  // A signed-in user never sees the sign-in screen again; this is the screen
+  // they come to for everything about their account.
+  render(<ProfileHub {...props} />);
+  expect(screen.getByRole("link", { name: /privacy policy/i })).toHaveAttribute("href", "/privacy");
+  expect(screen.getByRole("link", { name: /terms of service/i })).toHaveAttribute("href", "/terms");
+});

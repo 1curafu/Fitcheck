@@ -55,4 +55,8 @@ distressing — visible wear: None, Faded, or Ripped. Faded = whiskering, fading
 abrasion with no holes; Ripped = actual holes, tears or deliberate destruction. \
 Use None for a clean garment. Judge only what is visible.
 
-Return ONLY the structured tags.`;
+Return ONLY the structured tags.\
+rotation — degrees CLOCKWISE to turn the photo so the item is upright as it is worn or \
+carried: 0, 90, 180 or 270. Upright means collar, waistband, hood or bag opening at the top and \
+shoes standing on their soles. Items laid flat lengthways — a belt, a chain, a tie, a scarf, a \
+watch strap — are upright at 0 when they run left to right. Answer 0 when unsure.`;

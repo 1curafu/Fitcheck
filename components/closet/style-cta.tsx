@@ -1,56 +1,27 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { styleWithItem } from "@/app/closet/[itemId]/style-actions";
 import { UpgradeSheet } from "@/components/billing/upgrade-sheet";
+import { useStyleWithItem } from "./use-style-with-item";
 
 /**
  * The one primary action on item detail (Fitcheck.dc.html:654).
  *
- * The outcome is a STATE, not an exception: "this is a Pro feature" and "there
- * is not enough else in your closet yet" are both real answers, and a thrown
- * error would render as a dead button with no explanation.
- *
  * The button stays VISIBLE and enabled for free users on purpose. Nobody buys a
  * feature they have never seen, and this screen — the canonical one — is where
  * the want is felt. Tapping it explains the feature rather than doing nothing.
+ *
+ * ⚠️ Only the primary lives here now. "Try another look" used to render as a
+ * second row beneath it, which made this component grow taller than the
+ * archive button beside it in the sticky cluster — the primary floated up, the
+ * secondary hung below over the bottom bar, and the whole thing read as broken.
+ * It was also the wrong page: you reject a look while LOOKING at it. It lives on
+ * the look page now (`components/outfits/try-another-look.tsx`).
+ *
+ * The first tap is a cache-friendly read: a piece already styled today lands on
+ * that look, where the regenerate control is.
  */
-export function StyleCta({ itemId, styledToday }: { itemId: string; styledToday: boolean }) {
-  const router = useRouter();
-  const [pending, start] = useTransition();
-  const [message, setMessage] = useState<string | null>(null);
-  // A Pro gate and "your closet is too thin for this yet" are different answers
-  // and get different weight: the first is a sheet that explains and sells, the
-  // second is a quiet line, because there is nothing to buy — you add a piece.
-  const [upgrade, setUpgrade] = useState<string | null>(null);
-  /**
-   * Offered only once a set exists — before that there is nothing to compare
-   * against. Seeded from the SERVER, not just from this session: tapping the
-   * primary navigates to the look, so a flag set on that tap is gone by the
-   * time the user comes back and this remounts. Session state alone meant the
-   * control could never appear at all.
-   */
-  const [styled, setStyled] = useState(styledToday);
-
-  function run(regenerate: boolean) {
-    start(async () => {
-      setMessage(null);
-      setUpgrade(null);
-      const res = await styleWithItem(itemId, { regenerate });
-      if (res.status === "ok") {
-        setStyled(true);
-        router.push(`/outfits/${res.outfitIds[0]}`);
-      }
-      // The reason is rendered verbatim, never re-worded here. It used to read
-      // "that's today's stylings used — back tomorrow", written when styling
-      // was assumed to share the daily generation allowance. It is a Pro
-      // capability, so tomorrow gives a free user no more of them — the old
-      // copy told people to wait for something that would never arrive.
-      else if (res.status === "limited") setUpgrade(res.message);
-      else setMessage(res.message);
-    });
-  }
+export function StyleCta({ itemId }: { itemId: string }) {
+  const { run, pending, message, upgrade, dismissUpgrade } = useStyleWithItem(itemId);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -63,22 +34,6 @@ export function StyleCta({ itemId, styledToday }: { itemId: string; styledToday:
         {pending ? "Styling…" : "Style an outfit with this"}
       </button>
 
-      {/* A bounded secondary with WORDS, below the primary — the shape PR #20
-          arrived at after an icon-only Regenerate was tried and rejected,
-          because nothing tells you a ⟳ means "spend an AI call". It exists
-          because the cache is right but silent: tapping again returned the
-          identical look with no explanation. */}
-      {styled && (
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() => run(true)}
-          className="mx-auto mt-2 min-h-[44px] rounded-full px-4 text-[13px] text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-4)] disabled:opacity-60"
-        >
-          {pending ? "Styling…" : "Try another look"}
-        </button>
-      )}
-
       {message && (
         <p role="status" className="mt-2 text-center text-xs text-muted-foreground">
           {message}
@@ -89,7 +44,7 @@ export function StyleCta({ itemId, styledToday }: { itemId: string; styledToday:
         open={Boolean(upgrade)}
         title="Style a look around any piece"
         body={upgrade ?? ""}
-        onClose={() => setUpgrade(null)}
+        onClose={dismissUpgrade}
       />
     </div>
   );

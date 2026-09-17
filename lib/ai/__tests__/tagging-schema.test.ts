@@ -1,6 +1,8 @@
 import {
   TagSchema,
   taggingJsonSchema,
+  RotationSchema,
+  ROTATIONS,
   MATERIALS,
   TEXTURES,
   COLOR_NAMES,
@@ -203,4 +205,16 @@ test("fit_source rejects a value outside the two-way enum", () => {
 test("fit_source is never sent to the model — it cannot know its own provenance", () => {
   const props = (taggingJsonSchema as { properties: Record<string, unknown> }).properties;
   expect(props.fit_source).toBeUndefined();
+});
+
+test("rotation is one of four clockwise quarter turns", () => {
+  for (const r of ROTATIONS) expect(RotationSchema.parse(r)).toBe(r);
+  expect(() => RotationSchema.parse(45)).toThrow();
+  expect(() => RotationSchema.parse("90")).toThrow();
+});
+
+test("the model is asked for rotation, as an enum of numbers", () => {
+  const props = (taggingJsonSchema as { properties: Record<string, unknown> }).properties;
+  expect(props.rotation).toEqual({ type: "number", enum: [0, 90, 180, 270] });
+  expect((taggingJsonSchema as { required: string[] }).required).toContain("rotation");
 });

@@ -7,6 +7,7 @@ import { visualSeparation } from "./styling/value";
 import { valueDirection } from "./styling/direction";
 import { canonicalTrio } from "./styling/trios";
 import { footwearAgainstOutfit } from "./styling/footwear";
+import { bagCoordination } from "./styling/bag";
 import { materialScore, textureScore } from "./styling/material-matrix";
 
 export type ScoreItem = {
@@ -163,6 +164,13 @@ const WEIGHTS = {
    */
   material: 0.15,
   texture: 0.15,
+  /**
+   * Whether the bag was chosen with the outfit. Between `wristwear` (0.08) and
+   * `material` (0.15): a bag is a visible colour block, far more visible than a
+   * watch case, but it is one accessory against the fabric of every garment.
+   * Drops out when there is no bag.
+   */
+  bag: 0.12,
 } as const;
 
 /**
@@ -385,6 +393,7 @@ export function scoreCombo(items: ScoreItem[], ctx: Ctx): number {
     // most outfits, so a wardrobe without jewellery is untouched.
     { weight: WEIGHTS.metal, value: metalCoordination(items) },
     { weight: WEIGHTS.wristwear, value: wristwearBonus(items) },
+    { weight: WEIGHTS.bag, value: bagCoordination(items) },
     // ⚠️ Hardware passes [] for colours here too, exactly as it does to
     // `colourScore` — a steel watch is not a value block and must not be able
     // to flatten or separate an outfit.

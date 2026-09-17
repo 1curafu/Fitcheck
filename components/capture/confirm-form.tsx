@@ -1,6 +1,6 @@
 "use client";
 
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, RotateCw } from "lucide-react";
 
 import { Chip } from "@/components/ui-fitcheck/chip";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
@@ -39,6 +39,7 @@ export function ConfirmForm({
   onToggleSeason,
   onSave,
   onRetake,
+  onRotate,
 }: {
   draft: Draft;
   saving: boolean;
@@ -48,6 +49,7 @@ export function ConfirmForm({
   onToggleSeason: (s: Tags["seasons"][number]) => void;
   onSave: () => void;
   onRetake: () => void;
+  onRotate: () => void;
 }) {
   return (
     <div className="flex flex-1 flex-col gap-5">
@@ -258,6 +260,15 @@ export function ConfirmForm({
           className="grid h-[54px] w-14 shrink-0 place-items-center rounded-[14px] bg-surface-2 text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-6)] disabled:opacity-60"
         >
           <RotateCcw size={19} />
+        </button>
+        <button
+          type="button"
+          onClick={onRotate}
+          disabled={saving}
+          aria-label="Rotate"
+          className="grid h-[54px] w-14 shrink-0 place-items-center rounded-[14px] bg-surface-2 text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-6)] disabled:opacity-60"
+        >
+          <RotateCw size={19} />
         </button>
         <button
           onClick={onSave}

@@ -1,9 +1,17 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
 import { EmailSignIn } from "@/components/auth/email-sign-in";
 import { BrandMark } from "@/components/brand/mark";
+
+export const metadata: Metadata = {
+  title: { absolute: "Fitcheck — your AI stylist" },
+  description: "Upload your wardrobe once. Every day, three outfits composed from the clothes you already own, matched to the weather and the occasion, with a reason why each one works.",
+  alternates: { canonical: "/" },
+};
 
 export default function Welcome() {
   // The session read is what blocks a shell, so it moves behind a boundary
@@ -52,6 +60,12 @@ async function WelcomeBody() {
           <span className="h-px flex-1 bg-[--border]" />
         </div>
         <EmailSignIn />
+        <p className="mt-5 text-center text-[11.5px] text-muted-dim">
+          By continuing you agree to the{" "}
+          <Link href="/terms" className="text-muted-foreground underline underline-offset-2">Terms</Link>
+          {" "}and{" "}
+          <Link href="/privacy" className="text-muted-foreground underline underline-offset-2">Privacy Policy</Link>.
+        </p>
       </div>
     </main>
   );

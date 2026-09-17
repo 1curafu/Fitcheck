@@ -109,7 +109,7 @@ export async function backfillItem(
     if (dlError || !blob) return "failed";
 
     const buf = Buffer.from(await blob.arrayBuffer());
-    const tags = await tagItem(buf.toString("base64"), mediaTypeFor(item.cutout_url));
+    const { tags } = await tagItem(buf.toString("base64"), mediaTypeFor(item.cutout_url));
     onBilled?.(); // the API call succeeded here — this item is billed regardless of what happens next
 
     // ⚠️ `fit` is intentionally absent from this object — see file header.
