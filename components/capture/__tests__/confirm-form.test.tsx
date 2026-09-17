@@ -195,7 +195,7 @@ test("switching between two wearable categories leaves a set fit untouched", asy
   expect(onTags).toHaveBeenCalledWith({ category: "Bottoms" });
 });
 
-test("offers a Rotate button next to Retake", async () => {
+test("Rotate sits on the stage, over the cutout it turns — not in the bottom bar", async () => {
   const onRotate = vi.fn();
   render(
     <ConfirmForm
@@ -210,6 +210,27 @@ test("offers a Rotate button next to Retake", async () => {
       onRotate={onRotate}
     />,
   );
-  await userEvent.click(screen.getByRole("button", { name: "Rotate" }));
+  const rotate = screen.getByRole("button", { name: "Rotate" });
+  expect(rotate.closest(".surface-stage")).not.toBeNull();
+  await userEvent.click(rotate);
   expect(onRotate).toHaveBeenCalledOnce();
+});
+
+test("Retake is a camera, not a turning arrow — a turning arrow reads as rotate", () => {
+  render(
+    <ConfirmForm
+      draft={draft}
+      saving={false}
+      error={null}
+      onDraft={() => {}}
+      onTags={() => {}}
+      onToggleSeason={() => {}}
+      onSave={() => {}}
+      onRetake={() => {}}
+      onRotate={() => {}}
+    />,
+  );
+  const retake = screen.getByRole("button", { name: "Retake" });
+  expect(retake.querySelector("svg.lucide-rotate-ccw, svg.lucide-rotate-cw, svg.lucide-refresh-cw")).toBeNull();
+  expect(retake.querySelector("svg.lucide-camera")).not.toBeNull();
 });

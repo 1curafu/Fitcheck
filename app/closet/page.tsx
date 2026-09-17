@@ -8,6 +8,7 @@ import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { MobileNav } from "@/components/shell/mobile-nav";
 import { ClosetGrid } from "@/components/closet/closet-grid";
 import { WhatsNew } from "@/components/shell/whats-new";
+import { CURRENT_RELEASE } from "@/lib/release-notes";
 
 /**
  * The Closet, split into a prerendered SHELL and a streamed body.
@@ -27,16 +28,11 @@ export default function ClosetPage() {
   return (
     <div className="flex min-h-dvh flex-1 flex-col">
       <main className="screen-top flex flex-1 flex-col gap-5 pb-8">
-        {/* ⚠️ Part of the SHELL, and allowed to be: the release note is the same
-            for every user, and the only per-user part — whether they have seen
-            it — is read from localStorage in an effect, never on the server. So
-            it prerenders as nothing and appears on hydration, with no session
-            read to block the cached fragment.
-
-            Mounted on a screen rather than in `MobileShell` for the reason the
-            wear confirmation is: in the shell it would appear mid-capture and
-            mid-edit, where an interruption costs most. */}
-        <WhatsNew />
+        {/* The release note lives in the BODY (see ClosetBody), not the shell:
+            whether it is owed depends on the account's age, which is a session
+            read. Mounted on this screen rather than in `MobileShell` for the
+            reason the wear confirmation is: in the shell it would appear
+            mid-capture and mid-edit, where an interruption costs most. */}
         <Suspense fallback={<ClosetHeader />}>
           <ClosetBody />
         </Suspense>
@@ -111,8 +107,13 @@ async function ClosetBody() {
     imageUrl: signed.get(path(i)) ?? "",
   }));
 
+  // Storage cannot tell a returning user from a new one (a home-screen app and
+  // Safari keep separate storage); the account's creation date can.
+  const returning = new Date(user.created_at) < new Date(CURRENT_RELEASE.date);
+
   return (
     <>
+      <WhatsNew returning={returning} />
       <ClosetHeader count={grid.length} />
       {grid.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-4 px-8 text-center">

@@ -1,6 +1,6 @@
 "use client";
 
-import { RotateCcw, RotateCw } from "lucide-react";
+import { Camera, RotateCw } from "lucide-react";
 
 import { Chip } from "@/components/ui-fitcheck/chip";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
@@ -64,6 +64,19 @@ export function ConfirmForm({
       <div className="relative aspect-[1.3] overflow-hidden rounded-[18px] surface-stage">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={draft.cutoutUrl} alt="" className="absolute inset-0 size-full object-contain p-6" />
+        {/* On the stage, not in the bottom bar: the turn has to happen where the
+            eye already is. In the bar it was a mystery button, and next to a
+            Retake drawn as a turning arrow it read as "rotate left". */}
+        <button
+          type="button"
+          onClick={onRotate}
+          disabled={saving}
+          aria-label="Rotate"
+          className="absolute right-3 top-3 flex h-9 items-center gap-1.5 rounded-full bg-canvas/70 px-3 text-[12px] font-medium text-foreground shadow-[inset_0_0_0_1px_var(--hairline-6)] backdrop-blur disabled:opacity-60"
+        >
+          <RotateCw size={15} />
+          Rotate
+        </button>
       </div>
 
       <input
@@ -259,16 +272,7 @@ export function ConfirmForm({
           aria-label="Retake"
           className="grid h-[54px] w-14 shrink-0 place-items-center rounded-[14px] bg-surface-2 text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-6)] disabled:opacity-60"
         >
-          <RotateCcw size={19} />
-        </button>
-        <button
-          type="button"
-          onClick={onRotate}
-          disabled={saving}
-          aria-label="Rotate"
-          className="grid h-[54px] w-14 shrink-0 place-items-center rounded-[14px] bg-surface-2 text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-6)] disabled:opacity-60"
-        >
-          <RotateCw size={19} />
+          <Camera size={19} />
         </button>
         <button
           onClick={onSave}

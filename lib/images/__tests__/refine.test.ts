@@ -127,10 +127,25 @@ describe("punchBackground", () => {
     for (let y = 5; y < 30; y++) expect(out[y * W + 27]).toBe(1);
   });
 
-  test("a busy background disables the punch", () => {
+  test("a busy background disables the punch, even where the gap matches its average", () => {
+    // Exterior alternates 255 and 215 (average 235, spread 20); the gap IS 235.
     const noisy = photo.slice();
-    for (let i = 0; i < W * H; i++) if (alpha[i] === 0) { noisy[i * 4] = (i * 97) % 256; noisy[i * 4 + 1] = (i * 31) % 256; noisy[i * 4 + 2] = (i * 57) % 256; }
+    for (let i = 0; i < W * H; i++) {
+      const x = i % W, y = (i - x) / W;
+      const v = alpha[i] === 0 ? ((x + y) % 2 ? 255 : 215) : inGap(x, y) ? 235 : 20;
+      noisy[i * 4] = noisy[i * 4 + 1] = noisy[i * 4 + 2] = v;
+    }
     const out = punchBackground(noisy, alpha, W, H);
     expect(Array.from(out)).toEqual(Array.from(alpha));
+  });
+
+  test("a wide but shallow bite at the outline is not a gap", () => {
+    // A 5×5 background-coloured block kept at full alpha, sitting on the left edge.
+    const a = alpha.slice();
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (inGap(x, y)) a[y * W + x] = 0;
+    const bite = photo.slice();
+    for (let y = 15; y < 20; y++) for (let x = 5; x < 10; x++) { a[y * W + x] = 1; bite[(y * W + x) * 4] = bite[(y * W + x) * 4 + 1] = bite[(y * W + x) * 4 + 2] = 255; }
+    const out = punchBackground(bite, a, W, H, { minDepthFrac: 0.25 });
+    for (let y = 15; y < 20; y++) for (let x = 5; x < 10; x++) expect(out[y * W + x]).toBe(1);
   });
 });
