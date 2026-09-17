@@ -28,8 +28,16 @@ export async function processImage(file: File): Promise<{
   // ⚠️ The model sees the ORIGINAL file; the cutout is built on the compressed
   // one. encode.ts documents why compression hurts model accuracy, and the old
   // library was handed the compressed JPEG for as long as it was here.
+  //
+  // ⚠️ Except when the photo carries an EXIF rotation. The compressor applies
+  // it in JS, so `original` is upright everywhere; the raw file is upright only
+  // where createImageBitmap honours EXIF — CI's Linux WebKit did not, the mask
+  // came out sideways and the capture failed. Measured cost of the compressed
+  // input: one photo in 35 loses 0.0065. Paid only on the sideways minority.
+  const orientation = await imageCompression.getExifOrientation(file);
+  const modelSource = orientation > 1 ? original : file;
   configureRuntime();
-  const raw = await segment(file, U2NETP, original, U2NETP_REFINE); // our ONNX pipeline, on-device
+  const raw = await segment(modelSource, U2NETP, original, U2NETP_REFINE); // our ONNX pipeline, on-device
   // segment() hands back an uncompressed PNG. It is the blob users actually see
   // (displayPath prefers the cutout), so it gets compressed too.
   const { blob: cutout, mediaType: cutoutMediaType } = await encodeCutout(raw);
