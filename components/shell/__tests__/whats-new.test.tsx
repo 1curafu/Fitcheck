@@ -13,6 +13,20 @@ test("a returning user on an older release sees what changed", async () => {
   expect(await screen.findByText(CURRENT_RELEASE.headline)).toBeInTheDocument();
 });
 
+test("an account older than this release is told what changed even with empty storage", async () => {
+  // ⚠️ The 0.3.0 note never appeared for the owner: a home-screen app and Safari
+  // keep separate storage, so a user who is plainly returning looked brand new.
+  render(<WhatsNew returning />);
+  expect(await screen.findByText(CURRENT_RELEASE.headline)).toBeInTheDocument();
+});
+
+test("shouldShow: empty storage means new user unless the account says otherwise", () => {
+  expect(shouldShow(null, "0.3.0", false)).toBe(false);
+  expect(shouldShow(null, "0.3.0", true)).toBe(true);
+  expect(shouldShow("0.3.0", "0.3.0", true)).toBe(false);
+  expect(shouldShow("0.2.0", "0.3.0", false)).toBe(true);
+});
+
 test("a brand-new user is told nothing, and starts from this release", async () => {
   // ⚠️ Nobody's first impression should be a list of repairs. Seeding on the
   // first run is what makes the NEXT release their first note.
