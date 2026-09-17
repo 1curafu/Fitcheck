@@ -1,4 +1,4 @@
-import { sharpenAlpha, guidedFilter, boxMean } from "../refine";
+import { sharpenAlpha, guidedFilter, boxMean, punchBackground } from "../refine";
 
 test("sharpen: values below the low knee go to 0, above the high knee to 1, ramp between", () => {
   const out = sharpenAlpha(new Float32Array([0, 0.2, 0.25, 0.5, 0.75, 0.9, 1]), 0.25, 0.75);
@@ -65,4 +65,72 @@ test("guided filter pulls a background-coloured region out of the mask when it i
   expect(q[cy * w + cx + 3]).toBeLessThan(0.8);
   // On the ring itself it stays high.
   expect(q[cy * w + cx + 8]).toBeGreaterThan(0.6);
+});
+
+describe("punchBackground", () => {
+  // A 40×40 white photo with a black U-shaped garment: two 14-px arms joined
+  // by a floor, and a 3-px gap between the arms — white background, open at the
+  // top, ~7% of the garment's area, like the gap beside a sweater's sleeve.
+  const W = 40, H = 40;
+  const photo = new Uint8ClampedArray(W * H * 4).fill(255);
+  const alpha = new Float32Array(W * H);
+  const garment = (x: number, y: number) => x >= 5 && x < 35 && y >= 5 && y < 35 && !(x >= 18 && x < 21 && y < 25);
+  const inGap = (x: number, y: number) => x >= 18 && x < 21 && y >= 5 && y < 25;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x;
+    if (garment(x, y)) { photo[i * 4] = photo[i * 4 + 1] = photo[i * 4 + 2] = 20; alpha[i] = 1; }
+    else alpha[i] = 0;
+  }
+  // The model's mistake: the gap is kept at full alpha.
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (inGap(x, y)) alpha[y * W + x] = 1;
+
+  test("a background-coloured gap connected to the outside is punched out", () => {
+    const out = punchBackground(photo, alpha, W, H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = y * W + x;
+      if (inGap(x, y)) expect(out[i], `gap ${x},${y}`).toBe(0);
+      else expect(out[i], `kept ${x},${y}`).toBe(alpha[i]);
+    }
+  });
+
+  test("an enclosed background-coloured region is left alone — it may be a print", () => {
+    const a = alpha.slice();
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (inGap(x, y)) a[y * W + x] = 0;
+    // A white 1×2 patch fully inside the left arm (garment on every side), at full alpha.
+    for (const [x, y] of [[10, 15], [10, 16]]) { a[y * W + x] = 1; photo[(y * W + x) * 4] = photo[(y * W + x) * 4 + 1] = photo[(y * W + x) * 4 + 2] = 255; }
+    const out = punchBackground(photo, a, W, H);
+    for (const [x, y] of [[10, 15], [10, 16]]) expect(out[y * W + x]).toBe(1);
+    for (const [x, y] of [[10, 15], [10, 16]]) photo[(y * W + x) * 4] = photo[(y * W + x) * 4 + 1] = photo[(y * W + x) * 4 + 2] = 20;
+  });
+
+  test("a garment the colour of its background is not touched at all", () => {
+    const white = new Uint8ClampedArray(W * H * 4).fill(255);
+    const out = punchBackground(white, alpha, W, H);
+    expect(Array.from(out)).toEqual(Array.from(alpha));
+  });
+
+  test("a shallow nibble along the outline is not a gap and is left alone", () => {
+    // The model kept a 1-px white band along the garment's left edge.
+    const a = alpha.slice();
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (inGap(x, y)) a[y * W + x] = 0;
+    for (let y = 5; y < 35; y++) a[y * W + 4] = 1;
+    const out = punchBackground(photo, a, W, H);
+    for (let y = 5; y < 35; y++) expect(out[y * W + 4]).toBe(1);
+  });
+
+  test("a one-pixel crack running deep into the garment is a shadow, not a gap", () => {
+    const a = alpha.slice();
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (inGap(x, y)) a[y * W + x] = 0;
+    const crack = photo.slice();
+    for (let y = 5; y < 30; y++) { a[y * W + 27] = 1; crack[(y * W + 27) * 4] = crack[(y * W + 27) * 4 + 1] = crack[(y * W + 27) * 4 + 2] = 255; }
+    const out = punchBackground(crack, a, W, H);
+    for (let y = 5; y < 30; y++) expect(out[y * W + 27]).toBe(1);
+  });
+
+  test("a busy background disables the punch", () => {
+    const noisy = photo.slice();
+    for (let i = 0; i < W * H; i++) if (alpha[i] === 0) { noisy[i * 4] = (i * 97) % 256; noisy[i * 4 + 1] = (i * 31) % 256; noisy[i * 4 + 2] = (i * 57) % 256; }
+    const out = punchBackground(noisy, alpha, W, H);
+    expect(Array.from(out)).toEqual(Array.from(alpha));
+  });
 });
