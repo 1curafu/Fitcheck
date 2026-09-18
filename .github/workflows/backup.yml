@@ -1,0 +1,55 @@
+name: Production backup
+
+# Scheduled workflows run from GitHub's default branch (`main`). This file does
+# not become operational until the feature follows the normal release path:
+# feature -> develop -> release -> main.
+on:
+  schedule:
+    - cron: "30 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# restic uses --no-lock because the B2 bucket can later receive Object Lock.
+# This fixed group is therefore the single-writer guarantee for the cloud repo.
+concurrency:
+  group: production-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    # Prevent workflow_dispatch from exposing production credentials to code
+    # selected from a feature/develop ref. Scheduled runs already use main.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client
+
+      - name: Install pinned backup tools
+        run: |
+          scripts/backup/install-tools.sh "$RUNNER_TEMP/backup-tools"
+          echo "$RUNNER_TEMP/backup-tools" >> "$GITHUB_PATH"
+
+      - name: Back up production
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_S3_ACCESS_KEY_ID: ${{ secrets.SUPABASE_S3_ACCESS_KEY_ID }}
+          SUPABASE_S3_SECRET_ACCESS_KEY: ${{ secrets.SUPABASE_S3_SECRET_ACCESS_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.B2_BACKUP_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.B2_BACKUP_APPLICATION_KEY }}
+          AWS_DEFAULT_REGION: eu-central-003
+          RESTIC_REPOSITORY: s3:s3.eu-central-003.backblazeb2.com/fitcheck-prod-backups-eu-a7k29m/nightly
+          RESTIC_PASSWORD: ${{ secrets.RESTIC_PASSWORD }}
+        run: scripts/backup/run.sh nightly
