@@ -16,11 +16,16 @@ const here = dirname(fileURLToPath(import.meta.url));
 const backupDir = resolve(here, "..");
 const runScript = join(backupDir, "run.sh");
 const localScript = join(backupDir, "local.sh");
+const restoreScript = join(backupDir, "restore.sh");
 
 function run(path: string, args: string[], env: Record<string, string> = {}) {
   return spawnSync("bash", [path, ...args], {
     encoding: "utf8",
-    env: { PATH: process.env.PATH ?? "", ...env },
+    env: {
+      ...process.env,
+      ...env,
+      PATH: env.PATH ?? process.env.PATH ?? "",
+    },
   });
 }
 
@@ -131,5 +136,30 @@ esac
     } finally {
       rmSync(fixture, { recursive: true, force: true });
     }
+  });
+
+  test("restore requires an explicit disposable-target confirmation", () => {
+    const result = run(restoreScript, ["latest"]);
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("--confirm-disposable-target");
+  });
+
+  test("restore refuses to target the source project without printing its database URL", () => {
+    const databaseUrl = "postgres://owner:restore-secret@example.invalid/postgres";
+    const result = run(
+      restoreScript,
+      ["latest", "--confirm-disposable-target"],
+      {
+        BACKUP_SOURCE_PROJECT_REF: "production-ref",
+        RESTORE_PROJECT_REF: "production-ref",
+        RESTORE_DB_URL: databaseUrl,
+      },
+    );
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("must differ from the backup source project");
+    expect(result.stderr).not.toContain(databaseUrl);
+    expect(result.stderr).not.toContain("restore-secret");
   });
 });

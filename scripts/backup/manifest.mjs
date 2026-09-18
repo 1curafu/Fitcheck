@@ -68,6 +68,21 @@ function validateStorageStats(storageStats) {
   }
 }
 
+export function assertStorageStatsMatch(expected, actual, label = "Storage copy") {
+  validateStorageStats(expected);
+  validateStorageStats(actual);
+  if (
+    actual.objectCount !== expected.objectCount ||
+    actual.totalBytes !== expected.totalBytes
+  ) {
+    throw new Error(
+      `${label} does not match source ` +
+        `(expected ${expected.objectCount} objects/${expected.totalBytes} bytes, ` +
+        `found ${actual.objectCount} objects/${actual.totalBytes} bytes)`,
+    );
+  }
+}
+
 export async function createManifest({
   root,
   projectRef,
@@ -140,16 +155,7 @@ export async function validateManifest(root) {
   }
 
   const actualStorage = await directoryStats(join(stageRoot, "storage", "wardrobe"));
-  if (
-    actualStorage.objectCount !== manifest.storage.objectCount ||
-    actualStorage.totalBytes !== manifest.storage.totalBytes
-  ) {
-    throw new Error(
-      "Storage copy does not match source " +
-        `(expected ${manifest.storage.objectCount} objects/${manifest.storage.totalBytes} bytes, ` +
-        `found ${actualStorage.objectCount} objects/${actualStorage.totalBytes} bytes)`,
-    );
-  }
+  assertStorageStatsMatch(manifest.storage, actualStorage);
 
   return manifest;
 }
@@ -186,7 +192,22 @@ async function main() {
     process.stdout.write(`${JSON.stringify(manifest)}\n`);
     return;
   }
-  if (command !== "create") throw new Error("command must be create or validate");
+  if (command === "compare-storage") {
+    const storageStatsPath = flags.get("storage-stats");
+    if (!storageStatsPath) throw new Error("compare-storage requires --storage-stats");
+    const manifest = await validateManifest(root);
+    const rcloneStats = await readJson(storageStatsPath, "Storage stats");
+    assertStorageStatsMatch(
+      manifest.storage,
+      { objectCount: rcloneStats.count, totalBytes: rcloneStats.bytes },
+      "Restored Storage",
+    );
+    process.stdout.write(`${JSON.stringify(manifest.storage)}\n`);
+    return;
+  }
+  if (command !== "create") {
+    throw new Error("command must be create, validate or compare-storage");
+  }
 
   const projectRef = flags.get("project-ref");
   const storageStatsPath = flags.get("storage-stats");

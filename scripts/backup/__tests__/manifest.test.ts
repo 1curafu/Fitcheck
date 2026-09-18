@@ -2,7 +2,11 @@ import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { mkdir, mkdtemp, readFile, rm, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createManifest, validateManifest } from "../manifest.mjs";
+import {
+  assertStorageStatsMatch,
+  createManifest,
+  validateManifest,
+} from "../manifest.mjs";
 
 const SQL_FILES = {
   "roles.sql": "roles\n",
@@ -138,5 +142,15 @@ describe("backup manifest", () => {
     const manifest = await writeValidManifest({ objectCount: 0, totalBytes: 0 });
 
     await expect(validateManifest(root)).resolves.toEqual(manifest);
+  });
+
+  test("rejects restored Storage totals that differ from the snapshot manifest", async () => {
+    expect(() =>
+      assertStorageStatsMatch(
+        { objectCount: 12, totalBytes: 4096 },
+        { objectCount: 11, totalBytes: 4096 },
+        "restored Storage",
+      ),
+    ).toThrow("restored Storage does not match source");
   });
 });
