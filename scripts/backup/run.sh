@@ -22,9 +22,10 @@ if [[ "$RESTIC_REPOSITORY" == s3:* ]]; then
   require_backup_env AWS_SECRET_ACCESS_KEY
 fi
 
-for command_name in node supabase rclone restic psql; do
+for command_name in node docker supabase rclone restic psql; do
   require_backup_command "$command_name"
 done
+require_supabase_db_url_matches_project_ref SUPABASE_DB_URL SUPABASE_PROJECT_REF
 
 umask 077
 WORK_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/fitcheck-backup.XXXXXX")"

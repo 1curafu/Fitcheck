@@ -18,6 +18,19 @@ const runScript = join(backupDir, "run.sh");
 const localScript = join(backupDir, "local.sh");
 const restoreScript = join(backupDir, "restore.sh");
 
+function fakeCommandPath(names: string[]) {
+  const fixture = mkdtempSync(join(tmpdir(), "fitcheck-backup-commands-"));
+  const bin = join(fixture, "bin");
+  spawnSync("mkdir", ["-p", bin]);
+  symlinkSync(process.execPath, join(bin, "node"));
+  for (const name of names) {
+    const path = join(bin, name);
+    writeFileSync(path, "#!/usr/bin/env bash\nexit 0\n");
+    chmodSync(path, 0o755);
+  }
+  return { fixture, path: `${bin}:${process.env.PATH ?? ""}` };
+}
+
 function run(path: string, args: string[], env: Record<string, string> = {}) {
   return spawnSync("bash", [path, ...args], {
     encoding: "utf8",
@@ -47,11 +60,55 @@ describe("backup runner guardrails", () => {
     expect(result.stderr).not.toContain("do-not-print");
   });
 
+  test("fails closed when the restic encryption password is missing", () => {
+    const databaseUrl =
+      "postgresql://postgres.project-ref:do-not-print@aws-0-eu-central-1.pooler.supabase.com:5432/postgres";
+    const result = run(runScript, ["manual"], {
+      SUPABASE_DB_URL: databaseUrl,
+      SUPABASE_PROJECT_REF: "project-ref",
+      SUPABASE_S3_ACCESS_KEY_ID: "source-key",
+      SUPABASE_S3_SECRET_ACCESS_KEY: "source-secret",
+      RESTIC_REPOSITORY: "/tmp/fitcheck-test-restic",
+    });
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("RESTIC_PASSWORD");
+    expect(result.stderr).not.toContain(databaseUrl);
+    expect(result.stderr).not.toContain("do-not-print");
+  });
+
+  test("refuses to label a database backup with a different Supabase project ref", () => {
+    const commands = fakeCommandPath(["docker", "supabase", "rclone", "restic", "psql"]);
+    const databaseUrl =
+      "postgresql://postgres.actual-ref:do-not-print@aws-0-eu-central-1.pooler.supabase.com:5432/postgres";
+
+    try {
+      const result = run(runScript, ["manual"], {
+        PATH: commands.path,
+        SUPABASE_DB_URL: databaseUrl,
+        SUPABASE_PROJECT_REF: "claimed-ref",
+        SUPABASE_S3_ACCESS_KEY_ID: "source-key",
+        SUPABASE_S3_SECRET_ACCESS_KEY: "source-secret",
+        RESTIC_REPOSITORY: "/tmp/fitcheck-test-restic",
+        RESTIC_PASSWORD: "repository-password",
+      });
+
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain(
+        "SUPABASE_DB_URL does not match SUPABASE_PROJECT_REF",
+      );
+      expect(result.stderr).not.toContain(databaseUrl);
+      expect(result.stderr).not.toContain("do-not-print");
+    } finally {
+      rmSync(commands.fixture, { recursive: true, force: true });
+    }
+  });
+
   test("requires the external SSD destination argument", () => {
     const result = run(localScript, []);
 
     expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain("external-volume-directory");
+    expect(result.stderr).toContain("external-backup-directory");
   });
 
   test("refuses a local repository on the system disk", () => {
@@ -111,13 +168,15 @@ esac
 `,
     );
     executable("psql", `echo "psql (PostgreSQL) 18.3"`);
+    executable("docker", `exit 0`);
     symlinkSync(process.execPath, join(bin, "node"));
 
     try {
       const result = run(runScript, ["nightly"], {
         PATH: `${bin}:${process.env.PATH ?? ""}`,
         TRACE: trace,
-        SUPABASE_DB_URL: "postgres://example.invalid/postgres",
+        SUPABASE_DB_URL:
+          "postgresql://postgres.project-ref:password@aws-0-eu-central-1.pooler.supabase.com:5432/postgres",
         SUPABASE_PROJECT_REF: "project-ref",
         SUPABASE_S3_ACCESS_KEY_ID: "source-key",
         SUPABASE_S3_SECRET_ACCESS_KEY: "source-secret",
@@ -161,5 +220,37 @@ esac
     expect(result.stderr).toContain("must differ from the backup source project");
     expect(result.stderr).not.toContain(databaseUrl);
     expect(result.stderr).not.toContain("restore-secret");
+  });
+
+  test("restore refuses a database URL for a project other than the confirmed target", () => {
+    const commands = fakeCommandPath(["rclone", "restic", "psql"]);
+    const databaseUrl =
+      "postgresql://postgres.actual-ref:restore-secret@aws-0-eu-central-1.pooler.supabase.com:5432/postgres";
+
+    try {
+      const result = run(
+        restoreScript,
+        ["latest", "--confirm-disposable-target"],
+        {
+          PATH: commands.path,
+          BACKUP_SOURCE_PROJECT_REF: "production-ref",
+          RESTORE_PROJECT_REF: "claimed-scratch-ref",
+          RESTORE_DB_URL: databaseUrl,
+          RESTORE_S3_ACCESS_KEY_ID: "target-key",
+          RESTORE_S3_SECRET_ACCESS_KEY: "target-secret",
+          RESTIC_REPOSITORY: "/tmp/fitcheck-test-restic",
+          RESTIC_PASSWORD: "repository-password",
+        },
+      );
+
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain(
+        "RESTORE_DB_URL does not match RESTORE_PROJECT_REF",
+      );
+      expect(result.stderr).not.toContain(databaseUrl);
+      expect(result.stderr).not.toContain("restore-secret");
+    } finally {
+      rmSync(commands.fixture, { recursive: true, force: true });
+    }
   });
 });

@@ -6,10 +6,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 source "$SCRIPT_DIR/common.sh"
 
 if [[ "$#" -ne 1 ]]; then
-  backup_die "usage: local.sh <external-volume-directory>"
+  backup_die "usage: local.sh <external-backup-directory>"
 fi
 if [[ ! -d "$1" ]]; then
-  backup_die "external-volume-directory must already exist"
+  backup_die "external-backup-directory must already exist"
 fi
 
 DESTINATION="$(cd "$1" && pwd -P)"
@@ -22,6 +22,5 @@ if [[ -z "$DESTINATION_DEVICE" || "$DESTINATION_DEVICE" == "$SYSTEM_DEVICE" ]]; 
   backup_die "local backups must be stored on an external volume, not the system disk"
 fi
 
-mkdir -p "$DESTINATION/FitCheck"
-export RESTIC_REPOSITORY="$DESTINATION/FitCheck/restic"
+export RESTIC_REPOSITORY="$DESTINATION/restic"
 exec "$SCRIPT_DIR/run.sh" manual

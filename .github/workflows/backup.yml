@@ -19,6 +19,9 @@ concurrency:
 
 jobs:
   backup:
+    # Prevent workflow_dispatch from exposing production credentials to code
+    # selected from a feature/develop ref. Scheduled runs already use main.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:

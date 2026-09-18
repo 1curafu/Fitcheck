@@ -30,6 +30,7 @@ fi
 for command_name in node rclone restic psql; do
   require_backup_command "$command_name"
 done
+require_supabase_db_url_matches_project_ref RESTORE_DB_URL RESTORE_PROJECT_REF
 
 umask 077
 WORK_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/fitcheck-restore.XXXXXX")"
