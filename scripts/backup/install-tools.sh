@@ -66,4 +66,3 @@ install -m 0755 \
 "$INSTALL_DIR/supabase" --version
 "$INSTALL_DIR/restic" version
 "$INSTALL_DIR/rclone" version | head -n 1
-

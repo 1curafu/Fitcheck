@@ -108,4 +108,3 @@ The disposable-project drill is not complete until the operator verifies:
 
 Never reopen a disaster-restored production project before step 6.
 CHECKLIST
-

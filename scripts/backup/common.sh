@@ -4,7 +4,6 @@ backup_die() {
   printf 'backup: %s\n' "$1" >&2
   exit 1
 }
-
 require_backup_env() {
   local name="$1"
   if [[ -z "${!name:-}" ]]; then
@@ -26,4 +25,3 @@ configure_supabase_rclone() {
   export RCLONE_CONFIG_SUPABASE_ACL=private
   export RCLONE_CONFIG_SUPABASE_NO_CHECK_BUCKET=true
 }
-
