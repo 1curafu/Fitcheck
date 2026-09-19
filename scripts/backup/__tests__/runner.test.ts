@@ -104,6 +104,9 @@ esac
 `);
   executable("node", `
 if [[ "\${1:-}" == *"reconcile-deletions.mjs" ]]; then
+  if [[ "\${2:-}" == "validate-config" ]]; then
+    exec "$NODE_BINARY" "$@"
+  fi
   printf 'reconcile\\n' >> "$TRACE"
   printf 'Deletion reconciliation complete: scanned=0 deleted=0\\n'
   exit "\${RECONCILE_STATUS:-0}"
@@ -394,6 +397,26 @@ esac
       expect(result.status).not.toBe(0);
       expect(result.stderr).toContain("RESTORE_SUPABASE_URL does not match RESTORE_PROJECT_REF");
       expect(restoreTrace(fixture.trace)).not.toContain("psql");
+    } finally {
+      rmSync(fixture.fixture, { recursive: true, force: true });
+    }
+  });
+
+  test("restore rejects malformed retained HMAC keys before target mutation without printing them", () => {
+    const fixture = restoreFixture();
+    const malformed = '{"previous-hmac-key-secret":true}';
+
+    try {
+      const result = run(restoreScript, ["latest", "--confirm-disposable-target"], {
+        ...fixture.env,
+        DELETION_LEDGER_PREVIOUS_HMAC_KEYS_JSON: malformed,
+      });
+
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toBe("Deletion reconciliation configuration is invalid\n");
+      expect(`${result.stdout}${result.stderr}`).not.toContain("previous-hmac-key-secret");
+      expect(restoreTrace(fixture.trace)).not.toContain("psql");
+      expect(restoreTrace(fixture.trace)).not.toContain("rclone");
     } finally {
       rmSync(fixture.fixture, { recursive: true, force: true });
     }

@@ -207,6 +207,23 @@ describe("listB2TombstoneDigests", () => {
 });
 
 describe("writeProductionDeletionTombstone", () => {
+  test("does not consume restore-only retained HMAC keys", async () => {
+    vi.stubEnv("B2_DELETION_KEY_ID", "production-key-id");
+    vi.stubEnv("B2_DELETION_APPLICATION_KEY", "production-secret");
+    vi.stubEnv("DELETION_LEDGER_HMAC_KEY", "production-hmac-key");
+    vi.stubEnv("DELETION_LEDGER_PREVIOUS_HMAC_KEYS_JSON", "not-valid-for-restore");
+    const expected = expectedTombstone("production-hmac-key");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock
+      .mockResolvedValueOnce(json(authorization()))
+      .mockResolvedValueOnce(json({ bucketId: bucket.id, uploadUrl: "https://upload.example.test", authorizationToken: "upload-token" }))
+      .mockResolvedValueOnce(json({ fileName: expected.fileName, bucketId: bucket.id, contentSha1: expected.sha1 }));
+    const { writeProductionDeletionTombstone } = await import("../b2-writer");
+
+    await expect(writeProductionDeletionTombstone(userId, requestedAt)).resolves.toBeUndefined();
+  });
+
   test("uses the three server-only production variables to write the tombstone", async () => {
     vi.stubEnv("B2_DELETION_KEY_ID", "production-key-id");
     vi.stubEnv("B2_DELETION_APPLICATION_KEY", "production-secret");

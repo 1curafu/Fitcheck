@@ -1,10 +1,11 @@
 import { describe, expect, test, vi } from "vitest";
 import { deletionDigest } from "@/lib/account-deletion/ledger.mjs";
-import { reconcileDeletedAccounts } from "../reconcile-deletions.mjs";
+import { parseRetainedHmacKeys, reconcileDeletedAccounts } from "../reconcile-deletions.mjs";
 
 const DELETED_ID = "11111111-1111-4111-8111-111111111111";
 const ACTIVE_ID = "22222222-2222-4222-8222-222222222222";
 const HMAC_KEY = "test-only-hmac-key-with-enough-entropy";
+const PREVIOUS_HMAC_KEY = "previous-test-only-hmac-key-with-enough-entropy";
 
 const config = {
   supabaseUrl: "https://restore-ref.supabase.co",
@@ -15,6 +16,58 @@ const config = {
 };
 
 describe("restore deletion reconciliation", () => {
+  test("matches a tombstone created with a retained previous HMAC key", async () => {
+    const purgeStorage = vi.fn();
+    const deleteUser = vi.fn();
+
+    await expect(
+      reconcileDeletedAccounts(
+        {
+          ...config,
+          previousHmacKeysJson: JSON.stringify([PREVIOUS_HMAC_KEY]),
+        },
+        {
+          listDigests: async () => new Set([deletionDigest(DELETED_ID, PREVIOUS_HMAC_KEY)]),
+          listUsers: async () => [DELETED_ID],
+          purgeStorage,
+          deleteUser,
+          write: vi.fn(),
+        },
+      ),
+    ).resolves.toEqual({ scanned: 1, deleted: 1 });
+
+    expect(purgeStorage).toHaveBeenCalledWith(DELETED_ID);
+    expect(deleteUser).toHaveBeenCalledWith(DELETED_ID);
+  });
+
+  test("keeps the current key first and removes duplicate retained keys", () => {
+    expect(
+      parseRetainedHmacKeys(HMAC_KEY, JSON.stringify([PREVIOUS_HMAC_KEY, HMAC_KEY, PREVIOUS_HMAC_KEY])),
+    ).toEqual([HMAC_KEY, PREVIOUS_HMAC_KEY]);
+  });
+
+  test.each(["", "{}", "[\"\"]", "[\"  \"]", "[\"previous\", 1]"])(
+    "rejects invalid previous HMAC key configuration before listing the ledger: %s",
+    async (previousHmacKeysJson) => {
+      const listDigests = vi.fn();
+
+      await expect(
+        reconcileDeletedAccounts(
+          { ...config, previousHmacKeysJson },
+          {
+            listDigests,
+            listUsers: async () => [DELETED_ID],
+            purgeStorage: vi.fn(),
+            deleteUser: vi.fn(),
+            write: vi.fn(),
+          },
+        ),
+      ).rejects.toThrow("Deletion reconciliation configuration is invalid");
+
+      expect(listDigests).not.toHaveBeenCalled();
+    },
+  );
+
   test("purges and hard-deletes only restored users whose HMAC is in the ledger", async () => {
     const purgeStorage = vi.fn();
     const deleteUser = vi.fn();

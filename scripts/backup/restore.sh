@@ -38,6 +38,7 @@ for command_name in node rclone restic psql; do
   require_backup_command "$command_name"
 done
 require_supabase_url_matches_project_ref RESTORE_SUPABASE_URL RESTORE_PROJECT_REF
+node "$SCRIPT_DIR/reconcile-deletions.mjs" validate-config
 
 umask 077
 WORK_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/fitcheck-restore.XXXXXX")"
