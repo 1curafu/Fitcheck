@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
-import { admin, disposableSessionCookies } from "./helpers";
+import { admin, disposableSessionCookies, testUserId } from "./helpers";
 
 const BUCKET = "wardrobe";
 const PASSWORD = "disposable-account-deletion-password";
@@ -185,6 +185,7 @@ async function expectStoragePrefixEmpty(userId: string): Promise<void> {
 }
 
 test("a disposable user can delete their account without leaving rows, objects, or stale-token access", async ({ browser }) => {
+  const sharedUserId = await testUserId();
   const account = await createDisposableAccount();
   let deleted = false;
   const url = requireEnvironment("NEXT_PUBLIC_SUPABASE_URL");
@@ -240,6 +241,7 @@ test("a disposable user can delete their account without leaving rows, objects, 
     });
     expect(staleWrite.ok).toBe(false);
     await expectStoragePrefixEmpty(account.userId);
+    expect(await testUserId()).toBe(sharedUserId);
   } finally {
     if (!deleted) await cleanUpDisposableAccount(account);
   }

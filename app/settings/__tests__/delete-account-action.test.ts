@@ -146,4 +146,12 @@ describe("deleteAccount", () => {
 
     expect(redirect).toHaveBeenCalledWith("/?account=deleted", "replace");
   });
+
+  test("still redirects after a successful hard deletion when local sign-out resolves with an error", async () => {
+    signOut.mockResolvedValue({ error: { message: "cookie write failed" } });
+
+    await expect(deleteAccount({ status: "idle" }, confirmationForm(EMAIL))).rejects.toBe(REDIRECT);
+
+    expect(redirect).toHaveBeenCalledWith("/?account=deleted", "replace");
+  });
 });
