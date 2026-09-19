@@ -152,6 +152,15 @@ async function cleanUpDisposableAccount(account: DisposableAccount): Promise<voi
 
 async function expectDeletedDatabaseRows(account: DisposableAccount): Promise<void> {
   const db = admin();
+  const authLookup = await db.auth.admin.getUserById(account.userId);
+  // Supabase Admin represents an absent user as a 404 AuthApiError rather than
+  // a successful lookup with an empty object. Assert both halves so a client
+  // shape change or a still-live identity cannot make this destructive check
+  // pass accidentally.
+  expect(authLookup.data.user).toBeNull();
+  expect(authLookup.error?.status).toBe(404);
+  expect(authLookup.error?.code).toBe("user_not_found");
+
   const checks = await Promise.all([
     db.from("profiles").select("id", { count: "exact", head: true }).eq("id", account.userId),
     db.from("items").select("id", { count: "exact", head: true }).eq("user_id", account.userId),
