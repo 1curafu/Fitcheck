@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
 import { EmailSignIn } from "@/components/auth/email-sign-in";
 import { BrandMark } from "@/components/brand/mark";
+import { AccountDeletedNotice } from "@/components/auth/account-deleted-notice";
 
 export const metadata: Metadata = {
   title: { absolute: "Fitcheck — your AI stylist" },
@@ -13,17 +14,26 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
-export default function Welcome() {
+export default function Welcome({
+  searchParams,
+}: {
+  searchParams: Promise<{ account?: string }>;
+}) {
   // The session read is what blocks a shell, so it moves behind a boundary
   // and the route's chrome prerenders and prefetches without it.
   return (
     <Suspense fallback={null}>
-      <WelcomeBody />
+      <WelcomeBody searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function WelcomeBody() {
+async function WelcomeBody({
+  searchParams,
+}: {
+  searchParams: Promise<{ account?: string }>;
+}) {
+  const { account } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -33,6 +43,7 @@ async function WelcomeBody() {
   return (
     <main className="screen-top flex flex-1 flex-col justify-between px-7 pb-10">
       <div className="flex flex-1 flex-col items-center justify-center text-center">
+        {account === "deleted" && <AccountDeletedNotice />}
         {/* ⚠️ Deliberately ABOVE the kicker and deliberately small. The
             wordmark below is the Display step — DESIGN.md reserves ~4.5rem
             Caslon for "the wordmark and welcome-screen moments only" — so the

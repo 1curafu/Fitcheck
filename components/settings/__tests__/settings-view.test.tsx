@@ -17,6 +17,7 @@ vi.mock("@/lib/weather/geocode", async (orig) => ({
 }));
 import { SettingsView } from "../settings-view";
 import type { Preferences } from "@/lib/profile/preferences";
+import type { deleteAccount } from "@/app/settings/actions";
 
 const props: {
   name: string;
@@ -36,6 +37,7 @@ function renderSettings(
   over: Partial<typeof props> = {},
   onSaveAction = vi.fn(),
   onSetLocationAction = vi.fn().mockResolvedValue(undefined),
+  onDeleteAction: typeof deleteAccount = vi.fn().mockResolvedValue({ status: "idle" }),
 ) {
   render(
     <SettingsView
@@ -43,6 +45,7 @@ function renderSettings(
       {...over}
       onSaveAction={onSaveAction}
       onSetLocationAction={onSetLocationAction}
+      onDeleteAction={onDeleteAction}
     />,
   );
   return onSaveAction;
@@ -148,6 +151,12 @@ test("sign out is present and posts to the sign-out route", () => {
   const button = screen.getByRole("button", { name: /sign out/i });
   expect(button).toBeInTheDocument();
   expect(button.closest("form")).toHaveAttribute("action", "/auth/signout");
+});
+
+test("the danger row opens the account deletion confirmation", async () => {
+  renderSettings();
+  await userEvent.click(screen.getByRole("button", { name: /^delete account$/i }));
+  expect(screen.getByRole("dialog", { name: "Delete account" })).toBeInTheDocument();
 });
 
 // ── Location, now a real control ────────────────────────────────────────────

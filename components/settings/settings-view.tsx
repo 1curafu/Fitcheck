@@ -5,7 +5,9 @@ import Link from "next/link";
 import type { Preferences } from "@/lib/profile/preferences";
 import { useLocationPicker } from "@/lib/weather/use-location-picker";
 import { LocationSheet } from "@/components/weather/location-sheet";
+import { DeleteAccountSheet } from "./delete-account-sheet";
 import type { City } from "@/lib/weather/geocode";
+import type { deleteAccount } from "@/app/settings/actions";
 
 const CARD =
   "rounded-[14px] bg-surface-1 shadow-[inset_0_0_0_1px_var(--hairline-2)]";
@@ -101,6 +103,7 @@ export function SettingsView({
   preferences,
   onSaveAction,
   onSetLocationAction,
+  onDeleteAction,
 }: {
   name: string;
   email: string;
@@ -113,10 +116,12 @@ export function SettingsView({
     lon: number;
     label: string;
   }) => Promise<void>;
+  onDeleteAction: typeof deleteAccount;
 }) {
   const [prefs, setPrefs] = useState(preferences);
   const [location, setLocation] = useState(locationLabel);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   /**
    * ⚠️ Close the sheet when this screen is left.
    *
@@ -125,7 +130,13 @@ export function SettingsView({
    * sheet open and it is still open on return. The unmount used to do this for
    * free. Same fix as `components/generate/stylist.tsx`.
    */
-  useEffect(() => () => setPickerOpen(false), []);
+  useEffect(
+    () => () => {
+      setPickerOpen(false);
+      setDeleteOpen(false);
+    },
+    [],
+  );
 
   /**
    * One error slot with a discriminator, rather than two independent ones.
@@ -325,6 +336,27 @@ export function SettingsView({
             Sign out
           </button>
         </form>
+
+        <Kicker>Danger zone</Kicker>
+        <div className={CARD}>
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            aria-expanded={deleteOpen}
+            onClick={() => setDeleteOpen(true)}
+            className="flex min-h-[44px] w-full items-center justify-between px-4 py-3 text-left"
+          >
+            <span className="text-[14.5px] text-foreground">Delete account</span>
+            <span aria-hidden="true" className="text-[13px] text-muted-foreground">Permanent</span>
+          </button>
+        </div>
+
+        <DeleteAccountSheet
+          open={deleteOpen}
+          email={email}
+          action={onDeleteAction}
+          onClose={() => setDeleteOpen(false)}
+        />
 
         <p className="mt-6 text-center text-[11.5px] text-muted-dim">
           <Link href="/privacy" className="text-muted-foreground underline underline-offset-2">Privacy Policy</Link>
