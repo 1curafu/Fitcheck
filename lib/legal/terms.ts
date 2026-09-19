@@ -43,7 +43,7 @@ export const TERMS: LegalDocument = {
       heading: "Free and paid",
       paragraphs: [
         "The free plan is meant to be genuinely useful and stays free. The paid plan, Fitcheck Pro, adds features and lifts limits; what it includes and what it costs are shown before you buy, and the price includes any VAT that applies.",
-        "There is no live paid subscription or Stripe checkout today. Once subscriptions exist, Pro will be a monthly subscription and you can delete your account in Settings to automatically cancel an active subscription; you will keep Pro until the end of the period you have paid for, and nothing further will be charged. Refunds for a period already started are at our discretion, except where the law gives you a right to one.",
+        "There is no live paid subscription or Stripe checkout today. Once subscriptions exist, Pro will be a monthly subscription. Deleting your account in Settings will immediately cancel renewal and end account access when the deletion completes. Ordinary cancellation, proration and refund rules will be set out with the billing service, except where the law requires otherwise.",
         "If you are a consumer in the EU, you normally have a 14-day right to withdraw from a purchase. Because Pro starts working the moment you subscribe, we ask you to expressly confirm at checkout that you want it to start immediately and accept losing that right once it has. Without that confirmation, your 14-day right is unaffected.",
         "We may change Pro's price with at least 30 days' notice by email. If you do not want the new price, cancel before it takes effect.",
       ],

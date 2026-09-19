@@ -145,6 +145,32 @@ describe("restore deletion reconciliation", () => {
     expect(deleteUser).toHaveBeenCalledWith(DELETED_ID);
   });
 
+  test("snapshots all restored Auth IDs before deletion can shift later offset pages", async () => {
+    const users = Array.from({ length: 1001 }, (_, index) =>
+      `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+    );
+    const tombstonedUserId = users[1000]!;
+    const deletedUserId = users[0]!;
+    const purgeStorage = vi.fn();
+    const deleteUser = vi.fn(async (userId: string) => {
+      users.splice(users.indexOf(userId), 1);
+    });
+
+    const result = await reconcileDeletedAccounts(config, {
+      listDigests: async () =>
+        new Set([deletionDigest(deletedUserId, HMAC_KEY), deletionDigest(tombstonedUserId, HMAC_KEY)]),
+      listUsers: async (page) => users.slice((page - 1) * 1000, page * 1000),
+      purgeStorage,
+      deleteUser,
+      write: vi.fn(),
+    });
+
+    expect(result).toEqual({ scanned: 1001, deleted: 2 });
+    expect(purgeStorage).toHaveBeenCalledWith(tombstonedUserId);
+    expect(deleteUser).toHaveBeenCalledWith(tombstonedUserId);
+    expect(users).not.toContain(tombstonedUserId);
+  });
+
   test("treats a ledger with no restored matches as a successful zero-delete reconciliation", async () => {
     const write = vi.fn();
 

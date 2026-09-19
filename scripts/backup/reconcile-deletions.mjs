@@ -133,27 +133,28 @@ export async function reconcileDeletedAccounts(config, dependencies = {}) {
     const digests = await listDigests();
     if (!(digests instanceof Set)) throw new Error();
 
-    let scanned = 0;
-    let deleted = 0;
+    const restoredUserIds = [];
     for (let page = 1; ; page += 1) {
       const users = await listUsers(page);
       if (!Array.isArray(users) || users.some((userId) => typeof userId !== "string" || userId.length === 0)) {
         throw new Error();
       }
 
-      scanned += users.length;
-      for (const userId of users) {
-        if (!hmacKeys.some((hmacKey) => digests.has(deletionDigest(userId, hmacKey)))) continue;
-        await purgeStorage(userId);
-        await deleteUser(userId);
-        deleted += 1;
-      }
-      if (users.length < PAGE_SIZE) {
-        const result = { scanned, deleted };
-        write(`Deletion reconciliation complete: scanned=${scanned} deleted=${deleted}\n`);
-        return result;
-      }
+      restoredUserIds.push(...users);
+      if (users.length < PAGE_SIZE) break;
     }
+
+    let deleted = 0;
+    for (const userId of restoredUserIds) {
+      if (!hmacKeys.some((hmacKey) => digests.has(deletionDigest(userId, hmacKey)))) continue;
+      await purgeStorage(userId);
+      await deleteUser(userId);
+      deleted += 1;
+    }
+
+    const result = { scanned: restoredUserIds.length, deleted };
+    write(`Deletion reconciliation complete: scanned=${result.scanned} deleted=${result.deleted}\n`);
+    return result;
   } catch {
     throw new Error("Deletion reconciliation failed");
   }

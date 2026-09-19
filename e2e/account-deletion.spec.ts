@@ -146,8 +146,16 @@ async function createDisposableAccount(): Promise<DisposableAccount> {
 
 async function cleanUpDisposableAccount(account: DisposableAccount): Promise<void> {
   const db = admin();
-  await db.storage.from(BUCKET).remove(account.paths);
-  await db.auth.admin.deleteUser(account.userId, false);
+  try {
+    await db.storage.from(BUCKET).remove(account.paths);
+  } catch {
+    // Cleanup is intentionally best effort: still try to remove the Auth user.
+  }
+  try {
+    await db.auth.admin.deleteUser(account.userId, false);
+  } catch {
+    // The test's real assertion failure must not be obscured by idempotent cleanup.
+  }
 }
 
 async function expectDeletedDatabaseRows(account: DisposableAccount): Promise<void> {
@@ -187,7 +195,6 @@ async function expectStoragePrefixEmpty(userId: string): Promise<void> {
 test("a disposable user can delete their account without leaving rows, objects, or stale-token access", async ({ browser }) => {
   const sharedUserId = await testUserId();
   const account = await createDisposableAccount();
-  let deleted = false;
   const url = requireEnvironment("NEXT_PUBLIC_SUPABASE_URL");
   const anonKey = requireEnvironment("NEXT_PUBLIC_SUPABASE_ANON_KEY");
 
@@ -219,7 +226,6 @@ test("a disposable user can delete their account without leaving rows, objects, 
     await expect(page.getByRole("status")).toHaveText("Your account and live data have been deleted.");
     await concurrentUpload;
     await context.close();
-    deleted = true;
 
     await expectDeletedDatabaseRows(account);
     await expectStoragePrefixEmpty(account.userId);
@@ -243,6 +249,6 @@ test("a disposable user can delete their account without leaving rows, objects, 
     await expectStoragePrefixEmpty(account.userId);
     expect(await testUserId()).toBe(sharedUserId);
   } finally {
-    if (!deleted) await cleanUpDisposableAccount(account);
+    await cleanUpDisposableAccount(account);
   }
 });
