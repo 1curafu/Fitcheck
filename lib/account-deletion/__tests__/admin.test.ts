@@ -11,8 +11,8 @@ beforeEach(() => {
   createClient.mockImplementation(() => ({ auth: { admin: { deleteUser } } }));
 });
 afterEach(() => vi.unstubAllEnvs());
-it.each(["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"])("fails closed without %s", (name) => {
-  vi.stubEnv(name, "");
+it.each(["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"])("fails closed without a usable %s", (name) => {
+  vi.stubEnv(name, "   ");
   expect(() => createDeletionAdminClient()).toThrow(/^Account deletion configuration is required$/);
   expect(createClient).not.toHaveBeenCalled();
 });
