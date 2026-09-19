@@ -368,7 +368,8 @@ esac
     "DELETION_LEDGER_HMAC_KEY",
   ])("restore refuses a missing %s before mutating the target", (missing) => {
     const fixture = restoreFixture();
-    const { [missing]: _removed, ...env } = fixture.env;
+    const env = { ...fixture.env };
+    delete env[missing];
 
     try {
       const result = run(restoreScript, ["latest", "--confirm-disposable-target"], env);
@@ -456,11 +457,11 @@ esac
   });
 
   test.each([
-    [undefined, "missing"],
-    ["not-a-date", "malformed"],
-    [new Date(Date.now() + 60_000).toISOString(), "future"],
-    [new Date(Date.now() - 30 * 24 * 60 * 60 * 1000 - 1).toISOString(), "older"],
-  ])("refuses a %s manifest age before psql or rclone", (createdAt, _case) => {
+    undefined,
+    "not-a-date",
+    new Date(Date.now() + 60_000).toISOString(),
+    new Date(Date.now() - 30 * 24 * 60 * 60 * 1000 - 1).toISOString(),
+  ])("refuses a %s manifest age before psql or rclone", (createdAt) => {
     const fixture = restoreFixture(createdAt as string);
     if (createdAt === undefined) {
       const manifest = JSON.parse(readFileSync(join(fixture.fixture, "snapshot", "manifest.json"), "utf8"));
