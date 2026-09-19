@@ -88,42 +88,62 @@ describe("runAccountDeletion", () => {
 
   test("stops after a ledger failure before deleting Auth", async () => {
     const calls: string[] = [];
+    const providerMessage = `B2 upload rejected ${USER_ID} person@example.com at deletion-ledger/v1/private.json`;
 
-    await expect(
-      runAccountDeletion(
-        { userId: USER_ID, requestedAt: NOW },
-        {
-          purgeStorage: async () => void calls.push("storage"),
-          writeTombstone: async () => {
-            calls.push("ledger");
-            throw new Error("ledger unavailable");
-          },
-          deleteAuthUser: async () => void calls.push("auth"),
+    const deletion = runAccountDeletion(
+      { userId: USER_ID, requestedAt: NOW },
+      {
+        purgeStorage: async () => void calls.push("storage"),
+        writeTombstone: async () => {
+          calls.push("ledger");
+          throw new Error(providerMessage);
         },
-      ),
-    ).rejects.toMatchObject({ stage: "ledger" });
+        deleteAuthUser: async () => void calls.push("auth"),
+      },
+    );
+
+    await expect(deletion).rejects.toMatchObject({ stage: "ledger" });
 
     expect(calls).toEqual(["storage", "ledger"]);
+    await deletion.catch((error) => {
+      expect(error).toBeInstanceOf(DeletionFailure);
+      expect(error).toHaveProperty("stage", "ledger");
+      expect((error as Error).message).not.toContain(providerMessage);
+      expect((error as Error).message).not.toContain(USER_ID);
+      expect((error as Error).message).not.toContain("person@example.com");
+      expect((error as Error).message).not.toContain("B2 upload");
+      expect((error as Error).message).not.toContain("deletion-ledger/v1/private.json");
+    });
   });
 
   test("stops after an Auth failure", async () => {
     const calls: string[] = [];
+    const providerMessage = `Supabase Auth refused ${USER_ID} person@example.com at /auth/v1/admin/users`;
 
-    await expect(
-      runAccountDeletion(
-        { userId: USER_ID, requestedAt: NOW },
-        {
-          purgeStorage: async () => void calls.push("storage"),
-          writeTombstone: async () => void calls.push("ledger"),
-          deleteAuthUser: async () => {
-            calls.push("auth");
-            throw new Error("auth unavailable");
-          },
+    const deletion = runAccountDeletion(
+      { userId: USER_ID, requestedAt: NOW },
+      {
+        purgeStorage: async () => void calls.push("storage"),
+        writeTombstone: async () => void calls.push("ledger"),
+        deleteAuthUser: async () => {
+          calls.push("auth");
+          throw new Error(providerMessage);
         },
-      ),
-    ).rejects.toMatchObject({ stage: "auth" });
+      },
+    );
+
+    await expect(deletion).rejects.toMatchObject({ stage: "auth" });
 
     expect(calls).toEqual(["storage", "ledger", "auth"]);
+    await deletion.catch((error) => {
+      expect(error).toBeInstanceOf(DeletionFailure);
+      expect(error).toHaveProperty("stage", "auth");
+      expect((error as Error).message).not.toContain(providerMessage);
+      expect((error as Error).message).not.toContain(USER_ID);
+      expect((error as Error).message).not.toContain("person@example.com");
+      expect((error as Error).message).not.toContain("Supabase Auth");
+      expect((error as Error).message).not.toContain("/auth/v1/admin/users");
+    });
   });
 
   test("runs the same successful dependencies twice for a retry", async () => {
