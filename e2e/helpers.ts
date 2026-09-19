@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createServerClient } from "@supabase/ssr";
 import { TEST_USER, seedTestUser } from "./seed";
 
 /**
@@ -13,6 +14,49 @@ export function admin(): SupabaseClient {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+}
+
+/**
+ * Create browser cookies for an isolated, password-authenticated e2e user.
+ *
+ * The global setup uses the same `@supabase/ssr` serialization path for the
+ * shared fixture. Destructive journeys must not borrow that fixture's storage
+ * state, so they call this with a fresh disposable user's credentials instead.
+ */
+export async function disposableSessionCookies(email: string, password: string) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  const baseUrl = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
+  const { data, error } = await createClient(url, anon, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  }).auth.signInWithPassword({ email, password });
+  if (error || !data.session) throw new Error(`isolated e2e sign-in failed: ${error?.message ?? "no session"}`);
+
+  const written: { name: string; value: string }[] = [];
+  const ssr = createServerClient(url, anon, {
+    cookies: {
+      getAll: () => [],
+      setAll: (cookies) => {
+        written.push(...cookies);
+      },
+    },
+  });
+  await ssr.auth.setSession({
+    access_token: data.session.access_token,
+    refresh_token: data.session.refresh_token,
+  });
+  if (!written.length) throw new Error("@supabase/ssr wrote no isolated e2e cookies");
+
+  const appUrl = new URL(baseUrl);
+  return written.map((cookie) => ({
+    name: cookie.name,
+    value: cookie.value,
+    domain: appUrl.hostname,
+    path: "/",
+    httpOnly: false,
+    secure: false,
+    sameSite: "Lax" as const,
+  }));
 }
 
 export async function testUserId(): Promise<string> {
