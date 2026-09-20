@@ -1,12 +1,14 @@
 import { spawnSync } from "node:child_process";
 import {
   chmodSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
+import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
@@ -40,6 +42,110 @@ function run(path: string, args: string[], env: Record<string, string> = {}) {
       PATH: env.PATH ?? process.env.PATH ?? "",
     },
   });
+}
+
+function restoreFixture(createdAt = new Date().toISOString()) {
+  const fixture = mkdtempSync(join(tmpdir(), "fitcheck-restore-runner-"));
+  const snapshot = join(fixture, "snapshot");
+  const database = join(snapshot, "database");
+  const wardrobe = join(snapshot, "storage", "wardrobe");
+  const bin = join(fixture, "bin");
+  const trace = join(fixture, "trace.txt");
+  mkdirSync(database, { recursive: true });
+  mkdirSync(wardrobe, { recursive: true });
+  mkdirSync(bin, { recursive: true });
+
+  const dumps: Record<string, string> = {
+    "roles.sql": "roles\n",
+    "schema.sql": "schema\n",
+    "data.sql": "data\n",
+    "migration-history-schema.sql": "history schema\n",
+    "migration-history-data.sql": "history data\n",
+  };
+  for (const [name, contents] of Object.entries(dumps)) writeFileSync(join(database, name), contents);
+  const databaseManifest = Object.fromEntries(
+    Object.entries(dumps).map(([name, contents]) => [name, {
+      bytes: Buffer.byteLength(contents),
+      sha256: createHash("sha256").update(contents).digest("hex"),
+    }]),
+  );
+  writeFileSync(join(snapshot, "manifest.json"), `${JSON.stringify({
+    formatVersion: 1,
+    createdAt,
+    projectRef: "source-ref",
+    metadata: {},
+    toolVersions: {},
+    database: databaseManifest,
+    storage: { bucket: "wardrobe", objectCount: 0, totalBytes: 0 },
+  })}\n`);
+
+  const executable = (name: string, source: string) => {
+    const path = join(bin, name);
+    writeFileSync(path, `#!/usr/bin/env bash\nset -euo pipefail\n${source}\n`);
+    chmodSync(path, 0o755);
+  };
+  executable("restic", `
+if [[ "\${1:-}" == "restore" ]]; then
+  while [[ "$#" -gt 0 ]]; do
+    if [[ "$1" == "--target" ]]; then cp -R "$SNAPSHOT/." "$2"; exit 0; fi
+    shift
+  done
+fi
+exit 1
+`);
+  executable("psql", `printf 'psql\\n' >> "$TRACE"`);
+  executable("rclone", `
+case "\${1:-}" in
+  copy) printf 'rclone-copy\\n' >> "$TRACE" ;;
+  check) printf 'rclone-check\\n' >> "$TRACE" ;;
+  size) printf '{"count":0,"bytes":0}\\n' ;;
+  *) exit 1 ;;
+esac
+`);
+  executable("node", `
+if [[ "\${1:-}" == *"reconcile-deletions.mjs" ]]; then
+  if [[ "\${2:-}" == "validate-config" ]]; then
+    exec "$NODE_BINARY" "$@"
+  fi
+  printf 'reconcile\\n' >> "$TRACE"
+  printf 'Deletion reconciliation complete: scanned=0 deleted=0\\n'
+  exit "\${RECONCILE_STATUS:-0}"
+fi
+exec "$NODE_BINARY" "$@"
+`);
+
+  const env: Record<string, string> = {
+    PATH: `${bin}:${process.env.PATH ?? ""}`,
+    NODE_BINARY: process.execPath,
+    SNAPSHOT: snapshot,
+    TRACE: trace,
+    BACKUP_SOURCE_PROJECT_REF: "source-ref",
+    RESTORE_PROJECT_REF: "restore-ref",
+    RESTORE_DB_URL: "postgresql://postgres.restore-ref:restore-secret@aws-0-eu-central-1.pooler.supabase.com:5432/postgres",
+    RESTORE_SUPABASE_URL: "https://restore-ref.supabase.co",
+    RESTORE_SERVICE_ROLE_KEY: "restore-service-role-secret",
+    RESTORE_S3_ACCESS_KEY_ID: "restore-storage-key",
+    RESTORE_S3_SECRET_ACCESS_KEY: "restore-storage-secret",
+    B2_DELETION_READER_KEY_ID: "reader-key-id",
+    B2_DELETION_READER_APPLICATION_KEY: "reader-application-key-secret",
+    DELETION_LEDGER_HMAC_KEY: "ledger-hmac-secret",
+    RESTIC_REPOSITORY: "/tmp/fitcheck-test-restic",
+    RESTIC_PASSWORD: "repository-password",
+  };
+
+  return {
+    fixture,
+    trace,
+    env,
+  };
+}
+
+function restoreTrace(path: string) {
+  try {
+    return readFileSync(path, "utf8");
+  } catch {
+    return "";
+  }
 }
 
 describe("backup runner guardrails", () => {
@@ -251,6 +357,139 @@ esac
       expect(result.stderr).not.toContain("restore-secret");
     } finally {
       rmSync(commands.fixture, { recursive: true, force: true });
+    }
+  });
+
+  test.each([
+    "RESTORE_SUPABASE_URL",
+    "RESTORE_SERVICE_ROLE_KEY",
+    "B2_DELETION_READER_KEY_ID",
+    "B2_DELETION_READER_APPLICATION_KEY",
+    "DELETION_LEDGER_HMAC_KEY",
+  ])("restore refuses a missing %s before mutating the target", (missing) => {
+    const fixture = restoreFixture();
+    const env = { ...fixture.env };
+    delete env[missing];
+
+    try {
+      const result = run(restoreScript, ["latest", "--confirm-disposable-target"], env);
+
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain(missing);
+      expect(restoreTrace(fixture.trace)).not.toContain("psql");
+      expect(restoreTrace(fixture.trace)).not.toContain("rclone");
+      expect(`${result.stdout}${result.stderr}`).not.toContain("restore-service-role-secret");
+      expect(`${result.stdout}${result.stderr}`).not.toContain("reader-application-key-secret");
+      expect(`${result.stdout}${result.stderr}`).not.toContain("ledger-hmac-secret");
+    } finally {
+      rmSync(fixture.fixture, { recursive: true, force: true });
+    }
+  });
+
+  test("restore rejects a RESTORE_SUPABASE_URL for another project before psql", () => {
+    const fixture = restoreFixture();
+
+    try {
+      const result = run(restoreScript, ["latest", "--confirm-disposable-target"], {
+        ...fixture.env,
+        RESTORE_SUPABASE_URL: "https://other-ref.supabase.co",
+      });
+
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain("RESTORE_SUPABASE_URL does not match RESTORE_PROJECT_REF");
+      expect(restoreTrace(fixture.trace)).not.toContain("psql");
+    } finally {
+      rmSync(fixture.fixture, { recursive: true, force: true });
+    }
+  });
+
+  test("restore rejects malformed retained HMAC keys before target mutation without printing them", () => {
+    const fixture = restoreFixture();
+    const malformed = '{"previous-hmac-key-secret":true}';
+
+    try {
+      const result = run(restoreScript, ["latest", "--confirm-disposable-target"], {
+        ...fixture.env,
+        DELETION_LEDGER_PREVIOUS_HMAC_KEYS_JSON: malformed,
+      });
+
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toBe("Deletion reconciliation configuration is invalid\n");
+      expect(`${result.stdout}${result.stderr}`).not.toContain("previous-hmac-key-secret");
+      expect(restoreTrace(fixture.trace)).not.toContain("psql");
+      expect(restoreTrace(fixture.trace)).not.toContain("rclone");
+    } finally {
+      rmSync(fixture.fixture, { recursive: true, force: true });
+    }
+  });
+
+  test("runs mandatory deletion reconciliation after database and Storage restore", () => {
+    const fixture = restoreFixture();
+
+    try {
+      const result = run(restoreScript, ["latest", "--confirm-disposable-target"], fixture.env);
+      const trace = restoreTrace(fixture.trace);
+
+      expect(result.status, result.stderr).toBe(0);
+      expect(trace).toMatch(/psql[\s\S]*rclone-copy[\s\S]*rclone-check[\s\S]*reconcile/);
+      expect(result.stdout).toContain("Deletion reconciliation complete");
+      expect(result.stdout).not.toContain("replay every deletion request");
+    } finally {
+      rmSync(fixture.fixture, { recursive: true, force: true });
+    }
+  });
+
+  test("fails the restore when deletion reconciliation fails", () => {
+    const fixture = restoreFixture();
+
+    try {
+      const result = run(restoreScript, ["latest", "--confirm-disposable-target"], {
+        ...fixture.env,
+        RECONCILE_STATUS: "1",
+      });
+
+      expect(result.status).not.toBe(0);
+      expect(restoreTrace(fixture.trace)).toContain("reconcile");
+      expect(result.stdout).not.toContain("Snapshot bytes and database dumps restored successfully.");
+    } finally {
+      rmSync(fixture.fixture, { recursive: true, force: true });
+    }
+  });
+
+  test.each([
+    undefined,
+    "not-a-date",
+    new Date(Date.now() + 60_000).toISOString(),
+    new Date(Date.now() - 30 * 24 * 60 * 60 * 1000 - 1).toISOString(),
+  ])("refuses a %s manifest age before psql or rclone", (createdAt) => {
+    const fixture = restoreFixture(createdAt as string);
+    if (createdAt === undefined) {
+      const manifest = JSON.parse(readFileSync(join(fixture.fixture, "snapshot", "manifest.json"), "utf8"));
+      delete manifest.createdAt;
+      writeFileSync(join(fixture.fixture, "snapshot", "manifest.json"), `${JSON.stringify(manifest)}\n`);
+    }
+
+    try {
+      const result = run(restoreScript, ["latest", "--confirm-disposable-target"], fixture.env);
+
+      expect(result.status).not.toBe(0);
+      expect(restoreTrace(fixture.trace)).not.toContain("psql");
+      expect(restoreTrace(fixture.trace)).not.toContain("rclone");
+    } finally {
+      rmSync(fixture.fixture, { recursive: true, force: true });
+    }
+  });
+
+  test("accepts a manifest inside the hard 30-day restore ceiling", () => {
+    const fixture = restoreFixture(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000 + 60_000).toISOString());
+
+    try {
+      const result = run(restoreScript, ["latest", "--confirm-disposable-target"], fixture.env);
+
+      expect(result.status, result.stderr).toBe(0);
+      expect(restoreTrace(fixture.trace)).toContain("psql");
+    } finally {
+      rmSync(fixture.fixture, { recursive: true, force: true });
     }
   });
 });

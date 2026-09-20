@@ -17,6 +17,13 @@ require_backup_env RESTORE_DB_URL
 if [[ "$RESTORE_PROJECT_REF" == "$BACKUP_SOURCE_PROJECT_REF" ]]; then
   backup_die "RESTORE_PROJECT_REF must differ from the backup source project"
 fi
+require_supabase_db_url_matches_project_ref RESTORE_DB_URL RESTORE_PROJECT_REF
+
+require_backup_env RESTORE_SUPABASE_URL
+require_backup_env RESTORE_SERVICE_ROLE_KEY
+require_backup_env B2_DELETION_READER_KEY_ID
+require_backup_env B2_DELETION_READER_APPLICATION_KEY
+require_backup_env DELETION_LEDGER_HMAC_KEY
 
 require_backup_env RESTORE_S3_ACCESS_KEY_ID
 require_backup_env RESTORE_S3_SECRET_ACCESS_KEY
@@ -30,7 +37,8 @@ fi
 for command_name in node rclone restic psql; do
   require_backup_command "$command_name"
 done
-require_supabase_db_url_matches_project_ref RESTORE_DB_URL RESTORE_PROJECT_REF
+require_supabase_url_matches_project_ref RESTORE_SUPABASE_URL RESTORE_PROJECT_REF
+node "$SCRIPT_DIR/reconcile-deletions.mjs" validate-config
 
 umask 077
 WORK_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/fitcheck-restore.XXXXXX")"
@@ -45,6 +53,7 @@ export RESTIC_CACHE_DIR="$WORK_ROOT/restic-cache"
 printf 'Restoring encrypted snapshot into an isolated temporary directory…\n'
 restic restore "$SNAPSHOT_ID" --target "$RESTORE_ROOT" --no-lock
 node "$SCRIPT_DIR/manifest.mjs" validate --root "$RESTORE_ROOT" >/dev/null
+node "$SCRIPT_DIR/manifest.mjs" validate-restore-age --root "$RESTORE_ROOT" >/dev/null
 
 MANIFEST_SOURCE_REF="$(
   node -e '
@@ -95,9 +104,10 @@ rclone size "restore:wardrobe" --json > "$WORK_ROOT/restored-storage-stats.json"
 node "$SCRIPT_DIR/manifest.mjs" compare-storage \
   --root "$RESTORE_ROOT" \
   --storage-stats "$WORK_ROOT/restored-storage-stats.json" >/dev/null
+node "$SCRIPT_DIR/reconcile-deletions.mjs"
 
 cat <<'CHECKLIST'
-Snapshot bytes and database dumps restored successfully.
+Snapshot bytes, database dumps, Storage, and deletion reconciliation restored successfully.
 
 The disposable-project drill is not complete until the operator verifies:
   1. custom auth/storage policies and triggers against tracked migrations;
@@ -105,7 +115,7 @@ The disposable-project drill is not complete until the operator verifies:
   3. sign-in with the dedicated test user;
   4. one private signed wardrobe image;
   5. closet loading and one generated look;
-  6. every deletion request newer than the snapshot has been replayed.
+  6. record the automated deletion reconciliation aggregate above in the drill log.
 
 Never reopen a disaster-restored production project before step 6.
 CHECKLIST

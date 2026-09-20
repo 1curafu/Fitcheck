@@ -160,6 +160,37 @@ export async function validateManifest(root) {
   return manifest;
 }
 
+/**
+ * Refuses snapshots outside Fitcheck's hard 30-day deletion-data ceiling.
+ * The clock parameter keeps the boundary testable without relaxing the CLI.
+ */
+export async function validateManifestRestoreAge(root, now = new Date()) {
+  if (!(now instanceof Date) || !Number.isFinite(now.getTime())) {
+    throw new Error("Restore clock must be a valid Date");
+  }
+
+  let manifest;
+  try {
+    manifest = JSON.parse(await readFile(join(resolve(root), "manifest.json"), "utf8"));
+  } catch (error) {
+    throw new Error("manifest.json is missing or invalid", { cause: error });
+  }
+
+  if (typeof manifest.createdAt !== "string") {
+    throw new Error("manifest createdAt is missing or invalid");
+  }
+  const createdAt = new Date(manifest.createdAt);
+  if (!Number.isFinite(createdAt.getTime()) || createdAt.toISOString() !== manifest.createdAt) {
+    throw new Error("manifest createdAt is missing or invalid");
+  }
+  const ageMilliseconds = now.getTime() - createdAt.getTime();
+  if (ageMilliseconds < 0) throw new Error("manifest createdAt is in the future");
+  if (ageMilliseconds > 30 * 24 * 60 * 60 * 1000) {
+    throw new Error("manifest createdAt is older than 30 days");
+  }
+  return manifest;
+}
+
 function parseArgs(argv) {
   const [command, ...rest] = argv;
   const flags = new Map();
@@ -192,6 +223,11 @@ async function main() {
     process.stdout.write(`${JSON.stringify(manifest)}\n`);
     return;
   }
+  if (command === "validate-restore-age") {
+    const manifest = await validateManifestRestoreAge(root);
+    process.stdout.write(`${JSON.stringify(manifest)}\n`);
+    return;
+  }
   if (command === "compare-storage") {
     const storageStatsPath = flags.get("storage-stats");
     if (!storageStatsPath) throw new Error("compare-storage requires --storage-stats");
@@ -206,7 +242,7 @@ async function main() {
     return;
   }
   if (command !== "create") {
-    throw new Error("command must be create, validate or compare-storage");
+    throw new Error("command must be create, validate, validate-restore-age or compare-storage");
   }
 
   const projectRef = flags.get("project-ref");

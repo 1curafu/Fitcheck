@@ -5,6 +5,7 @@ import { join } from "node:path";
 import {
   assertStorageStatsMatch,
   createManifest,
+  validateManifestRestoreAge,
   validateManifest,
 } from "../manifest.mjs";
 
@@ -152,5 +153,32 @@ describe("backup manifest", () => {
         "restored Storage",
       ),
     ).toThrow("restored Storage does not match source");
+  });
+
+  test.each([
+    [undefined, "createdAt"],
+    ["not-a-timestamp", "createdAt"],
+    ["2026-09-20T00:00:00.001Z", "future"],
+    ["2026-08-20T00:00:00.000Z", "older than 30 days"],
+  ])("rejects a restore manifest with createdAt %j", async (createdAt, message) => {
+    await createStage();
+    const manifest = await writeValidManifest();
+    await writeFile(
+      join(root, "manifest.json"),
+      `${JSON.stringify({ ...manifest, ...(createdAt === undefined ? { createdAt: undefined } : { createdAt }) }, null, 2)}\n`,
+    );
+
+    await expect(
+      validateManifestRestoreAge(root, new Date("2026-09-20T00:00:00.000Z")),
+    ).rejects.toThrow(message);
+  });
+
+  test("accepts a manifest created exactly 30 days before the restore clock", async () => {
+    await createStage();
+    await writeValidManifest();
+
+    await expect(
+      validateManifestRestoreAge(root, new Date("2026-10-18T02:45:00.000Z")),
+    ).resolves.toMatchObject({ createdAt: "2026-09-18T02:45:00.000Z" });
   });
 });

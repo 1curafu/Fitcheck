@@ -7,7 +7,7 @@ import { initials } from "@/lib/profile/identity";
 import { readPreferences } from "@/lib/profile/preferences";
 import { resolveLocation } from "@/lib/weather/location";
 import { SettingsView } from "@/components/settings/settings-view";
-import { updatePreferences, setLocation } from "./actions";
+import { deleteAccount, updatePreferences, setLocation } from "./actions";
 
 export default function SettingsPage() {
   // The session read is what blocks a shell, so it moves behind a boundary
@@ -50,6 +50,7 @@ async function SettingsBody() {
         preferences={readPreferences(profile?.preferences)}
         onSaveAction={updatePreferences}
         onSetLocationAction={setLocation}
+        onDeleteAction={deleteAccount}
       />
       <MobileNav />
     </div>

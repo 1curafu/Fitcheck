@@ -1,12 +1,69 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
+import * as Sentry from "@sentry/nextjs";
+import { RedirectType, redirect } from "next/navigation";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { deleteLiveAccount } from "@/lib/account-deletion/runtime";
+import { DeletionFailure } from "@/lib/account-deletion/types";
 import { createClient } from "@/lib/supabase/server";
 import { PreferencesSchema, readPreferences } from "@/lib/profile/preferences";
 import { fetchForecast } from "@/lib/weather/forecast";
 import { locationColumns, invalidatesDrop, resolveLocation } from "@/lib/weather/location";
 import { localDateFor } from "@/lib/outfits/local-date";
+
+export type DeleteAccountState = { status: "idle" } | { status: "error"; message: string };
+
+const DeleteAccountConfirmationSchema = z.string().max(320);
+const SESSION_EXPIRED_MESSAGE = "Your session has expired. Sign in and try again.";
+const CONFIRMATION_MESSAGE = "Type your account email exactly to continue.";
+const DELETION_FAILURE_MESSAGE = "We couldn't delete your account. Please try again or contact support.";
+
+/**
+ * Delete the authenticated account after an exact email confirmation.
+ *
+ * The user ID always comes from the freshly verified server-side session; form
+ * data can only carry the email confirmation, never an authority decision.
+ */
+export async function deleteAccount(
+  _previousState: DeleteAccountState,
+  formData: FormData,
+): Promise<DeleteAccountState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user?.email) return { status: "error", message: SESSION_EXPIRED_MESSAGE };
+
+  const confirmation = DeleteAccountConfirmationSchema.safeParse(formData.get("confirmation"));
+  if (!confirmation.success || confirmation.data !== user.email) {
+    return { status: "error", message: CONFIRMATION_MESSAGE };
+  }
+
+  try {
+    await deleteLiveAccount(user.id, new Date());
+  } catch (error) {
+    if (!(error instanceof DeletionFailure)) throw error;
+
+    Sentry.captureException(new Error("Account deletion failed"), {
+      tags: {
+        account_deletion_stage: error.stage,
+        account_deletion_correlation_id: randomUUID(),
+      },
+    });
+    return { status: "error", message: DELETION_FAILURE_MESSAGE };
+  }
+
+  try {
+    await supabase.auth.signOut({ scope: "local" });
+  } catch {
+    // Hard deletion completed; a cookie-clearing failure must not report a false failure.
+  }
+
+  redirect("/?account=deleted", RedirectType.replace);
+}
 
 /**
  * Persist a partial preferences patch.
