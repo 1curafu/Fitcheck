@@ -1,6 +1,6 @@
 {
   "name": "fitcheck",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -13,6 +13,8 @@
     "e2e:ui": "playwright test --ui",
     "e2e:measure": "playwright test --grep @measure",
     "insights": "bash scripts/check-insights.sh",
+    "backup:local": "bash scripts/backup/local.sh",
+    "backup:verify": "vitest run scripts/backup/__tests__",
     "prebuild": "node scripts/copy-ort.mjs",
     "predev": "node scripts/copy-ort.mjs"
   },

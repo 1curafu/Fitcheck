@@ -4,9 +4,10 @@ import type { CacheStore, CachedDay } from "./cache";
 /**
  * The Postgres side of the weather cache.
  *
- * ⚠️ **THE ONLY SERVICE-ROLE CLIENT IN THIS CODEBASE, AND IT MUST STAY THAT
- * WAY.** `CLAUDE.md` says every DB access relies on RLS and there is no
- * service-role bypass in app code. This is a deliberate, narrow exception:
+ * ⚠️ **ONE OF TWO REVIEWED SERVICE-ROLE CLIENTS IN APP CODE.** `CLAUDE.md`
+ * says every DB access relies on RLS and there is no service-role bypass in
+ * app code. The only exceptions are this public weather-cache writer and the
+ * isolated account-deletion boundary. This is a deliberate, narrow exception:
  *
  *   - `weather_cache` holds NO user data. It is public weather, keyed by place
  *     and day, identical for everyone in a city.
@@ -15,9 +16,9 @@ import type { CacheStore, CachedDay } from "./cache";
  *     any signed-in user POST a fabricated forecast and poison a whole city.
  *   - So the write has to come from somewhere, and this is it.
  *
- * ⚠️ Do not import this module from anywhere else. If a second caller ever
- * needs it, that is the moment to stop and re-read Decision 1's reasoning
- * rather than widen the exception quietly.
+ * ⚠️ Do not import this module from anywhere else. Any new service-role use
+ * requires its own reviewed boundary; deletion remains fail-closed while this
+ * cache deliberately remains fail-open.
  */
 function serviceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

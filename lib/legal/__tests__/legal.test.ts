@@ -56,12 +56,13 @@ test("what the AI receives is stated precisely — photos for tagging, text for 
   expect(policy).toMatch(/never photos/);
 });
 
-test("the policy does not promise a deletion button the app does not have", () => {
-  // There is no self-serve deletion yet. Until there is, the policy must say
-  // to write in — a promised button that does not exist is worse than none.
+test("the policy and terms disclose the live account-deletion path and retention ceiling", () => {
   const policy = text(PRIVACY);
+  expect(policy).toMatch(/delete your account in Settings/i);
   expect(policy).toContain(OPERATOR.email);
-  expect(policy).not.toMatch(/delete your account in settings/i);
+  expect(policy).toMatch(/live data.*immediately/i);
+  expect(policy).toMatch(/backups.*30 days/i);
+  expect(text(TERMS)).toMatch(/delete your account.*Settings/i);
 });
 
 test("both documents name the operator and carry a date", () => {

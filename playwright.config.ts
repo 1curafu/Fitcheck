@@ -57,6 +57,10 @@ export default defineConfig({
       // The generator's model call is stubbed: deterministic, free, and it
       // still runs the whole pipeline in front of it. See `stubbedRerank`.
       FITCHECK_STUB_AI: "1",
+      // The deletion journey exercises the full destructive coordinator, but
+      // must not contact the production-only B2 deletion ledger. The adapter
+      // itself refuses this stub unless Supabase is localhost/127.0.0.1.
+      FITCHECK_STUB_DELETION_LEDGER: "1",
     },
   },
 });

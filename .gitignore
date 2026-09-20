@@ -40,6 +40,8 @@ PRODUCT.md
 
 # local tooling
 .claude/
+.codex/
+.worktrees/
 
 fitcheck-complete-spec.md
 design_handoff_stylist_generator/

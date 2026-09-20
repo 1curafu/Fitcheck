@@ -12,7 +12,7 @@ import { OPERATOR, type LegalDocument } from "./types";
  */
 export const PRIVACY: LegalDocument = {
   title: "Privacy Policy",
-  updated: "2026-09-15",
+  updated: "2026-09-19",
   intro:
     "Fitcheck photographs your wardrobe and suggests outfits from it. That means it holds photos of your clothes and a little about you. This page says exactly what, why, who else touches it, and how to make us delete it.",
   sections: [
@@ -71,13 +71,14 @@ export const PRIVACY: LegalDocument = {
     {
       heading: "How long we keep it",
       paragraphs: [
-        "For as long as you have an account. When you ask us to delete it, everything above is deleted within 30 days, and disappears from backups within a further 30. Error reports are kept for 90 days. Payment records are kept for as long as tax law requires.",
+        "For as long as you have an account. Delete your account in Settings; a successful deletion removes your live data immediately. You can also write to legal@fitcheck.space if you need help with deletion.",
+        "Encrypted backups may retain deleted data for no more than 30 days before they expire. Error reports are kept for 90 days. Once subscriptions exist, legally required payment records are kept for as long as tax law requires.",
       ],
     },
     {
       heading: "Your rights",
       paragraphs: [
-        `Write to ${OPERATOR.email} and we will act within 30 days. You can:`,
+        `Delete your account in Settings, or write to ${OPERATOR.email} if you need help. We respond to other rights requests within 30 days. You can:`,
       ],
       bullets: [
         "See everything we hold about you, and get a copy in a machine-readable form.",

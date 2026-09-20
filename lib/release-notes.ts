@@ -25,6 +25,16 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.3.2",
+    date: "2026-09-20",
+    headline: "Your account, your call — deletion is now in Settings.",
+    added: [
+      "Delete your account and live data directly from Settings",
+      "Fitcheck now keeps encrypted recovery backups if something goes wrong",
+    ],
+    fixed: ["A recovered backup can no longer bring back a deleted account"],
+  },
+  {
     version: "0.3.1",
     date: "2026-09-17",
     headline: "Cleaner cutouts, and Rotate where you can see it.",
