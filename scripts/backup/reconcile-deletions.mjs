@@ -2,7 +2,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { deletionDigest, listB2TombstoneDigests } from "../../lib/account-deletion/ledger.mjs";
-import { purgeWardrobePrefix } from "../../lib/account-deletion/storage.mjs";
+import { listWardrobeOwnerIds, purgeWardrobePrefix } from "../../lib/account-deletion/storage.mjs";
 import { pathToFileURL } from "node:url";
 
 const PAGE_SIZE = 1000;
@@ -98,17 +98,20 @@ async function hardDeleteRestoreUser(client, userId) {
 }
 
 /**
- * Removes accounts deleted after a snapshot was taken. Every tombstone lookup,
- * Storage purge, and Auth delete must succeed; restoring traffic is unsafe
- * otherwise.
+ * Removes accounts deleted after a snapshot was taken, then every wardrobe
+ * folder that no remaining restored Auth user owns (an upload that raced a live
+ * deletion, or a sign-up between the database dump and the Storage copy). Every
+ * tombstone lookup, listing, Storage purge, and Auth delete must succeed;
+ * restoring traffic is unsafe otherwise.
  *
  * @param {{ supabaseUrl: string, serviceRoleKey: string, readerKeyId: string, readerApplicationKey: string, hmacKey: string, previousHmacKeysJson?: string }} config
- * @param {{ listDigests?: () => Promise<Set<string>>, listUsers?: (page: number) => Promise<string[]>, purgeStorage?: (userId: string) => Promise<void>, deleteUser?: (userId: string) => Promise<void>, write?: (line: string) => unknown }} [dependencies]
- * @returns {Promise<{ scanned: number, deleted: number }>}
+ * @param {{ listDigests?: () => Promise<Set<string>>, listUsers?: (page: number) => Promise<string[]>, listOwners?: () => Promise<string[]>, purgeStorage?: (userId: string) => Promise<void>, deleteUser?: (userId: string) => Promise<void>, write?: (line: string) => unknown }} [dependencies]
+ * @returns {Promise<{ scanned: number, deleted: number, orphanPrefixes: number }>}
  */
 export async function reconcileDeletedAccounts(config, dependencies = {}) {
   let listDigests = dependencies.listDigests;
   let listUsers = dependencies.listUsers;
+  let listOwners = dependencies.listOwners;
   let purgeStorage = dependencies.purgeStorage;
   let deleteUser = dependencies.deleteUser;
   const write = dependencies.write ?? ((line) => process.stdout.write(line));
@@ -121,12 +124,13 @@ export async function reconcileDeletedAccounts(config, dependencies = {}) {
   }
 
   try {
-    const client = !listUsers || !purgeStorage || !deleteUser ? createRestoreAdminClient(config) : null;
+    const client = !listUsers || !listOwners || !purgeStorage || !deleteUser ? createRestoreAdminClient(config) : null;
     listDigests ??= () => listB2TombstoneDigests({
       keyId: config.readerKeyId,
       applicationKey: config.readerApplicationKey,
     });
     listUsers ??= (page) => listRestoreUsers(client, page);
+    listOwners ??= () => listWardrobeOwnerIds(client);
     purgeStorage ??= (userId) => purgeWardrobePrefix(client, userId);
     deleteUser ??= (userId) => hardDeleteRestoreUser(client, userId);
 
@@ -144,16 +148,31 @@ export async function reconcileDeletedAccounts(config, dependencies = {}) {
       if (users.length < PAGE_SIZE) break;
     }
 
+    const remainingUserIds = new Set(restoredUserIds);
     let deleted = 0;
     for (const userId of restoredUserIds) {
       if (!hmacKeys.some((hmacKey) => digests.has(deletionDigest(userId, hmacKey)))) continue;
       await purgeStorage(userId);
       await deleteUser(userId);
+      remainingUserIds.delete(userId);
       deleted += 1;
     }
 
-    const result = { scanned: restoredUserIds.length, deleted };
-    write(`Deletion reconciliation complete: scanned=${result.scanned} deleted=${result.deleted}\n`);
+    const owners = await listOwners();
+    if (!Array.isArray(owners) || owners.some((ownerId) => typeof ownerId !== "string" || ownerId.length === 0)) {
+      throw new Error();
+    }
+    let orphanPrefixes = 0;
+    for (const ownerId of owners) {
+      if (remainingUserIds.has(ownerId)) continue;
+      await purgeStorage(ownerId);
+      orphanPrefixes += 1;
+    }
+
+    const result = { scanned: restoredUserIds.length, deleted, orphanPrefixes };
+    write(
+      `Deletion reconciliation complete: scanned=${result.scanned} deleted=${result.deleted} orphanPrefixes=${result.orphanPrefixes}\n`,
+    );
     return result;
   } catch {
     throw new Error("Deletion reconciliation failed");

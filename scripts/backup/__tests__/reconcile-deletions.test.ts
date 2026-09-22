@@ -29,12 +29,13 @@ describe("restore deletion reconciliation", () => {
         {
           listDigests: async () => new Set([deletionDigest(DELETED_ID, PREVIOUS_HMAC_KEY)]),
           listUsers: async () => [DELETED_ID],
+          listOwners: async () => [],
           purgeStorage,
           deleteUser,
           write: vi.fn(),
         },
       ),
-    ).resolves.toEqual({ scanned: 1, deleted: 1 });
+    ).resolves.toEqual({ scanned: 1, deleted: 1, orphanPrefixes: 0 });
 
     expect(purgeStorage).toHaveBeenCalledWith(DELETED_ID);
     expect(deleteUser).toHaveBeenCalledWith(DELETED_ID);
@@ -57,6 +58,7 @@ describe("restore deletion reconciliation", () => {
           {
             listDigests,
             listUsers: async () => [DELETED_ID],
+            listOwners: async () => [],
             purgeStorage: vi.fn(),
             deleteUser: vi.fn(),
             write: vi.fn(),
@@ -75,12 +77,13 @@ describe("restore deletion reconciliation", () => {
     const result = await reconcileDeletedAccounts(config, {
       listDigests: async () => new Set([deletionDigest(DELETED_ID, HMAC_KEY)]),
       listUsers: async () => [DELETED_ID, ACTIVE_ID],
+      listOwners: async () => [],
       purgeStorage,
       deleteUser,
       write: vi.fn(),
     });
 
-    expect(result).toEqual({ scanned: 2, deleted: 1 });
+    expect(result).toEqual({ scanned: 2, deleted: 1, orphanPrefixes: 0 });
     expect(purgeStorage).toHaveBeenCalledWith(DELETED_ID);
     expect(deleteUser).toHaveBeenCalledWith(DELETED_ID);
     expect(purgeStorage).not.toHaveBeenCalledWith(ACTIVE_ID);
@@ -93,6 +96,7 @@ describe("restore deletion reconciliation", () => {
     await reconcileDeletedAccounts(config, {
       listDigests: async () => new Set([deletionDigest(DELETED_ID, HMAC_KEY)]),
       listUsers: async () => [DELETED_ID],
+      listOwners: async () => [],
       purgeStorage: async () => void order.push("storage"),
       deleteUser: async () => void order.push("auth"),
       write: vi.fn(),
@@ -109,6 +113,7 @@ describe("restore deletion reconciliation", () => {
       reconcileDeletedAccounts(config, {
         listDigests: async () => new Set([deletionDigest(DELETED_ID, HMAC_KEY)]),
         listUsers: async () => [DELETED_ID],
+        listOwners: async () => [],
         purgeStorage: async () => {
           throw new Error(`private ${DELETED_ID}`);
         },
@@ -134,12 +139,13 @@ describe("restore deletion reconciliation", () => {
     const result = await reconcileDeletedAccounts(config, {
       listDigests: async () => new Set([deletionDigest(DELETED_ID, HMAC_KEY)]),
       listUsers: pages,
+      listOwners: async () => [],
       purgeStorage: vi.fn(),
       deleteUser,
       write: vi.fn(),
     });
 
-    expect(result).toEqual({ scanned: 1001, deleted: 1 });
+    expect(result).toEqual({ scanned: 1001, deleted: 1, orphanPrefixes: 0 });
     expect(pages).toHaveBeenNthCalledWith(1, 1);
     expect(pages).toHaveBeenNthCalledWith(2, 2);
     expect(deleteUser).toHaveBeenCalledWith(DELETED_ID);
@@ -160,12 +166,13 @@ describe("restore deletion reconciliation", () => {
       listDigests: async () =>
         new Set([deletionDigest(deletedUserId, HMAC_KEY), deletionDigest(tombstonedUserId, HMAC_KEY)]),
       listUsers: async (page) => users.slice((page - 1) * 1000, page * 1000),
+      listOwners: async () => [],
       purgeStorage,
       deleteUser,
       write: vi.fn(),
     });
 
-    expect(result).toEqual({ scanned: 1001, deleted: 2 });
+    expect(result).toEqual({ scanned: 1001, deleted: 2, orphanPrefixes: 0 });
     expect(purgeStorage).toHaveBeenCalledWith(tombstonedUserId);
     expect(deleteUser).toHaveBeenCalledWith(tombstonedUserId);
     expect(users).not.toContain(tombstonedUserId);
@@ -178,14 +185,15 @@ describe("restore deletion reconciliation", () => {
       reconcileDeletedAccounts(config, {
         listDigests: async () => new Set(),
         listUsers: async () => [ACTIVE_ID],
+        listOwners: async () => [],
         purgeStorage: vi.fn(),
         deleteUser: vi.fn(),
         write,
       }),
-    ).resolves.toEqual({ scanned: 1, deleted: 0 });
+    ).resolves.toEqual({ scanned: 1, deleted: 0, orphanPrefixes: 0 });
 
     expect(write).toHaveBeenCalledOnce();
-    expect(write).toHaveBeenCalledWith("Deletion reconciliation complete: scanned=1 deleted=0\n");
+    expect(write).toHaveBeenCalledWith("Deletion reconciliation complete: scanned=1 deleted=0 orphanPrefixes=0\n");
   });
 
   test("emits aggregate counts only and never a restored user ID", async () => {
@@ -194,14 +202,73 @@ describe("restore deletion reconciliation", () => {
     await reconcileDeletedAccounts(config, {
       listDigests: async () => new Set([deletionDigest(DELETED_ID, HMAC_KEY)]),
       listUsers: async () => [DELETED_ID, ACTIVE_ID],
+      listOwners: async () => [],
       purgeStorage: vi.fn(),
       deleteUser: vi.fn(),
       write,
     });
 
     const output = write.mock.calls.map(([line]) => line).join("");
-    expect(output).toBe("Deletion reconciliation complete: scanned=2 deleted=1\n");
+    expect(output).toBe("Deletion reconciliation complete: scanned=2 deleted=1 orphanPrefixes=0\n");
     expect(output).not.toContain(DELETED_ID);
     expect(output).not.toContain(ACTIVE_ID);
+  });
+  test("purges owner folders with no restored Auth user and keeps live owners", async () => {
+    const ORPHAN_ID = "33333333-3333-4333-8333-333333333333";
+    const purgeStorage = vi.fn();
+    const write = vi.fn();
+
+    const result = await reconcileDeletedAccounts(config, {
+      listDigests: async () => new Set([deletionDigest(DELETED_ID, HMAC_KEY)]),
+      listUsers: async () => [DELETED_ID, ACTIVE_ID],
+      listOwners: async () => [ACTIVE_ID, ORPHAN_ID],
+      purgeStorage,
+      deleteUser: vi.fn(),
+      write,
+    });
+
+    expect(result).toEqual({ scanned: 2, deleted: 1, orphanPrefixes: 1 });
+    expect(purgeStorage.mock.calls.map(([id]) => id)).toEqual([DELETED_ID, ORPHAN_ID]);
+    expect(purgeStorage).not.toHaveBeenCalledWith(ACTIVE_ID);
+    const output = write.mock.calls.map(([line]) => line).join("");
+    expect(output).toBe("Deletion reconciliation complete: scanned=2 deleted=1 orphanPrefixes=1\n");
+    expect(output).not.toContain(ORPHAN_ID);
+  });
+
+  test("lists owners only after tombstoned users are removed, so they are not counted as orphans", async () => {
+    const order: string[] = [];
+
+    const result = await reconcileDeletedAccounts(config, {
+      listDigests: async () => new Set([deletionDigest(DELETED_ID, HMAC_KEY)]),
+      listUsers: async () => [DELETED_ID],
+      listOwners: async () => {
+        order.push("owners");
+        return [];
+      },
+      purgeStorage: async () => void order.push("storage"),
+      deleteUser: async () => void order.push("auth"),
+      write: vi.fn(),
+    });
+
+    expect(order).toEqual(["storage", "auth", "owners"]);
+    expect(result.orphanPrefixes).toBe(0);
+  });
+
+  test("fails closed when the owner listing fails", async () => {
+    const write = vi.fn();
+
+    await expect(
+      reconcileDeletedAccounts(config, {
+        listDigests: async () => new Set(),
+        listUsers: async () => [ACTIVE_ID],
+        listOwners: async () => {
+          throw new Error("Wardrobe listing failed");
+        },
+        purgeStorage: vi.fn(),
+        deleteUser: vi.fn(),
+        write,
+      }),
+    ).rejects.toThrow("Deletion reconciliation failed");
+    expect(write).not.toHaveBeenCalled();
   });
 });
