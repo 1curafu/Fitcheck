@@ -40,6 +40,15 @@ done
 require_supabase_url_matches_project_ref RESTORE_SUPABASE_URL RESTORE_PROJECT_REF
 node "$SCRIPT_DIR/reconcile-deletions.mjs" validate-config
 
+# A restore replays a full dump; the dump's `CREATE TABLE IF NOT EXISTS` would silently skip tables that already
+# exist and then collide on their constraints. Require a brand-new project before downloading or writing anything.
+TARGET_TABLES="$(psql "$RESTORE_DB_URL" -At -v ON_ERROR_STOP=1 \
+  -c "select count(*) from information_schema.tables where table_schema = 'public'")" \
+  || backup_die "could not inspect the restore target"
+if [[ "$TARGET_TABLES" != "0" ]]; then
+  backup_die "restore target is not empty: its public schema already has ${TARGET_TABLES} table(s); use a brand-new project"
+fi
+
 umask 077
 WORK_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/fitcheck-restore.XXXXXX")"
 RESTORE_ROOT="$WORK_ROOT/snapshot"

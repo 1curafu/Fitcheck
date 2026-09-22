@@ -96,6 +96,12 @@ exit 1
   // Behaves like a Supabase project's non-superuser \`postgres\`: a grant on a parameter to a platform-owned
   // \`supabase_*\` role is refused. Records the roles file it was given.
   executable("psql", `
+if [[ " $* " != *" --file "* ]]; then
+  printf 'probe\\n' >> "$TRACE"
+  [[ -n "\${TARGET_PROBE_FAIL:-}" ]] && { echo 'probe failed' >&2; exit 2; }
+  echo "\${TARGET_PUBLIC_TABLES:-0}"
+  exit 0
+fi
 printf 'psql\\n' >> "$TRACE"
 while [[ "$#" -gt 0 ]]; do
   if [[ "$1" == "--file" && "$2" == *roles*.sql ]]; then
@@ -482,6 +488,45 @@ esac
 
       expect(result.status, result.stderr).toBe(0);
       expect(restoreTrace(fixture.trace)).toContain('TO "fitcheck_reporter"');
+    } finally {
+      rmSync(fixture.fixture, { recursive: true, force: true });
+    }
+  });
+
+  test("refuses a target project that already has tables, before downloading or touching it", () => {
+    const fixture = restoreFixture();
+
+    try {
+      const result = run(restoreScript, ["latest", "--confirm-disposable-target"], {
+        ...fixture.env,
+        TARGET_PUBLIC_TABLES: "10",
+      });
+      const trace = restoreTrace(fixture.trace);
+
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain("restore target is not empty");
+      expect(result.stdout).not.toContain("Restoring encrypted snapshot");
+      expect(trace).toContain("probe");
+      expect(trace).not.toContain("psql");
+      expect(trace).not.toContain("rclone");
+      expect(result.stderr).not.toContain("restore-secret");
+    } finally {
+      rmSync(fixture.fixture, { recursive: true, force: true });
+    }
+  });
+
+  test("fails closed when the target emptiness check cannot run", () => {
+    const fixture = restoreFixture();
+
+    try {
+      const result = run(restoreScript, ["latest", "--confirm-disposable-target"], {
+        ...fixture.env,
+        TARGET_PROBE_FAIL: "1",
+      });
+
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain("could not inspect the restore target");
+      expect(restoreTrace(fixture.trace)).not.toContain("psql");
     } finally {
       rmSync(fixture.fixture, { recursive: true, force: true });
     }
