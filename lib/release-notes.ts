@@ -25,6 +25,16 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.3.3",
+    date: "2026-09-22",
+    headline: "Deleting your account now leaves nothing behind.",
+    added: ["Account deletion now double-checks that no photo is left behind"],
+    fixed: [
+      "A photo uploading on another device while you delete is removed too",
+      "A restored backup can no longer keep photos from a deleted account",
+    ],
+  },
+  {
     version: "0.3.2",
     date: "2026-09-20",
     headline: "Your account, your call — deletion is now in Settings.",
