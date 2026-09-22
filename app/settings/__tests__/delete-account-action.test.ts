@@ -132,6 +132,35 @@ describe("deleteAccount", () => {
     expect(reported).not.toContain("deletion-ledger/v1/private.json");
   });
 
+  test("treats a residual Storage failure as a completed deletion that still alerts", async () => {
+    const failure = new DeletionFailure("residual-storage");
+    failure.message = `storage rejected ${USER_ID} ${EMAIL}`;
+    deleteLiveAccount.mockRejectedValue(failure);
+
+    await expect(deleteAccount({ status: "idle" }, confirmationForm(EMAIL))).rejects.toBe(REDIRECT);
+
+    expect(captureException).toHaveBeenCalledTimes(1);
+    const [captured, context] = captureException.mock.calls[0] as [Error, { tags: Record<string, string> }];
+    expect(captured).toEqual(new Error("Account deletion failed"));
+    expect(context.tags.account_deletion_stage).toBe("residual-storage");
+    expect(JSON.stringify({ message: captured.message, tags: context.tags })).not.toContain(USER_ID);
+    expect(signOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(redirect).toHaveBeenCalledWith("/?account=deleted", "replace");
+  });
+
+  test.each(["storage", "ledger", "auth"] as const)(
+    "a %s failure still returns the error state without signing out",
+    async (stage) => {
+      deleteLiveAccount.mockRejectedValue(new DeletionFailure(stage));
+
+      await expect(deleteAccount({ status: "idle" }, confirmationForm(EMAIL))).resolves.toEqual(
+        errorState("We couldn't delete your account. Please try again or contact support."),
+      );
+      expect(signOut).not.toHaveBeenCalled();
+      expect(redirect).not.toHaveBeenCalled();
+    },
+  );
+
   test("clears the local session and replaces the location after successful hard deletion", async () => {
     await expect(deleteAccount({ status: "idle" }, confirmationForm(EMAIL))).rejects.toBe(REDIRECT);
 

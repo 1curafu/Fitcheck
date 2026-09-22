@@ -34,7 +34,8 @@ export function validateProductionDeletionTombstoneConfiguration(): void {
 }
 
 /**
- * Persists the opaque restore-exclusion marker before account data is deleted.
+ * Persists the opaque restore-exclusion marker after the wardrobe purge and before the Auth delete, so the
+ * record exists before the account (and, by cascade, its relational data) can disappear.
  * The e2e stub is intentionally constrained to a local Supabase project so a
  * deployment cannot silently omit this irreversible safety record.
  */

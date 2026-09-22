@@ -53,7 +53,11 @@ export async function deleteAccount(
         account_deletion_correlation_id: randomUUID(),
       },
     });
-    return { status: "error", message: DELETION_FAILURE_MESSAGE };
+    // After the Auth delete the account is gone: saying otherwise would be false and unretryable. The alert
+    // above is the operator's cue; the orphan sweep collects whatever raced in.
+    if (error.stage !== "residual-storage") {
+      return { status: "error", message: DELETION_FAILURE_MESSAGE };
+    }
   }
 
   try {
