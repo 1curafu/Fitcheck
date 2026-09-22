@@ -87,6 +87,25 @@ async function listRestoreUsers(client, page) {
   }
 }
 
+/**
+ * Confirms a single account directly, so a short or truncated user listing can never make a live user's
+ * wardrobe look orphaned. Only an explicit "user not found" counts as absent.
+ *
+ * @param {ReturnType<typeof createRestoreAdminClient>} client @param {string} userId
+ * @returns {Promise<boolean>}
+ */
+export async function restoreUserExists(client, userId) {
+  let response;
+  try {
+    response = await client.auth.admin.getUserById(userId);
+  } catch {
+    throw new Error("Deletion reconciliation failed");
+  }
+  if (response?.data?.user) return true;
+  if (response?.error?.status === 404) return false;
+  throw new Error("Deletion reconciliation failed");
+}
+
 /** @param {ReturnType<typeof createRestoreAdminClient>} client @param {string} userId */
 async function hardDeleteRestoreUser(client, userId) {
   try {
@@ -105,13 +124,14 @@ async function hardDeleteRestoreUser(client, userId) {
  * restoring traffic is unsafe otherwise.
  *
  * @param {{ supabaseUrl: string, serviceRoleKey: string, readerKeyId: string, readerApplicationKey: string, hmacKey: string, previousHmacKeysJson?: string }} config
- * @param {{ listDigests?: () => Promise<Set<string>>, listUsers?: (page: number) => Promise<string[]>, listOwners?: () => Promise<string[]>, purgeStorage?: (userId: string) => Promise<void>, deleteUser?: (userId: string) => Promise<void>, write?: (line: string) => unknown }} [dependencies]
+ * @param {{ listDigests?: () => Promise<Set<string>>, listUsers?: (page: number) => Promise<string[]>, listOwners?: () => Promise<string[]>, userExists?: (userId: string) => Promise<boolean>, purgeStorage?: (userId: string) => Promise<void>, deleteUser?: (userId: string) => Promise<void>, write?: (line: string) => unknown }} [dependencies]
  * @returns {Promise<{ scanned: number, deleted: number, orphanPrefixes: number }>}
  */
 export async function reconcileDeletedAccounts(config, dependencies = {}) {
   let listDigests = dependencies.listDigests;
   let listUsers = dependencies.listUsers;
   let listOwners = dependencies.listOwners;
+  let userExists = dependencies.userExists;
   let purgeStorage = dependencies.purgeStorage;
   let deleteUser = dependencies.deleteUser;
   const write = dependencies.write ?? ((line) => process.stdout.write(line));
@@ -124,13 +144,15 @@ export async function reconcileDeletedAccounts(config, dependencies = {}) {
   }
 
   try {
-    const client = !listUsers || !listOwners || !purgeStorage || !deleteUser ? createRestoreAdminClient(config) : null;
+    const client =
+      !listUsers || !listOwners || !userExists || !purgeStorage || !deleteUser ? createRestoreAdminClient(config) : null;
     listDigests ??= () => listB2TombstoneDigests({
       keyId: config.readerKeyId,
       applicationKey: config.readerApplicationKey,
     });
     listUsers ??= (page) => listRestoreUsers(client, page);
     listOwners ??= () => listWardrobeOwnerIds(client);
+    userExists ??= (userId) => restoreUserExists(client, userId);
     purgeStorage ??= (userId) => purgeWardrobePrefix(client, userId);
     deleteUser ??= (userId) => hardDeleteRestoreUser(client, userId);
 
@@ -162,12 +184,14 @@ export async function reconcileDeletedAccounts(config, dependencies = {}) {
     if (!Array.isArray(owners) || owners.some((ownerId) => typeof ownerId !== "string" || ownerId.length === 0)) {
       throw new Error();
     }
-    let orphanPrefixes = 0;
-    for (const ownerId of owners) {
-      if (remainingUserIds.has(ownerId)) continue;
-      await purgeStorage(ownerId);
-      orphanPrefixes += 1;
+    const orphans = owners.filter((ownerId) => !remainingUserIds.has(ownerId));
+    // Confirm every orphan before purging any: an incomplete user listing must stop the run, not delete a
+    // live user's wardrobe.
+    for (const ownerId of orphans) {
+      if (await userExists(ownerId)) throw new Error();
     }
+    for (const ownerId of orphans) await purgeStorage(ownerId);
+    const orphanPrefixes = orphans.length;
 
     const result = { scanned: restoredUserIds.length, deleted, orphanPrefixes };
     write(

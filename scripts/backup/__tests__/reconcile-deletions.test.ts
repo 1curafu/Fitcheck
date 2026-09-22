@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 import { deletionDigest } from "@/lib/account-deletion/ledger.mjs";
-import { parseRetainedHmacKeys, reconcileDeletedAccounts } from "../reconcile-deletions.mjs";
+import { parseRetainedHmacKeys, reconcileDeletedAccounts, restoreUserExists } from "../reconcile-deletions.mjs";
 
 const DELETED_ID = "11111111-1111-4111-8111-111111111111";
 const ACTIVE_ID = "22222222-2222-4222-8222-222222222222";
@@ -30,6 +30,7 @@ describe("restore deletion reconciliation", () => {
           listDigests: async () => new Set([deletionDigest(DELETED_ID, PREVIOUS_HMAC_KEY)]),
           listUsers: async () => [DELETED_ID],
           listOwners: async () => [],
+          userExists: async () => false,
           purgeStorage,
           deleteUser,
           write: vi.fn(),
@@ -59,6 +60,7 @@ describe("restore deletion reconciliation", () => {
             listDigests,
             listUsers: async () => [DELETED_ID],
             listOwners: async () => [],
+            userExists: async () => false,
             purgeStorage: vi.fn(),
             deleteUser: vi.fn(),
             write: vi.fn(),
@@ -78,6 +80,7 @@ describe("restore deletion reconciliation", () => {
       listDigests: async () => new Set([deletionDigest(DELETED_ID, HMAC_KEY)]),
       listUsers: async () => [DELETED_ID, ACTIVE_ID],
       listOwners: async () => [],
+      userExists: async () => false,
       purgeStorage,
       deleteUser,
       write: vi.fn(),
@@ -97,6 +100,7 @@ describe("restore deletion reconciliation", () => {
       listDigests: async () => new Set([deletionDigest(DELETED_ID, HMAC_KEY)]),
       listUsers: async () => [DELETED_ID],
       listOwners: async () => [],
+      userExists: async () => false,
       purgeStorage: async () => void order.push("storage"),
       deleteUser: async () => void order.push("auth"),
       write: vi.fn(),
@@ -114,6 +118,7 @@ describe("restore deletion reconciliation", () => {
         listDigests: async () => new Set([deletionDigest(DELETED_ID, HMAC_KEY)]),
         listUsers: async () => [DELETED_ID],
         listOwners: async () => [],
+        userExists: async () => false,
         purgeStorage: async () => {
           throw new Error(`private ${DELETED_ID}`);
         },
@@ -140,6 +145,7 @@ describe("restore deletion reconciliation", () => {
       listDigests: async () => new Set([deletionDigest(DELETED_ID, HMAC_KEY)]),
       listUsers: pages,
       listOwners: async () => [],
+      userExists: async () => false,
       purgeStorage: vi.fn(),
       deleteUser,
       write: vi.fn(),
@@ -167,6 +173,7 @@ describe("restore deletion reconciliation", () => {
         new Set([deletionDigest(deletedUserId, HMAC_KEY), deletionDigest(tombstonedUserId, HMAC_KEY)]),
       listUsers: async (page) => users.slice((page - 1) * 1000, page * 1000),
       listOwners: async () => [],
+      userExists: async () => false,
       purgeStorage,
       deleteUser,
       write: vi.fn(),
@@ -186,6 +193,7 @@ describe("restore deletion reconciliation", () => {
         listDigests: async () => new Set(),
         listUsers: async () => [ACTIVE_ID],
         listOwners: async () => [],
+        userExists: async () => false,
         purgeStorage: vi.fn(),
         deleteUser: vi.fn(),
         write,
@@ -203,6 +211,7 @@ describe("restore deletion reconciliation", () => {
       listDigests: async () => new Set([deletionDigest(DELETED_ID, HMAC_KEY)]),
       listUsers: async () => [DELETED_ID, ACTIVE_ID],
       listOwners: async () => [],
+      userExists: async () => false,
       purgeStorage: vi.fn(),
       deleteUser: vi.fn(),
       write,
@@ -222,6 +231,7 @@ describe("restore deletion reconciliation", () => {
       listDigests: async () => new Set([deletionDigest(DELETED_ID, HMAC_KEY)]),
       listUsers: async () => [DELETED_ID, ACTIVE_ID],
       listOwners: async () => [ACTIVE_ID, ORPHAN_ID],
+      userExists: async () => false,
       purgeStorage,
       deleteUser: vi.fn(),
       write,
@@ -245,6 +255,7 @@ describe("restore deletion reconciliation", () => {
         order.push("owners");
         return [];
       },
+      userExists: async () => false,
       purgeStorage: async () => void order.push("storage"),
       deleteUser: async () => void order.push("auth"),
       write: vi.fn(),
@@ -261,6 +272,7 @@ describe("restore deletion reconciliation", () => {
       listDigests: async () => new Set([deletionDigest(DELETED_ID, HMAC_KEY)]),
       listUsers: async () => [DELETED_ID, ACTIVE_ID],
       listOwners: async () => [DELETED_ID, ACTIVE_ID],
+      userExists: async () => false,
       purgeStorage,
       deleteUser: vi.fn(),
       write: vi.fn(),
@@ -268,6 +280,46 @@ describe("restore deletion reconciliation", () => {
 
     expect(result).toEqual({ scanned: 2, deleted: 1, orphanPrefixes: 1 });
     expect(purgeStorage.mock.calls.map(([id]) => id)).toEqual([DELETED_ID, DELETED_ID]);
+  });
+
+  test("refuses to purge an 'orphan' folder whose Auth user actually exists (incomplete user listing)", async () => {
+    const purgeStorage = vi.fn();
+    const write = vi.fn();
+
+    await expect(
+      reconcileDeletedAccounts(config, {
+        listDigests: async () => new Set(),
+        listUsers: async () => [],
+        listOwners: async () => [ACTIVE_ID],
+        userExists: async (userId) => userId === ACTIVE_ID,
+        purgeStorage,
+        deleteUser: vi.fn(),
+        write,
+      }),
+    ).rejects.toThrow("Deletion reconciliation failed");
+
+    expect(purgeStorage).not.toHaveBeenCalled();
+    expect(write).not.toHaveBeenCalled();
+  });
+
+  test("confirms every orphan individually before any orphan is purged", async () => {
+    const ORPHAN_ID = "33333333-3333-4333-8333-333333333333";
+    const order: string[] = [];
+
+    await reconcileDeletedAccounts(config, {
+      listDigests: async () => new Set(),
+      listUsers: async () => [],
+      listOwners: async () => [ORPHAN_ID, ACTIVE_ID],
+      userExists: async (userId) => {
+        order.push(`check:${userId === ORPHAN_ID ? "orphan" : "active"}`);
+        return false;
+      },
+      purgeStorage: async (userId) => void order.push(`purge:${userId === ORPHAN_ID ? "orphan" : "active"}`),
+      deleteUser: vi.fn(),
+      write: vi.fn(),
+    });
+
+    expect(order).toEqual(["check:orphan", "check:active", "purge:orphan", "purge:active"]);
   });
 
   test("fails closed when the owner listing fails", async () => {
@@ -280,11 +332,35 @@ describe("restore deletion reconciliation", () => {
         listOwners: async () => {
           throw new Error("Wardrobe listing failed");
         },
+        userExists: async () => false,
         purgeStorage: vi.fn(),
         deleteUser: vi.fn(),
         write,
       }),
     ).rejects.toThrow("Deletion reconciliation failed");
     expect(write).not.toHaveBeenCalled();
+  });
+});
+
+describe("restore user existence check", () => {
+  const client = (getUserById: () => Promise<unknown>) =>
+    ({ auth: { admin: { getUserById } } }) as unknown as Parameters<typeof restoreUserExists>[0];
+
+  test("an existing user is reported as existing", async () => {
+    await expect(restoreUserExists(client(async () => ({ data: { user: { id: ACTIVE_ID } }, error: null })), ACTIVE_ID)).resolves.toBe(true);
+  });
+
+  test("only an explicit 404 counts as absent", async () => {
+    await expect(
+      restoreUserExists(client(async () => ({ data: { user: null }, error: { status: 404, code: "user_not_found" } })), DELETED_ID),
+    ).resolves.toBe(false);
+  });
+
+  test.each([
+    ["a server error", async () => ({ data: { user: null }, error: { status: 500 } })],
+    ["an empty response", async () => ({ data: { user: null }, error: null })],
+    ["a thrown network error", async () => { throw new Error(`network ${ACTIVE_ID}`); }],
+  ])("fails closed on %s without leaking detail", async (_label, getUserById) => {
+    await expect(restoreUserExists(client(getUserById), ACTIVE_ID)).rejects.toThrow(/^Deletion reconciliation failed$/);
   });
 });
