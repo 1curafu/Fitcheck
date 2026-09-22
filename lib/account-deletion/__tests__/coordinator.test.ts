@@ -27,7 +27,7 @@ const USER_ID = "715ed5db-f090-4b8c-a067-640ecee36aa0";
 const NOW = new Date("2026-09-19T08:09:10.000Z");
 
 describe("runAccountDeletion", () => {
-  test("deletes storage, writes the ledger, then deletes Auth", async () => {
+  test("deletes storage, writes the ledger, deletes Auth, then purges residual storage", async () => {
     const calls: string[] = [];
 
     await runAccountDeletion(
@@ -39,7 +39,33 @@ describe("runAccountDeletion", () => {
       },
     );
 
-    expect(calls).toEqual(["storage", "ledger", "auth"]);
+    expect(calls).toEqual(["storage", "ledger", "auth", "storage"]);
+  });
+
+  test("reports a residual Storage failure only after Auth is already deleted", async () => {
+    const calls: string[] = [];
+    const providerMessage = `storage provider rejected ${USER_ID} person@example.com`;
+    let purges = 0;
+
+    const deletion = runAccountDeletion(
+      { userId: USER_ID, requestedAt: NOW },
+      {
+        purgeStorage: async () => {
+          calls.push("storage");
+          purges += 1;
+          if (purges === 2) throw new Error(providerMessage);
+        },
+        writeTombstone: async () => void calls.push("ledger"),
+        deleteAuthUser: async () => void calls.push("auth"),
+      },
+    );
+
+    await expect(deletion).rejects.toMatchObject({ name: "DeletionFailure", stage: "residual-storage" });
+    expect(calls).toEqual(["storage", "ledger", "auth", "storage"]);
+    await deletion.catch((error) => {
+      expect((error as Error).message).not.toContain(providerMessage);
+      expect((error as Error).message).not.toContain(USER_ID);
+    });
   });
 
   test("stops after a Storage failure without exposing provider details", async () => {
@@ -157,7 +183,7 @@ describe("runAccountDeletion", () => {
     await runAccountDeletion({ userId: USER_ID, requestedAt: NOW }, dependencies);
     await runAccountDeletion({ userId: USER_ID, requestedAt: NOW }, dependencies);
 
-    expect(calls).toEqual(["storage", "ledger", "auth", "storage", "ledger", "auth"]);
+    expect(calls).toEqual(["storage", "ledger", "auth", "storage", "storage", "ledger", "auth", "storage"]);
   });
 });
 
