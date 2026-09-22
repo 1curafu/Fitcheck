@@ -89,6 +89,15 @@ describe("orphan upload sweep", () => {
     expect(plan.doomed).toHaveLength(101);
   });
 
+  test("keeps paging past a full 1,000-entry Storage page", async () => {
+    const files: Record<string, string> = {};
+    for (let i = 1; i <= 1001; i += 1) files[`${uuid(i)}/abandoned/original.jpg`] = OLD;
+
+    const plan = await planSweep(fakeDb([], files), CUTOFF);
+
+    expect(plan.doomed).toContain(`${uuid(1001)}/abandoned/original.jpg`);
+  });
+
   test("sweeps the 101st abandoned folder of one owner", async () => {
     const owner = uuid(1);
     const files: Record<string, string> = {};
