@@ -254,6 +254,22 @@ describe("restore deletion reconciliation", () => {
     expect(result.orphanPrefixes).toBe(0);
   });
 
+  test("treats a folder still present for a tombstoned user as an orphan, never as a live owner", async () => {
+    const purgeStorage = vi.fn();
+
+    const result = await reconcileDeletedAccounts(config, {
+      listDigests: async () => new Set([deletionDigest(DELETED_ID, HMAC_KEY)]),
+      listUsers: async () => [DELETED_ID, ACTIVE_ID],
+      listOwners: async () => [DELETED_ID, ACTIVE_ID],
+      purgeStorage,
+      deleteUser: vi.fn(),
+      write: vi.fn(),
+    });
+
+    expect(result).toEqual({ scanned: 2, deleted: 1, orphanPrefixes: 1 });
+    expect(purgeStorage.mock.calls.map(([id]) => id)).toEqual([DELETED_ID, DELETED_ID]);
+  });
+
   test("fails closed when the owner listing fails", async () => {
     const write = vi.fn();
 
