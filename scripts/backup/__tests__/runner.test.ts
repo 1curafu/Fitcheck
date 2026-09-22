@@ -44,7 +44,7 @@ function run(path: string, args: string[], env: Record<string, string> = {}) {
   });
 }
 
-function restoreFixture(createdAt = new Date().toISOString()) {
+function restoreFixture(createdAt = new Date().toISOString(), rolesSql = "roles\n") {
   const fixture = mkdtempSync(join(tmpdir(), "fitcheck-restore-runner-"));
   const snapshot = join(fixture, "snapshot");
   const database = join(snapshot, "database");
@@ -56,7 +56,7 @@ function restoreFixture(createdAt = new Date().toISOString()) {
   mkdirSync(bin, { recursive: true });
 
   const dumps: Record<string, string> = {
-    "roles.sql": "roles\n",
+    "roles.sql": rolesSql,
     "schema.sql": "schema\n",
     "data.sql": "data\n",
     "migration-history-schema.sql": "history schema\n",
@@ -93,7 +93,20 @@ if [[ "\${1:-}" == "restore" ]]; then
 fi
 exit 1
 `);
-  executable("psql", `printf 'psql\\n' >> "$TRACE"`);
+  // Behaves like a Supabase project's non-superuser \`postgres\`: a grant on a parameter to a platform-owned
+  // \`supabase_*\` role is refused. Records the roles file it was given.
+  executable("psql", `
+printf 'psql\\n' >> "$TRACE"
+while [[ "$#" -gt 0 ]]; do
+  if [[ "$1" == "--file" && "$2" == *roles*.sql ]]; then
+    printf 'roles-file:\\n' >> "$TRACE"; cat "$2" >> "$TRACE"
+    if grep -qE '^GRANT SET ON PARAMETER .* TO "supabase_' "$2"; then
+      echo 'ERROR:  permission denied for parameter log_min_messages' >&2; exit 3
+    fi
+  fi
+  shift
+done
+`);
   executable("rclone", `
 case "\${1:-}" in
   copy) printf 'rclone-copy\\n' >> "$TRACE" ;;
@@ -434,6 +447,41 @@ esac
       expect(trace).toMatch(/psql[\s\S]*rclone-copy[\s\S]*rclone-check[\s\S]*reconcile/);
       expect(result.stdout).toContain("Deletion reconciliation complete");
       expect(result.stdout).not.toContain("replay every deletion request");
+    } finally {
+      rmSync(fixture.fixture, { recursive: true, force: true });
+    }
+  });
+
+  test("skips grants to Supabase-owned platform roles that a project's postgres role may not replay", () => {
+    const roles = [
+      'ALTER ROLE "anon" SET "statement_timeout" TO \'3s\';',
+      'GRANT SET ON PARAMETER "log_min_messages" TO "supabase_realtime_admin";',
+      "",
+    ].join("\n");
+    const fixture = restoreFixture(undefined, roles);
+
+    try {
+      const result = run(restoreScript, ["latest", "--confirm-disposable-target"], fixture.env);
+      const trace = restoreTrace(fixture.trace);
+
+      expect(result.status, result.stderr).toBe(0);
+      expect(trace).toContain('ALTER ROLE "anon" SET "statement_timeout"');
+      expect(trace).not.toContain("supabase_realtime_admin");
+      expect(result.stdout).toContain("Skipped 1 grant(s) to Supabase-managed platform roles");
+    } finally {
+      rmSync(fixture.fixture, { recursive: true, force: true });
+    }
+  });
+
+  test("still replays grants to roles Fitcheck owns", () => {
+    const roles = 'GRANT SET ON PARAMETER "work_mem" TO "fitcheck_reporter";\n';
+    const fixture = restoreFixture(undefined, roles);
+
+    try {
+      const result = run(restoreScript, ["latest", "--confirm-disposable-target"], fixture.env);
+
+      expect(result.status, result.stderr).toBe(0);
+      expect(restoreTrace(fixture.trace)).toContain('TO "fitcheck_reporter"');
     } finally {
       rmSync(fixture.fixture, { recursive: true, force: true });
     }

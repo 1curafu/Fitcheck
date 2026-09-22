@@ -70,11 +70,21 @@ if [[ "$MANIFEST_SOURCE_REF" == "$RESTORE_PROJECT_REF" ]]; then
   backup_die "snapshot source and restore target must be different projects"
 fi
 
+# Supabase provisions its own `supabase_*` roles, with their parameter grants, on every project, and a
+# project's `postgres` role may not replay them ("permission denied for parameter"). Everything else in
+# roles.sql — including any role Fitcheck creates — is replayed unchanged, into a filtered copy so the
+# manifest-checked original stays untouched.
+PLATFORM_GRANT='^GRANT SET ON PARAMETER "[A-Za-z_.]+" TO "supabase_[a-z_]+";$'
+ROLES_FILE="$WORK_ROOT/roles.restore.sql"
+SKIPPED_GRANTS="$(awk -v pattern="$PLATFORM_GRANT" '$0 ~ pattern { n++ } END { print n + 0 }' "$RESTORE_ROOT/database/roles.sql")"
+awk -v pattern="$PLATFORM_GRANT" '$0 !~ pattern' "$RESTORE_ROOT/database/roles.sql" > "$ROLES_FILE"
+printf 'Skipped %s grant(s) to Supabase-managed platform roles.\n' "$SKIPPED_GRANTS"
+
 printf 'Restoring database into the confirmed disposable project…\n'
 psql \
   --single-transaction \
   --variable ON_ERROR_STOP=1 \
-  --file "$RESTORE_ROOT/database/roles.sql" \
+  --file "$ROLES_FILE" \
   --file "$RESTORE_ROOT/database/schema.sql" \
   --command 'SET session_replication_role = replica' \
   --file "$RESTORE_ROOT/database/data.sql" \
