@@ -40,6 +40,17 @@ export RESTIC_CACHE_DIR="$WORK_ROOT/restic-cache"
 export SUPABASE_TELEMETRY_DISABLED=1
 configure_supabase_rclone
 
+# Initialise only a brand-new local SSD repository. An unreadable existing or cloud repository means a wrong
+# password, key or path: fail before production is dumped instead of writing a second repository beside it.
+if ! restic cat config --no-lock >/dev/null 2>&1; then
+  if [[ "$RESTIC_REPOSITORY" == /* && ! -e "$RESTIC_REPOSITORY" ]]; then
+    printf 'Initialising new encrypted backup repository…\n'
+    restic init
+  else
+    backup_die "restic repository is unreadable; refusing to initialise over it (see the backup runbook)"
+  fi
+fi
+
 printf 'Creating Supabase database dumps…\n'
 supabase db dump --db-url "$SUPABASE_DB_URL" \
   -f "$STAGE_ROOT/database/roles.sql" --role-only
@@ -82,11 +93,6 @@ node "$SCRIPT_DIR/manifest.mjs" validate --root "$STAGE_ROOT" >/dev/null
 # These two inputs are represented inside manifest.json; keeping the helper
 # files would duplicate them in every snapshot.
 rm "$STAGE_ROOT/storage-source-stats.json" "$STAGE_ROOT/tool-versions.json"
-
-if ! restic cat config --no-lock >/dev/null 2>&1; then
-  printf 'Initialising encrypted backup repository…\n'
-  restic init
-fi
 
 printf 'Writing encrypted %s snapshot…\n' "$MODE"
 (

@@ -1,4 +1,8 @@
-export type DeletionStage = "storage" | "ledger" | "auth";
+/**
+ * `residual-storage` runs after the Auth delete, so a failure there means the account IS deleted; only an
+ * upload that raced the earlier stages may remain, for the orphan sweep to collect.
+ */
+export type DeletionStage = "storage" | "ledger" | "auth" | "residual-storage";
 
 export type DeletionDependencies = {
   purgeStorage(userId: string): Promise<void>;

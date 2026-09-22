@@ -81,7 +81,7 @@ select throws_ok(
   $$,
   '42501',
   null,
-  'the same stale JWT cannot upload while deletion runs'
+  'the same stale JWT cannot upload after the Auth delete (earlier uploads are removed by the residual purge)'
 );
 
 select is_empty(

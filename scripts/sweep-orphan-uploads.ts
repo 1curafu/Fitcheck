@@ -27,36 +27,69 @@
  * A natural home for this later is Supabase `pg_cron` (free), NOT Vercel cron —
  * Hobby forbids hourly schedules and fails at deploy (`docs/STATE.md`).
  */
-import { createClient } from "@supabase/supabase-js";
-
-const apply = process.argv.includes("--apply");
-const ageArg = process.argv.find((a) => a.startsWith("--min-age-hours="));
-const minAgeHours = ageArg ? Number(ageArg.split("=")[1]) : 24;
-
-if (!Number.isFinite(minAgeHours) || minAgeHours < 0) {
-  throw new Error(`--min-age-hours must be a non-negative number, got ${ageArg}`);
-}
-
-const db = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { fileURLToPath } from "node:url";
 
 const kb = (n: number) => `${(n / 1024).toFixed(1)} kB`;
 const BUCKET = "wardrobe";
+
+type StorageEntry = {
+  name: string;
+  updated_at?: string | null;
+  created_at?: string | null;
+  metadata?: { size?: number | string } | null;
+};
+
+export type SweepPlan = {
+  liveFolderCount: number;
+  doomed: string[];
+  strays: string[];
+  bytes: number;
+  tooYoung: number;
+  report: string[];
+};
+
+const PAGE = 1000;
+
+/**
+ * Every entry under a prefix. Storage `list` returns 100 entries unless told otherwise, so an unpaged listing
+ * silently stops seeing owners and folders once the closet or the user base grows.
+ */
+async function listAll(db: SupabaseClient, prefix: string): Promise<StorageEntry[]> {
+  const entries: StorageEntry[] = [];
+  for (let offset = 0; ; offset += PAGE) {
+    const { data, error } = await db.storage
+      .from(BUCKET)
+      .list(prefix, { limit: PAGE, offset, sortBy: { column: "name", order: "asc" } });
+    if (error) throw new Error(`listing ${prefix || "the bucket"} failed: ${error.message}`);
+    entries.push(...((data ?? []) as StorageEntry[]));
+    if (!data || data.length < PAGE) return entries;
+  }
+}
 
 /**
  * Every path any row points at, and the `<owner>/<dir>` prefixes they imply.
  *
  * Archived rows included — an archived piece still owns its images.
  */
-async function referenced(): Promise<{ paths: Set<string>; prefixes: Set<string> }> {
-  const { data, error } = await db.from("items").select("image_url, cutout_url, thumb_url");
-  if (error) throw error;
+async function referenced(db: SupabaseClient): Promise<{ paths: Set<string>; prefixes: Set<string> }> {
+  // ⚠️ PostgREST caps a response at `max_rows` (1,000). An unpaged read would drop rows, and every folder those
+  // rows own would look unreferenced — i.e. `--apply` would delete live garments. Page until a short page.
+  const rows: { image_url: string | null; cutout_url: string | null; thumb_url: string | null }[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await db
+      .from("items")
+      .select("id, image_url, cutout_url, thumb_url")
+      .order("id")
+      .range(from, from + PAGE - 1);
+    if (error) throw error;
+    rows.push(...(data ?? []));
+    if (!data || data.length < PAGE) break;
+  }
 
   const paths = new Set<string>();
   const prefixes = new Set<string>();
-  for (const row of data ?? []) {
+  for (const row of rows) {
     for (const path of [row.image_url, row.cutout_url, row.thumb_url]) {
       if (!path) continue;
       paths.add(path);
@@ -67,27 +100,17 @@ async function referenced(): Promise<{ paths: Set<string>; prefixes: Set<string>
   return { paths, prefixes };
 }
 
-async function main() {
-  const { paths: livePaths, prefixes: liveFolders } = await referenced();
-  const cutoff = Date.now() - minAgeHours * 60 * 60 * 1000;
-
-  console.log(
-    `${liveFolders.size} referenced item folders. ` +
-      `Ignoring anything modified in the last ${minAgeHours}h.` +
-      (apply ? "" : "  (dry run — pass --apply to delete)"),
-  );
-
-  const { data: owners, error } = await db.storage.from(BUCKET).list("");
-  if (error) throw new Error(`listing the bucket failed: ${error.message}`);
-
+/** Decides what the sweep would remove. Reads only; `main` does the deleting. */
+export async function planSweep(db: SupabaseClient, cutoff: number): Promise<SweepPlan> {
+  const { paths: livePaths, prefixes: liveFolders } = await referenced(db);
   const doomed: string[] = [];
   const strays: string[] = [];
+  const report: string[] = [];
   let bytes = 0;
   let tooYoung = 0;
 
-  for (const owner of owners ?? []) {
-    const { data: dirs } = await db.storage.from(BUCKET).list(owner.name);
-    for (const dir of dirs ?? []) {
+  for (const owner of await listAll(db, "")) {
+    for (const dir of await listAll(db, owner.name)) {
       const prefix = `${owner.name}/${dir.name}`;
 
       /**
@@ -98,30 +121,27 @@ async function main() {
        * garment. Folder-level is the only judgement this script is safe to make.
        */
       if (liveFolders.has(prefix)) {
-        const { data: held } = await db.storage.from(BUCKET).list(prefix);
-        for (const f of held ?? []) {
+        for (const f of await listAll(db, prefix)) {
           if (!livePaths.has(`${prefix}/${f.name}`)) strays.push(`${prefix}/${f.name}`);
         }
         continue;
       }
 
-      const { data: files } = await db.storage.from(BUCKET).list(prefix);
-      if (!files?.length) continue;
+      const files = await listAll(db, prefix);
+      if (!files.length) continue;
 
       // Youngest file in the folder decides. A capture that uploaded its
       // original a moment ago is in flight even if the folder looks stale.
-      const newest = Math.max(
-        ...files.map((f) => new Date(f.updated_at ?? f.created_at ?? 0).getTime()),
-      );
+      const newest = Math.max(...files.map((f) => new Date(f.updated_at ?? f.created_at ?? 0).getTime()));
       if (newest > cutoff) {
         tooYoung++;
-        console.log(`  ${prefix}: unreferenced but recent, left alone`);
+        report.push(`  ${prefix}: unreferenced but recent, left alone`);
         continue;
       }
 
       const size = files.reduce((n, f) => n + (Number(f.metadata?.size) || 0), 0);
       bytes += size;
-      console.log(
+      report.push(
         `  ${prefix}: ${files.length} file${files.length === 1 ? "" : "s"}, ${kb(size)}` +
           ` — ${files.map((f) => f.name).join(", ")}`,
       );
@@ -129,28 +149,55 @@ async function main() {
     }
   }
 
-  if (apply && doomed.length) {
-    const { error: rmError } = await db.storage.from(BUCKET).remove(doomed);
-    if (rmError) throw new Error(`removing objects failed: ${rmError.message}`);
+  return { liveFolderCount: liveFolders.size, doomed, strays, bytes, tooYoung, report };
+}
+
+async function main() {
+  const apply = process.argv.includes("--apply");
+  const ageArg = process.argv.find((a) => a.startsWith("--min-age-hours="));
+  const minAgeHours = ageArg ? Number(ageArg.split("=")[1]) : 24;
+
+  if (!Number.isFinite(minAgeHours) || minAgeHours < 0) {
+    throw new Error(`--min-age-hours must be a non-negative number, got ${ageArg}`);
+  }
+
+  const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+  const plan = await planSweep(db, Date.now() - minAgeHours * 60 * 60 * 1000);
+
+  console.log(
+    `${plan.liveFolderCount} referenced item folders. ` +
+      `Ignoring anything modified in the last ${minAgeHours}h.` +
+      (apply ? "" : "  (dry run — pass --apply to delete)"),
+  );
+  for (const line of plan.report) console.log(line);
+
+  if (apply && plan.doomed.length) {
+    for (let start = 0; start < plan.doomed.length; start += 1000) {
+      const { error: rmError } = await db.storage.from(BUCKET).remove(plan.doomed.slice(start, start + 1000));
+      if (rmError) throw new Error(`removing objects failed: ${rmError.message}`);
+    }
   }
 
   console.log(
-    `\n${doomed.length} object${doomed.length === 1 ? "" : "s"} ` +
-      `${apply ? "removed" : "would be removed"}, ${kb(bytes)} reclaimed` +
-      (tooYoung ? `, ${tooYoung} folder(s) skipped as too recent` : "") +
+    `\n${plan.doomed.length} object${plan.doomed.length === 1 ? "" : "s"} ` +
+      `${apply ? "removed" : "would be removed"}, ${kb(plan.bytes)} reclaimed` +
+      (plan.tooYoung ? `, ${plan.tooYoung} folder(s) skipped as too recent` : "") +
       ".",
   );
 
-  if (strays.length) {
+  if (plan.strays.length) {
     console.log(
-      `\n⚠️  ${strays.length} unreferenced file(s) inside LIVE folders. Reported, not touched —` +
+      `\n⚠️  ${plan.strays.length} unreferenced file(s) inside LIVE folders. Reported, not touched —` +
         ` check each before removing it by hand:`,
     );
-    for (const s of strays) console.log(`  ${s}`);
+    for (const s of plan.strays) console.log(`  ${s}`);
   }
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
+if (isMain) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}

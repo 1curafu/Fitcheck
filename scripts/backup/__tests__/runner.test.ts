@@ -493,3 +493,119 @@ esac
     }
   });
 });
+
+describe("restic repository initialisation", () => {
+  function initFixture(catExit: number) {
+    const fixture = mkdtempSync(join(tmpdir(), "fitcheck-backup-init-"));
+    const bin = join(fixture, "bin");
+    const trace = join(fixture, "restic-calls.txt");
+    mkdirSync(bin, { recursive: true });
+    const executable = (name: string, source: string) => {
+      const path = join(bin, name);
+      writeFileSync(path, `#!/usr/bin/env bash\nset -euo pipefail\n${source}\n`);
+      chmodSync(path, 0o755);
+    };
+    executable(
+      "supabase",
+      `
+if [[ "\${1:-}" == "--version" ]]; then echo "2.109.1"; exit 0; fi
+output=""
+while [[ "$#" -gt 0 ]]; do
+  if [[ "$1" == "-f" ]]; then output="$2"; shift 2; else shift; fi
+done
+printf 'dump\\n' > "$output"
+`,
+    );
+    executable(
+      "rclone",
+      `
+case "\${1:-}" in
+  copy) mkdir -p "$3/user/item"; printf 'abc' > "$3/user/item/original.jpg" ;;
+  size) printf '{"count":1,"bytes":3}\\n' ;;
+  version) echo "rclone v1.75.1" ;;
+esac
+`,
+    );
+    executable(
+      "restic",
+      `
+printf '%s\\n' "\${1:-}" >> "$TRACE"
+case "\${1:-}" in
+  version) echo "restic 0.19.1" ;;
+  cat) exit ${catExit} ;;
+  snapshots) echo '[]' ;;
+esac
+`,
+    );
+    executable("psql", `echo "psql (PostgreSQL) 18.3"`);
+    executable("docker", `exit 0`);
+    symlinkSync(process.execPath, join(bin, "node"));
+    return { fixture, bin, trace };
+  }
+
+  function runWith(repository: string, fixture: ReturnType<typeof initFixture>) {
+    return run(runScript, ["manual"], {
+      PATH: `${fixture.bin}:${process.env.PATH ?? ""}`,
+      TRACE: fixture.trace,
+      SUPABASE_DB_URL:
+        "postgresql://postgres.project-ref:password@aws-0-eu-central-1.pooler.supabase.com:5432/postgres",
+      SUPABASE_PROJECT_REF: "project-ref",
+      SUPABASE_S3_ACCESS_KEY_ID: "source-key",
+      SUPABASE_S3_SECRET_ACCESS_KEY: "source-secret",
+      RESTIC_REPOSITORY: repository,
+      RESTIC_PASSWORD: "repository-password",
+      AWS_ACCESS_KEY_ID: "destination-key",
+      AWS_SECRET_ACCESS_KEY: "destination-secret",
+    });
+  }
+
+  const calls = (trace: string) => readFileSync(trace, "utf8").trim().split("\n");
+
+  test("never initialises an unreadable S3 repository, and stops before dumping production", () => {
+    const fixture = initFixture(1);
+    try {
+      const result = runWith("s3:example.invalid/bucket/nightly", fixture);
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain("refusing to initialise");
+      expect(calls(fixture.trace)).not.toContain("init");
+      expect(result.stdout).not.toContain("Creating Supabase database dumps");
+    } finally {
+      rmSync(fixture.fixture, { recursive: true, force: true });
+    }
+  });
+
+  test("never initialises over an existing local repository directory it cannot read", () => {
+    const fixture = initFixture(1);
+    const repository = join(fixture.fixture, "existing-restic");
+    mkdirSync(repository);
+    try {
+      const result = runWith(repository, fixture);
+      expect(result.status).not.toBe(0);
+      expect(calls(fixture.trace)).not.toContain("init");
+    } finally {
+      rmSync(fixture.fixture, { recursive: true, force: true });
+    }
+  });
+
+  test("initialises a brand-new local SSD repository directory once", () => {
+    const fixture = initFixture(1);
+    try {
+      const result = runWith(join(fixture.fixture, "new-restic"), fixture);
+      expect(result.status, result.stderr).toBe(0);
+      expect(calls(fixture.trace).filter((call) => call === "init")).toHaveLength(1);
+    } finally {
+      rmSync(fixture.fixture, { recursive: true, force: true });
+    }
+  });
+
+  test("uses a readable repository without initialising it", () => {
+    const fixture = initFixture(0);
+    try {
+      const result = runWith("s3:example.invalid/bucket/nightly", fixture);
+      expect(result.status, result.stderr).toBe(0);
+      expect(calls(fixture.trace)).not.toContain("init");
+    } finally {
+      rmSync(fixture.fixture, { recursive: true, force: true });
+    }
+  });
+});

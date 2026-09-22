@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { collectWardrobePaths, purgeWardrobePrefix } from "../storage.mjs";
+import { collectWardrobePaths, listWardrobeOwnerIds, purgeWardrobePrefix } from "../storage.mjs";
 
 const USER = "11111111-1111-4111-8111-111111111111";
 function fake(initial: string[] = []) {
@@ -93,5 +93,46 @@ describe("wardrobe purge", () => {
     const f = fake([`${USER}/draft/file.jpg`]);
     f.remove.mockImplementation(async () => ({ data: [], error: null }));
     await expect(purgeWardrobePrefix(f.client, USER)).rejects.toThrow(/^Wardrobe verification failed$/);
+  });
+});
+
+describe("wardrobe owner listing", () => {
+  const OTHER = "22222222-2222-4222-8222-222222222222";
+  function rootClient(pages: Array<Array<{ name: string; id: string | null }>>, error: unknown = null) {
+    const list = vi.fn(async (_prefix: string, options: { offset: number }) => ({
+      data: error ? null : (pages[options.offset / 1000] ?? []),
+      error,
+    }));
+    return { client: { storage: { from: () => ({ list, remove: vi.fn() }) } }, list };
+  }
+
+  it("returns every top-level UUID owner folder from the bucket root", async () => {
+    const { client, list } = rootClient([[{ name: USER, id: null }, { name: OTHER, id: null }]]);
+    await expect(listWardrobeOwnerIds(client)).resolves.toEqual([USER, OTHER]);
+    expect(list).toHaveBeenCalledWith("", { limit: 1000, offset: 0, sortBy: { column: "name", order: "asc" } });
+  });
+
+  it("pages through a full root listing", async () => {
+    const full = Array.from({ length: 1000 }, (_, i) => ({
+      name: `${String(i).padStart(8, "0")}-1111-4111-8111-111111111111`,
+      id: null,
+    }));
+    const { client, list } = rootClient([full, [{ name: OTHER, id: null }]]);
+    await expect(listWardrobeOwnerIds(client)).resolves.toHaveLength(1001);
+    expect(list).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    [{ name: "not-a-user", id: null }],
+    [{ name: "stray.jpg", id: "object-id" }],
+    [{ name: USER, id: "object-id" }],
+  ])("fails closed on an unexpected root entry %j", async (entry) => {
+    const { client } = rootClient([[entry]]);
+    await expect(listWardrobeOwnerIds(client)).rejects.toThrow("Wardrobe listing failed");
+  });
+
+  it("fails closed when the root listing errors", async () => {
+    const { client } = rootClient([], { message: "provider detail" });
+    await expect(listWardrobeOwnerIds(client)).rejects.toThrow("Wardrobe listing failed");
   });
 });
