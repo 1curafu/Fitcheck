@@ -13,6 +13,18 @@ const REQUIRED_SQL_FILES = [
   "migration-history-schema.sql",
   "migration-history-data.sql",
 ];
+// Captured by scripts/backup/platform-objects.sql since 2026-09-23. Optional so earlier snapshots stay valid, but
+// verified whenever it is listed, and never accepted unlisted.
+const OPTIONAL_SQL_FILES = ["platform-objects.sql"];
+
+async function fileExists(path) {
+  try {
+    await stat(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 async function checksumFile(path, label) {
   let contents;
@@ -100,9 +112,14 @@ export async function createManifest({
   }
 
   const stageRoot = resolve(root);
+  /** @type {Record<string, { bytes: number, sha256: string }>} */
   const database = {};
   for (const name of REQUIRED_SQL_FILES) {
     database[name] = await checksumFile(join(stageRoot, "database", name), name);
+  }
+  for (const name of OPTIONAL_SQL_FILES) {
+    const path = join(stageRoot, "database", name);
+    if (await fileExists(path)) database[name] = await checksumFile(path, name);
   }
 
   const manifest = {
@@ -152,6 +169,18 @@ export async function validateManifest(root) {
     if (actual.bytes !== expected.bytes) {
       throw new Error(`${name} size does not match manifest`);
     }
+  }
+
+  for (const name of OPTIONAL_SQL_FILES) {
+    const expected = manifest.database?.[name];
+    const path = join(stageRoot, "database", name);
+    if (!expected) {
+      if (await fileExists(path)) throw new Error(`${name} is present but not listed in the manifest`);
+      continue;
+    }
+    const actual = await checksumFile(path, name);
+    if (actual.sha256 !== expected.sha256) throw new Error(`${name} checksum does not match manifest`);
+    if (actual.bytes !== expected.bytes) throw new Error(`${name} size does not match manifest`);
   }
 
   const actualStorage = await directoryStats(join(stageRoot, "storage", "wardrobe"));
