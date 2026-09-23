@@ -68,6 +68,32 @@ describe("runAccountDeletion", () => {
     });
   });
 
+  test("carries a known adapter reason, and never an unknown provider message", async () => {
+    const known = runAccountDeletion(
+      { userId: USER_ID, requestedAt: NOW },
+      {
+        purgeStorage: async () => undefined,
+        writeTombstone: async () => {
+          throw new Error("B2 key scope rejected");
+        },
+        deleteAuthUser: async () => undefined,
+      },
+    );
+    await expect(known).rejects.toMatchObject({ stage: "ledger", reason: "B2 key scope rejected" });
+
+    const unknown = runAccountDeletion(
+      { userId: USER_ID, requestedAt: NOW },
+      {
+        purgeStorage: async () => {
+          throw new Error(`provider said no for ${USER_ID} person@example.com`);
+        },
+        writeTombstone: async () => undefined,
+        deleteAuthUser: async () => undefined,
+      },
+    );
+    await expect(unknown).rejects.toMatchObject({ stage: "storage", reason: "unclassified" });
+  });
+
   test("stops after a Storage failure without exposing provider details", async () => {
     const calls: string[] = [];
     const providerMessage = `storage provider rejected ${USER_ID} person@example.com`;
