@@ -47,12 +47,18 @@ export async function deleteAccount(
   } catch (error) {
     if (!(error instanceof DeletionFailure)) throw error;
 
+    const correlationId = randomUUID();
     Sentry.captureException(new Error("Account deletion failed"), {
       tags: {
         account_deletion_stage: error.stage,
-        account_deletion_correlation_id: randomUUID(),
+        account_deletion_reason: error.reason,
+        account_deletion_correlation_id: correlationId,
       },
     });
+    // Also in the platform logs: a serverless function can be frozen as soon as it answers, before Sentry's send
+    // completes. The reason is one of the adapters' fixed messages (see the coordinator), never provider text.
+    console.error(`[account-deletion] failed stage=${error.stage} reason="${error.reason}" correlation=${correlationId}`);
+    await Sentry.flush(2000);
     // After the Auth delete the account is gone: saying otherwise would be false and unretryable. The alert
     // above is the operator's cue; the orphan sweep collects whatever raced in.
     if (error.stage !== "residual-storage") {

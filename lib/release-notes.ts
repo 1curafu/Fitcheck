@@ -25,6 +25,13 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.3.5",
+    date: "2026-09-23",
+    headline: "Account deletion is more dependable behind the scenes.",
+    added: ["If deleting your account ever fails, we now find out straight away"],
+    fixed: ["A failed account deletion now tells us exactly which step to fix"],
+  },
+  {
     version: "0.3.4",
     date: "2026-09-23",
     headline: "Your backups now bring everything back — photos included.",

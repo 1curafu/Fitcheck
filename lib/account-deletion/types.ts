@@ -17,10 +17,13 @@ export type AccountDeletionInput = {
 
 export class DeletionFailure extends Error {
   readonly stage: DeletionStage;
+  /** One of the adapters' own fixed messages, or "unclassified" — never provider text or personal data. */
+  readonly reason: string;
 
-  constructor(stage: DeletionStage) {
+  constructor(stage: DeletionStage, reason = "unclassified") {
     super("Account deletion could not be completed");
     this.name = "DeletionFailure";
     this.stage = stage;
+    this.reason = reason;
   }
 }
