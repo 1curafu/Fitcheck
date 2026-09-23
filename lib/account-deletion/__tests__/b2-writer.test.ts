@@ -90,7 +90,7 @@ describe("writeB2Tombstone", () => {
     const fetchMock = vi.fn().mockResolvedValue(json(authorization(["writeFiles"], restriction)));
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(writeB2Tombstone(writerConfig())).rejects.toThrow("B2 authorization failed");
+    await expect(writeB2Tombstone(writerConfig())).rejects.toThrowError(new Error("B2 key scope rejected"));
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -100,7 +100,7 @@ describe("writeB2Tombstone", () => {
       const fetchMock = vi.fn().mockResolvedValue(json(authorization(capabilities)));
       vi.stubGlobal("fetch", fetchMock);
 
-      await expect(writeB2Tombstone(writerConfig())).rejects.toThrow("B2 authorization failed");
+      await expect(writeB2Tombstone(writerConfig())).rejects.toThrowError(new Error("B2 key scope rejected"));
       expect(fetchMock).toHaveBeenCalledTimes(1);
     },
   );
@@ -200,7 +200,7 @@ describe("listB2TombstoneDigests", () => {
       const fetchMock = vi.fn().mockResolvedValue(json(authorization(capabilities)));
       vi.stubGlobal("fetch", fetchMock);
 
-      await expect(listB2TombstoneDigests(credentials)).rejects.toThrow("B2 authorization failed");
+      await expect(listB2TombstoneDigests(credentials)).rejects.toThrowError(new Error("B2 key scope rejected"));
       expect(fetchMock).toHaveBeenCalledTimes(1);
     },
   );

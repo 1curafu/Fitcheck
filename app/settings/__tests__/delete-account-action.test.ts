@@ -4,6 +4,7 @@ const {
   createClient,
   deleteLiveAccount,
   captureException,
+  flush,
   redirect,
   getUser,
   signOut,
@@ -11,6 +12,7 @@ const {
   createClient: vi.fn(),
   deleteLiveAccount: vi.fn(),
   captureException: vi.fn(),
+  flush: vi.fn(),
   redirect: vi.fn(),
   getUser: vi.fn(),
   signOut: vi.fn(),
@@ -18,7 +20,7 @@ const {
 
 vi.mock("@/lib/supabase/server", () => ({ createClient }));
 vi.mock("@/lib/account-deletion/runtime", () => ({ deleteLiveAccount }));
-vi.mock("@sentry/nextjs", () => ({ captureException }));
+vi.mock("@sentry/nextjs", () => ({ captureException, flush }));
 vi.mock("next/navigation", () => ({
   RedirectType: { replace: "replace" },
   redirect,
@@ -119,6 +121,7 @@ describe("deleteAccount", () => {
     expect(context).toEqual({
       tags: {
         account_deletion_stage: "ledger",
+        account_deletion_reason: "unclassified",
         account_deletion_correlation_id: expect.stringMatching(
           /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
         ),
@@ -130,6 +133,34 @@ describe("deleteAccount", () => {
     expect(reported).not.toContain(confirmation);
     expect(reported).not.toContain(b2Response);
     expect(reported).not.toContain("deletion-ledger/v1/private.json");
+  });
+
+  test("logs the failed stage and sanitized reason, and flushes Sentry before answering", async () => {
+    const failure = new DeletionFailure("ledger", "B2 key scope rejected");
+    deleteLiveAccount.mockRejectedValue(failure);
+    const order: string[] = [];
+    captureException.mockImplementation(() => void order.push("capture"));
+    flush.mockImplementation(async () => {
+      order.push("flush");
+      return true;
+    });
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    try {
+      await deleteAccount({ status: "idle" }, confirmationForm(EMAIL));
+
+      expect(order).toEqual(["capture", "flush"]);
+      expect(log).toHaveBeenCalledTimes(1);
+      const line = String(log.mock.calls[0]?.[0]);
+      expect(line).toMatch(/^\[account-deletion\] failed stage=ledger reason="B2 key scope rejected" correlation=[0-9a-f-]{36}$/);
+      expect(line).not.toContain(EMAIL);
+      expect(line).not.toContain(USER_ID);
+      const [, context] = captureException.mock.calls[0] as [Error, { tags: Record<string, string> }];
+      expect(context.tags.account_deletion_reason).toBe("B2 key scope rejected");
+      expect(line).toContain(context.tags.account_deletion_correlation_id);
+    } finally {
+      log.mockRestore();
+    }
   });
 
   test("treats a residual Storage failure as a completed deletion that still alerts", async () => {
