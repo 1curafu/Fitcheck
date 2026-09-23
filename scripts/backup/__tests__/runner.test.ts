@@ -48,7 +48,14 @@ function restoreFixture(
   createdAt = new Date().toISOString(),
   rolesSql = "roles\n",
   dataSql = "data\n",
-  platformSql: string | null = "-- fitcheck-platform-objects policies=1 triggers=1\ncreate policy wardrobe_rw_own on storage.objects;\n",
+  platformSql: string | null = [
+    "-- fitcheck-platform-objects policies=1 triggers=1",
+    "drop policy if exists wardrobe_rw_own on storage.objects;",
+    "create policy wardrobe_rw_own on storage.objects as permissive for all to authenticated using (true);",
+    "drop trigger if exists on_auth_user_created on auth.users;",
+    "CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();",
+    "",
+  ].join("\n"),
 ) {
   const fixture = mkdtempSync(join(tmpdir(), "fitcheck-restore-runner-"));
   const snapshot = join(fixture, "snapshot");
@@ -105,7 +112,7 @@ exit 1
 if [[ " $* " != *" --file "* ]]; then
   printf 'probe\\n' >> "$TRACE"
   [[ -n "\${TARGET_PROBE_FAIL:-}" ]] && { echo 'probe failed' >&2; exit 2; }
-  if [[ "$*" == *pg_policies* ]]; then echo "\${TARGET_PLATFORM_COUNTS:-1|1}"; exit 0; fi
+  if [[ "$*" == *pg_policies* ]]; then printf '%s\\n' "$*" >> "$TRACE"; echo "\${TARGET_PLATFORM_COUNTS:-1|1}"; exit 0; fi
   echo "\${TARGET_PUBLIC_TABLES:-0}"
   exit 0
 fi
@@ -638,6 +645,36 @@ echo "psql (PostgreSQL) 18.3"
       expect(result.status).not.toBe(0);
       expect(result.stderr).toContain("do not match the snapshot");
       expect(restoreTrace(fixture.trace)).not.toContain("rclone-copy");
+    } finally {
+      rmSync(fixture.fixture, { recursive: true, force: true });
+    }
+  });
+
+  test("verifies each captured policy and trigger by name, so extra platform defaults cannot fail a restore", () => {
+    const fixture = restoreFixture();
+
+    try {
+      const result = run(restoreScript, ["latest", "--confirm-disposable-target"], fixture.env);
+      const trace = restoreTrace(fixture.trace);
+
+      expect(result.status, result.stderr).toBe(0);
+      expect(trace).toContain("('storage','objects','wardrobe_rw_own')");
+      expect(trace).toContain("('auth','users','on_auth_user_created')");
+    } finally {
+      rmSync(fixture.fixture, { recursive: true, force: true });
+    }
+  });
+
+  test("refuses a platform file whose statements do not match its header, before replaying it", () => {
+    const garbled = "-- fitcheck-platform-objects policies=2 triggers=1\ndrop policy if exists wardrobe_rw_own on storage.objects;\n";
+    const fixture = restoreFixture(undefined, undefined, undefined, garbled);
+
+    try {
+      const result = run(restoreScript, ["latest", "--confirm-disposable-target"], fixture.env);
+
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain("cannot verify platform-objects.sql");
+      expect(restoreTrace(fixture.trace)).not.toContain("platform-file");
     } finally {
       rmSync(fixture.fixture, { recursive: true, force: true });
     }

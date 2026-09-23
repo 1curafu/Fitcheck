@@ -133,13 +133,32 @@ if [[ -f "$PLATFORM_FILE" ]]; then
   fi
   EXPECTED_POLICIES="${BASH_REMATCH[1]}"
   EXPECTED_TRIGGERS="${BASH_REMATCH[2]}"
+  # Verify by name, not by total: a new project may someday ship its own platform policies or triggers, and those
+  # must not fail a disaster restore. Identifiers are restricted to plain names; anything else fails closed.
+  POLICY_LINES="$(sed -nE "s/^drop policy if exists ([A-Za-z0-9_]+) on (auth|storage)\.([A-Za-z0-9_]+);$/('\2','\3','\1')/p" "$PLATFORM_FILE")"
+  TRIGGER_LINES="$(sed -nE "s/^drop trigger if exists ([A-Za-z0-9_]+) on (auth)\.([A-Za-z0-9_]+);$/('\2','\3','\1')/p" "$PLATFORM_FILE")"
+  POLICY_KEY_COUNT="$(printf '%s' "$POLICY_LINES" | grep -c . || true)"
+  TRIGGER_KEY_COUNT="$(printf '%s' "$TRIGGER_LINES" | grep -c . || true)"
+  POLICY_KEYS="$(printf '%s' "$POLICY_LINES" | paste -sd, -)"
+  TRIGGER_KEYS="$(printf '%s' "$TRIGGER_LINES" | paste -sd, -)"
+  if [[ "$POLICY_KEY_COUNT" != "$EXPECTED_POLICIES" || "$TRIGGER_KEY_COUNT" != "$EXPECTED_TRIGGERS" ]]; then
+    backup_die "cannot verify platform-objects.sql: its statements do not match its header"
+  fi
+  POLICY_CHECK="0"
+  if [[ -n "$POLICY_KEYS" ]]; then
+    POLICY_CHECK="(select count(*) from (values ${POLICY_KEYS}) as v(s, t, n) where exists (select 1 from pg_policies p where p.schemaname = v.s and p.tablename = v.t and p.policyname = v.n))"
+  fi
+  TRIGGER_CHECK="0"
+  if [[ -n "$TRIGGER_KEYS" ]]; then
+    TRIGGER_CHECK="(select count(*) from (values ${TRIGGER_KEYS}) as v(s, t, n) where exists (select 1 from pg_trigger g join pg_class c on c.oid = g.tgrelid join pg_namespace ns on ns.oid = c.relnamespace where ns.nspname = v.s and c.relname = v.t and g.tgname = v.n and not g.tgisinternal))"
+  fi
   printf 'Restoring auth/storage policies and triggers…\n'
   psql \
     --single-transaction \
     --variable ON_ERROR_STOP=1 \
     --file "$PLATFORM_FILE" \
     --dbname "$RESTORE_DB_URL"
-  RESTORED_PLATFORM="$(psql "$RESTORE_DB_URL" -At -v ON_ERROR_STOP=1 -c "select (select count(*) from pg_policies where schemaname in ('auth', 'storage')) || '|' || (select count(*) from pg_trigger t join pg_class c on c.oid = t.tgrelid join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'auth' and not t.tgisinternal)")" \
+  RESTORED_PLATFORM="$(psql "$RESTORE_DB_URL" -At -v ON_ERROR_STOP=1 -c "select ${POLICY_CHECK} || '|' || ${TRIGGER_CHECK} /* pg_policies */")" \
     || backup_die "could not verify restored auth/storage policies and triggers"
   if [[ "$RESTORED_PLATFORM" != "${EXPECTED_POLICIES}|${EXPECTED_TRIGGERS}" ]]; then
     backup_die "restored auth/storage objects do not match the snapshot (expected policies|triggers ${EXPECTED_POLICIES}|${EXPECTED_TRIGGERS}, found ${RESTORED_PLATFORM})"
