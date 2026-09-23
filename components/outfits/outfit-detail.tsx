@@ -62,7 +62,9 @@ export function OutfitDetail({
   }, [outfit.id]);
 
   return (
-    <div className="flex min-h-dvh flex-1 flex-col">
+    // `relative`: the floating Back/⋯ controls are positioned against THIS screen, so they move down with it when
+    // the shell's in-flow cookie notice is showing, instead of staying pinned under the notice at the shell's top.
+    <div className="relative flex min-h-dvh flex-1 flex-col">
       {/* This screen opens with a full-bleed flat-lay, so it deliberately does
           NOT use `.screen-top` — the stage runs to the top edge and only this
           overlay control is inset. `top-[58px]` was a hard-coded status-bar
