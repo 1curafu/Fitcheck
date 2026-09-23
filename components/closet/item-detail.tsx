@@ -6,6 +6,7 @@ import type { Tags } from "@/lib/ai/tagging-schema";
 
 import { ItemView, type GoesWithCard } from "./item-view";
 import { ItemEditSheet } from "./item-edit-sheet";
+import { RemovePieceSheet } from "./remove-piece-sheet";
 import { StyleCta } from "./style-cta";
 
 export type DetailItem = {
@@ -61,12 +62,18 @@ export function ItemDetail({
    * sheet open and it is still open on return. The unmount used to do this for
    * free. Same fix as `components/generate/stylist.tsx`.
    */
-  useEffect(() => () => setEditing(false), []);
+  const [removing, setRemoving] = useState(false);
+  useEffect(
+    () => () => {
+      setEditing(false);
+      setRemoving(false);
+    },
+    [],
+  );
 
-  const [, start] = useTransition();
+  const [pending, start] = useTransition();
 
   function archive() {
-    if (!confirm("Remove this piece from your closet?")) return;
     start(async () => {
       await archiveItem(item.id);
     });
@@ -80,7 +87,7 @@ export function ItemDetail({
         stats={stats}
         goesWith={goesWith}
         onEdit={() => setEditing(true)}
-        onArchive={archive}
+        onArchive={() => setRemoving(true)}
         // Built HERE, not passed down from the page. `page.tsx` is a Server
         // Component, and a JSX element handed across the RSC boundary is
         // serialised — React cannot give it positional identity and warns that
@@ -88,6 +95,9 @@ export function ItemDetail({
         // component keeps ItemView presentational without that round trip.
         styleCta={<StyleCta itemId={item.id} />}
       />
+      {removing && (
+        <RemovePieceSheet pending={pending} onConfirm={archive} onClose={() => setRemoving(false)} />
+      )}
       {editing && (
         <ItemEditSheet
           item={item}

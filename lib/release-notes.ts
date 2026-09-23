@@ -25,6 +25,13 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.3.6",
+    date: "2026-09-23",
+    headline: "Removing a piece now tells you exactly what happens.",
+    added: ["Removing a piece asks first, and explains what's kept and what's not"],
+    fixed: ["The cookie notice no longer covers the back button on a piece or a look"],
+  },
+  {
     version: "0.3.5",
     date: "2026-09-23",
     headline: "Account deletion is more dependable behind the scenes.",
