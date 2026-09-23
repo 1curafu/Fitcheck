@@ -89,6 +89,21 @@ SKIPPED_GRANTS="$(awk -v pattern="$PLATFORM_GRANT" '$0 ~ pattern { n++ } END { p
 awk -v pattern="$PLATFORM_GRANT" '$0 !~ pattern' "$RESTORE_ROOT/database/roles.sql" > "$ROLES_FILE"
 printf 'Skipped %s grant(s) to Supabase-managed platform roles.\n' "$SKIPPED_GRANTS"
 
+# Storage object records must not be replayed from the dump. Supabase Storage keeps each record paired with a
+# stored file; a record inserted by SQL has no file behind it, and an upload over it reports success yet stays
+# unreadable (reproduced locally, 2026-09-23). The mirrored files are uploaded below, which creates every record
+# correctly. In-flight multipart uploads are meaningless after a restore. Bucket definitions are kept.
+DATA_FILE="$WORK_ROOT/data.restore.sql"
+SKIPPED_STORAGE_TABLES="$(awk '/^COPY "storage"\."(objects|s3_multipart_uploads|s3_multipart_uploads_parts)" / { n++ } END { print n + 0 }' \
+  "$RESTORE_ROOT/database/data.sql")"
+awk '
+  skip && /^\\\.$/ { skip = 0; next }
+  skip { next }
+  /^COPY "storage"\."(objects|s3_multipart_uploads|s3_multipart_uploads_parts)" / { skip = 1; next }
+  { print }
+' "$RESTORE_ROOT/database/data.sql" > "$DATA_FILE"
+printf 'Skipped %s Storage table(s); the file upload recreates their records.\n' "$SKIPPED_STORAGE_TABLES"
+
 printf 'Restoring database into the confirmed disposable project…\n'
 psql \
   --single-transaction \
@@ -96,7 +111,7 @@ psql \
   --file "$ROLES_FILE" \
   --file "$RESTORE_ROOT/database/schema.sql" \
   --command 'SET session_replication_role = replica' \
-  --file "$RESTORE_ROOT/database/data.sql" \
+  --file "$DATA_FILE" \
   --dbname "$RESTORE_DB_URL"
 
 psql \
@@ -117,8 +132,9 @@ export RCLONE_CONFIG_RESTORE_NO_CHECK_BUCKET=true
 printf 'Uploading wardrobe objects to the disposable project…\n'
 rclone copy "$RESTORE_ROOT/storage/wardrobe" "restore:wardrobe" \
   --fast-list --checkers 8 --transfers 4 --stats-one-line --stats 1m
+# --download compares real bytes. Listed sizes come from Storage records and can match with no file present.
 rclone check "$RESTORE_ROOT/storage/wardrobe" "restore:wardrobe" \
-  --one-way --size-only
+  --one-way --download
 rclone size "restore:wardrobe" --json > "$WORK_ROOT/restored-storage-stats.json"
 node "$SCRIPT_DIR/manifest.mjs" compare-storage \
   --root "$RESTORE_ROOT" \

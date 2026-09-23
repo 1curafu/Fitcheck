@@ -44,7 +44,7 @@ function run(path: string, args: string[], env: Record<string, string> = {}) {
   });
 }
 
-function restoreFixture(createdAt = new Date().toISOString(), rolesSql = "roles\n") {
+function restoreFixture(createdAt = new Date().toISOString(), rolesSql = "roles\n", dataSql = "data\n") {
   const fixture = mkdtempSync(join(tmpdir(), "fitcheck-restore-runner-"));
   const snapshot = join(fixture, "snapshot");
   const database = join(snapshot, "database");
@@ -58,7 +58,7 @@ function restoreFixture(createdAt = new Date().toISOString(), rolesSql = "roles\
   const dumps: Record<string, string> = {
     "roles.sql": rolesSql,
     "schema.sql": "schema\n",
-    "data.sql": "data\n",
+    "data.sql": dataSql,
     "migration-history-schema.sql": "history schema\n",
     "migration-history-data.sql": "history data\n",
   };
@@ -104,6 +104,9 @@ if [[ " $* " != *" --file "* ]]; then
 fi
 printf 'psql\\n' >> "$TRACE"
 while [[ "$#" -gt 0 ]]; do
+  if [[ "$1" == "--file" && "$2" == *data*.sql ]]; then
+    printf 'data-file:\\n' >> "$TRACE"; cat "$2" >> "$TRACE"
+  fi
   if [[ "$1" == "--file" && "$2" == *roles*.sql ]]; then
     printf 'roles-file:\\n' >> "$TRACE"; cat "$2" >> "$TRACE"
     if grep -qE '^GRANT SET ON PARAMETER .* TO "supabase_' "$2"; then
@@ -116,7 +119,7 @@ done
   executable("rclone", `
 case "\${1:-}" in
   copy) printf 'rclone-copy\\n' >> "$TRACE" ;;
-  check) printf 'rclone-check\\n' >> "$TRACE" ;;
+  check) printf 'rclone-check %s\\n' "$*" >> "$TRACE" ;;
   size) printf '{"count":0,"bytes":0}\\n' ;;
   *) exit 1 ;;
 esac
@@ -527,6 +530,63 @@ esac
       expect(result.status).not.toBe(0);
       expect(result.stderr).toContain("could not inspect the restore target");
       expect(restoreTrace(fixture.trace)).not.toContain("psql");
+    } finally {
+      rmSync(fixture.fixture, { recursive: true, force: true });
+    }
+  });
+
+  test("replays no Storage object records, so the upload recreates every one with real bytes behind it", () => {
+    const data = [
+      'COPY "public"."items" ("id") FROM stdin;',
+      "item-row",
+      "\\.",
+      'COPY "storage"."buckets" ("id") FROM stdin;',
+      "wardrobe",
+      "\\.",
+      'COPY "storage"."objects" ("id", "name") FROM stdin;',
+      "object-row-1\towner/item/original.jpg",
+      "object-row-2\towner/item/cutout.webp",
+      "\\.",
+      'COPY "storage"."s3_multipart_uploads" ("id") FROM stdin;',
+      "upload-row",
+      "\\.",
+      'COPY "storage"."s3_multipart_uploads_parts" ("id") FROM stdin;',
+      "part-row",
+      "\\.",
+      'COPY "auth"."users" ("id") FROM stdin;',
+      "user-row",
+      "\\.",
+      "",
+    ].join("\n");
+    const fixture = restoreFixture(undefined, undefined, data);
+
+    try {
+      const result = run(restoreScript, ["latest", "--confirm-disposable-target"], fixture.env);
+      const trace = restoreTrace(fixture.trace);
+
+      expect(result.status, result.stderr).toBe(0);
+      expect(trace).toContain("item-row");
+      expect(trace).toContain('COPY "storage"."buckets"');
+      expect(trace).toContain("user-row");
+      expect(trace).not.toContain("object-row");
+      expect(trace).not.toContain("upload-row");
+      expect(trace).not.toContain("part-row");
+      expect(result.stdout).toContain("Skipped 3 Storage table(s)");
+    } finally {
+      rmSync(fixture.fixture, { recursive: true, force: true });
+    }
+  });
+
+  test("verifies restored photos by downloading their bytes, not by listed sizes", () => {
+    const fixture = restoreFixture();
+
+    try {
+      const result = run(restoreScript, ["latest", "--confirm-disposable-target"], fixture.env);
+      const check = restoreTrace(fixture.trace).split("\n").find((line) => line.startsWith("rclone-check")) ?? "";
+
+      expect(result.status, result.stderr).toBe(0);
+      expect(check).toContain("--download");
+      expect(check).not.toContain("--size-only");
     } finally {
       rmSync(fixture.fixture, { recursive: true, force: true });
     }
