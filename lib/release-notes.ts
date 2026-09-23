@@ -29,7 +29,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     date: "2026-09-23",
     headline: "Quieter work behind the scenes to keep your data safe.",
     added: ["Every update now checks that its database changes really arrived"],
-    fixed: [],
+    fixed: ["A database change can no longer go missing without us noticing"],
   },
   {
     version: "0.3.6",
