@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { admin, testUserId } from "./helpers";
 
 test.use({ storageState: "e2e/.auth/state.json" });
 
@@ -48,4 +49,37 @@ test("a deep link into an item renders without a grid visit first", async ({ pag
   await expect(page.getByText("E2E Oxford Shirt").first()).toBeVisible();
   await page.getByLabel(/back/i).click();
   await expect(page).toHaveURL(/\/closet$/);
+});
+
+test("removing a piece asks in the app's own sheet, then takes it out of the closet", async ({ page }) => {
+  const piece = "E2E Cable Polo";
+  // A native confirm() would surface here and block the journey; the sheet must be the only question asked.
+  page.on("dialog", (dialog) => {
+    throw new Error(`unexpected browser dialog: ${dialog.message()}`);
+  });
+
+  try {
+    await page.goto("/closet");
+    await page.getByText(piece).first().click();
+    await expect(page).toHaveURL(/\/closet\/[0-9a-f-]{36}/);
+
+    await page.getByRole("button", { name: /archive/i }).click();
+    const sheet = page.getByRole("dialog", { name: /remove this piece/i });
+    await expect(sheet).toBeVisible();
+    await expect(sheet.getByText(/photos stay saved with your account/i)).toBeVisible();
+
+    // Cancel leaves everything as it was.
+    await sheet.getByRole("button", { name: /^cancel$/i }).click();
+    await expect(sheet).toBeHidden();
+
+    await page.getByRole("button", { name: /archive/i }).click();
+    await page.getByRole("dialog", { name: /remove this piece/i }).getByRole("button", { name: /remove from closet/i }).click();
+    await expect(page).toHaveURL(/\/closet$/);
+    // Visible matches only: routes stay mounted but hidden (React Activity), so the item screen just left still holds
+    // the name in the DOM. What matters is that the closet grid no longer shows it.
+    await expect(page.getByText(piece).filter({ visible: true })).toHaveCount(0);
+  } finally {
+    // One seeded closet serves every spec: put the piece back whatever happened above.
+    await admin().from("items").update({ archived: false }).eq("user_id", await testUserId()).eq("name", piece);
+  }
 });

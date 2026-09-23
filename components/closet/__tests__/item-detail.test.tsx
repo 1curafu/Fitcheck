@@ -10,9 +10,10 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/app/closet/[itemId]/style-actions", () => ({ styleWithItem: vi.fn() }));
 
 const updateItem = vi.fn().mockResolvedValue(undefined);
+const archiveItem = vi.fn().mockResolvedValue(undefined);
 vi.mock("@/app/closet/[itemId]/actions", () => ({
   updateItem: (...args: unknown[]) => updateItem(...args),
-  archiveItem: vi.fn(),
+  archiveItem: (...args: unknown[]) => archiveItem(...args),
 }));
 
 const item: DetailItem = {
@@ -260,4 +261,49 @@ test("clearing the fit via the toggle clears fit_source too, not a stale 'user'"
     "i1",
     expect.objectContaining({ fit: null, fit_source: null }),
   );
+});
+
+describe("removing a piece", () => {
+  beforeEach(() => archiveItem.mockClear());
+
+  test("asks in an app sheet, never the browser's confirm()", async () => {
+    const confirmSpy = vi.spyOn(window, "confirm");
+    renderDetail();
+    await userEvent.click(screen.getByRole("button", { name: /archive/i }));
+
+    const sheet = screen.getByRole("dialog", { name: /remove this piece/i });
+    expect(sheet).toBeInTheDocument();
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(archiveItem).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
+  });
+
+  test("says honestly what removing does and does not do", async () => {
+    renderDetail();
+    await userEvent.click(screen.getByRole("button", { name: /archive/i }));
+    const sheet = screen.getByRole("dialog", { name: /remove this piece/i });
+
+    expect(within(sheet).getByText(/leaves your closet and won.t appear in new looks/i)).toBeInTheDocument();
+    expect(within(sheet).getByText(/past looks and your wear history keep it/i)).toBeInTheDocument();
+    expect(within(sheet).getByText(/photos stay saved with your account/i)).toBeInTheDocument();
+  });
+
+  test("cancel and escape close the sheet without removing anything", async () => {
+    renderDetail();
+    await userEvent.click(screen.getByRole("button", { name: /archive/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^cancel$/i }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /archive/i }));
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(archiveItem).not.toHaveBeenCalled();
+  });
+
+  test("the sheet's own button removes the piece", async () => {
+    renderDetail();
+    await userEvent.click(screen.getByRole("button", { name: /archive/i }));
+    await userEvent.click(screen.getByRole("button", { name: /remove from closet/i }));
+    expect(archiveItem).toHaveBeenCalledWith("i1");
+  });
 });
