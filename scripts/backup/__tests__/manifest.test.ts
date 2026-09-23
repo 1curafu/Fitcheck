@@ -182,3 +182,42 @@ describe("backup manifest", () => {
     ).resolves.toMatchObject({ createdAt: "2026-09-18T02:45:00.000Z" });
   });
 });
+
+describe("platform objects (auth/storage policies and triggers)", () => {
+  const PLATFORM = "-- fitcheck-platform-objects policies=1 triggers=1\ncreate policy wardrobe_rw_own on storage.objects;\n";
+
+  beforeEach(async () => {
+    root = await mkdtemp(join(tmpdir(), "fitcheck-manifest-platform-"));
+    await createStage();
+  });
+
+  afterEach(async () => {
+    await rm(root, { recursive: true, force: true });
+  });
+
+  test("records platform-objects.sql with its checksum when the backup captured it", async () => {
+    await writeFile(join(root, "database", "platform-objects.sql"), PLATFORM);
+    const manifest = await writeValidManifest();
+    expect(manifest.database["platform-objects.sql"]).toMatchObject({ bytes: Buffer.byteLength(PLATFORM) });
+    await expect(validateManifest(root)).resolves.toBeTruthy();
+  });
+
+  test("still accepts a snapshot taken before platform objects were captured", async () => {
+    const manifest = await writeValidManifest();
+    expect(manifest.database["platform-objects.sql"]).toBeUndefined();
+    await expect(validateManifest(root)).resolves.toBeTruthy();
+  });
+
+  test("rejects a tampered platform-objects.sql", async () => {
+    await writeFile(join(root, "database", "platform-objects.sql"), PLATFORM);
+    await writeValidManifest();
+    await writeFile(join(root, "database", "platform-objects.sql"), `${PLATFORM}drop table public.items;\n`);
+    await expect(validateManifest(root)).rejects.toThrow("platform-objects.sql");
+  });
+
+  test("rejects a platform-objects.sql that the manifest does not list", async () => {
+    await writeValidManifest();
+    await writeFile(join(root, "database", "platform-objects.sql"), PLATFORM);
+    await expect(validateManifest(root)).rejects.toThrow("platform-objects.sql");
+  });
+});

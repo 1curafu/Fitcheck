@@ -40,6 +40,15 @@ done
 require_supabase_url_matches_project_ref RESTORE_SUPABASE_URL RESTORE_PROJECT_REF
 node "$SCRIPT_DIR/reconcile-deletions.mjs" validate-config
 
+# A restore replays a full dump; the dump's `CREATE TABLE IF NOT EXISTS` would silently skip tables that already
+# exist and then collide on their constraints. Require a brand-new project before downloading or writing anything.
+TARGET_TABLES="$(psql "$RESTORE_DB_URL" -At -v ON_ERROR_STOP=1 \
+  -c "select count(*) from information_schema.tables where table_schema = 'public'")" \
+  || backup_die "could not inspect the restore target"
+if [[ "$TARGET_TABLES" != "0" ]]; then
+  backup_die "restore target is not empty: its public schema already has ${TARGET_TABLES} table(s); use a brand-new project"
+fi
+
 umask 077
 WORK_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/fitcheck-restore.XXXXXX")"
 RESTORE_ROOT="$WORK_ROOT/snapshot"
@@ -70,14 +79,39 @@ if [[ "$MANIFEST_SOURCE_REF" == "$RESTORE_PROJECT_REF" ]]; then
   backup_die "snapshot source and restore target must be different projects"
 fi
 
+# Supabase provisions its own `supabase_*` roles, with their parameter grants, on every project, and a
+# project's `postgres` role may not replay them ("permission denied for parameter"). Everything else in
+# roles.sql — including any role Fitcheck creates — is replayed unchanged, into a filtered copy so the
+# manifest-checked original stays untouched.
+PLATFORM_GRANT='^GRANT SET ON PARAMETER "[A-Za-z_.]+" TO "supabase_[a-z_]+";$'
+ROLES_FILE="$WORK_ROOT/roles.restore.sql"
+SKIPPED_GRANTS="$(awk -v pattern="$PLATFORM_GRANT" '$0 ~ pattern { n++ } END { print n + 0 }' "$RESTORE_ROOT/database/roles.sql")"
+awk -v pattern="$PLATFORM_GRANT" '$0 !~ pattern' "$RESTORE_ROOT/database/roles.sql" > "$ROLES_FILE"
+printf 'Skipped %s grant(s) to Supabase-managed platform roles.\n' "$SKIPPED_GRANTS"
+
+# Storage object records must not be replayed from the dump. Supabase Storage keeps each record paired with a
+# stored file; a record inserted by SQL has no file behind it, and an upload over it reports success yet stays
+# unreadable (reproduced locally, 2026-09-23). The mirrored files are uploaded below, which creates every record
+# correctly. In-flight multipart uploads are meaningless after a restore. Bucket definitions are kept.
+DATA_FILE="$WORK_ROOT/data.restore.sql"
+SKIPPED_STORAGE_TABLES="$(awk '/^COPY "storage"\."(objects|s3_multipart_uploads|s3_multipart_uploads_parts)" / { n++ } END { print n + 0 }' \
+  "$RESTORE_ROOT/database/data.sql")"
+awk '
+  skip && /^\\\.$/ { skip = 0; next }
+  skip { next }
+  /^COPY "storage"\."(objects|s3_multipart_uploads|s3_multipart_uploads_parts)" / { skip = 1; next }
+  { print }
+' "$RESTORE_ROOT/database/data.sql" > "$DATA_FILE"
+printf 'Skipped %s Storage table(s); the file upload recreates their records.\n' "$SKIPPED_STORAGE_TABLES"
+
 printf 'Restoring database into the confirmed disposable project…\n'
 psql \
   --single-transaction \
   --variable ON_ERROR_STOP=1 \
-  --file "$RESTORE_ROOT/database/roles.sql" \
+  --file "$ROLES_FILE" \
   --file "$RESTORE_ROOT/database/schema.sql" \
   --command 'SET session_replication_role = replica' \
-  --file "$RESTORE_ROOT/database/data.sql" \
+  --file "$DATA_FILE" \
   --dbname "$RESTORE_DB_URL"
 
 psql \
@@ -86,6 +120,55 @@ psql \
   --file "$RESTORE_ROOT/database/migration-history-schema.sql" \
   --file "$RESTORE_ROOT/database/migration-history-data.sql" \
   --dbname "$RESTORE_DB_URL"
+
+# Fitcheck's policies and triggers in the Supabase-managed auth/storage schemas are not part of the public-schema
+# dump. Without them no user can read a photo and new sign-ups get no profile. Replay the captured file, then prove
+# the target holds exactly the captured counts.
+PLATFORM_FILE="$RESTORE_ROOT/database/platform-objects.sql"
+PLATFORM_WARNING=""
+if [[ -f "$PLATFORM_FILE" ]]; then
+  PLATFORM_HEADER="$(head -n 1 "$PLATFORM_FILE")"
+  if [[ ! "$PLATFORM_HEADER" =~ ^--\ fitcheck-platform-objects\ policies=([0-9]+)\ triggers=([0-9]+)$ ]]; then
+    backup_die "platform-objects.sql has no valid header"
+  fi
+  EXPECTED_POLICIES="${BASH_REMATCH[1]}"
+  EXPECTED_TRIGGERS="${BASH_REMATCH[2]}"
+  # Verify by name, not by total: a new project may someday ship its own platform policies or triggers, and those
+  # must not fail a disaster restore. Identifiers are restricted to plain names; anything else fails closed.
+  POLICY_LINES="$(sed -nE "s/^drop policy if exists ([A-Za-z0-9_]+) on (auth|storage)\.([A-Za-z0-9_]+);$/('\2','\3','\1')/p" "$PLATFORM_FILE")"
+  TRIGGER_LINES="$(sed -nE "s/^drop trigger if exists ([A-Za-z0-9_]+) on (auth)\.([A-Za-z0-9_]+);$/('\2','\3','\1')/p" "$PLATFORM_FILE")"
+  POLICY_KEY_COUNT="$(printf '%s' "$POLICY_LINES" | grep -c . || true)"
+  TRIGGER_KEY_COUNT="$(printf '%s' "$TRIGGER_LINES" | grep -c . || true)"
+  POLICY_KEYS="$(printf '%s' "$POLICY_LINES" | paste -sd, -)"
+  TRIGGER_KEYS="$(printf '%s' "$TRIGGER_LINES" | paste -sd, -)"
+  if [[ "$POLICY_KEY_COUNT" != "$EXPECTED_POLICIES" || "$TRIGGER_KEY_COUNT" != "$EXPECTED_TRIGGERS" ]]; then
+    backup_die "cannot verify platform-objects.sql: its statements do not match its header"
+  fi
+  POLICY_CHECK="0"
+  if [[ -n "$POLICY_KEYS" ]]; then
+    POLICY_CHECK="(select count(*) from (values ${POLICY_KEYS}) as v(s, t, n) where exists (select 1 from pg_policies p where p.schemaname = v.s and p.tablename = v.t and p.policyname = v.n))"
+  fi
+  TRIGGER_CHECK="0"
+  if [[ -n "$TRIGGER_KEYS" ]]; then
+    TRIGGER_CHECK="(select count(*) from (values ${TRIGGER_KEYS}) as v(s, t, n) where exists (select 1 from pg_trigger g join pg_class c on c.oid = g.tgrelid join pg_namespace ns on ns.oid = c.relnamespace where ns.nspname = v.s and c.relname = v.t and g.tgname = v.n and not g.tgisinternal))"
+  fi
+  printf 'Restoring auth/storage policies and triggers…\n'
+  psql \
+    --single-transaction \
+    --variable ON_ERROR_STOP=1 \
+    --file "$PLATFORM_FILE" \
+    --dbname "$RESTORE_DB_URL"
+  RESTORED_PLATFORM="$(psql "$RESTORE_DB_URL" -At -v ON_ERROR_STOP=1 -c "select ${POLICY_CHECK} || '|' || ${TRIGGER_CHECK} /* pg_policies */")" \
+    || backup_die "could not verify restored auth/storage policies and triggers"
+  if [[ "$RESTORED_PLATFORM" != "${EXPECTED_POLICIES}|${EXPECTED_TRIGGERS}" ]]; then
+    backup_die "restored auth/storage objects do not match the snapshot (expected policies|triggers ${EXPECTED_POLICIES}|${EXPECTED_TRIGGERS}, found ${RESTORED_PLATFORM})"
+  fi
+  printf 'Restored %s auth/storage policies and %s auth triggers.\n' "$EXPECTED_POLICIES" "$EXPECTED_TRIGGERS"
+else
+  PLATFORM_WARNING=1
+  printf '\nWARNING: this snapshot predates auth/storage capture. Storage policies and auth triggers were NOT restored:\n'
+  printf 'no user can read a photo and new sign-ups get no profile until they are re-applied (see the restore runbook).\n\n'
+fi
 
 export RCLONE_CONFIG_RESTORE_TYPE=s3
 export RCLONE_CONFIG_RESTORE_PROVIDER=Other
@@ -98,8 +181,9 @@ export RCLONE_CONFIG_RESTORE_NO_CHECK_BUCKET=true
 printf 'Uploading wardrobe objects to the disposable project…\n'
 rclone copy "$RESTORE_ROOT/storage/wardrobe" "restore:wardrobe" \
   --fast-list --checkers 8 --transfers 4 --stats-one-line --stats 1m
+# --download compares real bytes. Listed sizes come from Storage records and can match with no file present.
 rclone check "$RESTORE_ROOT/storage/wardrobe" "restore:wardrobe" \
-  --one-way --size-only
+  --one-way --download
 rclone size "restore:wardrobe" --json > "$WORK_ROOT/restored-storage-stats.json"
 node "$SCRIPT_DIR/manifest.mjs" compare-storage \
   --root "$RESTORE_ROOT" \
@@ -119,3 +203,6 @@ The disposable-project drill is not complete until the operator verifies:
 
 Never reopen a disaster-restored production project before step 6.
 CHECKLIST
+if [[ -n "$PLATFORM_WARNING" ]]; then
+  printf '\nREMINDER: re-apply the auth/storage policies and triggers before traffic — this snapshot did not contain them.\n'
+fi

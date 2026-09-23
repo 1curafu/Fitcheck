@@ -25,6 +25,16 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.3.4",
+    date: "2026-09-23",
+    headline: "Your backups now bring everything back — photos included.",
+    added: ["Recovery from a backup is now tested from start to finish"],
+    fixed: [
+      "A recovered backup now restores access to your photos",
+      "New sign-ups work straight after a recovery",
+    ],
+  },
+  {
     version: "0.3.3",
     date: "2026-09-22",
     headline: "Deleting your account now leaves nothing behind.",
