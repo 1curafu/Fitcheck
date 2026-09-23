@@ -66,6 +66,16 @@ supabase db dump --db-url "$SUPABASE_DB_URL" \
   -f "$STAGE_ROOT/database/migration-history-data.sql" \
   --use-copy --data-only --schema supabase_migrations
 
+# `supabase db dump` covers `public` only. Capture Fitcheck's policies and triggers in the `auth` and `storage`
+# schemas (the photo access policy, the sign-up trigger) so a restore does not come back without them.
+printf 'Capturing auth/storage policies and triggers…\n'
+psql "$SUPABASE_DB_URL" -qAt -v ON_ERROR_STOP=1 -f "$SCRIPT_DIR/platform-objects.sql" \
+  > "$STAGE_ROOT/database/platform-objects.sql"
+if ! head -n 1 "$STAGE_ROOT/database/platform-objects.sql" \
+  | grep -Eq '^-- fitcheck-platform-objects policies=[0-9]+ triggers=[0-9]+$'; then
+  backup_die "platform object capture produced unexpected output"
+fi
+
 printf 'Copying private wardrobe objects…\n'
 rclone copy "supabase:wardrobe" "$STAGE_ROOT/storage/wardrobe" \
   --fast-list --checkers 8 --transfers 4 --stats-one-line --stats 1m

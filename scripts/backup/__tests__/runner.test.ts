@@ -44,7 +44,12 @@ function run(path: string, args: string[], env: Record<string, string> = {}) {
   });
 }
 
-function restoreFixture(createdAt = new Date().toISOString(), rolesSql = "roles\n", dataSql = "data\n") {
+function restoreFixture(
+  createdAt = new Date().toISOString(),
+  rolesSql = "roles\n",
+  dataSql = "data\n",
+  platformSql: string | null = "-- fitcheck-platform-objects policies=1 triggers=1\ncreate policy wardrobe_rw_own on storage.objects;\n",
+) {
   const fixture = mkdtempSync(join(tmpdir(), "fitcheck-restore-runner-"));
   const snapshot = join(fixture, "snapshot");
   const database = join(snapshot, "database");
@@ -62,6 +67,7 @@ function restoreFixture(createdAt = new Date().toISOString(), rolesSql = "roles\
     "migration-history-schema.sql": "history schema\n",
     "migration-history-data.sql": "history data\n",
   };
+  if (platformSql !== null) dumps["platform-objects.sql"] = platformSql;
   for (const [name, contents] of Object.entries(dumps)) writeFileSync(join(database, name), contents);
   const databaseManifest = Object.fromEntries(
     Object.entries(dumps).map(([name, contents]) => [name, {
@@ -99,11 +105,15 @@ exit 1
 if [[ " $* " != *" --file "* ]]; then
   printf 'probe\\n' >> "$TRACE"
   [[ -n "\${TARGET_PROBE_FAIL:-}" ]] && { echo 'probe failed' >&2; exit 2; }
+  if [[ "$*" == *pg_policies* ]]; then echo "\${TARGET_PLATFORM_COUNTS:-1|1}"; exit 0; fi
   echo "\${TARGET_PUBLIC_TABLES:-0}"
   exit 0
 fi
 printf 'psql\\n' >> "$TRACE"
 while [[ "$#" -gt 0 ]]; do
+  if [[ "$1" == "--file" && "$2" == *platform-objects.sql ]]; then
+    printf 'platform-file:\\n' >> "$TRACE"; cat "$2" >> "$TRACE"
+  fi
   if [[ "$1" == "--file" && "$2" == *data*.sql ]]; then
     printf 'data-file:\\n' >> "$TRACE"; cat "$2" >> "$TRACE"
   fi
@@ -295,7 +305,14 @@ case "\${1:-}" in
 esac
 `,
     );
-    executable("psql", `echo "psql (PostgreSQL) 18.3"`);
+    executable("psql", `
+if [[ " $* " == *" -f "* ]]; then
+  if [[ -n "\${PLATFORM_CAPTURE_OUTPUT:-}" ]]; then printf '%s\\n' "$PLATFORM_CAPTURE_OUTPUT"; exit 0; fi
+  printf -- '-- fitcheck-platform-objects policies=1 triggers=1\\ncreate policy wardrobe_rw_own on storage.objects;\\n'
+  exit 0
+fi
+echo "psql (PostgreSQL) 18.3"
+`);
     executable("docker", `exit 0`);
     symlinkSync(process.execPath, join(bin, "node"));
 
@@ -319,6 +336,7 @@ esac
       expect(backedUp).toContain("./manifest.json");
       expect(backedUp).toContain("./database/data.sql");
       expect(backedUp).toContain("./storage/wardrobe/user/item/original.jpg");
+      expect(backedUp).toContain("./database/platform-objects.sql");
       expect(backedUp).not.toContain("restic-cache");
     } finally {
       rmSync(fixture, { recursive: true, force: true });
@@ -592,6 +610,54 @@ esac
     }
   });
 
+  test("replays the captured auth/storage policies and triggers after the database, before the photos", () => {
+    const fixture = restoreFixture();
+
+    try {
+      const result = run(restoreScript, ["latest", "--confirm-disposable-target"], fixture.env);
+      const trace = restoreTrace(fixture.trace);
+
+      expect(result.status, result.stderr).toBe(0);
+      expect(trace).toMatch(/history data[\s\S]*platform-file:\n-- fitcheck-platform-objects[\s\S]*wardrobe_rw_own[\s\S]*rclone-copy/);
+      expect(result.stdout).toContain("Restored 1 auth/storage policies and 1 auth triggers.");
+      expect(result.stdout).not.toContain("WARNING");
+    } finally {
+      rmSync(fixture.fixture, { recursive: true, force: true });
+    }
+  });
+
+  test("fails when the target does not end up with the captured policies and triggers", () => {
+    const fixture = restoreFixture();
+
+    try {
+      const result = run(restoreScript, ["latest", "--confirm-disposable-target"], {
+        ...fixture.env,
+        TARGET_PLATFORM_COUNTS: "0|1",
+      });
+
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain("do not match the snapshot");
+      expect(restoreTrace(fixture.trace)).not.toContain("rclone-copy");
+    } finally {
+      rmSync(fixture.fixture, { recursive: true, force: true });
+    }
+  });
+
+  test("warns loudly when an older snapshot has no captured policies or triggers", () => {
+    const fixture = restoreFixture(undefined, undefined, undefined, null);
+
+    try {
+      const result = run(restoreScript, ["latest", "--confirm-disposable-target"], fixture.env);
+
+      expect(result.status, result.stderr).toBe(0);
+      expect(result.stdout).toContain("WARNING: this snapshot predates auth/storage capture");
+      expect(result.stdout).toContain("NOT restored");
+      expect(restoreTrace(fixture.trace)).not.toContain("platform-file");
+    } finally {
+      rmSync(fixture.fixture, { recursive: true, force: true });
+    }
+  });
+
   test("fails the restore when deletion reconciliation fails", () => {
     const fixture = restoreFixture();
 
@@ -690,7 +756,14 @@ case "\${1:-}" in
 esac
 `,
     );
-    executable("psql", `echo "psql (PostgreSQL) 18.3"`);
+    executable("psql", `
+if [[ " $* " == *" -f "* ]]; then
+  if [[ -n "\${PLATFORM_CAPTURE_OUTPUT:-}" ]]; then printf '%s\\n' "$PLATFORM_CAPTURE_OUTPUT"; exit 0; fi
+  printf -- '-- fitcheck-platform-objects policies=1 triggers=1\\ncreate policy wardrobe_rw_own on storage.objects;\\n'
+  exit 0
+fi
+echo "psql (PostgreSQL) 18.3"
+`);
     executable("docker", `exit 0`);
     symlinkSync(process.execPath, join(bin, "node"));
     return { fixture, bin, trace };
@@ -746,6 +819,31 @@ esac
       const result = runWith(join(fixture.fixture, "new-restic"), fixture);
       expect(result.status, result.stderr).toBe(0);
       expect(calls(fixture.trace).filter((call) => call === "init")).toHaveLength(1);
+    } finally {
+      rmSync(fixture.fixture, { recursive: true, force: true });
+    }
+  });
+
+  test("stops before writing a snapshot when the platform-object capture has no header", () => {
+    const fixture = initFixture(0);
+    try {
+      const result = run(runScript, ["manual"], {
+        PATH: `${fixture.bin}:${process.env.PATH ?? ""}`,
+        TRACE: fixture.trace,
+        PLATFORM_CAPTURE_OUTPUT: "not the capture query output",
+        SUPABASE_DB_URL:
+          "postgresql://postgres.project-ref:password@aws-0-eu-central-1.pooler.supabase.com:5432/postgres",
+        SUPABASE_PROJECT_REF: "project-ref",
+        SUPABASE_S3_ACCESS_KEY_ID: "source-key",
+        SUPABASE_S3_SECRET_ACCESS_KEY: "source-secret",
+        RESTIC_REPOSITORY: "s3:example.invalid/bucket/nightly",
+        RESTIC_PASSWORD: "repository-password",
+        AWS_ACCESS_KEY_ID: "destination-key",
+        AWS_SECRET_ACCESS_KEY: "destination-secret",
+      });
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain("platform object capture");
+      expect(calls(fixture.trace)).not.toContain("backup");
     } finally {
       rmSync(fixture.fixture, { recursive: true, force: true });
     }

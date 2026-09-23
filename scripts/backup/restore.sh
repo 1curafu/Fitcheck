@@ -121,6 +121,36 @@ psql \
   --file "$RESTORE_ROOT/database/migration-history-data.sql" \
   --dbname "$RESTORE_DB_URL"
 
+# Fitcheck's policies and triggers in the Supabase-managed auth/storage schemas are not part of the public-schema
+# dump. Without them no user can read a photo and new sign-ups get no profile. Replay the captured file, then prove
+# the target holds exactly the captured counts.
+PLATFORM_FILE="$RESTORE_ROOT/database/platform-objects.sql"
+PLATFORM_WARNING=""
+if [[ -f "$PLATFORM_FILE" ]]; then
+  PLATFORM_HEADER="$(head -n 1 "$PLATFORM_FILE")"
+  if [[ ! "$PLATFORM_HEADER" =~ ^--\ fitcheck-platform-objects\ policies=([0-9]+)\ triggers=([0-9]+)$ ]]; then
+    backup_die "platform-objects.sql has no valid header"
+  fi
+  EXPECTED_POLICIES="${BASH_REMATCH[1]}"
+  EXPECTED_TRIGGERS="${BASH_REMATCH[2]}"
+  printf 'Restoring auth/storage policies and triggers…\n'
+  psql \
+    --single-transaction \
+    --variable ON_ERROR_STOP=1 \
+    --file "$PLATFORM_FILE" \
+    --dbname "$RESTORE_DB_URL"
+  RESTORED_PLATFORM="$(psql "$RESTORE_DB_URL" -At -v ON_ERROR_STOP=1 -c "select (select count(*) from pg_policies where schemaname in ('auth', 'storage')) || '|' || (select count(*) from pg_trigger t join pg_class c on c.oid = t.tgrelid join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'auth' and not t.tgisinternal)")" \
+    || backup_die "could not verify restored auth/storage policies and triggers"
+  if [[ "$RESTORED_PLATFORM" != "${EXPECTED_POLICIES}|${EXPECTED_TRIGGERS}" ]]; then
+    backup_die "restored auth/storage objects do not match the snapshot (expected policies|triggers ${EXPECTED_POLICIES}|${EXPECTED_TRIGGERS}, found ${RESTORED_PLATFORM})"
+  fi
+  printf 'Restored %s auth/storage policies and %s auth triggers.\n' "$EXPECTED_POLICIES" "$EXPECTED_TRIGGERS"
+else
+  PLATFORM_WARNING=1
+  printf '\nWARNING: this snapshot predates auth/storage capture. Storage policies and auth triggers were NOT restored:\n'
+  printf 'no user can read a photo and new sign-ups get no profile until they are re-applied (see the restore runbook).\n\n'
+fi
+
 export RCLONE_CONFIG_RESTORE_TYPE=s3
 export RCLONE_CONFIG_RESTORE_PROVIDER=Other
 export RCLONE_CONFIG_RESTORE_ACCESS_KEY_ID="$RESTORE_S3_ACCESS_KEY_ID"
@@ -154,3 +184,6 @@ The disposable-project drill is not complete until the operator verifies:
 
 Never reopen a disaster-restored production project before step 6.
 CHECKLIST
+if [[ -n "$PLATFORM_WARNING" ]]; then
+  printf '\nREMINDER: re-apply the auth/storage policies and triggers before traffic — this snapshot did not contain them.\n'
+fi
