@@ -25,6 +25,13 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.3.7",
+    date: "2026-09-23",
+    headline: "Quieter work behind the scenes to keep your data safe.",
+    added: ["Every update now checks that its database changes really arrived"],
+    fixed: [],
+  },
+  {
     version: "0.3.6",
     date: "2026-09-23",
     headline: "Removing a piece now tells you exactly what happens.",
