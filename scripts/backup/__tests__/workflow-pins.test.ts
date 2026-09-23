@@ -23,3 +23,23 @@ describe("GitHub Actions pinning", () => {
     }
   });
 });
+
+describe("production credentials", () => {
+  const workflows = resolve(dirname(fileURLToPath(import.meta.url)), "../../../.github/workflows");
+  const files = readdirSync(workflows).filter((file) => /\.ya?ml$/.test(file));
+  const productionSecret = /secrets\.(SUPABASE_DB_URL|SUPABASE_S3_SECRET_ACCESS_KEY|RESTIC_PASSWORD|B2_BACKUP_APPLICATION_KEY)\b/;
+
+  test("at least the backup and drift workflows use them", () => {
+    const users = files.filter((file) => productionSecret.test(readFileSync(join(workflows, file), "utf8")));
+    expect(users).toEqual(expect.arrayContaining(["backup.yml", "migration-drift.yml"]));
+  });
+
+  test.each(files)("%s only lets production secrets meet code from main", (file) => {
+    const text = readFileSync(join(workflows, file), "utf8");
+    if (!productionSecret.test(text)) return;
+    expect(text, `${file} uses production secrets without a main-only job guard`).toMatch(
+      /^\s+if: github\.ref == 'refs\/heads\/main'$/m,
+    );
+    expect(text, `${file} must not run production secrets on pull_request events`).not.toMatch(/^\s*pull_request/m);
+  });
+});
