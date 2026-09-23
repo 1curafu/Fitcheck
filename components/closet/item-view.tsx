@@ -85,7 +85,9 @@ export function ItemView({
   ];
 
   return (
-    <div className="flex min-h-dvh flex-1 flex-col">
+    // `relative`: the floating Back/⋯ controls are positioned against THIS screen, so they move down with it when
+    // the shell's in-flow cookie notice is showing, instead of staying pinned under the notice at the shell's top.
+    <div className="relative flex min-h-dvh flex-1 flex-col">
       <div className="absolute inset-x-[18px] top-[calc(env(safe-area-inset-top)+18px)] z-40 flex justify-between">
         <button
           type="button"
