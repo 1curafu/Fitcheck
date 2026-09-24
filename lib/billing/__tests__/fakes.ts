@@ -42,18 +42,16 @@ export const sub = (id: string, status: string, end = 2_000_000_000, interval = 
 });
 
 export function fakeGateway(subs: Record<string, SubscriptionLike[]> = {}) {
+  type G = StripeGateway;
   return {
-    priceIdForLookupKey: vi.fn(async (k: string) => `price_${k}`),
-    createCustomer: vi.fn(async (_input: { email: string | null; userId: string }) => "cus_new"),
-    customerEmail: vi.fn(async (_id: string): Promise<string | null> => "old@example.com"),
-    updateCustomerEmail: vi.fn(async (_id: string, _email: string) => {}),
-    createCheckoutSession: vi.fn(async (_p: unknown) => ({ url: "https://checkout.stripe.com/c/pay/cs_test" })),
-    retrieveCheckoutSession: vi.fn(async (_id: string) => ({
-      clientReferenceId: "u1" as string | null,
-      customerId: "cus_1" as string | null,
-    })),
-    listSubscriptions: vi.fn(async (c: string) => subs[c] ?? []),
-    cancelSubscriptionNow: vi.fn(async (_id: string) => {}),
-    createPortalSession: vi.fn(async (_c: string, _r: string) => ({ url: "https://billing.stripe.com/p/session/x" })),
+    priceIdForLookupKey: vi.fn<G["priceIdForLookupKey"]>(async (k) => `price_${k}`),
+    createCustomer: vi.fn<G["createCustomer"]>(async () => "cus_new"),
+    customerEmail: vi.fn<G["customerEmail"]>(async () => "old@example.com"),
+    updateCustomerEmail: vi.fn<G["updateCustomerEmail"]>(async () => {}),
+    createCheckoutSession: vi.fn<G["createCheckoutSession"]>(async () => ({ url: "https://checkout.stripe.com/c/pay/cs_test" })),
+    retrieveCheckoutSession: vi.fn<G["retrieveCheckoutSession"]>(async () => ({ clientReferenceId: "u1", customerId: "cus_1" })),
+    listSubscriptions: vi.fn<G["listSubscriptions"]>(async (c) => subs[c] ?? []),
+    cancelSubscriptionNow: vi.fn<G["cancelSubscriptionNow"]>(async () => {}),
+    createPortalSession: vi.fn<G["createPortalSession"]>(async () => ({ url: "https://billing.stripe.com/p/session/x" })),
   } satisfies StripeGateway;
 }

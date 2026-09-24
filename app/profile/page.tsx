@@ -8,6 +8,7 @@ import { currentStreak } from "@/lib/diary/streak";
 import { initials, handleFrom, paletteFor } from "@/lib/profile/identity";
 import { ProfileHub, type HubLink } from "@/components/profile/profile-hub";
 import { entitlementsFor } from "@/lib/billing/tiers";
+import { subscriptionFromRow } from "@/lib/billing/status-line";
 
 /**
  * Rows are marked ready ONLY for routes that exist on `main` today.
@@ -76,20 +77,23 @@ function ProfileShell() {
   );
 }
 
-export default function ProfilePage() {
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+export default function ProfilePage({ searchParams }: { searchParams: SearchParams }) {
   return (
     <div className="flex min-h-dvh flex-1 flex-col">
       {/* The nav is the shell — identical for every user, so it prerenders
-          and prefetches. Everything below needs the session. */}
+          and prefetches. Everything below needs the session — and the query
+          string (`?pro=welcome` after Stripe Checkout), awaited inside it. */}
       <Suspense fallback={<ProfileShell />}>
-        <ProfileBody />
+        <ProfileBody searchParams={searchParams} />
       </Suspense>
       <MobileNav />
     </div>
   );
 }
 
-async function ProfileBody() {
+async function ProfileBody({ searchParams }: { searchParams: SearchParams }) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -98,7 +102,9 @@ async function ProfileBody() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name, archetype, tier, location_timezone")
+    .select(
+      "display_name, archetype, tier, location_timezone, subscription_status, subscription_interval, current_period_end, cancel_at_period_end",
+    )
     .eq("id", user.id)
     .single();
 
@@ -135,6 +141,8 @@ async function ProfileBody() {
         streak: currentStreak(wornDates, today),
       }}
       links={LINKS}
+      subscription={subscriptionFromRow(profile)}
+      proNotice={(await searchParams).pro === "welcome" ? "welcome" : null}
     />
   );
 }

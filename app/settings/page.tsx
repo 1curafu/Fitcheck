@@ -7,6 +7,7 @@ import { initials } from "@/lib/profile/identity";
 import { readPreferences } from "@/lib/profile/preferences";
 import { resolveLocation } from "@/lib/weather/location";
 import { SettingsView } from "@/components/settings/settings-view";
+import { subscriptionFromRow } from "@/lib/billing/status-line";
 import { deleteAccount, updatePreferences, setLocation } from "./actions";
 
 export default function SettingsPage() {
@@ -29,7 +30,7 @@ async function SettingsBody() {
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "display_name, location_label, location_lat, location_lon, location_source, preferences",
+      "display_name, location_label, location_lat, location_lon, location_source, preferences, tier, subscription_status, subscription_interval, current_period_end, cancel_at_period_end",
     )
     .eq("id", user.id)
     .single();
@@ -51,6 +52,7 @@ async function SettingsBody() {
         onSaveAction={updatePreferences}
         onSetLocationAction={setLocation}
         onDeleteAction={deleteAccount}
+        subscription={subscriptionFromRow(profile)}
       />
       <MobileNav />
     </div>

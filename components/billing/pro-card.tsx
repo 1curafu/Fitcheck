@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import type { SubscriptionSummary } from "@/lib/billing/status-line";
 import type { Tier } from "@/lib/billing/tiers";
-import { UpgradeSheet } from "./upgrade-sheet";
+import { ManageSubscription } from "./manage-subscription";
+import { proPriceLabel, UpgradeSheet } from "./upgrade-sheet";
 
 /**
  * The Pro banner on the profile hub (`Fitcheck.dc.html:694-698`).
@@ -17,7 +19,7 @@ import { UpgradeSheet } from "./upgrade-sheet";
  * which is where the full case gets made — so the pitch lives in exactly one
  * place whether the user arrives here or from a gate.
  */
-export function ProCard({ tier }: { tier: Tier }) {
+export function ProCard({ tier, subscription }: { tier: Tier; subscription?: SubscriptionSummary | null }) {
   const [open, setOpen] = useState(false);
   const isPro = tier === "pro";
 
@@ -33,9 +35,21 @@ export function ProCard({ tier }: { tier: Tier }) {
           {isPro ? "Active — everything unlocked." : "Get the whole wardrobe working."}
         </span>
         <span className="mt-[13px] inline-block rounded-full bg-canvas px-[17px] py-[9px] text-[13px] font-semibold text-foreground">
-          {isPro ? "Your membership" : "Go Pro · €5/mo"}
+          {isPro ? "Your membership" : `Go Pro · ${proPriceLabel("month").label}`}
         </span>
       </button>
+
+      {/* Stripe's limit-1 setting sends an existing subscriber to /profile: this is where they manage it. */}
+      {isPro && (
+        <div className="mt-[10px] rounded-[16px] bg-surface-1 shadow-[inset_0_0_0_1px_var(--hairline-2)]">
+          <ManageSubscription
+            status={subscription?.status ?? null}
+            interval={subscription?.interval ?? null}
+            currentPeriodEnd={subscription?.currentPeriodEnd ?? null}
+            cancelAtPeriodEnd={subscription?.cancelAtPeriodEnd ?? false}
+          />
+        </div>
+      )}
 
       <UpgradeSheet
         open={open}

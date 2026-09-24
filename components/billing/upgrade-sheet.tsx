@@ -9,7 +9,11 @@ import {
   Compass,
   Bookmark,
 } from "lucide-react";
+import { useState, useTransition } from "react";
+import { startCheckout, type StartCheckoutResult } from "@/app/billing/actions";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
+import { displayPrice, type Interval } from "@/lib/billing/prices";
+import { cn } from "@/lib/utils";
 
 /**
  * What Pro unlocks, in the order MONETISATION.md §3 lists it.
@@ -52,6 +56,7 @@ export function UpgradeSheet({
   body,
   isPro = false,
   onClose,
+  timeZone,
 }: {
   open: boolean;
   /** What the user just tried to do, in their words. */
@@ -61,6 +66,8 @@ export function UpgradeSheet({
   /** A subscriber gets the same list as a receipt, never a sales pitch. */
   isPro?: boolean;
   onClose: () => void;
+  /** Display currency only; defaults to the device's time zone. Checkout decides the real currency. */
+  timeZone?: string;
 }) {
   if (!open) return null;
 
@@ -137,14 +144,7 @@ export function UpgradeSheet({
           ))}
         </ul>
 
-        {/* Inert: billing is a later phase, and a button that takes money it
-            cannot take is worse than none. It states the price so the offer is
-            complete; the purchase arrives with Stripe. */}
-        {!isPro && (
-          <div className="mt-5 grid min-h-[52px] w-full place-items-center rounded-[14px] bg-foreground text-[15.5px] font-semibold text-canvas">
-            Go Pro · €5/mo
-          </div>
-        )}
+        {!isPro && <ProPurchase timeZone={timeZone} />}
 
         {/* A gate you cannot dismiss is a trap — but it must not crowd the
             primary either. At mt-2 the two read as one stuck-together block;
@@ -158,5 +158,108 @@ export function UpgradeSheet({
         </button>
       </div>
     </>
+  );
+}
+
+const PURCHASE_MESSAGES: Record<StartCheckoutResult["status"], string> = {
+  "waiver-required": "Please confirm you want Pro to start now.",
+  "already-pro": "You're already Pro — manage it from your profile.",
+  "signed-out": "Please sign in again.",
+  unavailable: "Pro isn't available right now.",
+  error: "Couldn't start checkout. Try again in a moment.",
+};
+
+/** The price in the buyer's currency — display only; Stripe Checkout charges the real local currency. */
+export function proPriceLabel(interval: Interval, timeZone?: string) {
+  return displayPrice(interval, timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
+}
+
+/**
+ * The purchase block (spec §8). While billing is off (NEXT_PUBLIC_BILLING_ENABLED unset: CI, local, before launch)
+ * it stays the inert price pill — a button that takes money it cannot take is worse than none.
+ */
+function ProPurchase({ timeZone }: { timeZone?: string }) {
+  const [plan, setPlan] = useState<Interval>("month");
+  const [waiver, setWaiver] = useState(false);
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const price = proPriceLabel(plan, timeZone);
+
+  if (process.env.NEXT_PUBLIC_BILLING_ENABLED !== "1") {
+    return (
+      <div className="mt-5 grid min-h-[52px] w-full place-items-center rounded-[14px] bg-foreground text-[15.5px] font-semibold text-canvas">
+        Go Pro · {proPriceLabel("month", timeZone).label}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-5">
+      <div role="radiogroup" aria-label="Billing interval" className="grid grid-cols-2 gap-2">
+        {(["month", "year"] as const).map((option) => (
+          <button
+            key={option}
+            type="button"
+            role="radio"
+            aria-checked={plan === option}
+            onClick={() => setPlan(option)}
+            className={cn(
+              "min-h-[44px] rounded-[12px] text-[14px]",
+              plan === option ? "bg-foreground text-canvas" : "text-foreground shadow-[inset_0_0_0_1px_var(--hairline-2)]",
+            )}
+          >
+            {option === "month" ? "Monthly" : "Annual · 2 months free"}
+          </button>
+        ))}
+      </div>
+
+      <p className="mt-3 text-center text-[15px] text-foreground">{price.label}</p>
+      {price.converted && (
+        <p className="text-center text-[12px] text-muted-dim">Charged in your local currency at checkout.</p>
+      )}
+
+      {/* EU withdrawal waiver (spec §8): distinct, unticked by default, required server-side too. */}
+      <label className="mt-4 flex items-start gap-3 text-[13px]/[1.4] text-muted-foreground">
+        <input
+          type="checkbox"
+          checked={waiver}
+          onChange={(e) => setWaiver(e.target.checked)}
+          className="mt-0.5 size-5 shrink-0"
+        />
+        <span>Start Pro now. I understand I lose my 14-day right of withdrawal once it starts.</span>
+      </label>
+
+      <button
+        type="button"
+        disabled={!waiver || pending}
+        onClick={() =>
+          start(async () => {
+            setError(null);
+            // Success redirects to Stripe Checkout; a returned result is an outcome to explain.
+            const result = await startCheckout({ interval: plan, waiverAccepted: waiver });
+            if (result) setError(PURCHASE_MESSAGES[result.status] ?? PURCHASE_MESSAGES.error);
+          })
+        }
+        className="mt-4 grid min-h-[52px] w-full place-items-center rounded-[14px] bg-foreground text-[15.5px] font-semibold text-canvas disabled:opacity-40"
+      >
+        {pending ? "Opening checkout…" : "Go Pro"}
+      </button>
+      {error && (
+        <p role="alert" className="mt-2 text-center text-[13px] text-muted-foreground">
+          {error}
+        </p>
+      )}
+
+      <p className="mt-3 text-center text-[11.5px]/[1.45] text-muted-dim">
+        Payments processed by Stripe · sold through Link. Renews automatically — cancel any time in the app.{" "}
+        <a href="/terms" className="underline underline-offset-2">
+          Terms
+        </a>
+        {" · "}
+        <a href="/privacy" className="underline underline-offset-2">
+          Privacy
+        </a>
+      </p>
+    </div>
   );
 }

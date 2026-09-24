@@ -1,6 +1,8 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ProfileHub } from "../profile-hub";
+// The upgrade sheet imports the billing Server Actions (server-only); a rendering test never calls Stripe.
+vi.mock("@/app/billing/actions", () => ({ startCheckout: vi.fn(), openBillingPortal: vi.fn() }));
 
 const props = {
   name: "Mykhailo",
@@ -85,8 +87,9 @@ describe("the Pro card", () => {
   // The mockup puts the price pill inside the banner (Fitcheck.dc.html:697).
   test("carries the price pill, as the mockup does", () => {
     render(<ProfileHub {...props} />);
+    // The price follows the device's time zone (CHF/€/$); the test must pass in any zone, CI runs in UTC.
     expect(screen.getByRole("button", { name: /fitcheck pro/i })).toHaveTextContent(
-      /go pro · €5\/mo/i,
+      /go pro · (CHF 5|€5|\$5) \/ month/i,
     );
   });
 
@@ -96,9 +99,8 @@ describe("the Pro card", () => {
     const sheet = await screen.findByRole("dialog");
     expect(sheet).toHaveTextContent(/gap analysis/i);
     expect(sheet).toHaveTextContent(/around any piece/i);
-    // The price is EUR. The design says £5 and the plan said render it verbatim;
-    // superseded for the price only — every other price in the app is euro.
-    expect(sheet).toHaveTextContent(/€5\/mo/);
+    // The price is shown in the buyer's currency (CHF/€/$ by time zone). The design's £5 stays superseded.
+    expect(sheet).toHaveTextContent(/(CHF 5|€5|\$5) \/ month/);
     expect(sheet).not.toHaveTextContent(/£/);
   });
 
@@ -122,8 +124,34 @@ describe("the Pro card", () => {
     expect(card).not.toHaveTextContent(/go pro/i);
     await userEvent.click(card);
     const sheet = await screen.findByRole("dialog");
-    expect(sheet).not.toHaveTextContent(/€5\/mo/);
+    expect(sheet).not.toHaveTextContent(/\/ month/);
     expect(sheet).toHaveTextContent(/gap analysis/i);
+  });
+
+  // Stripe's "limit customers to 1 subscription" sends an existing subscriber to /profile — the button must be here.
+  test("a Pro subscriber can manage the subscription from the hub", () => {
+    render(
+      <ProfileHub
+        {...props}
+        tier="pro"
+        subscription={{ status: "active", interval: "year", currentPeriodEnd: "2026-10-12T08:00:00.000Z", cancelAtPeriodEnd: false }}
+      />,
+    );
+    expect(screen.getByRole("button", { name: /manage subscription/i })).toBeInTheDocument();
+    expect(screen.getByText(/annual/i)).toBeInTheDocument();
+  });
+
+  test("a free user is not shown a manage button", () => {
+    render(<ProfileHub {...props} />);
+    expect(screen.queryByRole("button", { name: /manage subscription/i })).not.toBeInTheDocument();
+  });
+
+  test("back from checkout: welcome once Pro, 'activating' until the webhook lands", () => {
+    const { unmount } = render(<ProfileHub {...props} tier="pro" proNotice="welcome" />);
+    expect(screen.getByRole("status")).toHaveTextContent(/welcome to pro/i);
+    unmount();
+    render(<ProfileHub {...props} proNotice="welcome" />);
+    expect(screen.getByRole("status")).toHaveTextContent(/activating pro/i);
   });
 });
 
