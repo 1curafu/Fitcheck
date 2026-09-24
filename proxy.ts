@@ -18,7 +18,10 @@ export const config = {
      * a database round-trip — on each one. Sentry's own setup comment warns
      * that the tunnel route must not collide with middleware; this is that
      * collision, avoided rather than discovered in a bill.
+     *
+     * `api/stripe/webhook` is excluded too: Stripe carries no session, and the
+     * request's signature is its authentication.
      */
-    "/((?!_next/static|_next/image|favicon.ico|monitoring|robots.txt|sitemap.xml|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|monitoring|api/stripe/webhook|robots.txt|sitemap.xml|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
