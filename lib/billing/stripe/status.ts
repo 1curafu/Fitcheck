@@ -5,6 +5,8 @@ export type SubscriptionLike = {
   id: string;
   status: string;
   cancel_at_period_end: boolean;
+  /** Unix seconds. The Customer Portal schedules a cancellation HERE in this API version, not with the flag above. */
+  cancel_at: number | null;
   items: { data: Array<{ current_period_end: number; price: { recurring: { interval: string } | null } }> };
 };
 
@@ -55,13 +57,16 @@ export const FREE_STATE: BillingState = {
 export function toBillingState(sub: SubscriptionLike | null): BillingState {
   if (!sub) return FREE_STATE;
   const raw = sub.items.data[0]?.price.recurring?.interval;
-  const end = periodEnd(sub);
+  // A scheduled cancellation arrives either as the legacy flag or as `cancel_at` (what the portal sets on
+  // 2026-08-26.dahlia, flag left false). With `cancel_at`, Pro ends then — shown instead of a later period end.
+  const cancelAt = sub.cancel_at ?? 0;
+  const end = cancelAt > 0 && (periodEnd(sub) === 0 || cancelAt < periodEnd(sub)) ? cancelAt : periodEnd(sub);
   return {
     subscriptionId: sub.id,
     status: sub.status,
     interval: raw === "month" || raw === "year" ? raw : null,
     currentPeriodEnd: end > 0 ? new Date(end * 1000).toISOString() : null,
-    cancelAtPeriodEnd: sub.cancel_at_period_end,
+    cancelAtPeriodEnd: sub.cancel_at_period_end || cancelAt > 0,
     tier: tierForStatus(sub.status),
   };
 }

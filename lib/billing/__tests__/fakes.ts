@@ -38,6 +38,7 @@ export const sub = (id: string, status: string, end = 2_000_000_000, interval = 
   id,
   status,
   cancel_at_period_end: false,
+  cancel_at: null,
   items: { data: [{ current_period_end: end, price: { recurring: { interval } } }] },
 });
 

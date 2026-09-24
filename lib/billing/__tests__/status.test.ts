@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { tierForStatus, pickSubscription, toBillingState, FREE_STATE, type SubscriptionLike } from "../stripe/status";
 
 const sub = (id: string, status: string, end: number, interval = "month", cancel = false): SubscriptionLike => ({
-  id, status, cancel_at_period_end: cancel,
+  id, status, cancel_at_period_end: cancel, cancel_at: null,
   items: { data: [{ current_period_end: end, price: { recurring: { interval } } }] },
 });
 
@@ -34,6 +34,19 @@ describe("toBillingState", () => {
     });
   });
   it("null is the free state", () => expect(toBillingState(null)).toEqual(FREE_STATE));
+  // Found in the sandbox run: in this API version the Customer Portal schedules a cancellation by setting `cancel_at`
+  // to the period end and leaves `cancel_at_period_end` false. Reading only the flag kept "renews" on screen.
+  it("a portal cancellation (cancel_at, flag false) is a scheduled cancellation ending at cancel_at", () => {
+    const state = toBillingState({ ...sub("s", "active", 1_792_834_666), cancel_at: 1_792_834_666 });
+    expect(state.cancelAtPeriodEnd).toBe(true);
+    expect(state.currentPeriodEnd).toBe(new Date(1_792_834_666 * 1000).toISOString());
+    expect(state.tier).toBe("pro");
+  });
+  it("a cancel_at before the period end is the date Pro ends — never the later period end", () => {
+    const state = toBillingState({ ...sub("s", "active", 1_800_000_000), cancel_at: 1_790_000_000 });
+    expect(state.cancelAtPeriodEnd).toBe(true);
+    expect(state.currentPeriodEnd).toBe(new Date(1_790_000_000 * 1000).toISOString());
+  });
   it("an unexpected interval is stored as null, never guessed", () => {
     expect(toBillingState(sub("s", "active", 1, "week")).interval).toBeNull();
   });
