@@ -9,7 +9,14 @@ import {
   Compass,
   Bookmark,
 } from "lucide-react";
+import { Check } from "lucide-react";
+import { unstable_rethrow } from "next/navigation";
+import { useState, useTransition } from "react";
+import { startCheckout, type StartCheckoutResult } from "@/app/billing/actions";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
+import { displayPrice, monthlyEquivalent, type Interval } from "@/lib/billing/prices";
+import { useClientTimeZone } from "@/lib/billing/use-client-time-zone";
+import { cn } from "@/lib/utils";
 
 /**
  * What Pro unlocks, in the order MONETISATION.md §3 lists it.
@@ -52,6 +59,7 @@ export function UpgradeSheet({
   body,
   isPro = false,
   onClose,
+  timeZone,
 }: {
   open: boolean;
   /** What the user just tried to do, in their words. */
@@ -61,6 +69,8 @@ export function UpgradeSheet({
   /** A subscriber gets the same list as a receipt, never a sales pitch. */
   isPro?: boolean;
   onClose: () => void;
+  /** Display currency only; defaults to the device's time zone. Checkout decides the real currency. */
+  timeZone?: string;
 }) {
   if (!open) return null;
 
@@ -83,7 +93,7 @@ export function UpgradeSheet({
         // caps at 440 and a sheet wider than it would hang off the app on a
         // desktop viewport.
         style={{ maxWidth: 440 }}
-        className="fixed inset-x-0 bottom-0 z-[70] mx-auto rounded-t-[22px] border-t border-[rgba(237,230,216,0.12)] bg-surface-2 px-[22px] pb-[calc(env(safe-area-inset-bottom)+20px)] pt-3.5"
+        className="fixed inset-x-0 bottom-0 z-[70] mx-auto max-h-[92dvh] overflow-y-auto overscroll-contain rounded-t-[22px] border-t border-[rgba(237,230,216,0.12)] bg-surface-2 px-[22px] pb-[calc(env(safe-area-inset-bottom)+20px)] pt-3.5"
       >
         <div className="mx-auto mb-4 h-1 w-[34px] rounded-full bg-faint" />
 
@@ -137,14 +147,7 @@ export function UpgradeSheet({
           ))}
         </ul>
 
-        {/* Inert: billing is a later phase, and a button that takes money it
-            cannot take is worse than none. It states the price so the offer is
-            complete; the purchase arrives with Stripe. */}
-        {!isPro && (
-          <div className="mt-5 grid min-h-[52px] w-full place-items-center rounded-[14px] bg-foreground text-[15.5px] font-semibold text-canvas">
-            Go Pro · €5/mo
-          </div>
-        )}
+        {!isPro && <ProPurchase timeZone={timeZone} />}
 
         {/* A gate you cannot dismiss is a trap — but it must not crowd the
             primary either. At mt-2 the two read as one stuck-together block;
@@ -158,5 +161,156 @@ export function UpgradeSheet({
         </button>
       </div>
     </>
+  );
+}
+
+const PURCHASE_MESSAGES: Record<StartCheckoutResult["status"], string> = {
+  "waiver-required": "Please confirm you want Pro to start now.",
+  "already-pro": "You're already Pro — manage it from your profile.",
+  "signed-out": "Please sign in again.",
+  unavailable: "Pro isn't available right now.",
+  error: "Couldn't start checkout. Try again in a moment.",
+};
+
+/**
+ * The price in the buyer's currency — display only; Stripe Checkout charges the real local currency.
+ * Pass the zone from `useClientTimeZone()`: undefined on the server renders the neutral CHF label (review I1).
+ */
+export function proPriceLabel(interval: Interval, timeZone: string | undefined) {
+  return displayPrice(interval, timeZone);
+}
+
+/**
+ * The purchase block (spec §8). While billing is off (NEXT_PUBLIC_BILLING_ENABLED unset: CI, local, before launch)
+ * it stays the inert price pill — a button that takes money it cannot take is worse than none.
+ */
+function ProPurchase({ timeZone }: { timeZone?: string }) {
+  const deviceZone = useClientTimeZone();
+  const tz = timeZone ?? deviceZone;
+  const [plan, setPlan] = useState<Interval>("year");
+  const [waiver, setWaiver] = useState(false);
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  if (process.env.NEXT_PUBLIC_BILLING_ENABLED !== "1") {
+    return (
+      <div className="mt-5 grid min-h-[52px] w-full place-items-center rounded-[14px] bg-foreground text-[15.5px] font-semibold text-canvas">
+        Go Pro · {displayPrice("month", tz).label}
+      </div>
+    );
+  }
+
+  const PLANS: Array<{ id: Interval; name: string; hint: string | null }> = [
+    { id: "year", name: "Annual", hint: `2 months free · ${monthlyEquivalent(tz)}` },
+    { id: "month", name: "Monthly", hint: null },
+  ];
+
+  return (
+    <div className="mt-5">
+      {/* Plan rows in the same hairline surface as the benefits list — a menu, not a toggle (owner, 2026-09-24).
+          Real radio inputs, so the group is keyboard- and screen-reader-native. */}
+      <fieldset className="overflow-hidden rounded-[14px] bg-surface-1 shadow-[inset_0_0_0_1px_var(--hairline-2)]">
+        <legend className="sr-only">Billing interval</legend>
+        {PLANS.map((p, i) => {
+          const selected = plan === p.id;
+          return (
+            <label
+              key={p.id}
+              className={cn(
+                "flex cursor-pointer items-center gap-3 px-4 py-3",
+                i > 0 && "border-t border-[var(--hairline-2)]",
+                selected && "shadow-[inset_0_0_0_1.5px_var(--color-foreground)]",
+              )}
+            >
+              <input
+                type="radio"
+                name="pro-plan"
+                value={p.id}
+                checked={selected}
+                onChange={() => setPlan(p.id)}
+                aria-label={p.name}
+                className="peer sr-only"
+              />
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "grid size-[18px] shrink-0 place-items-center rounded-full border",
+                  selected ? "border-foreground" : "border-muted-dim",
+                )}
+              >
+                {selected && <span className="size-[9px] rounded-full bg-foreground" />}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[14.5px] text-foreground">{p.name}</span>
+                {p.hint && <span className="block text-[12px] text-muted-dim">{p.hint}</span>}
+              </span>
+              <span className="text-[14px] text-value">{displayPrice(p.id, tz).label}</span>
+            </label>
+          );
+        })}
+      </fieldset>
+      {/* The label above is a guess from the phone's time zone; Checkout prices by the buyer's location and the
+          country they enter there (Link, as seller, decides tax from its own evidence). */}
+      <p className="mt-2 text-center text-[12px] text-muted-dim">Final price and currency shown at checkout.</p>
+
+      {/* EU withdrawal waiver (spec §8): distinct, unticked by default, required server-side too. A drawn box in the
+          app's cream, not the platform's blue default. */}
+      <label className="mt-4 flex cursor-pointer items-start gap-3 text-[13px]/[1.4] text-muted-foreground">
+        <input
+          type="checkbox"
+          checked={waiver}
+          onChange={(e) => setWaiver(e.target.checked)}
+          className="peer sr-only"
+        />
+        <span
+          aria-hidden="true"
+          className={cn(
+            "mt-0.5 grid size-5 shrink-0 place-items-center rounded-[6px] border peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-foreground",
+            waiver ? "border-foreground bg-foreground text-canvas" : "border-muted-dim",
+          )}
+        >
+          {waiver && <Check size={14} strokeWidth={2.4} />}
+        </span>
+        <span>Start Pro now. I understand I lose my 14-day right of withdrawal once it starts.</span>
+      </label>
+
+      <button
+        type="button"
+        disabled={!waiver || pending}
+        onClick={() =>
+          start(async () => {
+            setError(null);
+            // Success redirects to Stripe Checkout; a returned result is an outcome to explain, and a rejection
+            // (network drop, timeout) must end here too, not on the global error page (review M6).
+            try {
+              const result = await startCheckout({ interval: plan, waiverAccepted: waiver });
+              if (result) setError(PURCHASE_MESSAGES[result.status] ?? PURCHASE_MESSAGES.error);
+            } catch (e) {
+              unstable_rethrow(e); // let a Next redirect through
+              setError(PURCHASE_MESSAGES.error);
+            }
+          })
+        }
+        className="mt-4 grid min-h-[52px] w-full place-items-center rounded-[14px] bg-foreground text-[15.5px] font-semibold text-canvas disabled:opacity-40"
+      >
+        {pending ? "Opening checkout…" : "Go Pro"}
+      </button>
+      {error && (
+        <p role="alert" className="mt-2 text-center text-[13px] text-muted-foreground">
+          {error}
+        </p>
+      )}
+
+      <p className="mt-3 text-center text-[11.5px]/[1.45] text-muted-dim">
+        Payments processed by Stripe · sold through Link. Renews automatically — cancel any time in the app.{" "}
+        <a href="/terms" className="underline underline-offset-2">
+          Terms
+        </a>
+        {" · "}
+        <a href="/privacy" className="underline underline-offset-2">
+          Privacy
+        </a>
+      </p>
+    </div>
   );
 }

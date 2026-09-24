@@ -101,3 +101,22 @@ test("#2 — the withdrawal waiver describes a checkout confirmation, not a ToS 
 test("#6 — paying subscribers get to confirm materially adverse changes", () => {
   expect(text(TERMS)).toMatch(/paying Pro subscriber.*actively confirm/);
 });
+
+// Billing (spec §10): Stripe's disclosure rules want the seller's address before payment, and Link — not Fitcheck —
+// is the merchant of record under Managed Payments. The old "no checkout exists" text must be gone once it does.
+test("the Terms name the seller's address and Link as merchant of record", () => {
+  const terms = text(TERMS);
+  expect(OPERATOR.address).toBe("Rapperswilerstrasse 1, 8733 Eschenbach SG, Switzerland");
+  expect(terms).toContain(OPERATOR.address);
+  expect(terms).toMatch(/sold through Link/i);
+  expect(terms).toMatch(/CHF 5 a month or CHF 50 a year/);
+  expect(terms).toMatch(/end of the period you have paid for/);
+  expect(terms).not.toContain("There is no live paid subscription");
+});
+
+test("the Privacy policy names Link and what billing data Fitcheck keeps", () => {
+  const privacy = text(PRIVACY);
+  expect(privacy).toMatch(/Link \(Stripe\) — sells Fitcheck Pro/);
+  expect(privacy).toMatch(/Stripe customer ID, your subscription's status and renewal date/);
+  expect(privacy).not.toMatch(/once subscriptions exist/);
+});

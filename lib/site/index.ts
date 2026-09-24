@@ -7,5 +7,5 @@ export const PUBLIC_PATHS = ["/", "/privacy", "/terms"] as const;
 /** App surfaces — they redirect signed-out visitors, so indexing them yields nothing. */
 export const PRIVATE_PREFIXES = [
   "/closet", "/outfits", "/generate", "/profile", "/settings", "/stats",
-  "/calendar", "/packing", "/onboarding", "/auth", "/api", "/monitoring",
+  "/calendar", "/packing", "/onboarding", "/auth", "/api", "/monitoring", "/billing",
 ] as const;

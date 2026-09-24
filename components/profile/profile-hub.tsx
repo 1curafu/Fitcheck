@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Fingerprint, Bookmark, ChartColumn, Settings } from "lucide-react";
 import { ProCard } from "@/components/billing/pro-card";
+import type { SubscriptionSummary } from "@/lib/billing/status-line";
 import type { Tier } from "@/lib/billing/tiers";
 
 /**
@@ -94,6 +95,8 @@ export function ProfileHub({
   tier,
   stats,
   links,
+  subscription = null,
+  proNotice = null,
 }: {
   name: string;
   handle: string;
@@ -104,6 +107,9 @@ export function ProfileHub({
   /** `outfits` is looks WORN, not looks generated — see the route. */
   stats: { pieces: number; outfits: number; streak: number };
   links: HubLink[];
+  subscription?: SubscriptionSummary | null;
+  /** `?pro=welcome` after Stripe Checkout — shown once, above the Pro card. */
+  proNotice?: "welcome" | null;
 }) {
   return (
     <div className="flex-1 overflow-y-auto px-[22px] pb-[120px] screen-top">
@@ -162,7 +168,13 @@ export function ProfileHub({
         ))}
       </div>
 
-      <ProCard tier={tier} />
+      {proNotice === "welcome" && (
+        <p role="status" className="mt-[13px] text-center text-[13px] text-muted-foreground">
+          {tier === "pro" ? "Welcome to Pro." : "Activating Pro… refresh in a moment."}
+        </p>
+      )}
+
+      <ProCard tier={tier} subscription={subscription} />
 
       {/* A signed-in user never sees the sign-in screen again, so without this
           the policies live only behind Settings. The hub is the screen people

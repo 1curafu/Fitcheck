@@ -17,6 +17,7 @@ const SANITIZED_REASONS = new Set([
   "B2 upload failed",
   "Deletion ledger stub requires local Supabase",
   "Auth user deletion failed",
+  "Billing cancellation failed",
 ]);
 
 async function runStage(stage: DeletionStage, operation: () => Promise<void>): Promise<void> {
@@ -32,6 +33,9 @@ export async function runAccountDeletion(
   { userId, requestedAt }: AccountDeletionInput,
   dependencies: DeletionDependencies,
 ): Promise<void> {
+  // Nothing may renew once the account is gone (AGENTS.md billing rule; billing spec §9). Fail closed: no data is
+  // destroyed while a subscription could still charge.
+  await runStage("billing", () => dependencies.cancelBilling(userId));
   await runStage("storage", () => dependencies.purgeStorage(userId));
   await runStage("ledger", () => dependencies.writeTombstone(userId, requestedAt));
   await runStage("auth", () => dependencies.deleteAuthUser(userId));

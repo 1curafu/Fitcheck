@@ -2,9 +2,11 @@
  * `residual-storage` runs after the Auth delete, so a failure there means the account IS deleted; only an
  * upload that raced the earlier stages may remain, for the orphan sweep to collect.
  */
-export type DeletionStage = "storage" | "ledger" | "auth" | "residual-storage";
+export type DeletionStage = "billing" | "storage" | "ledger" | "auth" | "residual-storage";
 
 export type DeletionDependencies = {
+  /** Cancels every subscription that could still charge. First, and fail-closed: no data goes while billing can. */
+  cancelBilling(userId: string): Promise<void>;
   purgeStorage(userId: string): Promise<void>;
   writeTombstone(userId: string, requestedAt: Date): Promise<void>;
   deleteAuthUser(userId: string): Promise<void>;

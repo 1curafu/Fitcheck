@@ -1,4 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
+import type { SubscriptionSummary } from "@/lib/billing/status-line";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 
@@ -9,6 +10,7 @@ import { vi } from "vitest";
 // earlier version replaced the whole module, so when the picker started using
 // `regionLabel` that export became undefined and the component threw — three
 // tests failed with an empty document and an error that named none of this.
+vi.mock("@/app/billing/actions", () => ({ startCheckout: vi.fn(), openBillingPortal: vi.fn() }));
 vi.mock("@/lib/weather/geocode", async (orig) => ({
   ...(await orig<typeof import("@/lib/weather/geocode")>()),
   searchCities: vi
@@ -25,6 +27,7 @@ const props: {
   initials: string;
   locationLabel: string | null;
   preferences: Preferences;
+  subscription?: SubscriptionSummary | null;
 } = {
   name: "Mykhailo",
   email: "icurafu333@gmail.com",
@@ -126,6 +129,19 @@ test("the Pro card is NOT duplicated here", () => {
   // is the whole reason UpgradeSheet is shared.
   expect(screen.queryByText(/€5/)).not.toBeInTheDocument();
   expect(screen.queryByText(/go pro/i)).not.toBeInTheDocument();
+});
+
+test("a Pro subscriber manages billing from Settings", () => {
+  renderSettings({
+    subscription: { status: "past_due", interval: "month", currentPeriodEnd: "2026-10-12T08:00:00.000Z", cancelAtPeriodEnd: false },
+  });
+  expect(screen.getByRole("button", { name: /manage subscription/i })).toBeInTheDocument();
+  expect(screen.getByText(/payment failed/i)).toBeInTheDocument();
+});
+
+test("a free user sees no subscription section in Settings", () => {
+  renderSettings();
+  expect(screen.queryByRole("button", { name: /manage subscription/i })).not.toBeInTheDocument();
 });
 
 test("the location row is a control, and says whether it is open", async () => {

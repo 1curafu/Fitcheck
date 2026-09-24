@@ -18,4 +18,6 @@ export const OPERATOR = {
   name: "Mykhailo Khimich",
   email: "legal@fitcheck.space",
   country: "Switzerland",
+  // Owner-approved for publication 2026-09-24: Stripe wants the seller's address shown before payment.
+  address: "Rapperswilerstrasse 1, 8733 Eschenbach SG, Switzerland",
 } as const;
