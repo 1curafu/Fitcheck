@@ -192,11 +192,22 @@ export async function seedTestUser(cfg: { url: string; service: string }): Promi
     throw new Error("seeding the worn outfit failed");
   }
 
+  // ⚠️ The evening wear question (`lib/outfits/confirm.ts`, EVENING_HOUR) opens a
+  // modal sheet over the stylist after 18:00 Zurich once a look has been viewed
+  // today — and earlier specs view looks. Every spec after that then timed out
+  // clicking through the sheet: 5 failures on a CI run at 22:40 Zurich,
+  // 2026-09-24, none at midday. "Already asked today" keeps the suite independent
+  // of the hour; the question itself is covered by unit tests.
+  const zurichToday = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Zurich" }).format(new Date());
+  const { data: current } = await admin.from("profiles").select("preferences").eq("id", userId).single();
+  const preferences = { ...((current?.preferences as Record<string, unknown> | null) ?? {}), wearAskedOn: zurichToday };
+
   // A known profile: pro, so gated surfaces are reachable, and a fixed
   // timezone so the local-date key (Decision 5) cannot drift with the runner.
   await admin
     .from("profiles")
     .update({
+      preferences,
       tier: "pro",
       archetype: "Old Money",
       formality_min: 3,
