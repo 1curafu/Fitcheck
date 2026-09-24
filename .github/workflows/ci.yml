@@ -108,8 +108,11 @@ jobs:
 
       # No ANTHROPIC_API_KEY: the re-rank is stubbed (FITCHECK_STUB_AI, set by
       # playwright.config.ts), so CI spends nothing and the look names are
-      # stable enough to assert.
+      # stable enough to assert. Billing is likewise stubbed (FITCHECK_STUB_STRIPE
+      # at runtime); its public switch is baked in at BUILD time, so it is set here.
       - name: Build
+        env:
+          NEXT_PUBLIC_BILLING_ENABLED: "1"
         run: npm run build
 
       - name: End-to-end tests

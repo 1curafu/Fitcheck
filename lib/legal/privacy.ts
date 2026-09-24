@@ -12,7 +12,7 @@ import { OPERATOR, type LegalDocument } from "./types";
  */
 export const PRIVACY: LegalDocument = {
   title: "Privacy Policy",
-  updated: "2026-09-19",
+  updated: "2026-09-24",
   intro:
     "Fitcheck photographs your wardrobe and suggests outfits from it. That means it holds photos of your clothes and a little about you. This page says exactly what, why, who else touches it, and how to make us delete it.",
   sections: [
@@ -33,7 +33,7 @@ export const PRIVACY: LegalDocument = {
         "If a photo you upload shows you wearing the item, we store that photo as you took it. We keep the original only so the cut-out can be re-made with better tools later; it is never sent to the AI, never used to identify you, and never shown to anyone but you.",
         "Your looks: the outfits the app suggests, the ones you favourite, and the days you say you wore one.",
         "Your location, only if you give it: a city or coordinates and a time zone, so the weather in your looks is your weather. You can clear it in Settings.",
-        "Your payment status, once subscriptions exist: whether you are on the free or paid plan. Card details go to Stripe and never reach us.",
+        "If you subscribe to Pro: your Stripe customer ID, your subscription's status and renewal date, and when you confirmed that Pro should start immediately. Card details go to Stripe and Link and never reach us.",
         "Technical details when something breaks: the error, the page, and the browser. Not your name, and not what you typed.",
       ],
     },
@@ -42,7 +42,7 @@ export const PRIVACY: LegalDocument = {
       paragraphs: [
         "To run the service you signed up for — tagging your clothes, building looks, remembering what you wore. Under the GDPR this is performance of a contract.",
         "To keep the app working and find bugs. Under the GDPR this is our legitimate interest, and it is limited to error reports.",
-        "To take payment and issue receipts, once subscriptions exist. Contract again, plus the bookkeeping the law requires.",
+        "To sell you Pro and keep it switched on while you pay for it. Contract again, plus the bookkeeping the law requires.",
         "Nothing else. No profiling beyond styling your own wardrobe, no advertising, no sharing with data brokers.",
       ],
     },
@@ -57,7 +57,8 @@ export const PRIVACY: LegalDocument = {
         "OpenWeather — receives your coordinates to return a forecast. Nothing else.",
         "Google — only if you choose to sign in with Google.",
         "Resend (USA) — sends the sign-in email.",
-        "Stripe — handles payment, once subscriptions exist. Stripe is the only party that sees card details.",
+        "Stripe — handles payment for Pro; with Link, the only parties that see card details.",
+        "Link (Stripe) — sells Fitcheck Pro to you as merchant of record: it takes your payment, charges VAT and sends receipts, under its own terms and privacy policy. Deleting your Fitcheck account cancels your subscription; Link and Stripe keep the payment records the law requires.",
         "Sentry (EU) — receives error reports, so we can fix what broke.",
         "Vercel — hosts the app, and counts page views without cookies or any identifier stored on your device. Like any host it also sees the requests your browser makes.",
       ],
@@ -72,7 +73,7 @@ export const PRIVACY: LegalDocument = {
       heading: "How long we keep it",
       paragraphs: [
         "For as long as you have an account. Delete your account in Settings; a successful deletion removes your live data immediately. You can also write to legal@fitcheck.space if you need help with deletion.",
-        "Encrypted backups may retain deleted data for no more than 30 days before they expire. Error reports are kept for 90 days. Once subscriptions exist, legally required payment records are kept for as long as tax law requires.",
+        "Encrypted backups may retain deleted data for no more than 30 days before they expire. Error reports are kept for 90 days. Legally required payment records are kept by Link and Stripe for as long as tax law requires; our copy of your billing status goes when your account does.",
       ],
     },
     {
