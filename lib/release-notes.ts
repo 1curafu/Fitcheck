@@ -25,6 +25,13 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.3.9",
+    date: "2026-09-24",
+    headline: "Refunds for Pro are now handled cleanly from start to finish.",
+    added: ["A refunded Pro subscription now ends straight away — no further charges"],
+    fixed: ["A refund no longer leaves a subscription running"],
+  },
+  {
     version: "0.3.8",
     date: "2026-09-24",
     headline: "Fitcheck Pro is here — every feature, monthly or yearly.",
