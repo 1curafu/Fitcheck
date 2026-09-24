@@ -18,6 +18,8 @@ vi.mock("../b2-writer", async (importOriginal) => ({
   writeProductionDeletionTombstone,
 }));
 vi.mock("../storage.mjs", () => ({ purgeWardrobePrefix }));
+vi.mock("@/lib/billing/stripe/client", () => ({ billingEnabled: () => false, getGateway: vi.fn() }));
+vi.mock("@/lib/billing/admin", () => ({ createBillingStore: vi.fn() }));
 
 import { runAccountDeletion } from "../coordinator";
 import { DeletionFailure } from "../types";
@@ -27,12 +29,45 @@ const USER_ID = "715ed5db-f090-4b8c-a067-640ecee36aa0";
 const NOW = new Date("2026-09-19T08:09:10.000Z");
 
 describe("runAccountDeletion", () => {
+  test("cancels billing before touching storage", async () => {
+    const order: string[] = [];
+    await runAccountDeletion(
+      { userId: USER_ID, requestedAt: NOW },
+      {
+        cancelBilling: async () => void order.push("billing"),
+        purgeStorage: async () => void order.push("storage"),
+        writeTombstone: async () => void order.push("ledger"),
+        deleteAuthUser: async () => void order.push("auth"),
+      },
+    );
+    expect(order).toEqual(["billing", "storage", "ledger", "auth", "storage"]);
+  });
+
+  test("a billing failure stops deletion before any data is destroyed", async () => {
+    const purgeStorage = vi.fn();
+    await expect(
+      runAccountDeletion(
+        { userId: USER_ID, requestedAt: NOW },
+        {
+          cancelBilling: async () => {
+            throw new Error("Billing cancellation failed");
+          },
+          purgeStorage,
+          writeTombstone: vi.fn(),
+          deleteAuthUser: vi.fn(),
+        },
+      ),
+    ).rejects.toMatchObject({ stage: "billing", reason: "Billing cancellation failed" });
+    expect(purgeStorage).not.toHaveBeenCalled();
+  });
+
   test("deletes storage, writes the ledger, deletes Auth, then purges residual storage", async () => {
     const calls: string[] = [];
 
     await runAccountDeletion(
       { userId: USER_ID, requestedAt: NOW },
       {
+        cancelBilling: async () => undefined,
         purgeStorage: async () => void calls.push("storage"),
         writeTombstone: async () => void calls.push("ledger"),
         deleteAuthUser: async () => void calls.push("auth"),
@@ -50,6 +85,7 @@ describe("runAccountDeletion", () => {
     const deletion = runAccountDeletion(
       { userId: USER_ID, requestedAt: NOW },
       {
+        cancelBilling: async () => undefined,
         purgeStorage: async () => {
           calls.push("storage");
           purges += 1;
@@ -72,6 +108,7 @@ describe("runAccountDeletion", () => {
     const known = runAccountDeletion(
       { userId: USER_ID, requestedAt: NOW },
       {
+        cancelBilling: async () => undefined,
         purgeStorage: async () => undefined,
         writeTombstone: async () => {
           throw new Error("B2 key scope rejected");
@@ -84,6 +121,7 @@ describe("runAccountDeletion", () => {
     const unknown = runAccountDeletion(
       { userId: USER_ID, requestedAt: NOW },
       {
+        cancelBilling: async () => undefined,
         purgeStorage: async () => {
           throw new Error(`provider said no for ${USER_ID} person@example.com`);
         },
@@ -102,6 +140,7 @@ describe("runAccountDeletion", () => {
       runAccountDeletion(
         { userId: USER_ID, requestedAt: NOW },
         {
+          cancelBilling: async () => undefined,
           purgeStorage: async () => {
             calls.push("storage");
             throw new Error(providerMessage);
@@ -122,6 +161,7 @@ describe("runAccountDeletion", () => {
       await runAccountDeletion(
         { userId: USER_ID, requestedAt: NOW },
         {
+          cancelBilling: async () => undefined,
           purgeStorage: async () => {
             throw new Error(providerMessage);
           },
@@ -145,6 +185,7 @@ describe("runAccountDeletion", () => {
     const deletion = runAccountDeletion(
       { userId: USER_ID, requestedAt: NOW },
       {
+        cancelBilling: async () => undefined,
         purgeStorage: async () => void calls.push("storage"),
         writeTombstone: async () => {
           calls.push("ledger");
@@ -175,6 +216,7 @@ describe("runAccountDeletion", () => {
     const deletion = runAccountDeletion(
       { userId: USER_ID, requestedAt: NOW },
       {
+        cancelBilling: async () => undefined,
         purgeStorage: async () => void calls.push("storage"),
         writeTombstone: async () => void calls.push("ledger"),
         deleteAuthUser: async () => {
@@ -201,6 +243,7 @@ describe("runAccountDeletion", () => {
   test("runs the same successful dependencies twice for a retry", async () => {
     const calls: string[] = [];
     const dependencies = {
+      cancelBilling: async () => undefined,
       purgeStorage: async () => void calls.push("storage"),
       writeTombstone: async () => void calls.push("ledger"),
       deleteAuthUser: async () => void calls.push("auth"),
