@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { currencyForTimeZone, displayPrice, LOOKUP_KEYS } from "../prices";
+import { currencyForTimeZone, displayPrice, LOOKUP_KEYS, monthlyEquivalent } from "../prices";
 
 describe("currencyForTimeZone", () => {
   it.each([["Europe/Zurich", "CHF"], ["Europe/Vaduz", "CHF"], ["Europe/Berlin", "EUR"], ["Europe/Paris", "EUR"],
@@ -19,5 +19,12 @@ describe("displayPrice", () => {
   });
   it("keeps lookup keys stable (they are Dashboard identifiers)", () => {
     expect(LOOKUP_KEYS).toEqual({ month: "pro_monthly", year: "pro_annual" });
+  });
+});
+
+describe("monthlyEquivalent", () => {
+  it("shows what the annual plan costs per month, rounded to cents", () => {
+    expect(monthlyEquivalent("Europe/Zurich")).toBe("CHF 4.17 / month");
+    expect(monthlyEquivalent("Europe/Berlin")).toBe("€4.17 / month");
   });
 });

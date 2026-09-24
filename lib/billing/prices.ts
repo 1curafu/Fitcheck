@@ -35,13 +35,20 @@ export function currencyForTimeZone(tz: string | undefined): { currency: Display
   return { currency: "CHF", converted: true };
 }
 
-const FORMAT: Record<DisplayCurrency, (n: number) => string> = {
-  CHF: (n) => `CHF ${n}`,
-  EUR: (n) => `€${n}`,
-  USD: (n) => `$${n}`,
+const FORMAT_TEXT: Record<DisplayCurrency, (amount: string) => string> = {
+  CHF: (a) => `CHF ${a}`,
+  EUR: (a) => `€${a}`,
+  USD: (a) => `$${a}`,
 };
 
 export function displayPrice(interval: Interval, tz: string | undefined): { label: string; converted: boolean } {
   const { currency, converted } = currencyForTimeZone(tz);
-  return { label: `${FORMAT[currency](DISPLAY_AMOUNTS[interval][currency])} / ${interval}`, converted };
+  return { label: `${FORMAT_TEXT[currency](String(DISPLAY_AMOUNTS[interval][currency]))} / ${interval}`, converted };
+}
+
+/** The annual plan's per-month cost, as a hint under it ("CHF 4.17 / month"). Display only. */
+export function monthlyEquivalent(tz: string | undefined): string {
+  const { currency } = currencyForTimeZone(tz);
+  const perMonth = (DISPLAY_AMOUNTS.year[currency] / 12).toFixed(2);
+  return `${FORMAT_TEXT[currency](perMonth)} / month`;
 }

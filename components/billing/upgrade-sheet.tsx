@@ -9,10 +9,11 @@ import {
   Compass,
   Bookmark,
 } from "lucide-react";
+import { Check } from "lucide-react";
 import { useState, useTransition } from "react";
 import { startCheckout, type StartCheckoutResult } from "@/app/billing/actions";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
-import { displayPrice, type Interval } from "@/lib/billing/prices";
+import { displayPrice, monthlyEquivalent, type Interval } from "@/lib/billing/prices";
 import { cn } from "@/lib/utils";
 
 /**
@@ -90,7 +91,7 @@ export function UpgradeSheet({
         // caps at 440 and a sheet wider than it would hang off the app on a
         // desktop viewport.
         style={{ maxWidth: 440 }}
-        className="fixed inset-x-0 bottom-0 z-[70] mx-auto rounded-t-[22px] border-t border-[rgba(237,230,216,0.12)] bg-surface-2 px-[22px] pb-[calc(env(safe-area-inset-bottom)+20px)] pt-3.5"
+        className="fixed inset-x-0 bottom-0 z-[70] mx-auto max-h-[92dvh] overflow-y-auto overscroll-contain rounded-t-[22px] border-t border-[rgba(237,230,216,0.12)] bg-surface-2 px-[22px] pb-[calc(env(safe-area-inset-bottom)+20px)] pt-3.5"
       >
         <div className="mx-auto mb-4 h-1 w-[34px] rounded-full bg-faint" />
 
@@ -179,53 +180,92 @@ export function proPriceLabel(interval: Interval, timeZone?: string) {
  * it stays the inert price pill — a button that takes money it cannot take is worse than none.
  */
 function ProPurchase({ timeZone }: { timeZone?: string }) {
-  const [plan, setPlan] = useState<Interval>("month");
+  const tz = timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const [plan, setPlan] = useState<Interval>("year");
   const [waiver, setWaiver] = useState(false);
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const price = proPriceLabel(plan, timeZone);
+  const converted = displayPrice("month", tz).converted;
 
   if (process.env.NEXT_PUBLIC_BILLING_ENABLED !== "1") {
     return (
       <div className="mt-5 grid min-h-[52px] w-full place-items-center rounded-[14px] bg-foreground text-[15.5px] font-semibold text-canvas">
-        Go Pro · {proPriceLabel("month", timeZone).label}
+        Go Pro · {displayPrice("month", tz).label}
       </div>
     );
   }
 
+  const PLANS: Array<{ id: Interval; name: string; hint: string | null }> = [
+    { id: "year", name: "Annual", hint: `2 months free · ${monthlyEquivalent(tz)}` },
+    { id: "month", name: "Monthly", hint: null },
+  ];
+
   return (
     <div className="mt-5">
-      <div role="radiogroup" aria-label="Billing interval" className="grid grid-cols-2 gap-2">
-        {(["month", "year"] as const).map((option) => (
-          <button
-            key={option}
-            type="button"
-            role="radio"
-            aria-checked={plan === option}
-            onClick={() => setPlan(option)}
-            className={cn(
-              "min-h-[44px] rounded-[12px] text-[14px]",
-              plan === option ? "bg-foreground text-canvas" : "text-foreground shadow-[inset_0_0_0_1px_var(--hairline-2)]",
-            )}
-          >
-            {option === "month" ? "Monthly" : "Annual · 2 months free"}
-          </button>
-        ))}
-      </div>
-
-      <p className="mt-3 text-center text-[15px] text-foreground">{price.label}</p>
-      {price.converted && (
-        <p className="text-center text-[12px] text-muted-dim">Charged in your local currency at checkout.</p>
+      {/* Plan rows in the same hairline surface as the benefits list — a menu, not a toggle (owner, 2026-09-24).
+          Real radio inputs, so the group is keyboard- and screen-reader-native. */}
+      <fieldset className="overflow-hidden rounded-[14px] bg-surface-1 shadow-[inset_0_0_0_1px_var(--hairline-2)]">
+        <legend className="sr-only">Billing interval</legend>
+        {PLANS.map((p, i) => {
+          const selected = plan === p.id;
+          return (
+            <label
+              key={p.id}
+              className={cn(
+                "flex cursor-pointer items-center gap-3 px-4 py-3",
+                i > 0 && "border-t border-[var(--hairline-2)]",
+                selected && "shadow-[inset_0_0_0_1.5px_var(--color-foreground)]",
+              )}
+            >
+              <input
+                type="radio"
+                name="pro-plan"
+                value={p.id}
+                checked={selected}
+                onChange={() => setPlan(p.id)}
+                aria-label={p.name}
+                className="peer sr-only"
+              />
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "grid size-[18px] shrink-0 place-items-center rounded-full border",
+                  selected ? "border-foreground" : "border-muted-dim",
+                )}
+              >
+                {selected && <span className="size-[9px] rounded-full bg-foreground" />}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[14.5px] text-foreground">{p.name}</span>
+                {p.hint && <span className="block text-[12px] text-muted-dim">{p.hint}</span>}
+              </span>
+              <span className="text-[14px] text-value">{displayPrice(p.id, tz).label}</span>
+            </label>
+          );
+        })}
+      </fieldset>
+      {converted && (
+        <p className="mt-2 text-center text-[12px] text-muted-dim">Charged in your local currency at checkout.</p>
       )}
 
-      {/* EU withdrawal waiver (spec §8): distinct, unticked by default, required server-side too. */}
-      <label className="mt-4 flex items-start gap-3 text-[13px]/[1.4] text-muted-foreground">
+      {/* EU withdrawal waiver (spec §8): distinct, unticked by default, required server-side too. A drawn box in the
+          app's cream, not the platform's blue default. */}
+      <label className="mt-4 flex cursor-pointer items-start gap-3 text-[13px]/[1.4] text-muted-foreground">
         <input
           type="checkbox"
           checked={waiver}
           onChange={(e) => setWaiver(e.target.checked)}
-          className="mt-0.5 size-5 shrink-0"
+          className="peer sr-only"
         />
+        <span
+          aria-hidden="true"
+          className={cn(
+            "mt-0.5 grid size-5 shrink-0 place-items-center rounded-[6px] border peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-foreground",
+            waiver ? "border-foreground bg-foreground text-canvas" : "border-muted-dim",
+          )}
+        >
+          {waiver && <Check size={14} strokeWidth={2.4} />}
+        </span>
         <span>Start Pro now. I understand I lose my 14-day right of withdrawal once it starts.</span>
       </label>
 

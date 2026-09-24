@@ -22,11 +22,18 @@ it("Go Pro is disabled until the waiver is ticked", async () => {
   expect(go).toBeEnabled();
 });
 
-it("shows the price in the buyer's currency and switches to annual", async () => {
+it("offers both plans as rows with their prices, annual selected by default", () => {
   open("Europe/Zurich");
-  expect(screen.getByText("CHF 5 / month")).toBeInTheDocument();
-  await userEvent.click(screen.getByRole("radio", { name: /annual/i }));
+  expect(screen.getByRole("radio", { name: /annual/i })).toBeChecked();
+  expect(screen.getByRole("radio", { name: /monthly/i })).not.toBeChecked();
   expect(screen.getByText("CHF 50 / year")).toBeInTheDocument();
+  expect(screen.getByText("CHF 5 / month")).toBeInTheDocument();
+  expect(screen.getByText(/2 months free · CHF 4\.17 \/ month/)).toBeInTheDocument();
+});
+
+it("the sheet scrolls when it is taller than the screen", () => {
+  open();
+  expect(screen.getByRole("dialog")).toHaveClass("overflow-y-auto");
 });
 
 it("says when the currency is only converted at checkout", () => {
@@ -37,10 +44,10 @@ it("says when the currency is only converted at checkout", () => {
 it("submits the chosen interval with the waiver and shows a calm error", async () => {
   startCheckout.mockResolvedValue({ status: "error" });
   open();
-  await userEvent.click(screen.getByRole("radio", { name: /annual/i }));
+  await userEvent.click(screen.getByRole("radio", { name: /monthly/i }));
   await userEvent.click(screen.getByRole("checkbox", { name: /start pro now/i }));
   await userEvent.click(screen.getByRole("button", { name: /^go pro$/i }));
-  expect(startCheckout).toHaveBeenCalledWith({ interval: "year", waiverAccepted: true });
+  expect(startCheckout).toHaveBeenCalledWith({ interval: "month", waiverAccepted: true });
   expect(await screen.findByRole("alert")).toHaveTextContent(/couldn.t start checkout/i);
 });
 
