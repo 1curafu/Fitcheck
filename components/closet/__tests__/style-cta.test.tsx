@@ -1,6 +1,8 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { StyleCta } from "../style-cta";
+// The upgrade sheet imports the billing Server Actions (server-only); a rendering test never calls Stripe.
+vi.mock("@/app/billing/actions", () => ({ startCheckout: vi.fn(), openBillingPortal: vi.fn() }));
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
@@ -71,7 +73,7 @@ test("the gate's sheet makes the full case, not just the refusal", async () => {
   await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
   const sheet = await screen.findByRole("dialog");
   expect(sheet).toHaveTextContent(/gap analysis/i);
-  expect(sheet).toHaveTextContent(/€5\/mo/);
+  expect(sheet).toHaveTextContent(/(CHF 5|€5|\$5) \/ month/);
 });
 
 // "Your closet is too thin for this yet" has nothing to sell — you add a piece.

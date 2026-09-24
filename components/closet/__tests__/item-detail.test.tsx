@@ -1,6 +1,8 @@
 import { render, screen, cleanup, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ItemDetail, type DetailItem } from "../item-detail";
+// The upgrade sheet imports the billing Server Actions (server-only); a rendering test never calls Stripe.
+vi.mock("@/app/billing/actions", () => ({ startCheckout: vi.fn(), openBillingPortal: vi.fn() }));
 
 const refresh = vi.fn();
 vi.mock("next/navigation", () => ({

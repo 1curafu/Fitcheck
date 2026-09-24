@@ -91,6 +91,15 @@ jobs:
           SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: ci-not-used
         run: supabase start
 
+      # pgTAP suites in supabase/tests: grants, RLS and Storage policies that no
+      # application test can see (a column-level revoke that a table-level grant
+      # silently overrides passed every app test for seven weeks).
+      - name: Database tests
+        env:
+          SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: ci-not-used
+          SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: ci-not-used
+        run: supabase test db
+
       - name: Export Supabase credentials
         run: |
           echo "NEXT_PUBLIC_SUPABASE_URL=$(supabase status -o env | grep '^API_URL' | cut -d= -f2- | tr -d '\"')" >> $GITHUB_ENV
@@ -99,8 +108,11 @@ jobs:
 
       # No ANTHROPIC_API_KEY: the re-rank is stubbed (FITCHECK_STUB_AI, set by
       # playwright.config.ts), so CI spends nothing and the look names are
-      # stable enough to assert.
+      # stable enough to assert. Billing is likewise stubbed (FITCHECK_STUB_STRIPE
+      # at runtime); its public switch is baked in at BUILD time, so it is set here.
       - name: Build
+        env:
+          NEXT_PUBLIC_BILLING_ENABLED: "1"
         run: npm run build
 
       - name: End-to-end tests

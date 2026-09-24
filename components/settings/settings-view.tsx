@@ -1,5 +1,7 @@
 "use client";
 
+import { ManageSubscription } from "@/components/billing/manage-subscription";
+import type { SubscriptionSummary } from "@/lib/billing/status-line";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { Preferences } from "@/lib/profile/preferences";
@@ -104,6 +106,7 @@ export function SettingsView({
   onSaveAction,
   onSetLocationAction,
   onDeleteAction,
+  subscription = null,
 }: {
   name: string;
   email: string;
@@ -117,6 +120,8 @@ export function SettingsView({
     label: string;
   }) => Promise<void>;
   onDeleteAction: typeof deleteAccount;
+  /** Present only for a Pro subscriber: Settings is the second place to manage billing (spec §8). */
+  subscription?: SubscriptionSummary | null;
 }) {
   const [prefs, setPrefs] = useState(preferences);
   const [location, setLocation] = useState(locationLabel);
@@ -336,6 +341,15 @@ export function SettingsView({
             Sign out
           </button>
         </form>
+
+        {subscription && (
+          <>
+            <Kicker>Subscription</Kicker>
+            <div className={CARD}>
+              <ManageSubscription {...subscription} />
+            </div>
+          </>
+        )}
 
         <Kicker>Danger zone</Kicker>
         <div className={CARD}>

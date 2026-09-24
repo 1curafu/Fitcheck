@@ -61,6 +61,9 @@ export default defineConfig({
       // must not contact the production-only B2 deletion ledger. The adapter
       // itself refuses this stub unless Supabase is localhost/127.0.0.1.
       FITCHECK_STUB_DELETION_LEDGER: "1",
+      // Billing runs through the stub gateway (lib/billing/stripe/gateway.ts): the whole
+      // checkout path except the network call to Stripe. Refused on Vercel production.
+      FITCHECK_STUB_STRIPE: "1",
     },
   },
 });

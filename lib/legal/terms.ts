@@ -9,14 +9,14 @@ import { OPERATOR, type LegalDocument } from "./types";
  */
 export const TERMS: LegalDocument = {
   title: "Terms of Service",
-  updated: "2026-09-19",
+  updated: "2026-09-24",
   intro:
     "These are the terms for using Fitcheck. They are short because the deal is simple: you bring your wardrobe, we suggest what to wear, and you stay in charge of your own clothes and your own data.",
   sections: [
     {
       heading: "Who you are dealing with",
       paragraphs: [
-        `Fitcheck is operated by ${OPERATOR.name} from ${OPERATOR.country}. Questions, notices and complaints go to ${OPERATOR.email}.`,
+        `Fitcheck is operated by ${OPERATOR.name}, ${OPERATOR.address}. Questions, notices and complaints go to ${OPERATOR.email}.`,
       ],
     },
     {
@@ -43,8 +43,10 @@ export const TERMS: LegalDocument = {
       heading: "Free and paid",
       paragraphs: [
         "The free plan is meant to be genuinely useful and stays free. The paid plan, Fitcheck Pro, adds features and lifts limits; what it includes and what it costs are shown before you buy, and the price includes any VAT that applies.",
-        "There is no live paid subscription or Stripe checkout today. Once subscriptions exist, Pro will be a monthly subscription. Deleting your account in Settings will immediately cancel renewal and end account access when the deletion completes. Ordinary cancellation, proration and refund rules will be set out with the billing service, except where the law requires otherwise.",
-        "If you are a consumer in the EU, you normally have a 14-day right to withdraw from a purchase. Because Pro starts working the moment you subscribe, we ask you to expressly confirm at checkout that you want it to start immediately and accept losing that right once it has. Without that confirmation, your 14-day right is unaffected.",
+        "Fitcheck Pro is sold through Link, Stripe's merchant-of-record service: Link is the seller of the subscription, takes the payment, charges any VAT and sends your receipts and invoices. Pro costs CHF 5 a month or CHF 50 a year; the app shows the equivalent in euro or dollars where they apply, and other currencies are converted at checkout. All prices include VAT.",
+        "Pro renews automatically until you cancel. You can cancel any time in the app (Profile → Manage subscription); Pro then continues until the end of the period you have paid for and does not renew. Switching between monthly and yearly takes effect immediately, and the unused part of the current period is credited against the new one. If a renewal payment fails, it is retried for about two weeks while Pro keeps working; if it still fails, Pro ends. One subscription per account.",
+        "Deleting your account in Settings cancels your subscription immediately — before any of your data is deleted — and it does not renew. Refunds follow Link's rules and the law; ask us at the address above if something went wrong.",
+        "If you are a consumer in the EU, you normally have a 14-day right to withdraw from a purchase. Because Pro starts working the moment you subscribe, we ask you to expressly confirm at checkout that you want it to start immediately and accept losing that right once it has. Without that confirmation, your 14-day right is unaffected. The confirmation is the checkbox on the upgrade screen, and we record when you gave it.",
         "We may change Pro's price with at least 30 days' notice by email. If you do not want the new price, cancel before it takes effect.",
       ],
     },
