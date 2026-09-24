@@ -18,8 +18,9 @@ vi.mock("../b2-writer", async (importOriginal) => ({
   writeProductionDeletionTombstone,
 }));
 vi.mock("../storage.mjs", () => ({ purgeWardrobePrefix }));
-vi.mock("@/lib/billing/stripe/client", () => ({ billingEnabled: () => false, getGateway: vi.fn() }));
-vi.mock("@/lib/billing/admin", () => ({ createBillingStore: vi.fn() }));
+const billing = vi.hoisted(() => ({ getGateway: vi.fn(), createBillingStore: vi.fn() }));
+vi.mock("@/lib/billing/stripe/client", () => ({ billingEnabled: () => false, getGateway: billing.getGateway }));
+vi.mock("@/lib/billing/admin", () => ({ createBillingStore: billing.createBillingStore }));
 
 import { runAccountDeletion } from "../coordinator";
 import { DeletionFailure } from "../types";
@@ -274,5 +275,38 @@ describe("deleteLiveAccount", () => {
     expect(purgeWardrobePrefix).not.toHaveBeenCalled();
     expect(writeProductionDeletionTombstone).not.toHaveBeenCalled();
     expect(hardDeleteAuthUser).not.toHaveBeenCalled();
+  });
+});
+
+describe("deleteLiveAccount — billing stage (review C1)", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    createDeletionAdminClient.mockReturnValue(adminClient);
+    vi.stubEnv("B2_DELETION_KEY_ID", "production-key-id");
+    vi.stubEnv("B2_DELETION_APPLICATION_KEY", "production-application-key");
+    vi.stubEnv("DELETION_LEDGER_HMAC_KEY", "production-hmac-key");
+  });
+  afterEach(() => vi.unstubAllEnvs());
+
+  const withCustomer = (stripeCustomerId: string | null) =>
+    billing.createBillingStore.mockReturnValue({
+      profileByUserId: async () => ({ userId: USER_ID, email: null, stripeCustomerId, tier: "pro" }),
+    });
+
+  test("a paying user's deletion fails closed when billing is unreachable, before any data is touched", async () => {
+    withCustomer("cus_1");
+    billing.getGateway.mockImplementation(() => {
+      throw new Error("Billing is not configured");
+    });
+    await expect(deleteLiveAccount(USER_ID, NOW)).rejects.toMatchObject({ stage: "billing" });
+    expect(purgeWardrobePrefix).not.toHaveBeenCalled();
+    expect(hardDeleteAuthUser).not.toHaveBeenCalled();
+  });
+
+  test("a user who never subscribed is deleted without contacting Stripe", async () => {
+    withCustomer(null);
+    await deleteLiveAccount(USER_ID, NOW);
+    expect(billing.getGateway).not.toHaveBeenCalled();
+    expect(hardDeleteAuthUser).toHaveBeenCalled();
   });
 });

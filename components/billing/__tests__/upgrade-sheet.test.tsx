@@ -70,3 +70,11 @@ it("a Pro user is not offered a purchase", () => {
   expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
   expect(screen.queryByText(/€5/)).not.toBeInTheDocument();
 });
+
+it("a rejected action (network drop, timeout) still ends in the calm message (review M6)", async () => {
+  startCheckout.mockRejectedValue(new Error("fetch failed"));
+  open();
+  await userEvent.click(screen.getByRole("checkbox", { name: /start pro now/i }));
+  await userEvent.click(screen.getByRole("button", { name: /^go pro$/i }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(/couldn.t start checkout/i);
+});

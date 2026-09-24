@@ -1,9 +1,9 @@
 import type { BillingDeps } from "./customer";
 import { tierForStatus } from "./status";
 
-/** Anything Stripe could still charge: Pro-granting statuses plus the two that retry payment. */
+/** Anything Stripe could still charge: Pro-granting statuses, the two that retry payment, and `paused` (it can resume). */
 const canStillCharge = (status: string): boolean =>
-  tierForStatus(status) === "pro" || status === "incomplete" || status === "unpaid";
+  tierForStatus(status) === "pro" || status === "incomplete" || status === "unpaid" || status === "paused";
 
 /** Account-deletion stage `billing`: nothing may renew once the account is gone. Fails closed. */
 export async function cancelAllSubscriptions({ gateway }: BillingDeps, customerId: string | null): Promise<void> {

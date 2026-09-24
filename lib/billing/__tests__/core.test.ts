@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+const sentry = vi.hoisted(() => ({ captureMessage: vi.fn() }));
+vi.mock("@sentry/nextjs", () => sentry);
 import { fakeGateway, fakeStore, sub } from "./fakes";
 import { ensureCustomer } from "../stripe/customer";
 import { syncCustomer } from "../stripe/sync";
@@ -62,6 +64,23 @@ describe("syncCustomer", () => {
     expect(states.get("u1")?.tier).toBe("free");
   });
 
+  it("an unknown Stripe status fails closed to free AND is reported (review I3)", async () => {
+    const { store, states } = fakeStore([{ ...alice, stripeCustomerId: "cus_1", tier: "pro" }]);
+    await syncCustomer({ store, gateway: fakeGateway({ cus_1: [sub("s1", "suspended_new_state")] }) }, "cus_1");
+    expect(states.get("u1")?.tier).toBe("free");
+    expect(sentry.captureMessage).toHaveBeenCalledWith("Unknown Stripe subscription status", {
+      level: "warning",
+      tags: { stripe_subscription_status: "suspended_new_state" },
+    });
+  });
+
+  it("a known status is not reported", async () => {
+    sentry.captureMessage.mockClear();
+    const { store } = fakeStore([{ ...alice, stripeCustomerId: "cus_1" }]);
+    await syncCustomer({ store, gateway: fakeGateway({ cus_1: [sub("s1", "canceled")] }) }, "cus_1");
+    expect(sentry.captureMessage).not.toHaveBeenCalled();
+  });
+
   it("an unknown customer (deleted account) is a no-op", async () => {
     const { store, states } = fakeStore([]);
     await expect(syncCustomer({ store, gateway: fakeGateway() }, "cus_gone")).resolves.toEqual({ userId: null, state: null });
@@ -90,6 +109,15 @@ describe("cancelAllSubscriptions", () => {
       .mockResolvedValueOnce([sub("a", "canceled"), sub("b", "canceled"), sub("c", "canceled")]);
     await cancelAllSubscriptions({ store: fakeStore().store, gateway }, "cus_1");
     expect(gateway.cancelSubscriptionNow.mock.calls.map((c) => c[0])).toEqual(["a", "b"]);
+  });
+
+  it("also cancels a paused subscription, which could resume and charge later (review M8)", async () => {
+    const gateway = fakeGateway();
+    gateway.listSubscriptions
+      .mockResolvedValueOnce([sub("p", "paused")])
+      .mockResolvedValueOnce([sub("p", "canceled")]);
+    await cancelAllSubscriptions({ store: fakeStore().store, gateway }, "cus_1");
+    expect(gateway.cancelSubscriptionNow).toHaveBeenCalledWith("p");
   });
 
   it("fails closed if anything can still charge afterwards", async () => {

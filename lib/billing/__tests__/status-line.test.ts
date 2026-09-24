@@ -3,16 +3,20 @@ import { statusLine, subscriptionFromRow } from "../status-line";
 
 const end = "2026-10-12T08:00:00.000Z";
 it("active renews", () =>
-  expect(statusLine({ status: "active", interval: "month", currentPeriodEnd: end, cancelAtPeriodEnd: false }, "en-GB")).toBe(
+  expect(statusLine({ status: "active", interval: "month", currentPeriodEnd: end, cancelAtPeriodEnd: false })).toBe(
     "Pro · Monthly — renews 12 Oct",
   ));
 it("cancelling ends", () =>
-  expect(statusLine({ status: "active", interval: "year", currentPeriodEnd: end, cancelAtPeriodEnd: true }, "en-GB")).toBe(
+  expect(statusLine({ status: "active", interval: "year", currentPeriodEnd: end, cancelAtPeriodEnd: true })).toBe(
     "Pro until 12 Oct",
   ));
 it("past_due asks for a card but is still Pro", () =>
-  expect(statusLine({ status: "past_due", interval: "month", currentPeriodEnd: end, cancelAtPeriodEnd: false }, "en-GB")).toBe(
+  expect(statusLine({ status: "past_due", interval: "month", currentPeriodEnd: end, cancelAtPeriodEnd: false })).toBe(
     "Payment failed — update your card",
+  ));
+it("the renewal date is the same on server and phone: fixed en-GB format, UTC day (review I1)", () =>
+  expect(statusLine({ status: "active", interval: "month", currentPeriodEnd: "2026-10-12T23:30:00.000Z", cancelAtPeriodEnd: false })).toBe(
+    "Pro · Monthly — renews 12 Oct",
   ));
 it("no subscription has no line", () =>
   expect(statusLine({ status: null, interval: null, currentPeriodEnd: null, cancelAtPeriodEnd: false })).toBeNull());

@@ -5,13 +5,15 @@ export type SubscriptionSummary = {
   cancelAtPeriodEnd: boolean;
 };
 
+// Fixed locale AND zone: this text is server-rendered and hydrated, so it must not follow the machine's settings
+// (review I1). The UI is English; a renewal date shown as its UTC day is off by at most a few hours near midnight.
+const RENEWAL_DATE = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+
 /** One line describing a Pro subscription for the Profile card and Settings. */
-export function statusLine(s: SubscriptionSummary, locale?: string): string | null {
+export function statusLine(s: SubscriptionSummary): string | null {
   if (!s.status) return null;
   if (s.status === "past_due") return "Payment failed — update your card";
-  const date = s.currentPeriodEnd
-    ? new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }).format(new Date(s.currentPeriodEnd))
-    : null;
+  const date = s.currentPeriodEnd ? RENEWAL_DATE.format(new Date(s.currentPeriodEnd)) : null;
   if (s.cancelAtPeriodEnd && date) return `Pro until ${date}`;
   const plan = s.interval === "year" ? "Annual" : "Monthly";
   return date ? `Pro · ${plan} — renews ${date}` : `Pro · ${plan}`;

@@ -10,10 +10,12 @@ import {
   Bookmark,
 } from "lucide-react";
 import { Check } from "lucide-react";
+import { unstable_rethrow } from "next/navigation";
 import { useState, useTransition } from "react";
 import { startCheckout, type StartCheckoutResult } from "@/app/billing/actions";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { displayPrice, monthlyEquivalent, type Interval } from "@/lib/billing/prices";
+import { useClientTimeZone } from "@/lib/billing/use-client-time-zone";
 import { cn } from "@/lib/utils";
 
 /**
@@ -170,9 +172,12 @@ const PURCHASE_MESSAGES: Record<StartCheckoutResult["status"], string> = {
   error: "Couldn't start checkout. Try again in a moment.",
 };
 
-/** The price in the buyer's currency — display only; Stripe Checkout charges the real local currency. */
-export function proPriceLabel(interval: Interval, timeZone?: string) {
-  return displayPrice(interval, timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
+/**
+ * The price in the buyer's currency — display only; Stripe Checkout charges the real local currency.
+ * Pass the zone from `useClientTimeZone()`: undefined on the server renders the neutral CHF label (review I1).
+ */
+export function proPriceLabel(interval: Interval, timeZone: string | undefined) {
+  return displayPrice(interval, timeZone);
 }
 
 /**
@@ -180,7 +185,8 @@ export function proPriceLabel(interval: Interval, timeZone?: string) {
  * it stays the inert price pill — a button that takes money it cannot take is worse than none.
  */
 function ProPurchase({ timeZone }: { timeZone?: string }) {
-  const tz = timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const deviceZone = useClientTimeZone();
+  const tz = timeZone ?? deviceZone;
   const [plan, setPlan] = useState<Interval>("year");
   const [waiver, setWaiver] = useState(false);
   const [pending, start] = useTransition();
@@ -275,9 +281,15 @@ function ProPurchase({ timeZone }: { timeZone?: string }) {
         onClick={() =>
           start(async () => {
             setError(null);
-            // Success redirects to Stripe Checkout; a returned result is an outcome to explain.
-            const result = await startCheckout({ interval: plan, waiverAccepted: waiver });
-            if (result) setError(PURCHASE_MESSAGES[result.status] ?? PURCHASE_MESSAGES.error);
+            // Success redirects to Stripe Checkout; a returned result is an outcome to explain, and a rejection
+            // (network drop, timeout) must end here too, not on the global error page (review M6).
+            try {
+              const result = await startCheckout({ interval: plan, waiverAccepted: waiver });
+              if (result) setError(PURCHASE_MESSAGES[result.status] ?? PURCHASE_MESSAGES.error);
+            } catch (e) {
+              unstable_rethrow(e); // let a Next redirect through
+              setError(PURCHASE_MESSAGES.error);
+            }
           })
         }
         className="mt-4 grid min-h-[52px] w-full place-items-center rounded-[14px] bg-foreground text-[15.5px] font-semibold text-canvas disabled:opacity-40"

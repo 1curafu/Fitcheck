@@ -15,3 +15,10 @@ it("shows the subscription state and opens the portal", async () => {
   expect(openBillingPortal).toHaveBeenCalledOnce();
   expect(await screen.findByRole("alert")).toHaveTextContent(/couldn.t open billing/i);
 });
+
+it("a rejected portal call still ends in the calm message (review M6)", async () => {
+  openBillingPortal.mockRejectedValue(new Error("fetch failed"));
+  render(<ManageSubscription status="active" interval="year" currentPeriodEnd={null} cancelAtPeriodEnd={false} />);
+  await userEvent.click(screen.getByRole("button", { name: /manage subscription/i }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(/couldn.t open billing/i);
+});

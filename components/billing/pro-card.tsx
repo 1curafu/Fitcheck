@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { SubscriptionSummary } from "@/lib/billing/status-line";
 import type { Tier } from "@/lib/billing/tiers";
+import { useClientTimeZone } from "@/lib/billing/use-client-time-zone";
 import { ManageSubscription } from "./manage-subscription";
 import { proPriceLabel, UpgradeSheet } from "./upgrade-sheet";
 
@@ -22,6 +23,7 @@ import { proPriceLabel, UpgradeSheet } from "./upgrade-sheet";
 export function ProCard({ tier, subscription }: { tier: Tier; subscription?: SubscriptionSummary | null }) {
   const [open, setOpen] = useState(false);
   const isPro = tier === "pro";
+  const timeZone = useClientTimeZone();
 
   return (
     <>
@@ -35,7 +37,7 @@ export function ProCard({ tier, subscription }: { tier: Tier; subscription?: Sub
           {isPro ? "Active — everything unlocked." : "Get the whole wardrobe working."}
         </span>
         <span className="mt-[13px] inline-block rounded-full bg-canvas px-[17px] py-[9px] text-[13px] font-semibold text-foreground">
-          {isPro ? "Your membership" : `Go Pro · ${proPriceLabel("month").label}`}
+          {isPro ? "Your membership" : `Go Pro · ${proPriceLabel("month", timeZone).label}`}
         </span>
       </button>
 
