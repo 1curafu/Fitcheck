@@ -1,14 +1,18 @@
 import { expect, test } from "@playwright/test";
 import { setTier } from "./helpers";
 
+test.use({ storageState: "e2e/.auth/state.json" });
+
 /**
  * Billing journeys through the stub gateway (FITCHECK_STUB_STRIPE, playwright.config.ts): everything except the
  * network call to Stripe. The real Checkout is exercised in the sandbox run before release (plan Task 11).
  */
 test.describe("billing", () => {
-  test.afterEach(async () => setTier("free"));
+  // The seeded user is Pro (e2e/seed.ts); every test restores that so later specs see the world they expect.
+  test.afterEach(async () => setTier("pro"));
 
   test("Go Pro needs the withdrawal waiver, then goes to checkout", async ({ page }) => {
+    await setTier("free");
     await page.goto("/profile");
     await page.getByRole("button", { name: /fitcheck pro/i }).click();
     const sheet = page.getByRole("dialog");
