@@ -25,6 +25,13 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.3.8",
+    date: "2026-09-24",
+    headline: "Fitcheck Pro is here — every feature, monthly or yearly.",
+    added: ["Go Pro monthly or yearly, and manage or cancel any time in Settings"],
+    fixed: ["Your account settings are now even better protected"],
+  },
+  {
     version: "0.3.7",
     date: "2026-09-23",
     headline: "Quieter work behind the scenes to keep your data safe.",
