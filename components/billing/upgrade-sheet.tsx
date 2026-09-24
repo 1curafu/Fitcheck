@@ -191,7 +191,6 @@ function ProPurchase({ timeZone }: { timeZone?: string }) {
   const [waiver, setWaiver] = useState(false);
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const converted = displayPrice("month", tz).converted;
 
   if (process.env.NEXT_PUBLIC_BILLING_ENABLED !== "1") {
     return (
@@ -250,9 +249,9 @@ function ProPurchase({ timeZone }: { timeZone?: string }) {
           );
         })}
       </fieldset>
-      {converted && (
-        <p className="mt-2 text-center text-[12px] text-muted-dim">Charged in your local currency at checkout.</p>
-      )}
+      {/* The label above is a guess from the phone's time zone; Checkout prices by the buyer's location and the
+          country they enter there (Link, as seller, decides tax from its own evidence). */}
+      <p className="mt-2 text-center text-[12px] text-muted-dim">Final price and currency shown at checkout.</p>
 
       {/* EU withdrawal waiver (spec §8): distinct, unticked by default, required server-side too. A drawn box in the
           app's cream, not the platform's blue default. */}

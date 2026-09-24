@@ -36,9 +36,11 @@ it("the sheet scrolls when it is taller than the screen", () => {
   expect(screen.getByRole("dialog")).toHaveClass("overflow-y-auto");
 });
 
-it("says when the currency is only converted at checkout", () => {
-  open("Asia/Tokyo");
-  expect(screen.getByText(/charged in your local currency at checkout/i)).toBeInTheDocument();
+// The label is a guess from the phone's time zone; Checkout prices by where the buyer is and the country they enter
+// (sandbox run: a Berlin-zone phone, a Maltese address). Always said, not only for converted currencies (owner, 2026-09-24).
+it.each(["Europe/Berlin", "Europe/Zurich", "Asia/Tokyo"])("says the final price and currency come at checkout (%s)", (tz) => {
+  open(tz);
+  expect(screen.getByText("Final price and currency shown at checkout.")).toBeInTheDocument();
 });
 
 it("submits the chosen interval with the waiver and shows a calm error", async () => {
