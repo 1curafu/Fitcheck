@@ -1,4 +1,5 @@
 import { processImage } from "../process";
+import { encodeCutout } from "../encode";
 
 const segment = vi.fn(async () => new Blob(["png"]));
 const getExifOrientation = vi.fn(async (_f: File) => 1);
@@ -41,6 +42,24 @@ test("an EXIF-rotated photo: the model sees the compressed, already-upright imag
   getExifOrientation.mockResolvedValueOnce(6);
   await processImage(file);
   const [source, , target] = segment.mock.calls[0] as unknown as [Blob, unknown, Blob];
+  expect(source).not.toBe(file);
+  expect(source).toBe(target);
+});
+
+test("an injected worker segmenter sees the same source and passes its PNG to the encoder", async () => {
+  getExifOrientation.mockResolvedValueOnce(1);
+  const png = new Blob(["worker-png"], { type: "image/png" });
+  const injected = vi.fn(async () => png);
+  await processImage(file, injected);
+  expect(injected).toHaveBeenCalledWith(file, expect.any(Blob));
+  expect(vi.mocked(encodeCutout)).toHaveBeenLastCalledWith(png);
+});
+
+test("an injected worker gets the upright compressed blob for a rotated phone photo", async () => {
+  getExifOrientation.mockResolvedValueOnce(6);
+  const injected = vi.fn(async (_source: Blob, _target: Blob) => new Blob(["worker-png"]));
+  await processImage(file, injected);
+  const [source, target] = injected.mock.calls[0];
   expect(source).not.toBe(file);
   expect(source).toBe(target);
 });
