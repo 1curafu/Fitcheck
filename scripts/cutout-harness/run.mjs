@@ -59,7 +59,7 @@ const server = createServer((req, res) => {
   });
   res.end(readFileSync(path));
 });
-await new Promise((r) => server.listen(0, r));
+await new Promise((r) => server.listen(0, "127.0.0.1", r));
 const port = server.address().port;
 
 const args = process.argv.slice(2);
@@ -79,7 +79,7 @@ const browser = await chromium.launch();
 const open = async (file) => {
   const p = await browser.newPage();
   p.on("console", (m) => { if (m.type() === "error") console.error("  [page]", m.text()); });
-  await p.goto(`http://localhost:${port}/scripts/cutout-harness/${file}`);
+  await p.goto(`http://127.0.0.1:${port}/scripts/cutout-harness/${file}`);
   await p.waitForFunction(() => window.harnessReady, null, { timeout: 60000 });
   return p;
 };
