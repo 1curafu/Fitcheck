@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { processImage, blobToBase64, type ProcessedImage } from "@/lib/images/process";
 import { uploadAndTag, confirmItem, discardDraft, getUploadCapacity,
   type UploadAndTagResult } from "@/app/closet/upload/actions";
@@ -42,6 +43,7 @@ export type BatchView = {
 type ReadyUpload = Extract<UploadAndTagResult, { status: "ready" }>;
 
 export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) {
+  const pathname = usePathname();
   const [phase, setPhase] = useState<CapturePhase>("aim");
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +61,68 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) 
   const capacityMessageRef = useRef<string | null>(null);
   const serverStoppedRef = useRef(false);
   const onSavedRef = useRef(options?.onSaved);
-  onSavedRef.current = options?.onSaved;
+  const confirmingItemIdRef = useRef<string | null>(null);
+  const uncertainItemIdsRef = useRef(new Set<string>());
+  const savedItemIdsRef = useRef(new Set<string>());
+  const draftRef = useRef<Draft | null>(null);
+  const pathnameRef = useRef(pathname);
+  const mountedRef = useRef(false);
+
+  function cleanupUpload(upload: ReadyUpload) {
+    void discardDraft([upload.imagePath, upload.cutoutPath, upload.thumbPath]).catch(() => undefined);
+  }
+
+  function stopFlow(showSummary: boolean, updateState = true) {
+    generationRef.current += 1;
+    segmenterRef.current?.dispose();
+    segmenterRef.current = null;
+    const queue = queueRef.current;
+    for (const { upload } of preparedRef.current.values()) {
+      if (upload.itemId !== confirmingItemIdRef.current &&
+          !uncertainItemIdsRef.current.has(upload.itemId) &&
+          !savedItemIdsRef.current.has(upload.itemId)) cleanupUpload(upload);
+    }
+    if (!queue && draftRef.current &&
+        draftRef.current.itemId !== confirmingItemIdRef.current &&
+        !uncertainItemIdsRef.current.has(draftRef.current.itemId) &&
+        !savedItemIdsRef.current.has(draftRef.current.itemId)) {
+      void discardDraft([draftRef.current.imagePath, draftRef.current.cutoutPath,
+        draftRef.current.thumbPath]).catch(() => undefined);
+    }
+    processedRef.current.clear();
+    preparedRef.current.clear();
+    errorsRef.current.clear();
+    activeDraftEntryRef.current = null;
+    serverStoppedRef.current = false;
+    queueRef.current = showSummary && queue ? { ...queue, stopped: true } : null;
+    if (updateState) {
+      setDraft(null);
+      setPhase("aim");
+      setError(null);
+      publishQueue();
+    }
+  }
+  const stopFlowRef = useRef(stopFlow);
+  useEffect(() => {
+    onSavedRef.current = options?.onSaved;
+    draftRef.current = draft;
+    stopFlowRef.current = stopFlow;
+  });
+
+  useEffect(() => {
+    if (pathnameRef.current !== pathname) {
+      pathnameRef.current = pathname;
+      stopFlowRef.current(false);
+    }
+  }, [pathname]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      queueMicrotask(() => { if (!mountedRef.current) stopFlowRef.current(false, false); });
+    };
+  }, []);
 
   function publishQueue() {
     const queue = queueRef.current;
@@ -182,7 +245,10 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) 
       const upload = await uploadAndTag({ originalB64, cutoutB64,
         mediaType: processed.cutoutMediaType, thumbB64,
         thumbMediaType: processed.thumbMediaType });
-      if (generation !== generationRef.current) return;
+      if (generation !== generationRef.current) {
+        if (upload.status === "ready") cleanupUpload(upload);
+        return;
+      }
       if (upload.status === "limited") {
         serverStoppedRef.current = true;
         capacityMessageRef.current = upload.message;
@@ -210,8 +276,10 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) 
     startingRef.current = true;
     setError(null);
     setPhase("removing");
+    const startingGeneration = generationRef.current;
     try {
       const allowance = await getUploadCapacity();
+      if (startingGeneration !== generationRef.current) return;
       const generation = ++generationRef.current;
       queueRef.current = createBatchQueue(files, allowance.remaining);
       processedRef.current.clear();
@@ -231,6 +299,7 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) 
       publishQueue();
       if (allowance.allowed) pump(generation);
     } catch (cause) {
+      if (startingGeneration !== generationRef.current) return;
       setError(cause instanceof Error ? cause.message : "Cannot check closet capacity");
       setPhase("aim");
     } finally {
@@ -250,15 +319,18 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) 
     if (startingRef.current || (queueRef.current && !queueRef.current.stopped)) return;
     setError(null);
     setPhase("removing");
+    const generation = generationRef.current;
     try {
       segmenterRef.current ??= createSegmenter();
       const { original, cutout, cutoutMediaType, thumb, thumbMediaType } =
         await processImage(file, segmenterRef.current.run);
+      if (generation !== generationRef.current) return;
       const [originalB64, cutoutB64, thumbB64] = await Promise.all([
         blobToBase64(original),
         blobToBase64(cutout),
         thumb ? blobToBase64(thumb) : Promise.resolve(null),
       ]);
+      if (generation !== generationRef.current) return;
       const res = await uploadAndTag({
         originalB64,
         cutoutB64,
@@ -266,12 +338,20 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) 
         thumbB64,
         thumbMediaType,
       });
+      if (generation !== generationRef.current) {
+        if (res.status === "ready") cleanupUpload(res);
+        return;
+      }
       if (res.status === "limited") {
         setError(res.message);
         setPhase("aim");
         return;
       }
       const shown = await rotateBlob(cutout, res.rotation);
+      if (generation !== generationRef.current) {
+        cleanupUpload(res);
+        return;
+      }
       setDraft({
         itemId: res.itemId,
         imagePath: res.imagePath,
@@ -286,6 +366,7 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) 
       });
       setPhase("confirm");
     } catch (e) {
+      if (generation !== generationRef.current) return;
       setError(e instanceof Error ? e.message : "Capture failed");
       setPhase("aim");
     }
@@ -343,6 +424,7 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) 
   async function save() {
     if (!draft || savingRef.current) return;
     savingRef.current = true;
+    const generation = generationRef.current;
     const activeQueue = queueRef.current;
     const batchEntry = activeQueue && !activeQueue.stopped ? currentBatchEntry(activeQueue) : null;
     if (batchEntry) move(batchEntry.id, "saving");
@@ -360,21 +442,34 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) 
           thumbMediaType: thumb?.mediaType ?? null,
         };
       }
-      const result = await confirmItem({
-        itemId: draft.itemId,
-        imagePath: draft.imagePath,
-        cutoutPath: draft.cutoutPath,
-        thumbPath: draft.thumbPath,
-        name: draft.name || null,
-        brand: draft.brand || null,
-        tags: draft.tags,
-        rotated,
-      });
+      if (generation !== generationRef.current) return;
+      confirmingItemIdRef.current = draft.itemId;
+      let result;
+      try {
+        result = await confirmItem({
+          itemId: draft.itemId,
+          imagePath: draft.imagePath,
+          cutoutPath: draft.cutoutPath,
+          thumbPath: draft.thumbPath,
+          name: draft.name || null,
+          brand: draft.brand || null,
+          tags: draft.tags,
+          rotated,
+        });
+      } catch (cause) {
+        uncertainItemIdsRef.current.add(draft.itemId);
+        throw cause;
+      } finally {
+        if (confirmingItemIdRef.current === draft.itemId) confirmingItemIdRef.current = null;
+      }
+      if (generation !== generationRef.current) return;
       if (result.status === "limited") {
         setError(result.message);
         if (batchEntry) move(batchEntry.id, "reviewing");
         return;
       }
+      savedItemIdsRef.current.add(draft.itemId);
+      uncertainItemIdsRef.current.delete(draft.itemId);
       if (batchEntry) {
         preparedRef.current.delete(batchEntry.id);
         processedRef.current.delete(batchEntry.id);
@@ -386,11 +481,12 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) 
       setPhase(batchEntry ? "removing" : "aim");
       if (batchEntry) pump(generationRef.current);
     } catch (e) {
+      if (generation !== generationRef.current) return;
       if (batchEntry) move(batchEntry.id, "reviewing");
       setError(e instanceof Error ? e.message : "Save failed");
     } finally {
       savingRef.current = false;
-      setSaving(false);
+      if (generation === generationRef.current) setSaving(false);
     }
   }
 
@@ -407,10 +503,7 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) 
     setDraft(null);
     setError(null);
     setPhase("removing");
-    if (prepared) {
-      try { await discardDraft([prepared.upload.imagePath, prepared.upload.cutoutPath, prepared.upload.thumbPath]); }
-      catch { /* orphan sweep backstop */ }
-    }
+    if (prepared && !uncertainItemIdsRef.current.has(prepared.upload.itemId)) cleanupUpload(prepared.upload);
     pump(generationRef.current);
   }
 
@@ -431,14 +524,10 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) 
   async function finish() {
     const queue = queueRef.current;
     if (!queue || queue.stopped || savingRef.current) return;
-    generationRef.current += 1;
-    queueRef.current = { ...queue, stopped: true };
-    setDraft(null);
-    setPhase("aim");
-    publishQueue();
+    stopFlow(true);
   }
 
-  function cancel() { void finish(); }
+  function cancel() { stopFlow(false); }
 
   return { phase, draft, error, saving, batch, capture, captureMany,
     discard, skip, retry, finish, cancel, updateDraft, updateTags, toggleSeason, rotate, save };

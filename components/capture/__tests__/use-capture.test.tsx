@@ -1,6 +1,9 @@
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { useCapture } from "../use-capture";
 
+const location = vi.hoisted(() => ({ pathname: "/closet/upload" }));
+vi.mock("next/navigation", () => ({ usePathname: () => location.pathname }));
+
 vi.mock("@/lib/images/process", () => ({
   processImage: vi.fn(async () => ({ original: new Blob(), cutout: new Blob(["cut"]) })),
   blobToBase64: vi.fn(async () => "b64"),
@@ -42,6 +45,7 @@ beforeAll(() => {
   URL.createObjectURL = vi.fn(() => "blob:mock");
   URL.revokeObjectURL = vi.fn();
 });
+beforeEach(() => { location.pathname = "/closet/upload"; });
 
 test("capture moves aim → confirm and builds a draft", async () => {
   const { result } = renderHook(() => useCapture());
@@ -296,5 +300,169 @@ describe("batch capture", () => {
     await act(async () => { await result.current.captureMany([new File([], "replacement.jpg")]); });
     expect(getUploadCapacity).toHaveBeenCalledOnce();
     expect(result.current.batch?.total).toBe(1);
+  });
+});
+
+describe("batch cancellation", () => {
+  function readyFor(id: string) {
+    return {
+      status: "ready" as const, itemId: id,
+      imagePath: `u/${id}/original.jpg`, cutoutPath: `u/${id}/cutout.webp`, thumbPath: null,
+      tags: { category: "Tops", subcategory: "Tee", colors: ["black"],
+        pattern: "solid", material: "Cotton", formality: 2, seasons: ["Summer"] } as never,
+      rotation: 0 as const,
+    };
+  }
+
+  test("Finish discards prepared drafts but keeps already saved paths", async () => {
+    const { uploadAndTag, discardDraft } = await import("@/app/closet/upload/actions");
+    vi.mocked(uploadAndTag).mockResolvedValueOnce(readyFor("first"))
+      .mockResolvedValueOnce(readyFor("second"));
+    vi.mocked(discardDraft).mockClear();
+    const { result } = renderHook(() => useCapture());
+    await act(async () => { await result.current.captureMany([
+      new File([], "first.jpg"), new File([], "second.jpg"),
+    ]); });
+    await waitFor(() => expect(result.current.batch?.nextReady).toBe(true));
+    await act(async () => { await result.current.save(); });
+    await waitFor(() => expect(result.current.draft?.itemId).toBe("second"));
+    await act(async () => { await result.current.finish(); });
+    expect(result.current.batch?.stopped).toBe(true);
+    expect(discardDraft).toHaveBeenCalledWith([
+      "u/second/original.jpg", "u/second/cutout.webp", null,
+    ]);
+    expect(JSON.stringify(vi.mocked(discardDraft).mock.calls)).not.toContain("u/first/original.jpg");
+  });
+
+  test("a tag result arriving after Finish is cleaned and never shown", async () => {
+    const { uploadAndTag, discardDraft } = await import("@/app/closet/upload/actions");
+    const gate = Promise.withResolvers<ReturnType<typeof readyFor>>();
+    vi.mocked(uploadAndTag).mockImplementationOnce(() => gate.promise);
+    vi.mocked(discardDraft).mockClear();
+    const { result } = renderHook(() => useCapture());
+    await act(async () => { await result.current.captureMany([new File([], "first.jpg")]); });
+    await waitFor(() => expect(uploadAndTag).toHaveBeenCalled());
+    await act(async () => { await result.current.finish(); });
+    await act(async () => { gate.resolve(readyFor("late")); await gate.promise; });
+    await waitFor(() => expect(discardDraft).toHaveBeenCalledWith([
+      "u/late/original.jpg", "u/late/cutout.webp", null,
+    ]));
+    expect(result.current.draft).toBeNull();
+  });
+
+  test("Skip clears the foreground and only discards that photo", async () => {
+    const { uploadAndTag, discardDraft } = await import("@/app/closet/upload/actions");
+    vi.mocked(uploadAndTag).mockResolvedValueOnce(readyFor("first"))
+      .mockResolvedValueOnce(readyFor("second"));
+    vi.mocked(discardDraft).mockClear();
+    const { result } = renderHook(() => useCapture());
+    await act(async () => { await result.current.captureMany([
+      new File([], "first.jpg"), new File([], "second.jpg"),
+    ]); });
+    await waitFor(() => expect(result.current.batch?.nextReady).toBe(true));
+    await act(async () => { await result.current.skip(); });
+    await waitFor(() => expect(result.current.draft?.itemId).toBe("second"));
+    expect(discardDraft).toHaveBeenCalledWith([
+      "u/first/original.jpg", "u/first/cutout.webp", null,
+    ]);
+    expect(JSON.stringify(vi.mocked(discardDraft).mock.calls)).not.toContain("u/second/original.jpg");
+  });
+
+  test("route departure during confirmation keeps saved images and suppresses stale UI", async () => {
+    const { confirmItem, discardDraft } = await import("@/app/closet/upload/actions");
+    const gate = Promise.withResolvers<{ status: "saved" }>();
+    vi.mocked(confirmItem).mockImplementationOnce(() => gate.promise);
+    vi.mocked(discardDraft).mockClear();
+    const onSaved = vi.fn();
+    const { result, rerender } = renderHook(() => useCapture({ onSaved }));
+    await act(async () => { await result.current.captureMany([new File([], "first.jpg")]); });
+    await waitFor(() => expect(result.current.phase).toBe("confirm"));
+    let saving!: Promise<void>;
+    act(() => { saving = result.current.save(); });
+    location.pathname = "/closet";
+    rerender();
+    gate.resolve({ status: "saved" });
+    await act(async () => { await saving; });
+    expect(discardDraft).not.toHaveBeenCalled();
+    expect(onSaved).not.toHaveBeenCalled();
+    expect(result.current.batch).toBeNull();
+  });
+
+  test("an uncertain save rejection leaves its images for the orphan sweep", async () => {
+    const { confirmItem, discardDraft } = await import("@/app/closet/upload/actions");
+    const gate = Promise.withResolvers<{ status: "saved" }>();
+    vi.mocked(confirmItem).mockImplementationOnce(() => gate.promise);
+    vi.mocked(discardDraft).mockClear();
+    const { result, rerender } = renderHook(() => useCapture());
+    await act(async () => { await result.current.captureMany([new File([], "first.jpg")]); });
+    await waitFor(() => expect(result.current.phase).toBe("confirm"));
+    let saving!: Promise<void>;
+    act(() => { saving = result.current.save(); });
+    location.pathname = "/closet";
+    rerender();
+    gate.reject(new Error("response lost"));
+    await act(async () => { await saving; });
+    expect(discardDraft).not.toHaveBeenCalled();
+    expect(result.current.batch).toBeNull();
+  });
+
+  test("a worker completion after Finish cannot restore a draft", async () => {
+    const { processImage } = await import("@/lib/images/process");
+    const { createSegmenter } = await import("@/lib/images/worker-client");
+    const gate = Promise.withResolvers<{ original: Blob; cutout: Blob; cutoutMediaType: "image/webp"; thumb: null; thumbMediaType: null }>();
+    vi.mocked(processImage).mockImplementationOnce(() => gate.promise);
+    vi.mocked(createSegmenter).mockClear();
+    const { result } = renderHook(() => useCapture());
+    await act(async () => { await result.current.captureMany([new File([], "first.jpg")]); });
+    await act(async () => { await result.current.finish(); });
+    await act(async () => { gate.resolve({ original: new Blob(), cutout: new Blob(),
+      cutoutMediaType: "image/webp", thumb: null, thumbMediaType: null }); });
+    expect(result.current.draft).toBeNull();
+    expect(vi.mocked(createSegmenter).mock.results.at(-1)?.value.dispose).toHaveBeenCalledOnce();
+  });
+
+  test("a failed capacity read after route departure cannot show an old error", async () => {
+    const { getUploadCapacity } = await import("@/app/closet/upload/actions");
+    const gate = Promise.withResolvers<{ allowed: true; remaining: null }>();
+    vi.mocked(getUploadCapacity).mockImplementationOnce(() => gate.promise);
+    const { result, rerender } = renderHook(() => useCapture());
+    let starting!: Promise<void>;
+    act(() => { starting = result.current.captureMany([new File([], "first.jpg")]); });
+    location.pathname = "/closet";
+    rerender();
+    gate.reject(new Error("old capacity failure"));
+    await act(async () => { await starting; });
+    expect(result.current.error).toBeNull();
+    expect(result.current.batch).toBeNull();
+  });
+
+  test("a single-photo preview completing after departure is discarded", async () => {
+    const { rotateBlob } = await import("@/lib/images/rotate");
+    const { discardDraft } = await import("@/app/closet/upload/actions");
+    const gate = Promise.withResolvers<Blob>();
+    vi.mocked(rotateBlob).mockClear().mockImplementationOnce(() => gate.promise);
+    vi.mocked(discardDraft).mockClear();
+    const { result, rerender } = renderHook(() => useCapture());
+    let capturing!: Promise<void>;
+    act(() => { capturing = result.current.capture(new File([], "first.jpg")); });
+    await waitFor(() => expect(rotateBlob).toHaveBeenCalled());
+    location.pathname = "/closet";
+    rerender();
+    gate.resolve(new Blob(["rotated"]));
+    await act(async () => { await capturing; });
+    expect(result.current.draft).toBeNull();
+    expect(discardDraft).toHaveBeenCalledWith([
+      "u/item-1/original.jpg", "u/item-1/cutout.png", null,
+    ]);
+  });
+
+  test("a finished foreground preview revokes its object URL once", async () => {
+    vi.mocked(URL.revokeObjectURL).mockClear();
+    const { result, unmount } = renderHook(() => useCapture());
+    await act(async () => { await result.current.captureMany([new File([], "first.jpg")]); });
+    await waitFor(() => expect(result.current.phase).toBe("confirm"));
+    await act(async () => { await result.current.finish(); });
+    unmount();
+    expect(URL.revokeObjectURL).toHaveBeenCalledTimes(1);
   });
 });
