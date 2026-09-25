@@ -6,6 +6,7 @@ import type { Tags } from "@/lib/ai/tagging-schema";
 import { FIT_OPTIONS } from "@/lib/closet/vocab";
 
 const draft: Draft = {
+  itemId: "33333333-3333-4333-8333-333333333333",
   imagePath: "p",
   cutoutPath: "c",
   thumbPath: null,

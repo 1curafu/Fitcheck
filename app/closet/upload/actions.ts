@@ -9,11 +9,28 @@ import { cutoutFilename, type CutoutMediaType } from "@/lib/images/encode";
 import { thumbFilename, type ThumbMediaType } from "@/lib/images/thumb";
 import { assertCanUpload, readUploadAllowance } from "@/lib/billing/entitlements";
 import { UploadLimitError } from "@/lib/billing/errors";
+import { assertDraftIdentity, groupOwnedDraftPaths } from "@/lib/closet/capture-paths";
 
 export type UploadAndTagResult =
   | { status: "ready"; itemId: string; imagePath: string; cutoutPath: string;
       thumbPath: string | null; tags: Tags; rotation: Rotation }
   | { status: "limited"; message: string };
+
+export type ConfirmItemResult = { status: "saved" } | { status: "limited"; message: string };
+
+type StoredDraft = { id: string; user_id: string; image_url: string; cutout_url: string | null };
+
+async function readItemById(supabase: Awaited<ReturnType<typeof createClient>>, itemId: string) {
+  const { data, error } = await supabase.from("items")
+    .select("id,user_id,image_url,cutout_url").eq("id", itemId).maybeSingle();
+  if (error) throw error;
+  return data as StoredDraft | null;
+}
+
+function matchingDraft(row: StoredDraft, userId: string, imagePath: string, base: string) {
+  return row.user_id === userId && row.image_url === imagePath &&
+    (row.cutout_url === `${base}/cutout.webp` || row.cutout_url === `${base}/cutout.png`);
+}
 
 export async function getUploadCapacity() {
   const supabase = await createClient();
@@ -99,6 +116,7 @@ export async function uploadAndTag(form: {
 // user rotated the cutout, the rotated blobs replace the uploaded ones first,
 // so the row only ever points at upright images.
 export async function confirmItem(input: {
+  itemId: string;
   imagePath: string;
   cutoutPath: string;
   thumbPath?: string | null;
@@ -111,12 +129,27 @@ export async function confirmItem(input: {
     thumbB64: string | null;
     thumbMediaType: ThumbMediaType | null;
   } | null;
-}) {
+}): Promise<ConfirmItemResult> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
+
+  const base = assertDraftIdentity(user.id, input);
+  const existing = await readItemById(supabase, input.itemId);
+  if (existing) {
+    if (!matchingDraft(existing, user.id, input.imagePath, base)) throw new Error("Not your upload");
+    return { status: "saved" };
+  }
+  try {
+    await assertCanUpload();
+  } catch (error) {
+    if (error instanceof UploadLimitError) return { status: "limited", message: error.message };
+    throw error;
+  }
+
+  const tags = TagSchema.parse(input.tags);
 
   let cutoutPath = input.cutoutPath;
   let thumbPath = input.thumbPath ?? null;
@@ -152,7 +185,6 @@ export async function confirmItem(input: {
     if (remove.length) await supabase.storage.from("wardrobe").remove(remove);
   }
 
-  const tags = TagSchema.parse(input.tags);
   const row = {
     ...tagsToItemRow({
       userId: user.id,
@@ -163,10 +195,20 @@ export async function confirmItem(input: {
     }),
     name: input.name ?? tags.subcategory,
     brand: input.brand ?? null,
+    id: input.itemId,
   };
   const { error } = await supabase.from("items").insert(row);
-  if (error) throw error;
+  if (error) {
+    if (error.code === "23505") {
+      const concurrent = await readItemById(supabase, input.itemId);
+      if (concurrent && matchingDraft(concurrent, user.id, input.imagePath, base)) {
+        return { status: "saved" };
+      }
+    }
+    throw error;
+  }
   revalidatePath("/closet");
+  return { status: "saved" };
 }
 
 /**
@@ -195,10 +237,8 @@ export async function discardDraft(paths: (string | null)[]) {
    * already pins `storage.foldername(name)[1]` to `auth.uid()`, so a
    * cross-user delete is impossible at the database level either way.
    */
-  const owned = paths.filter(
-    (path): path is string => typeof path === "string" && path.startsWith(`${user.id}/`),
-  );
-  if (owned.length === 0) return;
-
-  await supabase.storage.from("wardrobe").remove(owned);
+  for (const [itemId, draftPaths] of groupOwnedDraftPaths(user.id, paths)) {
+    const saved = await readItemById(supabase, itemId);
+    if (!saved) await supabase.storage.from("wardrobe").remove(draftPaths);
+  }
 }

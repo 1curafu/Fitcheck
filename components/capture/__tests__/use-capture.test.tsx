@@ -30,7 +30,7 @@ vi.mock("@/app/closet/upload/actions", () => ({
     },
     rotation: 0,
   })),
-  confirmItem: vi.fn(async () => undefined),
+  confirmItem: vi.fn(async () => ({ status: "saved" })),
   discardDraft: vi.fn(async () => undefined),
 }));
 
@@ -72,6 +72,28 @@ test("successful save calls onSaved and resets to aim", async () => {
   expect(onSaved).toHaveBeenCalledOnce();
   expect(result.current.phase).toBe("aim");
   expect(result.current.draft).toBeNull();
+});
+
+test("confirmation uses the upload id", async () => {
+  const { confirmItem } = await import("@/app/closet/upload/actions");
+  const { result } = renderHook(() => useCapture());
+  await act(async () => { await result.current.capture(new File([], "x.jpg")); });
+  await act(async () => { await result.current.save(); });
+  expect(vi.mocked(confirmItem).mock.lastCall?.[0]).toMatchObject({ itemId: "item-1" });
+});
+
+test("confirmation limit keeps the editable draft", async () => {
+  const { confirmItem } = await import("@/app/closet/upload/actions");
+  vi.mocked(confirmItem).mockResolvedValueOnce({ status: "limited", message: "closet full" });
+  const onSaved = vi.fn();
+  const { result } = renderHook(() => useCapture({ onSaved }));
+  await act(async () => { await result.current.capture(new File([], "x.jpg")); });
+  act(() => result.current.updateDraft({ name: "My knit" }));
+  await act(async () => { await result.current.save(); });
+  expect(result.current.phase).toBe("confirm");
+  expect(result.current.draft?.name).toBe("My knit");
+  expect(result.current.error).toBe("closet full");
+  expect(onSaved).not.toHaveBeenCalled();
 });
 
 test("failed save sets error, stays on confirm, skips onSaved", async () => {

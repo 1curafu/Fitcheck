@@ -10,6 +10,7 @@ import { THUMB_MAX_PX } from "@/lib/images/options";
 import type { Rotation, Tags } from "@/lib/ai/tagging-schema";
 
 export type Draft = {
+  itemId: string;
   imagePath: string;
   cutoutPath: string;
   thumbPath: string | null;
@@ -62,6 +63,7 @@ export function useCapture(options?: { onSaved?: () => void }) {
       }
       const shown = await rotateBlob(cutout, res.rotation);
       setDraft({
+        itemId: res.itemId,
         imagePath: res.imagePath,
         cutoutPath: res.cutoutPath,
         thumbPath: res.thumbPath,
@@ -144,7 +146,8 @@ export function useCapture(options?: { onSaved?: () => void }) {
           thumbMediaType: thumb?.mediaType ?? null,
         };
       }
-      await confirmItem({
+      const result = await confirmItem({
+        itemId: draft.itemId,
         imagePath: draft.imagePath,
         cutoutPath: draft.cutoutPath,
         thumbPath: draft.thumbPath,
@@ -153,6 +156,10 @@ export function useCapture(options?: { onSaved?: () => void }) {
         tags: draft.tags,
         rotated,
       });
+      if (result.status === "limited") {
+        setError(result.message);
+        return;
+      }
       options?.onSaved?.();
       setDraft(null);
       setPhase("aim");
