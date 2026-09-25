@@ -209,6 +209,24 @@ describe("rotation", () => {
     }
   });
 
+  test("an in-flight rotation blocks another turn and saving until the preview settles", async () => {
+    const { rotateBlob } = await import("@/lib/images/rotate");
+    const { confirmItem } = await import("@/app/closet/upload/actions");
+    const { result } = renderHook(() => useCapture());
+    await act(async () => { await result.current.capture(new File([], "x.jpg")); });
+    const gate = Promise.withResolvers<Blob>();
+    vi.mocked(rotateBlob).mockClear().mockImplementationOnce(() => gate.promise);
+    vi.mocked(confirmItem).mockClear();
+    let rotating!: Promise<void>;
+    act(() => { rotating = result.current.rotate(); void result.current.rotate(); void result.current.save(); });
+    expect(result.current.rotating).toBe(true);
+    expect(rotateBlob).toHaveBeenCalledOnce();
+    expect(confirmItem).not.toHaveBeenCalled();
+    await act(async () => { gate.resolve(new Blob(["turned"])); await rotating; });
+    expect(result.current.rotating).toBe(false);
+    expect(result.current.draft?.rotation).toBe(90);
+  });
+
   test("save sends the rotated cutout and thumb only when turned", async () => {
     const { confirmItem } = await import("@/app/closet/upload/actions");
     const { result } = renderHook(() => useCapture());
@@ -368,6 +386,35 @@ describe("batch cancellation", () => {
     expect(JSON.stringify(vi.mocked(discardDraft).mock.calls)).not.toContain("u/second/original.jpg");
   });
 
+  test("a rotation finishing after Skip cannot alter the next photo", async () => {
+    const { uploadAndTag, confirmItem } = await import("@/app/closet/upload/actions");
+    const { rotateBlob } = await import("@/lib/images/rotate");
+    vi.mocked(uploadAndTag).mockResolvedValueOnce(readyFor("first"))
+      .mockResolvedValueOnce(readyFor("second"));
+    const { result } = renderHook(() => useCapture());
+    await act(async () => { await result.current.captureMany([
+      new File([], "first.jpg"), new File([], "second.jpg"),
+    ]); });
+    await waitFor(() => expect(result.current.batch?.nextReady).toBe(true));
+
+    const gate = Promise.withResolvers<Blob>();
+    vi.mocked(rotateBlob).mockImplementationOnce(() => gate.promise);
+    let rotating!: Promise<void>;
+    act(() => { rotating = result.current.rotate(); });
+    await act(async () => { await result.current.skip(); });
+    await waitFor(() => expect(result.current.draft?.itemId).toBe("second"));
+    const secondUrl = result.current.draft?.cutoutUrl;
+
+    await act(async () => { gate.resolve(new Blob(["first-rotated"])); await rotating; });
+    expect(result.current.draft?.itemId).toBe("second");
+    expect(result.current.draft?.rotation).toBe(0);
+    expect(result.current.draft?.cutoutUrl).toBe(secondUrl);
+    await act(async () => { await result.current.save(); });
+    expect(vi.mocked(confirmItem).mock.lastCall?.[0]).toMatchObject({
+      itemId: "second", rotated: null,
+    });
+  });
+
   test("route departure during confirmation keeps saved images and suppresses stale UI", async () => {
     const { confirmItem, discardDraft } = await import("@/app/closet/upload/actions");
     const gate = Promise.withResolvers<{ status: "saved" }>();
@@ -434,6 +481,106 @@ describe("batch cancellation", () => {
     await act(async () => { await starting; });
     expect(result.current.error).toBeNull();
     expect(result.current.batch).toBeNull();
+  });
+
+  test("an old capacity read cannot block a new batch after returning to capture", async () => {
+    const { getUploadCapacity } = await import("@/app/closet/upload/actions");
+    const oldPreflight = Promise.withResolvers<{ allowed: true; remaining: null }>();
+    vi.mocked(getUploadCapacity).mockClear().mockImplementationOnce(() => oldPreflight.promise);
+    const { result, rerender } = renderHook(() => useCapture());
+    let oldStart!: Promise<void>;
+    act(() => { oldStart = result.current.captureMany([new File([], "old.jpg")]); });
+    location.pathname = "/closet";
+    rerender();
+    location.pathname = "/closet/upload";
+    rerender();
+    await act(async () => { await result.current.captureMany([new File([], "new.jpg")]); });
+    await waitFor(() => expect(result.current.phase).toBe("confirm"));
+    expect(getUploadCapacity).toHaveBeenCalledTimes(2);
+    oldPreflight.resolve({ allowed: true, remaining: null });
+    await act(async () => { await oldStart; });
+    expect(result.current.batch?.total).toBe(1);
+    expect(result.current.phase).toBe("confirm");
+  });
+
+  test("an old preflight cannot release a newer preflight lock", async () => {
+    const { getUploadCapacity } = await import("@/app/closet/upload/actions");
+    const first = Promise.withResolvers<{ allowed: true; remaining: null }>();
+    const second = Promise.withResolvers<{ allowed: true; remaining: null }>();
+    vi.mocked(getUploadCapacity).mockClear()
+      .mockImplementationOnce(() => first.promise)
+      .mockImplementationOnce(() => second.promise);
+    const { result, rerender } = renderHook(() => useCapture());
+    let oldStart!: Promise<void>;
+    act(() => { oldStart = result.current.captureMany([new File([], "old.jpg")]); });
+    location.pathname = "/closet";
+    rerender();
+    location.pathname = "/closet/upload";
+    rerender();
+    let newStart!: Promise<void>;
+    act(() => { newStart = result.current.captureMany([new File([], "new.jpg")]); });
+    await act(async () => { first.resolve({ allowed: true, remaining: null }); await oldStart; });
+    await act(async () => { await result.current.captureMany([new File([], "third.jpg")]); });
+    expect(getUploadCapacity).toHaveBeenCalledTimes(2);
+    await act(async () => { second.resolve({ allowed: true, remaining: null }); await newStart; });
+    await waitFor(() => expect(result.current.phase).toBe("confirm"));
+  });
+
+  test("a save finishing after departure releases controls for the next photo", async () => {
+    const { confirmItem, uploadAndTag } = await import("@/app/closet/upload/actions");
+    const oldSave = Promise.withResolvers<{ status: "saved" }>();
+    vi.mocked(confirmItem).mockImplementationOnce(() => oldSave.promise);
+    vi.mocked(uploadAndTag).mockResolvedValueOnce(readyFor("first"))
+      .mockResolvedValueOnce(readyFor("second"));
+    const { result, rerender } = renderHook(() => useCapture());
+    await act(async () => { await result.current.captureMany([new File([], "first.jpg")]); });
+    await waitFor(() => expect(result.current.phase).toBe("confirm"));
+    let saving!: Promise<void>;
+    act(() => { saving = result.current.save(); });
+    expect(result.current.saving).toBe(true);
+    location.pathname = "/closet";
+    rerender();
+    oldSave.resolve({ status: "saved" });
+    await act(async () => { await saving; });
+    location.pathname = "/closet/upload";
+    rerender();
+    await act(async () => { await result.current.captureMany([new File([], "second.jpg")]); });
+    await waitFor(() => expect(result.current.draft?.itemId).toBe("second"));
+    expect(result.current.saving).toBe(false);
+    await act(async () => { await result.current.save(); });
+    expect(vi.mocked(confirmItem).mock.lastCall?.[0]).toMatchObject({ itemId: "second" });
+  });
+
+  test("returning before an old save settles allows a new save without unlocking it early", async () => {
+    const { confirmItem, uploadAndTag } = await import("@/app/closet/upload/actions");
+    const oldSave = Promise.withResolvers<{ status: "saved" }>();
+    const newSave = Promise.withResolvers<{ status: "saved" }>();
+    vi.mocked(confirmItem).mockClear()
+      .mockImplementationOnce(() => oldSave.promise)
+      .mockImplementationOnce(() => newSave.promise);
+    vi.mocked(uploadAndTag).mockResolvedValueOnce(readyFor("first"))
+      .mockResolvedValueOnce(readyFor("second"));
+    const { result, rerender } = renderHook(() => useCapture());
+    await act(async () => { await result.current.captureMany([new File([], "first.jpg")]); });
+    await waitFor(() => expect(result.current.draft?.itemId).toBe("first"));
+    let savingFirst!: Promise<void>;
+    act(() => { savingFirst = result.current.save(); });
+    location.pathname = "/closet";
+    rerender();
+    location.pathname = "/closet/upload";
+    rerender();
+    await act(async () => { await result.current.captureMany([new File([], "second.jpg")]); });
+    await waitFor(() => expect(result.current.draft?.itemId).toBe("second"));
+    expect(result.current.saving).toBe(false);
+    let savingSecond!: Promise<void>;
+    act(() => { savingSecond = result.current.save(); });
+    expect(confirmItem).toHaveBeenCalledTimes(2);
+    expect(result.current.saving).toBe(true);
+    await act(async () => { oldSave.resolve({ status: "saved" }); await savingFirst; });
+    expect(result.current.draft?.itemId).toBe("second");
+    expect(result.current.saving).toBe(true);
+    await act(async () => { newSave.resolve({ status: "saved" }); await savingSecond; });
+    expect(result.current.saving).toBe(false);
   });
 
   test("a single-photo preview completing after departure is discarded", async () => {

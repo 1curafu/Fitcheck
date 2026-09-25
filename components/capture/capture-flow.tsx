@@ -27,6 +27,7 @@ export function CaptureFlow() {
           <ConfirmForm
             draft={cap.draft}
             saving={cap.saving}
+            rotating={cap.rotating}
             error={cap.error}
             onDraft={cap.updateDraft}
             onTags={cap.updateTags}

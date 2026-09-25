@@ -28,6 +28,7 @@ export function OnboardingCapture({ initialCount = 0 }: { initialCount?: number 
         <ConfirmForm
           draft={cap.draft}
           saving={cap.saving}
+          rotating={cap.rotating}
           error={cap.error}
           onDraft={cap.updateDraft}
           onTags={cap.updateTags}
@@ -57,7 +58,7 @@ export function OnboardingCapture({ initialCount = 0 }: { initialCount?: number 
       <ProgressStrip filled={count} />
       {batchStatus}
       {cap.batch && cap.phase === "confirm" && cap.draft && (
-        <ConfirmForm draft={cap.draft} saving={cap.saving} error={cap.error}
+        <ConfirmForm draft={cap.draft} saving={cap.saving} rotating={cap.rotating} error={cap.error}
           onDraft={cap.updateDraft} onTags={cap.updateTags}
           onToggleSeason={cap.toggleSeason} onSave={cap.save}
           onRetake={cap.skip} rejectLabel="Skip photo" onRotate={cap.rotate} />

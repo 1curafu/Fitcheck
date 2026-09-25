@@ -48,7 +48,10 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) 
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [rotating, setRotating] = useState(false);
   const savingRef = useRef(false);
+  const saveRequestRef = useRef<object | null>(null);
+  const rotationRequestRef = useRef<object | null>(null);
   const [batch, setBatch] = useState<BatchView | null>(null);
   const queueRef = useRef<BatchQueue | null>(null);
   const processedRef = useRef(new Map<number, ProcessedImage>());
@@ -56,7 +59,7 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) 
   const errorsRef = useRef(new Map<number, string>());
   const segmenterRef = useRef<ReturnType<typeof createSegmenter> | null>(null);
   const generationRef = useRef(0);
-  const startingRef = useRef(false);
+  const startingRef = useRef<symbol | null>(null);
   const activeDraftEntryRef = useRef<number | null>(null);
   const capacityMessageRef = useRef<string | null>(null);
   const serverStoppedRef = useRef(false);
@@ -74,6 +77,10 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) 
 
   function stopFlow(showSummary: boolean, updateState = true) {
     generationRef.current += 1;
+    startingRef.current = null;
+    rotationRequestRef.current = null;
+    saveRequestRef.current = null;
+    savingRef.current = false;
     segmenterRef.current?.dispose();
     segmenterRef.current = null;
     const queue = queueRef.current;
@@ -96,6 +103,8 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) 
     serverStoppedRef.current = false;
     queueRef.current = showSummary && queue ? { ...queue, stopped: true } : null;
     if (updateState) {
+      setSaving(false);
+      setRotating(false);
       setDraft(null);
       setPhase("aim");
       setError(null);
@@ -272,8 +281,9 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) 
   }
 
   async function captureMany(files: File[]) {
-    if (files.length === 0 || startingRef.current || (queueRef.current && !queueRef.current.stopped)) return;
-    startingRef.current = true;
+    if (files.length === 0 || startingRef.current !== null || (queueRef.current && !queueRef.current.stopped)) return;
+    const startToken = Symbol("capture preflight");
+    startingRef.current = startToken;
     setError(null);
     setPhase("removing");
     const startingGeneration = generationRef.current;
@@ -303,7 +313,7 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) 
       setError(cause instanceof Error ? cause.message : "Cannot check closet capacity");
       setPhase("aim");
     } finally {
-      startingRef.current = false;
+      if (startingRef.current === startToken) startingRef.current = null;
     }
   }
 
@@ -316,7 +326,7 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) 
   }, [draft?.cutoutUrl]);
 
   async function capture(file: File) {
-    if (startingRef.current || (queueRef.current && !queueRef.current.stopped)) return;
+    if (startingRef.current !== null || (queueRef.current && !queueRef.current.stopped)) return;
     setError(null);
     setPhase("removing");
     const generation = generationRef.current;
@@ -385,6 +395,8 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) 
    */
   async function discard() {
     const abandoned = draft;
+    rotationRequestRef.current = null;
+    setRotating(false);
     setDraft(null);
     setPhase("aim");
     setError(null);
@@ -402,10 +414,34 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) 
   }
 
   async function rotate() {
-    if (!draft) return;
+    if (!draft || savingRef.current || rotationRequestRef.current) return;
+    const request = {};
+    const generation = generationRef.current;
+    const itemId = draft.itemId;
+    rotationRequestRef.current = request;
+    setRotating(true);
     const next = ((draft.rotation + 90) % 360) as Rotation;
-    const shown = await rotateBlob(draft.baseCutout, next);
-    setDraft((d) => (d ? { ...d, rotation: next, cutoutUrl: URL.createObjectURL(shown) } : d));
+    try {
+      const shown = await rotateBlob(draft.baseCutout, next);
+      if (generation !== generationRef.current || rotationRequestRef.current !== request) return;
+      const url = URL.createObjectURL(shown);
+      setDraft((d) => {
+        if (d?.itemId !== itemId) {
+          URL.revokeObjectURL(url);
+          return d;
+        }
+        return { ...d, rotation: next, cutoutUrl: url };
+      });
+    } catch (cause) {
+      if (generation === generationRef.current && rotationRequestRef.current === request) {
+        setError(cause instanceof Error ? cause.message : "Rotation failed");
+      }
+    } finally {
+      if (rotationRequestRef.current === request) {
+        rotationRequestRef.current = null;
+        setRotating(false);
+      }
+    }
   }
 
   function updateTags(patch: Partial<Tags>) {
@@ -422,7 +458,9 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) 
   }
 
   async function save() {
-    if (!draft || savingRef.current) return;
+    if (!draft || savingRef.current || rotationRequestRef.current) return;
+    const request = {};
+    saveRequestRef.current = request;
     savingRef.current = true;
     const generation = generationRef.current;
     const activeQueue = queueRef.current;
@@ -485,8 +523,11 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) 
       if (batchEntry) move(batchEntry.id, "reviewing");
       setError(e instanceof Error ? e.message : "Save failed");
     } finally {
-      savingRef.current = false;
-      if (generation === generationRef.current) setSaving(false);
+      if (saveRequestRef.current === request) {
+        saveRequestRef.current = null;
+        savingRef.current = false;
+        if (mountedRef.current) setSaving(false);
+      }
     }
   }
 
@@ -499,6 +540,8 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) 
     processedRef.current.delete(current.id);
     errorsRef.current.delete(current.id);
     activeDraftEntryRef.current = null;
+    rotationRequestRef.current = null;
+    setRotating(false);
     move(current.id, "skipped");
     setDraft(null);
     setError(null);
@@ -529,6 +572,6 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) 
 
   function cancel() { stopFlow(false); }
 
-  return { phase, draft, error, saving, batch, capture, captureMany,
+  return { phase, draft, error, saving, rotating, batch, capture, captureMany,
     discard, skip, retry, finish, cancel, updateDraft, updateTags, toggleSeason, rotate, save };
 }

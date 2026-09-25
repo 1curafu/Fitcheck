@@ -33,6 +33,7 @@ const PICKABLE = CATEGORIES.filter((c) => c !== "Fragrance");
 export function ConfirmForm({
   draft,
   saving,
+  rotating = false,
   error,
   onDraft,
   onTags,
@@ -44,6 +45,7 @@ export function ConfirmForm({
 }: {
   draft: Draft;
   saving: boolean;
+  rotating?: boolean;
   error: string | null;
   onDraft: (patch: Partial<Draft>) => void;
   onTags: (patch: Partial<Tags>) => void;
@@ -72,9 +74,9 @@ export function ConfirmForm({
         <button
           type="button"
           onClick={onRotate}
-          disabled={saving}
+          disabled={saving || rotating}
           aria-label="Rotate"
-          className="absolute right-3 top-3 flex h-9 items-center gap-1.5 rounded-full bg-canvas/70 px-3 text-[12px] font-medium text-foreground shadow-[inset_0_0_0_1px_var(--hairline-6)] backdrop-blur disabled:opacity-60"
+          className="absolute right-3 top-3 flex h-11 items-center gap-1.5 rounded-full bg-canvas/70 px-3 text-[12px] font-medium text-foreground shadow-[inset_0_0_0_1px_var(--hairline-6)] backdrop-blur disabled:opacity-60"
         >
           <RotateCw size={15} />
           Rotate
@@ -278,10 +280,10 @@ export function ConfirmForm({
         </button>
         <button
           onClick={onSave}
-          disabled={saving}
+          disabled={saving || rotating}
           className="flex-1 rounded-[12px] bg-foreground py-[17px] text-center font-semibold text-canvas disabled:opacity-60"
         >
-          {saving ? "Saving…" : "Add to closet"}
+          {saving ? "Saving…" : rotating ? "Rotating…" : "Add to closet"}
         </button>
       </div>
     </div>

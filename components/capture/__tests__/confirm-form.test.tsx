@@ -224,8 +224,21 @@ test("Rotate sits on the stage, over the cutout it turns — not in the bottom b
   );
   const rotate = screen.getByRole("button", { name: "Rotate" });
   expect(rotate.closest(".surface-stage")).not.toBeNull();
+  expect(rotate).toHaveClass("h-11");
   await userEvent.click(rotate);
   expect(onRotate).toHaveBeenCalledOnce();
+});
+
+test("a pending rotation keeps Save and Rotate disabled until the preview is ready", () => {
+  render(
+    <ConfirmForm
+      draft={draft} saving={false} rotating error={null}
+      onDraft={() => {}} onTags={() => {}} onToggleSeason={() => {}}
+      onSave={() => {}} onRetake={() => {}} onRotate={() => {}}
+    />,
+  );
+  expect(screen.getByRole("button", { name: "Rotate" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Rotating…" })).toBeDisabled();
 });
 
 test("Retake is a camera, not a turning arrow — a turning arrow reads as rotate", () => {
