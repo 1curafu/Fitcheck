@@ -16,6 +16,7 @@ vi.mock("@/lib/images/thumb", () => ({
 }));
 vi.mock("@/app/closet/upload/actions", () => ({
   uploadAndTag: vi.fn(async () => ({
+    status: "ready",
     itemId: "item-1",
     imagePath: "u/item-1/original.jpg",
     cutoutPath: "u/item-1/cutout.png",
@@ -47,6 +48,16 @@ test("capture moves aim → confirm and builds a draft", async () => {
   expect(result.current.phase).toBe("confirm");
   expect(result.current.draft?.tags.category).toBe("Tops");
   expect(result.current.draft?.name).toBe("Tee");
+});
+
+test("a server upload limit leaves capture available and explains the limit", async () => {
+  const { uploadAndTag } = await import("@/app/closet/upload/actions");
+  vi.mocked(uploadAndTag).mockResolvedValueOnce({ status: "limited", message: "closet full" });
+  const { result } = renderHook(() => useCapture());
+  await act(async () => { await result.current.capture(new File([], "x.jpg")); });
+  expect(result.current.phase).toBe("aim");
+  expect(result.current.draft).toBeNull();
+  expect(result.current.error).toBe("closet full");
 });
 
 test("successful save calls onSaved and resets to aim", async () => {
@@ -142,6 +153,7 @@ describe("rotation", () => {
     const { uploadAndTag } = await import("@/app/closet/upload/actions");
     const { rotateBlob } = await import("@/lib/images/rotate");
     vi.mocked(uploadAndTag).mockResolvedValueOnce({
+      status: "ready",
       itemId: "i", imagePath: "u/i/original.jpg", cutoutPath: "u/i/cutout.png", thumbPath: null,
       tags: { category: "Tops", subcategory: "Tee", colors: ["black"], pattern: "solid", material: "Cotton", formality: 2, seasons: ["Summer"] } as never,
       rotation: 90,

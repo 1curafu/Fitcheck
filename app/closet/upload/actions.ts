@@ -3,11 +3,17 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { tagItem } from "@/lib/ai/tag-item";
-import { TagSchema } from "@/lib/ai/tagging-schema";
+import { TagSchema, type Rotation, type Tags } from "@/lib/ai/tagging-schema";
 import { tagsToItemRow } from "@/lib/ai/parse-tags";
 import { cutoutFilename, type CutoutMediaType } from "@/lib/images/encode";
 import { thumbFilename, type ThumbMediaType } from "@/lib/images/thumb";
 import { assertCanUpload, readUploadAllowance } from "@/lib/billing/entitlements";
+import { UploadLimitError } from "@/lib/billing/errors";
+
+export type UploadAndTagResult =
+  | { status: "ready"; itemId: string; imagePath: string; cutoutPath: string;
+      thumbPath: string | null; tags: Tags; rotation: Rotation }
+  | { status: "limited"; message: string };
 
 export async function getUploadCapacity() {
   const supabase = await createClient();
@@ -27,7 +33,7 @@ export async function uploadAndTag(form: {
   // cutout, which is the same path every pre-thumbnail row already takes.
   thumbB64?: string | null;
   thumbMediaType?: ThumbMediaType | null;
-}) {
+}): Promise<UploadAndTagResult> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -38,49 +44,55 @@ export async function uploadAndTag(form: {
   // two storage writes and the Haiku tagging call — happens below, before the
   // user ever reaches the confirm screen. A limit checked at confirm would
   // have already paid for the item it refuses.
-  await assertCanUpload();
+  try {
+    await assertCanUpload();
+  } catch (error) {
+    if (error instanceof UploadLimitError) return { status: "limited", message: error.message };
+    throw error;
+  }
 
   const itemId = crypto.randomUUID();
   const base = `${user.id}/${itemId}`;
   const orig = Buffer.from(form.originalB64, "base64");
   const cut = Buffer.from(form.cutoutB64, "base64");
-
-  await supabase.storage.from("wardrobe").upload(`${base}/original.jpg`, orig, {
-    contentType: "image/jpeg",
-  });
-  // The stored extension and content type follow the format actually produced,
-  // so WebP and legacy PNG cutouts coexist without a migration.
+  const bucket = supabase.storage.from("wardrobe");
+  const imagePath = `${base}/original.jpg`;
   const cutoutName = cutoutFilename(form.mediaType);
-  await supabase.storage.from("wardrobe").upload(`${base}/${cutoutName}`, cut, {
-    contentType: form.mediaType,
-  });
-
-  // ⚠️ Uploaded, never tagged. The tagger reads the CUTOUT — a 480px thumbnail
-  // at quality 0.8 is exactly the compressed input Anthropic's vision guidance
-  // warns costs accuracy, and it is the reason `encode.ts` holds the cutout at
-  // 0.85 in the first place.
+  const cutoutPath = `${base}/${cutoutName}`;
+  const attempted: string[] = [];
   let thumbPath: string | null = null;
-  if (form.thumbB64 && form.thumbMediaType) {
-    const thumbName = thumbFilename(form.thumbMediaType);
-    const { error } = await supabase.storage
-      .from("wardrobe")
-      .upload(`${base}/${thumbName}`, Buffer.from(form.thumbB64, "base64"), {
-        contentType: form.thumbMediaType,
-      });
-    // A thumbnail that fails to store must not fail the upload the user is
-    // waiting on — it is an optimisation, and its absence is already handled.
-    if (!error) thumbPath = `${base}/${thumbName}`;
-  }
+  try {
+    attempted.push(imagePath);
+    const originalWrite = await bucket.upload(imagePath, orig, { contentType: "image/jpeg" });
+    if (originalWrite.error) throw originalWrite.error;
 
-  const { tags, rotation } = await tagItem(form.cutoutB64, form.mediaType);
-  return {
-    itemId,
-    imagePath: `${base}/original.jpg`,
-    cutoutPath: `${base}/${cutoutName}`,
-    thumbPath,
-    tags,
-    rotation,
-  };
+    attempted.push(cutoutPath);
+    const cutoutWrite = await bucket.upload(cutoutPath, cut, { contentType: form.mediaType });
+    if (cutoutWrite.error) throw cutoutWrite.error;
+
+    if (form.thumbB64 && form.thumbMediaType) {
+      const nextThumbPath = `${base}/${thumbFilename(form.thumbMediaType)}`;
+      attempted.push(nextThumbPath);
+      try {
+        const thumbWrite = await bucket.upload(
+          nextThumbPath, Buffer.from(form.thumbB64, "base64"),
+          { contentType: form.thumbMediaType },
+        );
+        if (thumbWrite.error) throw thumbWrite.error;
+        thumbPath = nextThumbPath;
+      } catch {
+        // Thumbnails are optional. A failed upload may still leave an object.
+        try { await bucket.remove([nextThumbPath]); } catch { /* orphan sweep backstop */ }
+      }
+    }
+
+    // Tag the full cutout, never its smaller thumbnail.
+    const { tags, rotation } = await tagItem(form.cutoutB64, form.mediaType);
+    return { status: "ready", itemId, imagePath, cutoutPath, thumbPath, tags, rotation };
+  } catch (error) {
+    try { await bucket.remove(attempted); } catch { /* orphan sweep backstop */ }
+    throw error;
+  }
 }
 
 // Re-validate the (possibly user-edited) tags and insert the item. When the

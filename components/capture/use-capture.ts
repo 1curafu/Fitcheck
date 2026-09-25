@@ -55,6 +55,11 @@ export function useCapture(options?: { onSaved?: () => void }) {
         thumbB64,
         thumbMediaType,
       });
+      if (res.status === "limited") {
+        setError(res.message);
+        setPhase("aim");
+        return;
+      }
       const shown = await rotateBlob(cutout, res.rotation);
       setDraft({
         imagePath: res.imagePath,
