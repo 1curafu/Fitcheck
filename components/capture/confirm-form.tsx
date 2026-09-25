@@ -1,6 +1,6 @@
 "use client";
 
-import { Camera, RotateCw } from "lucide-react";
+import { Camera, RotateCw, X } from "lucide-react";
 
 import { Chip } from "@/components/ui-fitcheck/chip";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
@@ -40,6 +40,7 @@ export function ConfirmForm({
   onSave,
   onRetake,
   onRotate,
+  rejectLabel = "Retake",
 }: {
   draft: Draft;
   saving: boolean;
@@ -50,6 +51,7 @@ export function ConfirmForm({
   onSave: () => void;
   onRetake: () => void;
   onRotate: () => void;
+  rejectLabel?: "Retake" | "Skip photo";
 }) {
   return (
     <div className="flex flex-1 flex-col gap-5">
@@ -269,10 +271,10 @@ export function ConfirmForm({
           type="button"
           onClick={onRetake}
           disabled={saving}
-          aria-label="Retake"
+          aria-label={rejectLabel}
           className="grid h-[54px] w-14 shrink-0 place-items-center rounded-[14px] bg-surface-2 text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-6)] disabled:opacity-60"
         >
-          <Camera size={19} />
+          {rejectLabel === "Retake" ? <Camera size={19} /> : <X size={19} />}
         </button>
         <button
           onClick={onSave}

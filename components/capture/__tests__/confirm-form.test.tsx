@@ -132,6 +132,17 @@ test("offers a way out when the cutout is wrong", async () => {
   expect(onRetake).toHaveBeenCalledOnce();
 });
 
+test("batch review labels rejection Skip photo and blocks both actions while saving", () => {
+  render(
+    <ConfirmForm draft={draft} saving error={null} rejectLabel="Skip photo"
+      onDraft={() => {}} onTags={() => {}} onToggleSeason={() => {}}
+      onSave={() => {}} onRetake={() => {}} onRotate={() => {}} />,
+  );
+  expect(screen.getByRole("button", { name: "Skip photo" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Saving…" })).toBeDisabled();
+  expect(screen.queryByRole("button", { name: "Retake" })).not.toBeInTheDocument();
+});
+
 test("every fit option is offered", async () => {
   renderConfirm();
   for (const fit of FIT_OPTIONS) {
