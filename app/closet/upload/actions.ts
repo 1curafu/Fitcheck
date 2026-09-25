@@ -7,7 +7,14 @@ import { TagSchema } from "@/lib/ai/tagging-schema";
 import { tagsToItemRow } from "@/lib/ai/parse-tags";
 import { cutoutFilename, type CutoutMediaType } from "@/lib/images/encode";
 import { thumbFilename, type ThumbMediaType } from "@/lib/images/thumb";
-import { assertCanUpload } from "@/lib/billing/entitlements";
+import { assertCanUpload, readUploadAllowance } from "@/lib/billing/entitlements";
+
+export async function getUploadCapacity() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  return readUploadAllowance();
+}
 
 // Upload both blobs to Storage, then return a DRAFT tag set for the confirm
 // screen. No DB insert yet — the user confirms first.

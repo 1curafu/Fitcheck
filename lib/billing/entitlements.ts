@@ -80,17 +80,23 @@ export async function regeneratesUsedToday(today: string): Promise<number> {
  * your closet by any reading of the word.
  */
 export async function assertCanUpload(): Promise<void> {
+  const check = await readUploadAllowance();
+  if (!check.allowed) throw new UploadLimitError(check.reason);
+}
+
+/** Remaining unarchived-item capacity for the authenticated request. */
+export async function readUploadAllowance(): Promise<GenerationCheck> {
   const e = await currentEntitlements();
-  if (e.closetItems == null) return;
+  if (e.closetItems == null) return { allowed: true, remaining: null };
 
   const supabase = await createClient();
-  const { count } = await supabase
+  const { count, error } = await supabase
     .from("items")
     .select("id", { count: "exact", head: true })
     .eq("archived", false);
 
-  const check = checkCloset(e, count ?? 0);
-  if (!check.allowed) throw new UploadLimitError(check.reason);
+  if (error || count === null) throw new Error("Cannot check closet capacity");
+  return checkCloset(e, count);
 }
 
 /**
