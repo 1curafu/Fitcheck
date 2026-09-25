@@ -39,6 +39,15 @@ describe("batch scheduling", () => {
     expect(nextTaggable(queue)).toBeNull();
   });
 
+  it("retries a failed foreground even when two future photos are ready", () => {
+    let queue = createBatchQueue(files(), null);
+    queue = markBatch(queue, 0, "failed");
+    queue = markBatch(queue, 1, "ready");
+    queue = markBatch(queue, 2, "ready");
+    queue = markBatch(queue, 0, "queued");
+    expect(nextProcessable(queue)).toBe(0);
+  });
+
   it("counts saved and failed photos against finite capacity", () => {
     let queue = createBatchQueue(files(), 1);
     queue = markBatch(queue, 0, "failed");

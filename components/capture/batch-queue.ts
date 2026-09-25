@@ -34,6 +34,7 @@ export function nextProcessable(queue: BatchQueue): number | null {
   const reserved = queue.entries.filter((entry) =>
     entry.stage !== "queued" && entry.stage !== "skipped").length;
   if (queue.allowance !== null && reserved >= queue.allowance) return null;
+  if (foreground.stage === "queued") return foreground.id;
   const futureStarted = queue.entries.filter((entry) =>
     entry.id > foreground.id && entry.stage !== "queued" &&
     entry.stage !== "saved" && entry.stage !== "skipped").length;

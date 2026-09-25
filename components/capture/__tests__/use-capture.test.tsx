@@ -1,4 +1,4 @@
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, waitFor } from "@testing-library/react";
 import { useCapture } from "../use-capture";
 
 vi.mock("@/lib/images/process", () => ({
@@ -14,7 +14,11 @@ vi.mock("@/lib/images/encode", () => ({
 vi.mock("@/lib/images/thumb", () => ({
   encodeThumb: vi.fn(async () => ({ blob: new Blob(["thumb"]), mediaType: "image/webp" })),
 }));
+vi.mock("@/lib/images/worker-client", () => ({
+  createSegmenter: vi.fn(() => ({ run: vi.fn(async () => new Blob(["png"])), dispose: vi.fn() })),
+}));
 vi.mock("@/app/closet/upload/actions", () => ({
+  getUploadCapacity: vi.fn(async () => ({ allowed: true, remaining: null })),
   uploadAndTag: vi.fn(async () => ({
     status: "ready",
     itemId: "item-1",
@@ -224,5 +228,73 @@ describe("rotation", () => {
     expect(vi.mocked(confirmItem).mock.lastCall?.[0]).toMatchObject({
       rotated: { cutoutB64: "b64", mediaType: "image/webp", thumbB64: "b64", thumbMediaType: "image/webp" },
     });
+  });
+});
+
+describe("batch capture", () => {
+  test("a rapid double Save confirms one item only once", async () => {
+    const { confirmItem } = await import("@/app/closet/upload/actions");
+    const gate = Promise.withResolvers<{ status: "saved" }>();
+    vi.mocked(confirmItem).mockClear().mockImplementationOnce(() => gate.promise);
+    const onSaved = vi.fn();
+    const { result } = renderHook(() => useCapture({ onSaved }));
+    await act(async () => { await result.current.captureMany([new File([], "first.jpg")]); });
+    await waitFor(() => expect(result.current.phase).toBe("confirm"));
+    let first!: Promise<void>;
+    let second!: Promise<void>;
+    act(() => { first = result.current.save(); second = result.current.save(); });
+    expect(confirmItem).toHaveBeenCalledOnce();
+    gate.resolve({ status: "saved" });
+    await act(async () => { await Promise.all([first, second]); });
+    expect(onSaved).toHaveBeenCalledOnce();
+  });
+
+  test("preflights before processing and keeps two future photos ready during review", async () => {
+    const { getUploadCapacity, uploadAndTag } = await import("@/app/closet/upload/actions");
+    const { processImage } = await import("@/lib/images/process");
+    vi.mocked(getUploadCapacity).mockClear();
+    vi.mocked(processImage).mockClear();
+    vi.mocked(uploadAndTag).mockClear();
+    const onSaved = vi.fn();
+    const { result } = renderHook(() => useCapture({ onSaved }));
+    const photos = Array.from({ length: 10 }, (_, id) => new File([String(id)], `${id}.jpg`));
+    await act(async () => { await result.current.captureMany(photos); });
+    await waitFor(() => expect(result.current.draft).not.toBeNull());
+    await waitFor(() => expect(vi.mocked(uploadAndTag)).toHaveBeenCalledTimes(3));
+    expect(getUploadCapacity).toHaveBeenCalledOnce();
+    expect(vi.mocked(processImage).mock.calls.length).toBe(3);
+    expect(result.current.batch?.total).toBe(10);
+    expect(result.current.batch?.currentIndex).toBe(0);
+    await act(async () => { await result.current.save(); });
+    await waitFor(() => expect(result.current.draft).not.toBeNull());
+    expect(onSaved).toHaveBeenCalledWith("batch");
+    expect(result.current.batch?.currentIndex).toBe(1);
+    expect(result.current.phase).toBe("confirm");
+  });
+
+  test("reserves the last free slot for a failed photo until Skip", async () => {
+    const { getUploadCapacity } = await import("@/app/closet/upload/actions");
+    const { processImage } = await import("@/lib/images/process");
+    vi.mocked(getUploadCapacity).mockResolvedValueOnce({ allowed: true, remaining: 1 });
+    vi.mocked(processImage).mockClear().mockRejectedValueOnce(new Error("worker failed"));
+    const { result } = renderHook(() => useCapture());
+    await act(async () => { await result.current.captureMany([
+      new File([], "first.jpg"), new File([], "second.jpg"),
+    ]); });
+    await waitFor(() => expect(result.current.batch?.currentStage).toBe("failed"));
+    expect(vi.mocked(processImage)).toHaveBeenCalledTimes(1);
+    await act(async () => { await result.current.retry(); });
+    await waitFor(() => expect(result.current.phase).toBe("confirm"));
+    expect(vi.mocked(processImage)).toHaveBeenCalledTimes(2);
+  });
+
+  test("does not replace an active batch with a second picker selection", async () => {
+    const { getUploadCapacity } = await import("@/app/closet/upload/actions");
+    vi.mocked(getUploadCapacity).mockClear();
+    const { result } = renderHook(() => useCapture());
+    await act(async () => { await result.current.captureMany([new File([], "first.jpg")]); });
+    await act(async () => { await result.current.captureMany([new File([], "replacement.jpg")]); });
+    expect(getUploadCapacity).toHaveBeenCalledOnce();
+    expect(result.current.batch?.total).toBe(1);
   });
 });
