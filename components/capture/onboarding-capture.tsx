@@ -1,20 +1,51 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCapture } from "./use-capture";
 import { Viewfinder } from "./viewfinder";
 import { ConfirmForm } from "./confirm-form";
 import { BatchStatus } from "./batch-status";
-import { ProgressStrip } from "./progress-strip";
+import { ProgressStrip, type SavedSlotImage } from "./progress-strip";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 
-export function OnboardingCapture({ initialCount = 0 }: { initialCount?: number }) {
+export function OnboardingCapture({ initialCount = 0, initialImages = [] }: {
+  initialCount?: number;
+  initialImages?: SavedSlotImage[];
+}) {
   const router = useRouter();
-  const [count, setCount] = useState(initialCount);
-  const cap = useCapture({ onSaved: () => setCount((c) => c + 1) });
+  const [progress, setProgress] = useState({ count: initialCount, images: initialImages });
+  const localUrlsRef = useRef(new Set<string>());
+  const cap = useCapture({ onSaved: (_mode, preview) => {
+    let src: string | null = null;
+    try {
+      src = URL.createObjectURL(preview.image);
+      localUrlsRef.current.add(src);
+    } catch {
+      // The item is already saved; keep the filled slot if the local preview fails.
+    }
+    setProgress((current) => ({
+      count: current.count + 1,
+      images: [...current.images, { src, name: preview.name }].slice(-5),
+    }));
+  } });
 
-  const hasItems = count >= 1;
+  useEffect(() => {
+    const urls = localUrlsRef.current;
+    return () => { for (const url of urls) URL.revokeObjectURL(url); };
+  }, []);
+
+  useEffect(() => {
+    const visible = new Set(progress.images.map((image) => image.src));
+    for (const url of localUrlsRef.current) {
+      if (!visible.has(url)) {
+        URL.revokeObjectURL(url);
+        localUrlsRef.current.delete(url);
+      }
+    }
+  }, [progress.images]);
+
+  const hasItems = progress.count >= 1;
 
   const batchStatus = cap.batch && (
     <BatchStatus batch={cap.batch} saving={cap.saving} error={cap.error}
@@ -55,7 +86,7 @@ export function OnboardingCapture({ initialCount = 0 }: { initialCount?: number 
           <Viewfinder busy={cap.phase === "removing"} onFile={cap.capture} onMany={cap.captureMany} />
         </>
       )}
-      <ProgressStrip filled={count} />
+      <ProgressStrip filled={progress.count} images={progress.images} />
       {batchStatus}
       {cap.batch && cap.phase === "confirm" && cap.draft && (
         <ConfirmForm draft={cap.draft} saving={cap.saving} rotating={cap.rotating} error={cap.error}
