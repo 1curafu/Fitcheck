@@ -1,11 +1,12 @@
 "use client";
 
-import { useOptimistic, useTransition, type CSSProperties, useEffect } from "react";
+import { useOptimistic, useTransition, type CSSProperties, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bookmark } from "lucide-react";
+import { Bookmark, Share } from "lucide-react";
 import { toggleWear, toggleFavorite, noteOutfitViewed } from "@/app/outfits/[id]/actions";
 import { TryAnotherLook } from "./try-another-look";
+import { ShareSheet } from "./share-sheet";
 import { WeatherAttribution } from "@/components/weather/attribution";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { wearLabel } from "@/lib/outfits/wear";
@@ -33,6 +34,8 @@ export function OutfitDetail({
     occasion: string;
     weatherLabel: string;
     reasoning: string | null;
+    /** The look's local date (daily drop) or created-at day, for the share card's kicker. Never weather (spec §0 A3). */
+    lookDate: string | null;
   };
   pieces: DetailPiece[];
   worn: boolean;
@@ -48,6 +51,10 @@ export function OutfitDetail({
   const [isWorn, showWorn] = useOptimistic(worn);
   const [isFav, showFav] = useOptimistic(favorite);
   const [pending, start] = useTransition();
+  const [sharing, setSharing] = useState(false);
+  // Cache Components preserves this route with React <Activity hidden> rather than unmounting it — leaving with the
+  // sheet open would otherwise leave it open on return (the same rule as the edit/remove sheets elsewhere).
+  useEffect(() => () => setSharing(false), []);
 
   /**
    * Record that this look was opened, for the evening wear confirmation.
@@ -84,6 +91,14 @@ export function OutfitDetail({
         className="absolute left-[18px] top-[calc(env(safe-area-inset-top)+18px)] z-40 grid size-10 place-items-center rounded-full bg-[rgba(20,19,22,0.7)] text-xl text-foreground shadow-[inset_0_0_0_1px_var(--hairline-7)] backdrop-blur-[10px]"
       >
         ‹
+      </button>
+      <button
+        type="button"
+        onClick={() => setSharing(true)}
+        aria-label="Share"
+        className="absolute right-[18px] top-[calc(env(safe-area-inset-top)+18px)] z-40 grid size-10 place-items-center rounded-full bg-[rgba(20,19,22,0.7)] text-xl text-foreground shadow-[inset_0_0_0_1px_var(--hairline-7)] backdrop-blur-[10px]"
+      >
+        <Share size={18} />
       </button>
 
       <div className="flex-1 overflow-y-auto pb-[130px]">
@@ -242,6 +257,7 @@ export function OutfitDetail({
           </div>
         )}
       </div>
+      {sharing && <ShareSheet outfit={outfit} pieces={pieces} onClose={() => setSharing(false)} />}
     </div>
   );
 }

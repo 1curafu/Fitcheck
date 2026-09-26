@@ -1,0 +1,215 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Kicker } from "@/components/ui-fitcheck/kicker";
+import type { DetailPiece } from "./outfit-detail";
+import { createClient } from "@/lib/supabase/client";
+import { getShareState, prepareShare, publishShare, stopSharing } from "@/app/outfits/[id]/share-actions";
+import { loadFonts, loadImages, renderCard } from "@/lib/share/render";
+import { orderPieces, pieceLabel, shareExpiry, shareKicker, snapshotPieces, SHARE_IMAGE_FILES } from "@/lib/share/snapshot";
+import type { CardInput, CardTarget } from "@/lib/share/card-layout";
+
+type ShareOutfit = { id: string; lookName: string; occasion: string; reasoning: string | null; lookDate: string | null };
+const PHOTOS_FAILED = "Couldn't load this look's photos. Try again.";
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const day = (d: Date) => `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
+
+export function ShareSheet({ outfit, pieces, onClose }: { outfit: ShareOutfit; pieces: DetailPiece[]; onClose: () => void }) {
+  const router = useRouter();
+  const [target, setTarget] = useState<"story" | "post">("story");
+  const [showBrands, setShowBrands] = useState(false);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [busy, setBusy] = useState<null | "link" | "stop">(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [link, setLink] = useState<{ token: string; readyAt: string | null } | null>(null);
+  const assets = useRef<Promise<{ fonts: Awaited<ReturnType<typeof loadFonts>>; images: Map<number, HTMLImageElement | null> }> | null>(null);
+  const blobs = useRef(new Map<string, Blob>());
+  const previewGen = useRef(0);
+
+  const ordered = useMemo(() => orderPieces(pieces).slice(0, 8), [pieces]);
+  // Labels come from the SAME rules as the server snapshot (trimmed brands, blank → none), so the card and the link
+  // page list can never disagree (Review Focus 1).
+  const card = (brands: boolean): CardInput => {
+    const labels = snapshotPieces(ordered.map((p) => ({ id: p.id, name: p.name, brand: p.brand, category: p.category })), brands);
+    return {
+      title: outfit.lookName, why: outfit.reasoning, kicker: shareKicker(outfit.occasion, outfit.lookDate),
+      pieces: ordered.map((p, i) => ({ n: i + 1, label: pieceLabel(labels[i]), slot: p.slot })),
+    };
+  };
+  const loadAssets = () => {
+    assets.current ??= Promise.all([loadFonts(), loadImages(ordered.map((p, i) => ({ n: i + 1, url: p.imageUrl })))])
+      .then(([fonts, images]) => {
+        if (![...images.values()].some(Boolean)) throw new Error("SHARE_NO_PHOTOS");
+        return { fonts, images };
+      })
+      .catch((e) => { assets.current = null; throw e; }); // a retry must not reuse a rejected load
+    return assets.current;
+  };
+  const draw = async (t: CardTarget, brands: boolean) => {
+    const key = `${t}:${brands}`;
+    const cached = blobs.current.get(key);
+    if (cached) return cached;
+    const { fonts, images } = await loadAssets();
+    const blob = await renderCard(t, card(brands), images, fonts);
+    blobs.current.set(key, blob);
+    return blob;
+  };
+
+  useEffect(() => { getShareState(outfit.id).then(setLink).catch(() => {}); }, [outfit.id]);
+
+  useEffect(() => {
+    // The preview for the PREVIOUS target/brands is cleared in the toggle handlers below, as part of the same user
+    // event — not synchronously here, which react-hooks/set-state-in-effect (rightly) flags. `previewGen` guards an
+    // out-of-order resolution (a slow "story" draw finishing after the user already switched to "post") from
+    // clobbering a newer preview.
+    const myGen = ++previewGen.current;
+    let url: string | null = null;
+    draw(target, showBrands).then((blob) => {
+      if (previewGen.current !== myGen) return;
+      url = URL.createObjectURL(blob);
+      setPreview(url);
+      setFailed(false);
+    }).catch(() => { if (previewGen.current === myGen) { setFailed(true); setMessage(PHOTOS_FAILED); } });
+    return () => { if (url) URL.revokeObjectURL(url); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target, showBrands]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !busy) onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [busy, onClose]);
+
+  const fileName = `fitcheck-${outfit.lookName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${target}.jpg`;
+  const shareUrl = link?.readyAt ? `${window.location.origin}/l/${link.token}` : null;
+
+  // No await before navigator.share: iOS allows it only close to the tap (spec §0 A6). The blob is the cached preview.
+  function shareImage() {
+    const blob = blobs.current.get(`${target}:${showBrands}`);
+    if (!blob) return;
+    const file = new File([blob], fileName, { type: "image/jpeg" });
+    if (navigator.canShare?.({ files: [file] })) {
+      navigator.share({ files: [file], title: outfit.lookName }).catch((e) => { if (e?.name !== "AbortError") setMessage("Couldn't open sharing. Try again."); });
+      return;
+    }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 30_000);
+  }
+
+  async function createLink() {
+    setBusy("link"); setMessage(null);
+    try {
+      const prepared = await prepareShare({ outfitId: outfit.id, showBrands });
+      if (prepared.status === "limited") { setMessage(prepared.message); return; }
+      const bucket = createClient().storage.from("shares");
+      const targets: CardTarget[] = ["story", "post", "preview"];
+      for (const [i, name] of SHARE_IMAGE_FILES.entries()) {
+        const { error } = await bucket.upload(`${prepared.token}/${name}`, await draw(targets[i], showBrands),
+          { contentType: "image/jpeg", upsert: true, cacheControl: "60" });
+        if (error) throw error;
+      }
+      const published = await publishShare(prepared.token);
+      if (published.status === "error") { setMessage(published.message); return; }
+      setLink({ token: prepared.token, readyAt: new Date().toISOString() });
+    } catch {
+      setMessage("Couldn't create the link. Try again.");
+      assets.current = null;
+      router.refresh(); // signed image URLs expire; a fresh render gets new ones
+    } finally { setBusy(null); }
+  }
+
+  function shareLink() {
+    if (!shareUrl) return;
+    if (navigator.share) navigator.share({ url: shareUrl, title: outfit.lookName }).catch(() => {});
+    else copyLink();
+  }
+  function copyLink() {
+    if (!shareUrl) return;
+    navigator.clipboard?.writeText(shareUrl).then(() => setMessage("Copied")).catch(() => setMessage("Couldn't copy — select the link above."));
+  }
+
+  async function stop() {
+    if (!link) return;
+    setBusy("stop"); setMessage(null);
+    try {
+      const res = await stopSharing(link.token);
+      if (res.status === "error") setMessage(res.message); else setLink(null);
+    } finally { setBusy(null); }
+  }
+
+  const locked = Boolean(busy);
+  return (
+    <>
+      <button type="button" aria-label="Close" disabled={locked} onClick={onClose}
+        className="fixed inset-0 z-[60] bg-[rgba(6,6,8,0.5)] backdrop-blur-[1.5px]" />
+      <div role="dialog" aria-modal="true" aria-labelledby="share-title" style={{ maxWidth: 440 }}
+        className="fixed inset-x-0 bottom-0 z-[70] mx-auto max-h-[92dvh] overflow-y-auto rounded-t-[22px] border-t border-[rgba(237,230,216,0.12)] bg-surface-2 px-[22px] pb-[calc(env(safe-area-inset-bottom)+20px)] pt-3.5">
+        <div className="mx-auto mb-4 h-1 w-[34px] rounded-full bg-faint" />
+        <Kicker className="block">Share</Kicker>
+        <h2 id="share-title" className="mt-1.5 font-serif text-[24px]/[1.15] text-foreground">Share this look</h2>
+
+        <div className="mt-4 flex gap-2" role="radiogroup" aria-label="Format">
+          {(["story", "post"] as const).map((t) => (
+            <button key={t} type="button" role="radio" aria-checked={target === t} disabled={locked}
+              onClick={() => { setPreview(null); setTarget(t); }}
+              className={`min-h-[44px] flex-1 rounded-[12px] text-[14px] ${target === t ? "bg-foreground text-canvas" : "bg-surface-3 text-muted-foreground"}`}>
+              {t === "story" ? "Story" : "Post"}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-4 grid place-items-center">
+          {preview ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={preview} alt={`${outfit.lookName} share card`} className="max-h-[44dvh] rounded-[14px] shadow-[inset_0_0_0_1px_var(--hairline-7)]" />
+          ) : (
+            <div className="h-[44dvh] w-full animate-pulse rounded-[14px] bg-surface-3" />
+          )}
+        </div>
+
+        <div className="mt-4 flex min-h-[44px] items-center justify-between text-[14px] text-foreground">
+          <span id="brands-label">Show brands</span>
+          <button type="button" role="switch" aria-checked={showBrands} aria-labelledby="brands-label" disabled={locked}
+            onClick={() => { setPreview(null); setShowBrands((v) => !v); }}
+            className={`h-7 w-12 rounded-full ${showBrands ? "bg-foreground" : "bg-surface-3"}`}>
+            <span className={`block size-6 rounded-full bg-canvas transition-transform ${showBrands ? "translate-x-5" : "translate-x-0.5"}`} />
+          </button>
+        </div>
+
+        {message && <p role="status" className="mt-2 text-[13px] text-foreground">{message}</p>}
+
+        <button type="button" disabled={locked || failed || !preview} onClick={shareImage}
+          className="mt-4 min-h-[48px] w-full rounded-[12px] bg-foreground px-4 text-[15px] font-semibold text-canvas disabled:opacity-60">
+          Share image
+        </button>
+        <button type="button" disabled={locked || failed} onClick={createLink}
+          className="mt-3 min-h-[48px] w-full rounded-[12px] bg-surface-3 px-4 text-[15px] text-foreground disabled:opacity-60">
+          {busy === "link" ? "Creating link…" : shareUrl ? "Update link" : "Create link"}
+        </button>
+        <p className="mt-2 text-center text-[12px] text-muted-foreground">Anyone with the link can see this look for 30 days. No name, no account.</p>
+
+        {shareUrl && link?.readyAt && (
+          <div className="mt-4 rounded-[12px] bg-surface-3 px-4 py-3">
+            <span data-testid="share-url" className="block truncate text-[13px] text-foreground">{shareUrl}</span>
+            <span className="mt-1 block text-[12px] text-muted-foreground">Expires {day(shareExpiry(link.readyAt))}</span>
+            <div className="mt-2 flex gap-2">
+              <button type="button" onClick={shareLink} disabled={locked} className="min-h-[44px] flex-1 rounded-[10px] bg-foreground text-[14px] font-semibold text-canvas">Share</button>
+              <button type="button" onClick={copyLink} disabled={locked} className="min-h-[44px] flex-1 rounded-[10px] bg-surface-2 text-[14px] text-foreground">Copy</button>
+            </div>
+            <button type="button" onClick={stop} disabled={locked}
+              className="mt-2 min-h-[44px] w-full text-[13px] text-muted-foreground underline underline-offset-4">
+              {busy === "stop" ? "Stopping…" : "Stop sharing"}
+            </button>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
