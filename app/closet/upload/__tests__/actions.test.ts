@@ -125,6 +125,17 @@ describe("confirmation", () => {
     expect(await confirmItem(confirmation)).toEqual({ status: "saved" });
   });
 
+  it.each([
+    ["cutout", { mediaType: "text/html", thumbMediaType: null }],
+    ["thumbnail", { mediaType: "image/webp", thumbMediaType: "application/octet-stream" }],
+  ])("rejects a rotated %s with a non-image type before any write", async (_label, types) => {
+    await expect(confirmItem({ ...confirmation, rotated: {
+      cutoutB64: "Y3V0", thumbB64: "dGh1bWI=", ...types,
+    } } as unknown as typeof confirmation)).rejects.toThrow("Unsupported image type");
+    expect(state.writes).toHaveLength(0);
+    expect(state.inserted).toHaveLength(0);
+  });
+
   it("keeps the draft when capacity is filled before confirmation", async () => {
     state.gate.mockRejectedValueOnce(new UploadLimitError("closet full"));
     expect(await confirmItem(confirmation)).toEqual({ status: "limited", message: "closet full" });
@@ -168,6 +179,17 @@ describe("draft upload", () => {
     const result = await uploadAndTag(form);
     expect(result).toMatchObject({ status: "ready", thumbPath: null });
     expect(state.tag).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ["cutout", { mediaType: "text/html" }],
+    ["thumbnail", { thumbMediaType: "image/svg+xml" }],
+  ])("rejects a non-image %s type before the gate, storage or tagging", async (_label, override) => {
+    await expect(uploadAndTag({ ...form, ...override } as unknown as typeof form))
+      .rejects.toThrow("Unsupported image type");
+    expect(state.gate).not.toHaveBeenCalled();
+    expect(state.writes).toHaveLength(0);
+    expect(state.tag).not.toHaveBeenCalled();
   });
 
   it("reports an upload limit before storage or tagging", async () => {

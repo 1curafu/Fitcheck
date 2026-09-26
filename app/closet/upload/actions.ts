@@ -9,7 +9,7 @@ import { cutoutFilename, type CutoutMediaType } from "@/lib/images/encode";
 import { thumbFilename, type ThumbMediaType } from "@/lib/images/thumb";
 import { assertCanUpload, readUploadAllowance } from "@/lib/billing/entitlements";
 import { UploadLimitError } from "@/lib/billing/errors";
-import { assertDraftIdentity, groupOwnedDraftPaths } from "@/lib/closet/capture-paths";
+import { assertCaptureMediaType, assertDraftIdentity, groupOwnedDraftPaths } from "@/lib/closet/capture-paths";
 
 export type UploadAndTagResult =
   | { status: "ready"; itemId: string; imagePath: string; cutoutPath: string;
@@ -56,6 +56,8 @@ export async function uploadAndTag(form: {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
+  assertCaptureMediaType(form.mediaType);
+  assertCaptureMediaType(form.thumbMediaType, true);
 
   // Gated HERE, not at confirm: everything expensive about adding a piece —
   // two storage writes and the Haiku tagging call — happens below, before the
@@ -137,6 +139,10 @@ export async function confirmItem(input: {
   if (!user) throw new Error("Not authenticated");
 
   const base = assertDraftIdentity(user.id, input);
+  if (input.rotated) {
+    assertCaptureMediaType(input.rotated.mediaType);
+    assertCaptureMediaType(input.rotated.thumbMediaType, true);
+  }
   const existing = await readItemById(supabase, input.itemId);
   if (existing) {
     if (!matchingDraft(existing, user.id, input.imagePath, base)) throw new Error("Not your upload");

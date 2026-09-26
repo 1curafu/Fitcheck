@@ -22,10 +22,12 @@ async function CaptureBody() {
   if (!user) redirect("/");
 
   // Seed the five saved slots with the user's latest items, including after a reload.
+  // Removed (archived) pieces have left the closet, so they neither count nor show.
   const { data: items, count } = await supabase
     .from("items")
     .select("name, subcategory, category, image_url, cutout_url, thumb_url", { count: "exact" })
     .eq("user_id", user.id)
+    .eq("archived", false)
     .order("created_at", { ascending: false })
     .limit(5);
 
