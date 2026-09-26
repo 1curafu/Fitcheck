@@ -8,7 +8,8 @@ import { readPreferences } from "@/lib/profile/preferences";
 import { resolveLocation } from "@/lib/weather/location";
 import { SettingsView } from "@/components/settings/settings-view";
 import { subscriptionFromRow } from "@/lib/billing/status-line";
-import { deleteAccount, updatePreferences, setLocation } from "./actions";
+import { listMine } from "@/lib/share/store";
+import { deleteAccount, updatePreferences, setLocation, stopSharedLink } from "./actions";
 
 export default function SettingsPage() {
   // The session read is what blocks a shell, so it moves behind a boundary
@@ -40,6 +41,7 @@ async function SettingsBody() {
   // Berlin — two screens describing the same thing differently. resolveLocation
   // is the same function the generator uses, so they cannot disagree.
   const location = resolveLocation({ profile });
+  const sharedLinks = await listMine(supabase);
 
   return (
     <div className="flex min-h-dvh flex-1 flex-col">
@@ -53,6 +55,8 @@ async function SettingsBody() {
         onSetLocationAction={setLocation}
         onDeleteAction={deleteAccount}
         subscription={subscriptionFromRow(profile)}
+        sharedLinks={sharedLinks}
+        onStopSharedLinkAction={stopSharedLink}
       />
       <MobileNav />
     </div>

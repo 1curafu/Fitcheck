@@ -8,8 +8,9 @@ import type { Preferences } from "@/lib/profile/preferences";
 import { useLocationPicker } from "@/lib/weather/use-location-picker";
 import { LocationSheet } from "@/components/weather/location-sheet";
 import { DeleteAccountSheet } from "./delete-account-sheet";
+import { SharedLinks } from "./shared-links";
 import type { City } from "@/lib/weather/geocode";
-import type { deleteAccount } from "@/app/settings/actions";
+import type { deleteAccount, stopSharedLink } from "@/app/settings/actions";
 
 const CARD =
   "rounded-[14px] bg-surface-1 shadow-[inset_0_0_0_1px_var(--hairline-2)]";
@@ -107,6 +108,8 @@ export function SettingsView({
   onSetLocationAction,
   onDeleteAction,
   subscription = null,
+  sharedLinks,
+  onStopSharedLinkAction,
 }: {
   name: string;
   email: string;
@@ -122,6 +125,9 @@ export function SettingsView({
   onDeleteAction: typeof deleteAccount;
   /** Present only for a Pro subscriber: Settings is the second place to manage billing (spec §8). */
   subscription?: SubscriptionSummary | null;
+  /** Every look the user has shared — including one whose look is now gone, so its link can still be stopped. */
+  sharedLinks: { token: string; lookName: string; readyAt: string | null; createdAt: string }[];
+  onStopSharedLinkAction: typeof stopSharedLink;
 }) {
   const [prefs, setPrefs] = useState(preferences);
   const [location, setLocation] = useState(locationLabel);
@@ -350,6 +356,14 @@ export function SettingsView({
             </div>
           </>
         )}
+
+        <Kicker>Shared links</Kicker>
+        <p className="mb-3 text-[12.5px] text-muted-foreground">
+          Links to your looks. Each works for 30 days, or until you stop it.
+        </p>
+        <div className={`${CARD} px-4`}>
+          <SharedLinks links={sharedLinks} stop={onStopSharedLinkAction} />
+        </div>
 
         <Kicker>Danger zone</Kicker>
         <div className={CARD}>
