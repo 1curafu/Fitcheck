@@ -57,7 +57,7 @@ async function RemovedBody() {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 px-8 text-center">
         <p className="text-sm text-muted-foreground">Nothing removed.</p>
-        <Link href="/closet" className="text-sm text-foreground underline underline-offset-4">
+        <Link href="/closet" className="inline-grid min-h-[44px] place-items-center px-2 text-sm text-foreground underline underline-offset-4">
           Back to your closet
         </Link>
       </div>

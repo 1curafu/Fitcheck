@@ -13,12 +13,21 @@ test("a removed piece is listed under Removed pieces and can be put back", async
     await page.getByRole("dialog", { name: /remove this piece/i }).getByRole("button", { name: /remove from closet/i }).click();
     await expect(page).toHaveURL(/\/closet$/);
 
-    await page.getByRole("link", { name: /removed pieces \(1\)/i }).click();
+    const link = page.getByRole("link", { name: /removed pieces \(1\)/i });
+    // The only way into the list: a comfortable touch target (PRODUCT.md, ≥ 44px).
+    expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    await link.click();
     await expect(page).toHaveURL(/\/closet\/removed$/);
     await page.getByText(piece).filter({ visible: true }).first().click();
     await expect(page.getByText(/removed from your closet/i)).toBeVisible();
     await page.getByRole("button", { name: /put back/i }).click();
     await expect(page.getByRole("button", { name: /archive/i })).toBeVisible();
+
+    // Going BACK to the list (a route kept mounted by React Activity) must not show the piece that was just put back.
+    await page.goBack();
+    await expect(page).toHaveURL(/\/closet\/removed$/);
+    await expect(page.getByText(/nothing removed/i)).toBeVisible();
+    await expect(page.getByText(piece).filter({ visible: true })).toHaveCount(0);
 
     await page.goto("/closet");
     await expect(page.getByText(piece).filter({ visible: true }).first()).toBeVisible();

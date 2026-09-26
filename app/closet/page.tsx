@@ -135,7 +135,7 @@ async function ClosetBody() {
       {(removedCount ?? 0) > 0 && (
         <Link
           href="/closet/removed"
-          className="mx-6 mt-6 block text-center text-[13px] text-muted-foreground underline underline-offset-4"
+          className="mx-6 mt-6 grid min-h-[44px] place-items-center text-[13px] text-muted-foreground underline underline-offset-4"
         >
           Removed pieces ({removedCount})
         </Link>

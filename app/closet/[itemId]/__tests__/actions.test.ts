@@ -147,6 +147,12 @@ describe("eraseOriginal", () => {
   });
 });
 
+describe("erase copy", () => {
+  it("tells a user whose piece cannot be erased how else to get the photo deleted", () => {
+    expect(ERASE_NO_CUTOUT).toMatch(/legal@fitcheck\.space/);
+  });
+});
+
 describe("restoreItem", () => {
   it("puts a removed piece back after the capacity gate", async () => {
     state.row = { ...state.row!, archived: true };

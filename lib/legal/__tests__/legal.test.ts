@@ -123,7 +123,10 @@ test("the Privacy policy names Link and what billing data Fitcheck keeps", () =>
 
 test("R2 — the policy says a piece's original can be erased while its cut-out stays", () => {
   const text = JSON.stringify(PRIVACY);
-  expect(text).toMatch(/erase the original photo of any piece from its page/i);
+  // Only a piece with a cut-out can lose its original (spec §3.3): "any piece" would be an inaccurate legal statement.
+  expect(text).not.toMatch(/erase the original photo of any piece from its page/i);
+  expect(text).toMatch(/erase the original photo of any piece that has a cut-out/i);
+  expect(text).toMatch(/for other pieces, write to legal@fitcheck\.space/i);
   expect(text).toMatch(/cut-out stays in your looks/i);
   expect(text).toMatch(/can.t be used to re-make a better cut-out/i);
 });

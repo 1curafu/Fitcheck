@@ -371,7 +371,10 @@ describe("a removed piece", () => {
 
   test("says it was removed, offers Put back, and hides Remove and the Style CTA", () => {
     renderDetail({}, { archived: true });
-    expect(screen.getByText(/removed from your closet/i)).toBeInTheDocument();
+    const note = screen.getByText(/removed from your closet/i);
+    // The only text saying the piece is removed: it must meet 4.5:1 (DESIGN.md: muted-dim is decorative only).
+    expect(note).not.toHaveClass("text-muted-dim");
+    expect(note).toHaveClass("text-muted-foreground");
     expect(screen.getByRole("button", { name: /put back/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /archive/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /style/i })).not.toBeInTheDocument();

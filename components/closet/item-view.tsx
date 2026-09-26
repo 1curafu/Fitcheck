@@ -218,7 +218,7 @@ export function ItemView({
       <div className="sticky bottom-0 z-30 flex gap-3 bg-gradient-to-t from-canvas from-60% to-transparent px-[22px] pb-[calc(env(safe-area-inset-bottom)+14px)] pt-[14px]">
         {removed ? (
           <div className="flex w-full flex-col gap-2">
-            <p className="text-center text-[12px] text-muted-dim">Removed from your closet</p>
+            <p className="text-center text-[12px] text-muted-foreground">Removed from your closet</p>
             <button
               type="button"
               onClick={removed.onRestore}
