@@ -158,7 +158,7 @@ export function ShareSheet({ outfit, pieces, onClose }: { outfit: ShareOutfit; p
         <div className="mt-4 flex gap-2" role="radiogroup" aria-label="Format">
           {(["story", "post"] as const).map((t) => (
             <button key={t} type="button" role="radio" aria-checked={target === t} disabled={locked}
-              onClick={() => { setPreview(null); setTarget(t); }}
+              onClick={() => { if (target === t) return; setPreview(null); setTarget(t); }}
               className={`min-h-[44px] flex-1 rounded-[12px] text-[14px] ${target === t ? "bg-foreground text-canvas" : "bg-surface-3 text-muted-foreground"}`}>
               {t === "story" ? "Story" : "Post"}
             </button>

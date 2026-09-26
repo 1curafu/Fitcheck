@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, test, vi } from "vitest";
 import type { CardInput } from "@/lib/share/card-layout";
@@ -55,12 +55,18 @@ test("Share image downloads the rendered card and never touches the public share
   expect(upload).not.toHaveBeenCalled();
 });
 
+test("tapping the selected format keeps its ready image available", async () => {
+  const sheet = await open();
+  await userEvent.click(within(sheet).getByRole("radio", { name: "Story" }));
+  expect(within(sheet).getByRole("button", { name: /share image/i })).toBeEnabled();
+});
+
 test("Share image calls navigator.share synchronously with the cached file (iOS user activation)", async () => {
   Object.defineProperty(navigator, "canShare", { value: () => true, configurable: true });
   Object.defineProperty(navigator, "share", { value: share, configurable: true });
   const sheet = await open();
   const renders = r.renderCard.mock.calls.length;
-  await userEvent.click(within(sheet).getByRole("button", { name: /share image/i }));
+  fireEvent.click(within(sheet).getByRole("button", { name: /share image/i }));
   expect(share).toHaveBeenCalledWith(expect.objectContaining({ files: [expect.any(File)] }));
   expect(r.renderCard.mock.calls.length).toBe(renders); // no render between the tap and the share call
 });
