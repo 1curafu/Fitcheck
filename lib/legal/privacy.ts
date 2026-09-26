@@ -12,7 +12,7 @@ import { OPERATOR, type LegalDocument } from "./types";
  */
 export const PRIVACY: LegalDocument = {
   title: "Privacy Policy",
-  updated: "2026-09-24",
+  updated: "2026-09-26",
   intro:
     "Fitcheck photographs your wardrobe and suggests outfits from it. That means it holds photos of your clothes and a little about you. This page says exactly what, why, who else touches it, and how to make us delete it.",
   sections: [
@@ -35,6 +35,12 @@ export const PRIVACY: LegalDocument = {
         "Your location, only if you give it: a city or coordinates and a time zone, so the weather in your looks is your weather. You can clear it in Settings.",
         "If you subscribe to Pro: your Stripe customer ID, your subscription's status and renewal date, and when you confirmed that Pro should start immediately. Card details go to Stripe and Link and never reach us.",
         "Technical details when something breaks: the error, the page, and the browser. Not your name, and not what you typed.",
+      ],
+    },
+    {
+      heading: "Sharing a look",
+      paragraphs: [
+        "Sharing is always your choice. Share image makes a picture on your phone; we store nothing about it. Create link publishes a snapshot of one look: its pictures, its name, the stylist's sentence and the names of its pieces (and their brands, only if you choose). Anyone with the link can see it for 30 days, or until you stop sharing, from the look or from Settings. There is no name, no account and nothing else of yours on it, and it is not indexed by search engines. Deleting your account removes your shared looks at once. A picture you post to Instagram, TikTok or anywhere else is a copy we cannot delete. After a disaster restore of our systems, shared links are switched off and must be shared again.",
       ],
     },
     {
