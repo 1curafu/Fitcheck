@@ -29,6 +29,7 @@ const ROUTES = [
   // visiting them — a green walk that proves nothing.
   "/packing",
   "/packing/new",
+  "/l/AAAAAAAAAAAAAAAAAAAAAA",
 ];
 
 test("walk every route @insights", async ({ page }) => {

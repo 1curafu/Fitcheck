@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { SITE_URL } from "@/lib/site";
 import { Libre_Caslon_Text, Hanken_Grotesk } from "next/font/google";
 import "./globals.css";
-import { Analytics } from "@vercel/analytics/next";
 import { MobileShell } from "@/components/shell/mobile-shell";
+import { SiteAnalytics } from "@/components/shell/analytics";
 
 const serif = Libre_Caslon_Text({
   subsets: ["latin"],
@@ -58,7 +58,7 @@ export default function RootLayout({
         {/* Cookieless page-view counting — a daily-rotating hash, nothing stored
             on the device — which is what lets the cookie notice stay a notice.
             Disclosed in /privacy; a test holds the policy to that. */}
-        <Analytics />
+        <SiteAnalytics />
       </body>
     </html>
   );
