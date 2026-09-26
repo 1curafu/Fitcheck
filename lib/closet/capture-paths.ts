@@ -35,3 +35,15 @@ export function groupOwnedDraftPaths(userId: string, paths: (string | null)[]): 
   }
   return groups;
 }
+
+const IMAGE_TYPES = new Set(["image/webp", "image/png"]);
+
+/**
+ * Server-boundary check for the cutout/thumbnail content types a client sends. TypeScript types do not
+ * survive into a Server Action call, so a crafted request could otherwise store any content type.
+ * The `wardrobe` bucket's MIME allowlist is the backstop for direct Storage writes.
+ */
+export function assertCaptureMediaType(value: unknown, optional = false): asserts value is "image/webp" | "image/png" | null | undefined {
+  if (optional && value == null) return;
+  if (typeof value !== "string" || !IMAGE_TYPES.has(value)) throw new Error("Unsupported image type");
+}

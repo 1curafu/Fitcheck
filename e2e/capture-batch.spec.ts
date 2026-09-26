@@ -188,6 +188,13 @@ test("onboarding fills two of five slots from one selection", async ({ page, con
     await expect.poll(() => page.locator("[data-filled=true] img")
       .evaluateAll((images) => images.every((image) => (image as HTMLImageElement).naturalWidth > 0)))
       .toBe(true);
+    // A removed (archived) piece has left the closet, so it no longer fills a slot or shows its photo.
+    const { error: archiveError } = await db.from("items")
+      .update({ archived: true }).eq("user_id", userId).eq("name", "Onboarding second");
+    if (archiveError) throw archiveError;
+    await page.reload();
+    await expect(page.locator("[data-filled=true]")).toHaveCount(1);
+    await expect(page.locator("[data-filled=true] img")).toHaveAttribute("alt", "Onboarding first");
     await page.getByRole("button", { name: "Enter your closet" }).click();
     await expect(page).toHaveURL(/\/closet$/);
   } finally {
