@@ -140,6 +140,9 @@ export function ItemView({
               {subtitle}
             </p>
           )}
+          {/* Under the title, not in the sticky bar: the bar's gradient is transparent at its top, so text there
+              overlapped the stat tiles scrolling beneath it (seen on a WebKit iPhone screenshot). */}
+          {removed && <p className="mt-2 text-[13px] text-muted-foreground">Removed from your closet</p>}
 
           <div className="mt-[22px] flex gap-[10px]">
             <Tile value={String(stats.wears)} label="Times worn" />
@@ -218,7 +221,6 @@ export function ItemView({
       <div className="sticky bottom-0 z-30 flex gap-3 bg-gradient-to-t from-canvas from-60% to-transparent px-[22px] pb-[calc(env(safe-area-inset-bottom)+14px)] pt-[14px]">
         {removed ? (
           <div className="flex w-full flex-col gap-2">
-            <p className="text-center text-[12px] text-muted-foreground">Removed from your closet</p>
             <button
               type="button"
               onClick={removed.onRestore}
