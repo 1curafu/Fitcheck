@@ -1,24 +1,34 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 
 /**
- * Confirms removing a piece from the closet, in place of the browser's own `confirm()`.
+ * Removing a piece, in place of the browser's `confirm()`.
  *
- * Removing ARCHIVES: the piece leaves the closet and new looks, while past looks and wear history keep it, and its
- * photos stay stored until the account is deleted. The copy says exactly that — it is the promise the privacy record
- * makes. A permanent per-piece delete is a separate roadmap item.
+ * "Remove from closet" ARCHIVES and can be undone from Removed pieces. The second option also erases the ORIGINAL photo
+ * for good (spec 2026-09-26): it is quieter on purpose and always goes through its own confirm step, because it is the
+ * only irreversible thing on this screen. The cut-out stays, so past looks are unchanged.
  */
 export function RemovePieceSheet({
   pending,
-  onConfirm,
+  canErase,
+  startAt = "choose",
+  error,
+  onRemove,
+  onErase,
   onClose,
 }: {
   pending: boolean;
-  onConfirm: () => void;
+  canErase: boolean;
+  startAt?: "choose" | "erase";
+  error: string | null;
+  onRemove: () => void;
+  onErase: () => void;
   onClose: () => void;
 }) {
+  const [step, setStep] = useState<"choose" | "erase">(startAt);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && !pending) onClose();
@@ -26,6 +36,8 @@ export function RemovePieceSheet({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose, pending]);
+
+  const erasing = step === "erase";
 
   return (
     <>
@@ -44,34 +56,82 @@ export function RemovePieceSheet({
         className="fixed inset-x-0 bottom-0 z-[70] mx-auto rounded-t-[22px] border-t border-[rgba(237,230,216,0.12)] bg-surface-2 px-[22px] pb-[calc(env(safe-area-inset-bottom)+20px)] pt-3.5"
       >
         <div className="mx-auto mb-4 h-1 w-[34px] rounded-full bg-faint" />
-
         <Kicker className="block">Closet</Kicker>
-        <h2 id="remove-piece-title" className="mt-1.5 font-serif text-[24px]/[1.15] text-foreground">
-          Remove this piece?
-        </h2>
-        <p className="mt-2 text-[13px]/[1.5] text-muted-foreground">
-          It leaves your closet and won&rsquo;t appear in new looks. Past looks and your wear history keep it.
-        </p>
-        <p className="mt-2 text-[13px]/[1.5] text-muted-foreground">
-          Its photos stay saved with your account, and are deleted if you delete your account.
-        </p>
 
-        <button
-          type="button"
-          disabled={pending}
-          onClick={onConfirm}
-          className="mt-5 min-h-[44px] w-full rounded-[12px] bg-brand-deep px-4 py-3 text-[14px] font-semibold text-foreground disabled:cursor-not-allowed disabled:bg-foreground/10 disabled:text-muted-dim"
-        >
-          {pending ? "Removing…" : "Remove from closet"}
-        </button>
-        <button
-          type="button"
-          disabled={pending}
-          onClick={onClose}
-          className="mt-3 min-h-[44px] w-full text-[14px] text-muted-foreground disabled:cursor-not-allowed disabled:text-muted-dim"
-        >
-          Cancel
-        </button>
+        {erasing ? (
+          <>
+            <h2 id="remove-piece-title" className="mt-1.5 font-serif text-[24px]/[1.15] text-foreground">
+              Erase the original photo?
+            </h2>
+            <p className="mt-2 text-[13px]/[1.5] text-muted-foreground">
+              The photo you took is erased for good. The cut-out garment stays in your past looks, calendar and wear
+              history, and you can still put the piece back.
+            </p>
+            <p className="mt-2 text-[13px]/[1.5] text-muted-foreground">
+              Copies in our encrypted backups expire within 30 days. An erased original can&rsquo;t be used to make a
+              better cut-out later.
+            </p>
+            {error && (
+              <p role="alert" className="mt-3 text-[13px]/[1.5] text-foreground">
+                {error}
+              </p>
+            )}
+            <button
+              type="button"
+              disabled={pending}
+              onClick={onErase}
+              className="mt-5 min-h-[44px] w-full rounded-[12px] bg-destructive/90 px-4 py-3 text-[14px] font-semibold text-foreground disabled:cursor-not-allowed disabled:bg-foreground/10 disabled:text-muted-dim"
+            >
+              {pending ? "Erasing…" : "Erase original"}
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => (startAt === "erase" ? onClose() : setStep("choose"))}
+              className="mt-3 min-h-[44px] w-full text-[14px] text-muted-foreground disabled:cursor-not-allowed disabled:text-muted-dim"
+            >
+              Back
+            </button>
+          </>
+        ) : (
+          <>
+            <h2 id="remove-piece-title" className="mt-1.5 font-serif text-[24px]/[1.15] text-foreground">
+              Remove this piece?
+            </h2>
+            <p className="mt-2 text-[13px]/[1.5] text-muted-foreground">
+              It leaves your closet and won&rsquo;t appear in new looks. Past looks and your wear history keep it.
+            </p>
+            <p className="mt-2 text-[13px]/[1.5] text-muted-foreground">
+              You can put it back from Removed pieces.
+            </p>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={onRemove}
+              className="mt-5 min-h-[44px] w-full rounded-[12px] bg-brand-deep px-4 py-3 text-[14px] font-semibold text-foreground disabled:cursor-not-allowed disabled:bg-foreground/10 disabled:text-muted-dim"
+            >
+              {pending ? "Removing…" : "Remove from closet"}
+            </button>
+            {canErase && (
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => setStep("erase")}
+                className="mt-3 min-h-[44px] w-full text-[14px] text-muted-foreground underline underline-offset-4 disabled:cursor-not-allowed disabled:text-muted-dim"
+              >
+                Remove and erase original photo
+              </button>
+            )}
+            <button
+              type="button"
+              disabled={pending}
+              onClick={onClose}
+              className="mt-1 min-h-[44px] w-full text-[14px] text-muted-foreground disabled:cursor-not-allowed disabled:text-muted-dim"
+            >
+              Cancel
+            </button>
+          </>
+        )}
       </div>
     </>
   );

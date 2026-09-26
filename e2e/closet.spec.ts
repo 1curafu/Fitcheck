@@ -66,7 +66,7 @@ test("removing a piece asks in the app's own sheet, then takes it out of the clo
     await page.getByRole("button", { name: /archive/i }).click();
     const sheet = page.getByRole("dialog", { name: /remove this piece/i });
     await expect(sheet).toBeVisible();
-    await expect(sheet.getByText(/photos stay saved with your account/i)).toBeVisible();
+    await expect(sheet.getByText(/you can put it back from removed pieces/i)).toBeVisible();
 
     // Cancel leaves everything as it was.
     await sheet.getByRole("button", { name: /^cancel$/i }).click();

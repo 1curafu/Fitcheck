@@ -55,6 +55,7 @@ export function ItemView({
   onEdit,
   onArchive,
   styleCta,
+  removed,
 }: {
   item: DetailItem;
   imageUrl: string;
@@ -64,6 +65,13 @@ export function ItemView({
   onArchive: () => void;
   /** The primary action. Supplied by the shell so this stays presentational. */
   styleCta?: React.ReactNode;
+  /** Set for an archived piece: the bottom bar offers Put back (and erase, while allowed) instead of Remove + Style. */
+  removed?: {
+    canEraseOriginal: boolean;
+    restoring: boolean;
+    onRestore: () => void;
+    onEraseOriginal: () => void;
+  };
 }) {
   const router = useRouter();
   const title = item.name ?? item.subcategory ?? item.category;
@@ -208,15 +216,41 @@ export function ItemView({
       </div>
 
       <div className="sticky bottom-0 z-30 flex gap-3 bg-gradient-to-t from-canvas from-60% to-transparent px-[22px] pb-[calc(env(safe-area-inset-bottom)+14px)] pt-[14px]">
-        <button
-          type="button"
-          onClick={onArchive}
-          aria-label="Archive"
-          className="grid h-[54px] w-14 place-items-center rounded-[14px] bg-surface-2 text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-6)]"
-        >
-          <Archive size={19} />
-        </button>
-        {styleCta}
+        {removed ? (
+          <div className="flex w-full flex-col gap-2">
+            <p className="text-center text-[12px] text-muted-dim">Removed from your closet</p>
+            <button
+              type="button"
+              onClick={removed.onRestore}
+              disabled={removed.restoring}
+              className="min-h-[54px] w-full rounded-[14px] bg-foreground px-4 text-[15px] font-semibold text-canvas disabled:opacity-60"
+            >
+              {removed.restoring ? "Putting back…" : "Put back"}
+            </button>
+            {removed.canEraseOriginal && (
+              <button
+                type="button"
+                onClick={removed.onEraseOriginal}
+                disabled={removed.restoring}
+                className="min-h-[44px] w-full text-[13px] text-muted-foreground underline underline-offset-4 disabled:text-muted-dim"
+              >
+                Erase original photo
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={onArchive}
+              aria-label="Archive"
+              className="grid h-[54px] w-14 place-items-center rounded-[14px] bg-surface-2 text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-6)]"
+            >
+              <Archive size={19} />
+            </button>
+            {styleCta}
+          </>
+        )}
       </div>
     </div>
   );
