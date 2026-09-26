@@ -63,7 +63,7 @@ export async function deleteAccount(
     await Sentry.flush(2000);
     // After the Auth delete the account is gone: saying otherwise would be false and unretryable. The alert
     // above is the operator's cue; the orphan sweep collects whatever raced in.
-    if (error.stage !== "residual-storage") {
+    if (error.stage !== "residual-storage" && error.stage !== "residual-shares") {
       return { status: "error", message: DELETION_FAILURE_MESSAGE };
     }
   }

@@ -179,7 +179,23 @@ describe("deleteAccount", () => {
     expect(redirect).toHaveBeenCalledWith("/?account=deleted", "replace");
   });
 
-  test.each(["storage", "ledger", "auth"] as const)(
+  test("treats a residual share-images failure as a completed deletion that still alerts", async () => {
+    const failure = new DeletionFailure("residual-shares");
+    failure.message = `share objects rejected ${USER_ID} ${EMAIL}`;
+    deleteLiveAccount.mockRejectedValue(failure);
+
+    await expect(deleteAccount({ status: "idle" }, confirmationForm(EMAIL))).rejects.toBe(REDIRECT);
+
+    expect(captureException).toHaveBeenCalledTimes(1);
+    const [captured, context] = captureException.mock.calls[0] as [Error, { tags: Record<string, string> }];
+    expect(captured).toEqual(new Error("Account deletion failed"));
+    expect(context.tags.account_deletion_stage).toBe("residual-shares");
+    expect(JSON.stringify({ message: captured.message, tags: context.tags })).not.toContain(USER_ID);
+    expect(signOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(redirect).toHaveBeenCalledWith("/?account=deleted", "replace");
+  });
+
+  test.each(["storage", "shares", "ledger", "auth"] as const)(
     "a %s failure still returns the error state without signing out",
     async (stage) => {
       deleteLiveAccount.mockRejectedValue(new DeletionFailure(stage));
