@@ -21,3 +21,8 @@ test("filters by category and excludes archived", () => {
 test("filters by colour", () => {
   expect(filterItems(items, { color: "navy" }).map((i) => i.id)).toEqual(["2"]);
 });
+
+test("the removed side shows only archived items, and still filters by category", () => {
+  expect(filterItems(items, { archived: true }).map((i) => i.id)).toEqual(["3"]);
+  expect(filterItems(items, { archived: true, category: "Bottoms" }).map((i) => i.id)).toEqual([]);
+});
