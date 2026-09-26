@@ -19,7 +19,7 @@ type ItemRow = {
   subcategory: string | null;
   category: string;
   brand: string | null;
-  image_url: string;
+  image_url: string | null;
   cutout_url: string | null;
 };
 

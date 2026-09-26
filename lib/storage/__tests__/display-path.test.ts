@@ -43,3 +43,9 @@ test("a row selected without the thumb column still resolves", () => {
     "u/i/cutout.webp",
   );
 });
+
+test("an erased original (image_url null) still renders the cut-out, at both sizes", () => {
+  const erased = { thumb_url: "u/i/thumb.webp", cutout_url: "u/i/cutout.webp", image_url: null };
+  expect(displayPath(erased)).toBe("u/i/cutout.webp");
+  expect(displayPath({ ...erased, thumb_url: null }, "thumb")).toBe("u/i/cutout.webp");
+});

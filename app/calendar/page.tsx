@@ -18,7 +18,7 @@ import { MobileNav } from "@/components/shell/mobile-nav";
 
 type ItemRow = {
   category: string;
-  image_url: string;
+  image_url: string | null;
   cutout_url: string | null;
   thumb_url: string | null;
 };
