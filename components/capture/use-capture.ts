@@ -30,6 +30,7 @@ export type Draft = {
 
 export type CapturePhase = "aim" | "removing" | "confirm";
 export type CaptureMode = "single" | "batch";
+export type SavedCapturePreview = { image: Blob; name: string };
 export type BatchView = {
   total: number;
   currentIndex: number | null;
@@ -42,7 +43,7 @@ export type BatchView = {
 
 type ReadyUpload = Extract<UploadAndTagResult, { status: "ready" }>;
 
-export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) {
+export function useCapture(options?: { onSaved?: (mode: CaptureMode, preview: SavedCapturePreview) => void }) {
   const pathname = usePathname();
   const [phase, setPhase] = useState<CapturePhase>("aim");
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -470,8 +471,10 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) 
     setError(null);
     try {
       let rotated = null;
+      let savedPreview = draft.baseCutout;
       if (draft.rotation !== 0) {
         const { blob, mediaType } = await encodeCutout(await rotateBlob(draft.baseCutout, draft.rotation));
+        savedPreview = blob;
         const thumb = await encodeThumb(blob, THUMB_MAX_PX);
         rotated = {
           cutoutB64: await blobToBase64(blob),
@@ -514,7 +517,10 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode) => void }) 
         activeDraftEntryRef.current = null;
         move(batchEntry.id, "saved");
       }
-      onSavedRef.current?.(batchEntry ? "batch" : "single");
+      onSavedRef.current?.(batchEntry ? "batch" : "single", {
+        image: savedPreview,
+        name: draft.name || draft.tags.subcategory,
+      });
       setDraft(null);
       setPhase(batchEntry ? "removing" : "aim");
       if (batchEntry) pump(generationRef.current);

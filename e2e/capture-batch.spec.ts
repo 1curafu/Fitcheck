@@ -88,18 +88,22 @@ test.describe("batch capture", () => {
       await page.goto("/closet/upload");
       await selectPhotos(page, 3);
       await expect(page.getByText("Photo 1 of 3")).toBeVisible();
+      await expect(page.locator("[data-filled=true] img")).toHaveCount(0);
       await page.getByPlaceholder("Name", { exact: true }).fill("Batch first shirt");
       await page.getByRole("button", { name: "Add to closet" }).click();
+      await expect(page.locator("[data-filled=true] img")).toHaveCount(1);
 
       await expect(page.getByText("Photo 2 of 3")).toBeVisible({ timeout: 120_000 });
       await expect(page.getByRole("button", { name: "Add to closet" })).toBeVisible({ timeout: 120_000 });
       await page.getByPlaceholder("Name", { exact: true }).fill("Batch second shirt");
       await page.getByRole("button", { name: "Formality 4" }).click();
       await page.getByRole("button", { name: "Add to closet" }).click();
+      await expect(page.locator("[data-filled=true] img")).toHaveCount(2);
 
       await expect(page.getByText("Photo 3 of 3")).toBeVisible({ timeout: 120_000 });
       await expect(page.getByRole("button", { name: "Skip photo" })).toBeVisible({ timeout: 120_000 });
       await page.getByRole("button", { name: "Skip photo" }).click();
+      await expect(page.locator("[data-filled=true] img")).toHaveCount(2);
       await expect(page.getByRole("region", { name: "Batch summary" })).toContainText(
         "2 saved · 1 skipped · 0 unprocessed",
       );
@@ -165,11 +169,13 @@ test("onboarding fills two of five slots from one selection", async ({ page, con
     await page.getByPlaceholder("Name", { exact: true }).fill("Onboarding first");
     await page.getByRole("button", { name: "Add to closet" }).click();
     await expect(page.locator("[data-filled=true]")).toHaveCount(1);
+    await expect(page.locator("[data-filled=true] img")).toHaveCount(1);
     await expect(page.getByText("Photo 2 of 2")).toBeVisible({ timeout: 120_000 });
     await expect(page.getByRole("button", { name: "Add to closet" })).toBeVisible({ timeout: 120_000 });
     await page.getByPlaceholder("Name", { exact: true }).fill("Onboarding second");
     await page.getByRole("button", { name: "Add to closet" }).click();
     await expect(page.locator("[data-filled=true]")).toHaveCount(2);
+    await expect(page.locator("[data-filled=true] img")).toHaveCount(2);
     await expect(page.getByRole("region", { name: "Batch summary" })).toContainText(
       "2 saved · 0 skipped · 0 unprocessed",
     );
@@ -177,7 +183,12 @@ test("onboarding fills two of five slots from one selection", async ({ page, con
       .select("id, name").eq("user_id", userId);
     if (readError) throw readError;
     expect(rows?.map((row) => row.name).sort()).toEqual(["Onboarding first", "Onboarding second"]);
-    await page.getByRole("button", { name: "Enter closet" }).click();
+    await page.reload();
+    await expect(page.locator("[data-filled=true] img")).toHaveCount(2);
+    await expect.poll(() => page.locator("[data-filled=true] img")
+      .evaluateAll((images) => images.every((image) => (image as HTMLImageElement).naturalWidth > 0)))
+      .toBe(true);
+    await page.getByRole("button", { name: "Enter your closet" }).click();
     await expect(page).toHaveURL(/\/closet$/);
   } finally {
     await cleanupNewCapture(userId, before.ids, before.folders);

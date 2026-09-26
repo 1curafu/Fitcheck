@@ -229,7 +229,8 @@ describe("rotation", () => {
 
   test("save sends the rotated cutout and thumb only when turned", async () => {
     const { confirmItem } = await import("@/app/closet/upload/actions");
-    const { result } = renderHook(() => useCapture());
+    const onSaved = vi.fn();
+    const { result } = renderHook(() => useCapture({ onSaved }));
     await act(async () => {
       await result.current.capture(new File([], "x.jpg"));
     });
@@ -250,6 +251,7 @@ describe("rotation", () => {
     expect(vi.mocked(confirmItem).mock.lastCall?.[0]).toMatchObject({
       rotated: { cutoutB64: "b64", mediaType: "image/webp", thumbB64: "b64", thumbMediaType: "image/webp" },
     });
+    expect(await onSaved.mock.lastCall?.[1].image.text()).toBe("turned-90");
   });
 });
 
@@ -289,7 +291,9 @@ describe("batch capture", () => {
     expect(result.current.batch?.currentIndex).toBe(0);
     await act(async () => { await result.current.save(); });
     await waitFor(() => expect(result.current.draft).not.toBeNull());
-    expect(onSaved).toHaveBeenCalledWith("batch");
+    expect(onSaved).toHaveBeenCalledWith("batch", expect.objectContaining({
+      image: expect.any(Blob), name: "Tee",
+    }));
     expect(result.current.batch?.currentIndex).toBe(1);
     expect(result.current.phase).toBe("confirm");
   });
