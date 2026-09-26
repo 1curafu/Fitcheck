@@ -12,7 +12,7 @@ test.use({ storageState: "e2e/.auth/state.json" });
  */
 async function cutoutAlpha(page: Page, fixture: string) {
   await page.goto("/closet/upload");
-  await page.locator('input[type="file"]').setInputFiles(fixture);
+  await page.locator('input[type="file"]:not([multiple])').setInputFiles(fixture);
   const cutout = page.locator(".surface-stage img").first();
   await expect(cutout).toBeVisible({ timeout: 90_000 });
   return cutout.evaluate(async (img: HTMLImageElement) => {

@@ -6,6 +6,7 @@ import type { Tags } from "@/lib/ai/tagging-schema";
 import { FIT_OPTIONS } from "@/lib/closet/vocab";
 
 const draft: Draft = {
+  itemId: "33333333-3333-4333-8333-333333333333",
   imagePath: "p",
   cutoutPath: "c",
   thumbPath: null,
@@ -131,6 +132,17 @@ test("offers a way out when the cutout is wrong", async () => {
   expect(onRetake).toHaveBeenCalledOnce();
 });
 
+test("batch review labels rejection Skip photo and blocks both actions while saving", () => {
+  render(
+    <ConfirmForm draft={draft} saving error={null} rejectLabel="Skip photo"
+      onDraft={() => {}} onTags={() => {}} onToggleSeason={() => {}}
+      onSave={() => {}} onRetake={() => {}} onRotate={() => {}} />,
+  );
+  expect(screen.getByRole("button", { name: "Skip photo" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Saving…" })).toBeDisabled();
+  expect(screen.queryByRole("button", { name: "Retake" })).not.toBeInTheDocument();
+});
+
 test("every fit option is offered", async () => {
   renderConfirm();
   for (const fit of FIT_OPTIONS) {
@@ -212,8 +224,21 @@ test("Rotate sits on the stage, over the cutout it turns — not in the bottom b
   );
   const rotate = screen.getByRole("button", { name: "Rotate" });
   expect(rotate.closest(".surface-stage")).not.toBeNull();
+  expect(rotate).toHaveClass("h-11");
   await userEvent.click(rotate);
   expect(onRotate).toHaveBeenCalledOnce();
+});
+
+test("a pending rotation keeps Save and Rotate disabled until the preview is ready", () => {
+  render(
+    <ConfirmForm
+      draft={draft} saving={false} rotating error={null}
+      onDraft={() => {}} onTags={() => {}} onToggleSeason={() => {}}
+      onSave={() => {}} onRetake={() => {}} onRotate={() => {}}
+    />,
+  );
+  expect(screen.getByRole("button", { name: "Rotate" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Rotating…" })).toBeDisabled();
 });
 
 test("Retake is a camera, not a turning arrow — a turning arrow reads as rotate", () => {

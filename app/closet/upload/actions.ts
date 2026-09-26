@@ -3,11 +3,41 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { tagItem } from "@/lib/ai/tag-item";
-import { TagSchema } from "@/lib/ai/tagging-schema";
+import { TagSchema, type Rotation, type Tags } from "@/lib/ai/tagging-schema";
 import { tagsToItemRow } from "@/lib/ai/parse-tags";
 import { cutoutFilename, type CutoutMediaType } from "@/lib/images/encode";
 import { thumbFilename, type ThumbMediaType } from "@/lib/images/thumb";
-import { assertCanUpload } from "@/lib/billing/entitlements";
+import { assertCanUpload, readUploadAllowance } from "@/lib/billing/entitlements";
+import { UploadLimitError } from "@/lib/billing/errors";
+import { assertDraftIdentity, groupOwnedDraftPaths } from "@/lib/closet/capture-paths";
+
+export type UploadAndTagResult =
+  | { status: "ready"; itemId: string; imagePath: string; cutoutPath: string;
+      thumbPath: string | null; tags: Tags; rotation: Rotation }
+  | { status: "limited"; message: string };
+
+export type ConfirmItemResult = { status: "saved" } | { status: "limited"; message: string };
+
+type StoredDraft = { id: string; user_id: string; image_url: string; cutout_url: string | null };
+
+async function readItemById(supabase: Awaited<ReturnType<typeof createClient>>, itemId: string) {
+  const { data, error } = await supabase.from("items")
+    .select("id,user_id,image_url,cutout_url").eq("id", itemId).maybeSingle();
+  if (error) throw error;
+  return data as StoredDraft | null;
+}
+
+function matchingDraft(row: StoredDraft, userId: string, imagePath: string, base: string) {
+  return row.user_id === userId && row.image_url === imagePath &&
+    (row.cutout_url === `${base}/cutout.webp` || row.cutout_url === `${base}/cutout.png`);
+}
+
+export async function getUploadCapacity() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  return readUploadAllowance();
+}
 
 // Upload both blobs to Storage, then return a DRAFT tag set for the confirm
 // screen. No DB insert yet — the user confirms first.
@@ -20,7 +50,7 @@ export async function uploadAndTag(form: {
   // cutout, which is the same path every pre-thumbnail row already takes.
   thumbB64?: string | null;
   thumbMediaType?: ThumbMediaType | null;
-}) {
+}): Promise<UploadAndTagResult> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -31,55 +61,62 @@ export async function uploadAndTag(form: {
   // two storage writes and the Haiku tagging call — happens below, before the
   // user ever reaches the confirm screen. A limit checked at confirm would
   // have already paid for the item it refuses.
-  await assertCanUpload();
+  try {
+    await assertCanUpload();
+  } catch (error) {
+    if (error instanceof UploadLimitError) return { status: "limited", message: error.message };
+    throw error;
+  }
 
   const itemId = crypto.randomUUID();
   const base = `${user.id}/${itemId}`;
   const orig = Buffer.from(form.originalB64, "base64");
   const cut = Buffer.from(form.cutoutB64, "base64");
-
-  await supabase.storage.from("wardrobe").upload(`${base}/original.jpg`, orig, {
-    contentType: "image/jpeg",
-  });
-  // The stored extension and content type follow the format actually produced,
-  // so WebP and legacy PNG cutouts coexist without a migration.
+  const bucket = supabase.storage.from("wardrobe");
+  const imagePath = `${base}/original.jpg`;
   const cutoutName = cutoutFilename(form.mediaType);
-  await supabase.storage.from("wardrobe").upload(`${base}/${cutoutName}`, cut, {
-    contentType: form.mediaType,
-  });
-
-  // ⚠️ Uploaded, never tagged. The tagger reads the CUTOUT — a 480px thumbnail
-  // at quality 0.8 is exactly the compressed input Anthropic's vision guidance
-  // warns costs accuracy, and it is the reason `encode.ts` holds the cutout at
-  // 0.85 in the first place.
+  const cutoutPath = `${base}/${cutoutName}`;
+  const attempted: string[] = [];
   let thumbPath: string | null = null;
-  if (form.thumbB64 && form.thumbMediaType) {
-    const thumbName = thumbFilename(form.thumbMediaType);
-    const { error } = await supabase.storage
-      .from("wardrobe")
-      .upload(`${base}/${thumbName}`, Buffer.from(form.thumbB64, "base64"), {
-        contentType: form.thumbMediaType,
-      });
-    // A thumbnail that fails to store must not fail the upload the user is
-    // waiting on — it is an optimisation, and its absence is already handled.
-    if (!error) thumbPath = `${base}/${thumbName}`;
-  }
+  try {
+    attempted.push(imagePath);
+    const originalWrite = await bucket.upload(imagePath, orig, { contentType: "image/jpeg" });
+    if (originalWrite.error) throw originalWrite.error;
 
-  const { tags, rotation } = await tagItem(form.cutoutB64, form.mediaType);
-  return {
-    itemId,
-    imagePath: `${base}/original.jpg`,
-    cutoutPath: `${base}/${cutoutName}`,
-    thumbPath,
-    tags,
-    rotation,
-  };
+    attempted.push(cutoutPath);
+    const cutoutWrite = await bucket.upload(cutoutPath, cut, { contentType: form.mediaType });
+    if (cutoutWrite.error) throw cutoutWrite.error;
+
+    if (form.thumbB64 && form.thumbMediaType) {
+      const nextThumbPath = `${base}/${thumbFilename(form.thumbMediaType)}`;
+      attempted.push(nextThumbPath);
+      try {
+        const thumbWrite = await bucket.upload(
+          nextThumbPath, Buffer.from(form.thumbB64, "base64"),
+          { contentType: form.thumbMediaType },
+        );
+        if (thumbWrite.error) throw thumbWrite.error;
+        thumbPath = nextThumbPath;
+      } catch {
+        // Thumbnails are optional. A failed upload may still leave an object.
+        try { await bucket.remove([nextThumbPath]); } catch { /* orphan sweep backstop */ }
+      }
+    }
+
+    // Tag the full cutout, never its smaller thumbnail.
+    const { tags, rotation } = await tagItem(form.cutoutB64, form.mediaType);
+    return { status: "ready", itemId, imagePath, cutoutPath, thumbPath, tags, rotation };
+  } catch (error) {
+    try { await bucket.remove(attempted); } catch { /* orphan sweep backstop */ }
+    throw error;
+  }
 }
 
 // Re-validate the (possibly user-edited) tags and insert the item. When the
 // user rotated the cutout, the rotated blobs replace the uploaded ones first,
 // so the row only ever points at upright images.
 export async function confirmItem(input: {
+  itemId: string;
   imagePath: string;
   cutoutPath: string;
   thumbPath?: string | null;
@@ -92,12 +129,27 @@ export async function confirmItem(input: {
     thumbB64: string | null;
     thumbMediaType: ThumbMediaType | null;
   } | null;
-}) {
+}): Promise<ConfirmItemResult> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
+
+  const base = assertDraftIdentity(user.id, input);
+  const existing = await readItemById(supabase, input.itemId);
+  if (existing) {
+    if (!matchingDraft(existing, user.id, input.imagePath, base)) throw new Error("Not your upload");
+    return { status: "saved" };
+  }
+  try {
+    await assertCanUpload();
+  } catch (error) {
+    if (error instanceof UploadLimitError) return { status: "limited", message: error.message };
+    throw error;
+  }
+
+  const tags = TagSchema.parse(input.tags);
 
   let cutoutPath = input.cutoutPath;
   let thumbPath = input.thumbPath ?? null;
@@ -133,7 +185,6 @@ export async function confirmItem(input: {
     if (remove.length) await supabase.storage.from("wardrobe").remove(remove);
   }
 
-  const tags = TagSchema.parse(input.tags);
   const row = {
     ...tagsToItemRow({
       userId: user.id,
@@ -144,10 +195,20 @@ export async function confirmItem(input: {
     }),
     name: input.name ?? tags.subcategory,
     brand: input.brand ?? null,
+    id: input.itemId,
   };
   const { error } = await supabase.from("items").insert(row);
-  if (error) throw error;
+  if (error) {
+    if (error.code === "23505") {
+      const concurrent = await readItemById(supabase, input.itemId);
+      if (concurrent && matchingDraft(concurrent, user.id, input.imagePath, base)) {
+        return { status: "saved" };
+      }
+    }
+    throw error;
+  }
   revalidatePath("/closet");
+  return { status: "saved" };
 }
 
 /**
@@ -176,10 +237,8 @@ export async function discardDraft(paths: (string | null)[]) {
    * already pins `storage.foldername(name)[1]` to `auth.uid()`, so a
    * cross-user delete is impossible at the database level either way.
    */
-  const owned = paths.filter(
-    (path): path is string => typeof path === "string" && path.startsWith(`${user.id}/`),
-  );
-  if (owned.length === 0) return;
-
-  await supabase.storage.from("wardrobe").remove(owned);
+  for (const [itemId, draftPaths] of groupOwnedDraftPaths(user.id, paths)) {
+    const saved = await readItemById(supabase, itemId);
+    if (!saved) await supabase.storage.from("wardrobe").remove(draftPaths);
+  }
 }

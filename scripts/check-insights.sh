@@ -20,7 +20,7 @@ trap 'kill "${DEV_PID:-}" 2>/dev/null || true; rm -f "$LOG"' EXIT
 
 set -a; source .env.local; set +a
 
-npm run dev >"$LOG" 2>&1 &
+npm run dev -- --hostname 127.0.0.1 >"$LOG" 2>&1 &
 DEV_PID=$!
 
 echo "waiting for the dev server…"
