@@ -120,3 +120,10 @@ test("the Privacy policy names Link and what billing data Fitcheck keeps", () =>
   expect(privacy).toMatch(/Stripe customer ID, your subscription's status and renewal date/);
   expect(privacy).not.toMatch(/once subscriptions exist/);
 });
+
+test("R2 — the policy says a piece's original can be erased while its cut-out stays", () => {
+  const text = JSON.stringify(PRIVACY);
+  expect(text).toMatch(/erase the original photo of any piece from its page/i);
+  expect(text).toMatch(/cut-out stays in your looks/i);
+  expect(text).toMatch(/can.t be used to re-make a better cut-out/i);
+});
