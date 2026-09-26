@@ -10,8 +10,10 @@ test("the nightly job removes expired rows and orphan images while preserving li
   mkdirSync(bin);
   const psql = `#!/usr/bin/env bash
 set -euo pipefail
-if [[ "$*" == *"select coalesce"* ]]; then
+if [[ "$*" == *"public.look_shares"* ]]; then
   printf '%s\\n' '[{"token":"old","ready_at":"2000-01-01T00:00:00Z","created_at":"2000-01-01T00:00:00Z"},{"token":"live","ready_at":"2099-01-01T00:00:00Z","created_at":"2000-01-01T00:00:00Z"}]'
+elif [[ "$*" == *"storage.objects"* ]]; then
+  printf '%s\\n' '[{"name":"old","modTime":"2000-01-01T00:00:00Z"},{"name":"live","modTime":"2000-01-01T00:00:00Z"},{"name":"ghost-old","modTime":"2000-01-01T00:00:00Z"},{"name":"ghost-new","modTime":"2099-01-01T00:00:00Z"}]'
 else
   cat >/dev/null
   for arg in "$@"; do :; done
@@ -21,9 +23,13 @@ fi
   const rclone = `#!/usr/bin/env bash
 set -euo pipefail
 if [[ "$1" == "lsjson" && "$2" == "--dirs-only" ]]; then
-  printf '%s\\n' '[{"Name":"old","ModTime":"2000-01-01T00:00:00Z"},{"Name":"live","ModTime":"2000-01-01T00:00:00Z"},{"Name":"ghost","ModTime":"2000-01-01T00:00:00Z"}]'
+  printf '%s\\n' '[{"Name":"old","ModTime":"2000-01-01T00:00:00Z"},{"Name":"live","ModTime":"2000-01-01T00:00:00Z"},{"Name":"ghost-old","ModTime":"2000-01-01T00:00:00Z"},{"Name":"ghost-new","ModTime":"2000-01-01T00:00:00Z"}]'
 elif [[ "$1" == "lsjson" ]]; then
   for token in "$@"; do :; done
+  if [[ "$token" == "supabase:shares" ]]; then
+    printf '%s\\n' '[{"Path":"old/story.jpg","ModTime":"2000-01-01T00:00:00Z"},{"Path":"live/story.jpg","ModTime":"2000-01-01T00:00:00Z"},{"Path":"ghost-old/story.jpg","ModTime":"2000-01-01T00:00:00Z"},{"Path":"ghost-new/story.jpg","ModTime":"2000-01-01T00:00:00Z"}]'
+    exit 0
+  fi
   token="$(basename "$token")"
   if [[ -f "$TEST_STATE/$token.removed" || "$token" == "live" ]]; then
     [[ "$token" == "live" ]] && printf '%s\\n' '[{"Path":"story.jpg"}]' || printf '%s\\n' '[]'
@@ -59,7 +65,7 @@ fi
     });
     expect(output).toContain("1 expired share(s) removed, 1 orphan folder(s) removed");
     expect(readFileSync(join(root, "log"), "utf8").trim().split("\n")).toEqual([
-      "image:old", "row:token=old", "image:ghost",
+      "image:old", "row:token=old", "image:ghost-old",
     ]);
   } finally {
     rmSync(root, { recursive: true, force: true });

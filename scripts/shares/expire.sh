@@ -35,7 +35,10 @@ WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
 psql "$SUPABASE_DB_URL" -Atq -v ON_ERROR_STOP=1 -c "select coalesce(json_agg(json_build_object('token', token, 'ready_at', ready_at, 'created_at', created_at)), '[]') from public.look_shares" > "$WORK/rows.json"
-rclone lsjson --dirs-only "supabase:shares" > "$WORK/folders.json"
+# Supabase's S3 adapter can report an ancient ModTime even for a new object.
+# Storage metadata is the authority for the one-day orphan grace; updated_at
+# also protects a freshly overwritten image in an older folder.
+psql "$SUPABASE_DB_URL" -Atq -v ON_ERROR_STOP=1 -c "select coalesce(json_agg(json_build_object('name', folder, 'modTime', last_write)), '[]') from (select split_part(name, '/', 1) as folder, max(greatest(created_at, updated_at)) as last_write from storage.objects where bucket_id = 'shares' group by 1) s" > "$WORK/folders.json"
 
 node --input-type=module - "$HERE/plan.mjs" "$WORK" <<'NODE'
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -44,7 +47,7 @@ const [, , planPath, work] = process.argv;
 const { planExpiry } = await import(pathToFileURL(planPath).href);
 const rows = JSON.parse(readFileSync(`${work}/rows.json`, 'utf8'));
 const folders = JSON.parse(readFileSync(`${work}/folders.json`, 'utf8'))
-  .map((f) => ({ name: f.Name, modTime: f.ModTime }));
+  .map((f) => ({ name: f.name, modTime: f.modTime }));
 const plan = planExpiry({ rows, folders, now: new Date() });
 writeFileSync(`${work}/expire.txt`, plan.expire.join('\n'));
 writeFileSync(`${work}/orphans.txt`, plan.orphans.join('\n'));
