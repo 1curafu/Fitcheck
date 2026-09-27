@@ -1,3 +1,6 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import { Link } from "@/lib/i18n/navigation";
 
 /**
@@ -25,12 +28,13 @@ export function ScreenHeader({
   /** Reserved above the title. Pass a space to hold the line while it loads. */
   kicker?: string;
 }) {
+  const t = useTranslations("common");
   return (
     <div className="flex items-center gap-3 px-[22px] screen-top">
       {backHref && (
         <Link
           href={backHref}
-          aria-label="Back"
+          aria-label={t("back")}
           className="grid size-[34px] shrink-0 place-items-center rounded-full bg-[#19181b] text-[18px] text-foreground shadow-[inset_0_0_0_1px_var(--hairline-5)]"
         >
           ‹

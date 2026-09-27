@@ -1,1 +1,32 @@
-{ "notFound": { "title": "Nothing here", "body": "This page doesn't exist.", "home": "Go to Fitcheck" } }
+{
+  "common": {
+    "back": "Back",
+    "brand": "Fitcheck"
+  },
+  "shell": {
+    "nav": {
+      "closet": "Closet",
+      "stylist": "Stylist",
+      "diary": "Diary",
+      "profile": "Profile"
+    },
+    "cookie": {
+      "label": "Cookie notice",
+      "body": "Only the cookies that keep you signed in. No tracking.",
+      "privacy": "How we handle your data",
+      "dismiss": "OK"
+    },
+    "whatsNew": {
+      "label": "What's new in Fitcheck",
+      "kicker": "New in Fitcheck",
+      "dismiss": "Dismiss what's new",
+      "new": "New",
+      "fixed": "Fixed"
+    }
+  },
+  "notFound": {
+    "title": "Nothing here",
+    "body": "This page doesn't exist.",
+    "home": "Go to Fitcheck"
+  }
+}

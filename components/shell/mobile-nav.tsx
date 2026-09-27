@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "next-intl";
 import { usePathname, Link } from "@/lib/i18n/navigation";
 
 import { Shirt, Sparkles, CalendarDays, User } from "lucide-react";
@@ -7,14 +8,15 @@ import { cn } from "@/lib/utils";
 // Prototype's bottom nav: Closet · Stylist · Diary · Profile.
 // Style DNA / Saved Outfits / Stats / Settings live under Profile (not tabs).
 const TABS = [
-  { href: "/closet", label: "Closet", Icon: Shirt },
-  { href: "/generate", label: "Stylist", Icon: Sparkles },
-  { href: "/calendar", label: "Diary", Icon: CalendarDays },
-  { href: "/profile", label: "Profile", Icon: User },
-];
+  { href: "/closet", label: "closet", Icon: Shirt },
+  { href: "/generate", label: "stylist", Icon: Sparkles },
+  { href: "/calendar", label: "diary", Icon: CalendarDays },
+  { href: "/profile", label: "profile", Icon: User },
+] as const;
 
 export function MobileNav() {
   const pathname = usePathname();
+  const t = useTranslations("shell.nav");
   return (
     // Design :825-826 — a floating PILL, not a full-width bar. The outer
     // element is only a gradient fade to the canvas; the pill is the inner slab,
@@ -51,7 +53,7 @@ export function MobileNav() {
               )}
             >
               <Icon size={23} strokeWidth={1.5} />
-              {label}
+              {t(label)}
             </Link>
           );
         })}
