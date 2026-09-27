@@ -9,14 +9,25 @@ import { cutoutFilename, type CutoutMediaType } from "@/lib/images/encode";
 import { thumbFilename, type ThumbMediaType } from "@/lib/images/thumb";
 import { assertCanUpload, readUploadAllowance } from "@/lib/billing/entitlements";
 import { UploadLimitError } from "@/lib/billing/errors";
+import { FREE } from "@/lib/billing/tiers";
 import { assertCaptureMediaType, assertDraftIdentity, groupOwnedDraftPaths } from "@/lib/closet/capture-paths";
 
 export type UploadAndTagResult =
   | { status: "ready"; itemId: string; imagePath: string; cutoutPath: string;
       thumbPath: string | null; tags: Tags; rotation: Rotation }
-  | { status: "limited"; message: string };
+  | ({ status: "limited" } & UploadLimitMessage);
 
-export type ConfirmItemResult = { status: "saved" } | { status: "limited"; message: string };
+export type ConfirmItemResult = { status: "saved" } | ({ status: "limited" } & UploadLimitMessage);
+
+type UploadLimitMessage = { message: "errors.closetFull"; values: { limit: number } };
+type UploadCapacityResult =
+  | { allowed: true; remaining: number | null }
+  | ({ allowed: false; remaining: 0 } & UploadLimitMessage);
+
+function uploadLimitMessage(): UploadLimitMessage {
+  if (FREE.closetItems === null) throw new Error("Free closet limit is missing");
+  return { message: "errors.closetFull", values: { limit: FREE.closetItems } };
+}
 
 type StoredDraft = { id: string; user_id: string; image_url: string; cutout_url: string | null };
 
@@ -32,11 +43,14 @@ function matchingDraft(row: StoredDraft, userId: string, imagePath: string, base
     (row.cutout_url === `${base}/cutout.webp` || row.cutout_url === `${base}/cutout.png`);
 }
 
-export async function getUploadCapacity() {
+export async function getUploadCapacity(): Promise<UploadCapacityResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
-  return readUploadAllowance();
+  const allowance = await readUploadAllowance();
+  return allowance.allowed
+    ? { allowed: true, remaining: allowance.remaining }
+    : { allowed: false, remaining: 0, ...uploadLimitMessage() };
 }
 
 // Upload both blobs to Storage, then return a DRAFT tag set for the confirm
@@ -66,7 +80,7 @@ export async function uploadAndTag(form: {
   try {
     await assertCanUpload();
   } catch (error) {
-    if (error instanceof UploadLimitError) return { status: "limited", message: error.message };
+    if (error instanceof UploadLimitError) return { status: "limited", ...uploadLimitMessage() };
     throw error;
   }
 
@@ -151,7 +165,7 @@ export async function confirmItem(input: {
   try {
     await assertCanUpload();
   } catch (error) {
-    if (error instanceof UploadLimitError) return { status: "limited", message: error.message };
+    if (error instanceof UploadLimitError) return { status: "limited", ...uploadLimitMessage() };
     throw error;
   }
 

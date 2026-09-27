@@ -222,5 +222,78 @@
         }
       }
     }
+  },
+  "capture": {
+    "addPiece": "Add a piece",
+    "reviewPieces": "Review your pieces.",
+    "preparingPhoto": "Preparing this photo…",
+    "captureItemTitle": "Capture an item.",
+    "instructions": "Snap each piece on a flat surface that contrasts with it — dark clothes on a pale floor. We cut it out and learn its colour, fabric and formality.",
+    "batch": {
+      "summaryLabel": "Batch summary",
+      "complete": "Your capture is complete.",
+      "counts": "{saved} saved · {skipped} skipped · {unprocessed} unprocessed",
+      "summaryHint": "Saved pieces are in your closet. Unprocessed photos were not saved.",
+      "enterCloset": "Enter closet",
+      "progressLabel": "Batch progress",
+      "photoProgress": "Photo {index} of {total}",
+      "lastPhoto": "Last photo",
+      "nextReady": "Next photo ready",
+      "preparingNext": "Preparing next photo",
+      "preparationFailed": "Photo preparation failed.",
+      "retryPhoto": "Retry photo",
+      "skipPhoto": "Skip photo",
+      "finishBatch": "Finish batch",
+      "waitingHint": "Photos still waiting in this batch will not be saved when you finish.",
+      "remaining": "This closet has room for {remaining} more pieces. The rest will remain unprocessed."
+    },
+    "confirm": {
+      "rotate": "Rotate",
+      "name": "Name",
+      "brand": "Brand (optional)",
+      "aiDetected": "AI detected",
+      "subcategory": "Subcategory",
+      "colour": "Colour",
+      "texture": "Texture",
+      "pattern": "Pattern",
+      "category": "Category",
+      "material": "Material",
+      "formality": "Formality · {label}",
+      "formalityNumber": "Formality {number}",
+      "fit": "Fit",
+      "seasons": "Seasons",
+      "accuracyHint": "We're ~90% right — fix anything that's off.",
+      "retake": "Retake",
+      "skipPhoto": "Skip photo",
+      "saving": "Saving…",
+      "rotating": "Rotating…",
+      "addToCloset": "Add to closet"
+    },
+    "onboarding": {
+      "almostThere": "Almost there",
+      "firstFive": "Capture your first five.",
+      "enterCloset": "Enter your closet",
+      "skipForNow": "Skip for now"
+    },
+    "viewfinder": {
+      "captureItem": "Capture an item",
+      "cuttingOut": "Cutting out & reading colours…",
+      "tap": "Tap to capture an item",
+      "chooseSeveral": "Choose several photos"
+    }
+  },
+  "errors": {
+    "closetFull": "A free closet holds {limit} pieces. Pro is unlimited — or archive something you no longer wear.",
+    "previewFailed": "Preview failed",
+    "photoFailed": "Photo failed",
+    "cutoutFailed": "Cutout failed",
+    "taggingFailed": "Tagging failed",
+    "capacityFailed": "Cannot check closet capacity",
+    "captureFailed": "Capture failed",
+    "rotationFailed": "Rotation failed",
+    "saveFailed": "Save failed",
+    "cutoutCancelled": "Cutout cancelled",
+    "cutoutWorkerBusy": "Cutout worker busy",
+    "cutoutWorkerResponseFailed": "Cutout worker response failed"
   }
 }

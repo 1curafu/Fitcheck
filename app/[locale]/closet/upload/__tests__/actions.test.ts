@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { UploadLimitError } from "@/lib/billing/errors";
+import { readUploadAllowance } from "@/lib/billing/entitlements";
 
 const state = vi.hoisted(() => ({
   writes: [] as string[],
@@ -54,7 +55,16 @@ vi.mock("@/lib/supabase/server", () => ({
   }),
 }));
 
-import { confirmItem, discardDraft, uploadAndTag } from "../actions";
+import { confirmItem, discardDraft, getUploadCapacity, uploadAndTag } from "../actions";
+
+it("capacity preflight returns a key instead of English", async () => {
+  vi.mocked(readUploadAllowance).mockResolvedValueOnce({
+    allowed: false, remaining: 0, reason: "A free closet holds 50 pieces.",
+  });
+  expect(await getUploadCapacity()).toEqual({
+    allowed: false, remaining: 0, message: "errors.closetFull", values: { limit: 50 },
+  });
+});
 
 const owner = "11111111-1111-4111-8111-111111111111";
 const itemId = "33333333-3333-4333-8333-333333333333";
@@ -138,7 +148,9 @@ describe("confirmation", () => {
 
   it("keeps the draft when capacity is filled before confirmation", async () => {
     state.gate.mockRejectedValueOnce(new UploadLimitError("closet full"));
-    expect(await confirmItem(confirmation)).toEqual({ status: "limited", message: "closet full" });
+    expect(await confirmItem(confirmation)).toEqual({
+      status: "limited", message: "errors.closetFull", values: { limit: 50 },
+    });
     expect(state.inserted).toHaveLength(0);
     expect(state.removals).toHaveLength(0);
   });
@@ -194,7 +206,9 @@ describe("draft upload", () => {
 
   it("reports an upload limit before storage or tagging", async () => {
     state.gate.mockRejectedValueOnce(new UploadLimitError("closet full"));
-    expect(await uploadAndTag(form)).toEqual({ status: "limited", message: "closet full" });
+    expect(await uploadAndTag(form)).toEqual({
+      status: "limited", message: "errors.closetFull", values: { limit: 50 },
+    });
     expect(state.writes).toHaveLength(0);
     expect(state.tag).not.toHaveBeenCalled();
   });

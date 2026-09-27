@@ -60,12 +60,14 @@ test("capture moves aim → confirm and builds a draft", async () => {
 
 test("a server upload limit leaves capture available and explains the limit", async () => {
   const { uploadAndTag } = await import("@/app/[locale]/closet/upload/actions");
-  vi.mocked(uploadAndTag).mockResolvedValueOnce({ status: "limited", message: "closet full" });
+  vi.mocked(uploadAndTag).mockResolvedValueOnce({
+    status: "limited", message: "errors.closetFull", values: { limit: 50 },
+  });
   const { result } = renderHook(() => useCapture());
   await act(async () => { await result.current.capture(new File([], "x.jpg")); });
   expect(result.current.phase).toBe("aim");
   expect(result.current.draft).toBeNull();
-  expect(result.current.error).toBe("closet full");
+  expect(result.current.error).toBe("A free closet holds 50 pieces. Pro is unlimited — or archive something you no longer wear.");
 });
 
 test("successful save calls onSaved and resets to aim", async () => {
@@ -92,7 +94,9 @@ test("confirmation uses the upload id", async () => {
 
 test("confirmation limit keeps the editable draft", async () => {
   const { confirmItem } = await import("@/app/[locale]/closet/upload/actions");
-  vi.mocked(confirmItem).mockResolvedValueOnce({ status: "limited", message: "closet full" });
+  vi.mocked(confirmItem).mockResolvedValueOnce({
+    status: "limited", message: "errors.closetFull", values: { limit: 50 },
+  });
   const onSaved = vi.fn();
   const { result } = renderHook(() => useCapture({ onSaved }));
   await act(async () => { await result.current.capture(new File([], "x.jpg")); });
@@ -100,7 +104,7 @@ test("confirmation limit keeps the editable draft", async () => {
   await act(async () => { await result.current.save(); });
   expect(result.current.phase).toBe("confirm");
   expect(result.current.draft?.name).toBe("My knit");
-  expect(result.current.error).toBe("closet full");
+  expect(result.current.error).toBe("A free closet holds 50 pieces. Pro is unlimited — or archive something you no longer wear.");
   expect(onSaved).not.toHaveBeenCalled();
 });
 
@@ -116,7 +120,7 @@ test("failed save sets error, stays on confirm, skips onSaved", async () => {
     await result.current.save();
   });
   expect(onSaved).not.toHaveBeenCalled();
-  expect(result.current.error).toBe("nope");
+  expect(result.current.error).toBe("Save failed");
   expect(result.current.phase).toBe("confirm");
 });
 

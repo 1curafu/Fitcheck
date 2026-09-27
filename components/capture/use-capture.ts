@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "next-intl";
 import { usePathname } from "@/lib/i18n/navigation";
 
 import { useEffect, useRef, useState } from "react";
@@ -14,6 +15,7 @@ import { encodeCutout } from "@/lib/images/encode";
 import { encodeThumb } from "@/lib/images/thumb";
 import { THUMB_MAX_PX } from "@/lib/images/options";
 import type { Rotation, Tags } from "@/lib/ai/tagging-schema";
+import type { MessageKey } from "@/lib/i18n/keys";
 
 export type Draft = {
   itemId: string;
@@ -45,6 +47,7 @@ export type BatchView = {
 type ReadyUpload = Extract<UploadAndTagResult, { status: "ready" }>;
 
 export function useCapture(options?: { onSaved?: (mode: CaptureMode, preview: SavedCapturePreview) => void }) {
+  const t = useTranslations();
   const pathname = usePathname();
   const [phase, setPhase] = useState<CapturePhase>("aim");
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -72,6 +75,13 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode, preview: Sa
   const draftRef = useRef<Draft | null>(null);
   const pathnameRef = useRef(pathname);
   const mountedRef = useRef(false);
+
+  function errorText(cause: unknown, fallback: MessageKey): string {
+    const key = cause instanceof Error && "messageKey" in cause && typeof cause.messageKey === "string"
+      ? cause.messageKey as MessageKey
+      : fallback;
+    return t(key as never);
+  }
 
   function cleanupUpload(upload: ReadyUpload) {
     void discardDraft([upload.imagePath, upload.cutoutPath, upload.thumbPath]).catch(() => undefined);
@@ -185,7 +195,7 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode, preview: Sa
       setPhase("confirm");
     } catch (cause) {
       if (generation !== generationRef.current) return;
-      const message = cause instanceof Error ? cause.message : "Preview failed";
+      const message = errorText(cause, "errors.previewFailed");
       errorsRef.current.set(current.id, message);
       move(current.id, "failed");
       setError(message);
@@ -209,7 +219,7 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode, preview: Sa
       publishQueue();
       return;
     }
-    if (current.stage === "failed") setError(errorsRef.current.get(current.id) ?? "Photo failed");
+    if (current.stage === "failed") setError(errorsRef.current.get(current.id) ?? t("errors.photoFailed"));
     void promote(generation);
     if (serverStoppedRef.current) return;
     const processId = nextProcessable(queue);
@@ -236,7 +246,7 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode, preview: Sa
       pump(generation);
     } catch (cause) {
       if (generation !== generationRef.current) return;
-      const message = cause instanceof Error ? cause.message : "Cutout failed";
+      const message = errorText(cause, "errors.cutoutFailed");
       errorsRef.current.set(id, message);
       move(id, "failed");
       if (currentBatchEntry(queueRef.current!)?.id === id) { setError(message); setPhase("aim"); }
@@ -261,11 +271,12 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode, preview: Sa
         return;
       }
       if (upload.status === "limited") {
+        const message = t(upload.message, upload.values);
         serverStoppedRef.current = true;
-        capacityMessageRef.current = upload.message;
-        errorsRef.current.set(id, upload.message);
+        capacityMessageRef.current = message;
+        errorsRef.current.set(id, message);
         move(id, "failed");
-        if (currentBatchEntry(queueRef.current!)?.id === id) setError(upload.message);
+        if (currentBatchEntry(queueRef.current!)?.id === id) setError(message);
       } else {
         preparedRef.current.set(id, { upload, cutout: processed.cutout });
         processedRef.current.delete(id);
@@ -274,7 +285,7 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode, preview: Sa
       pump(generation);
     } catch (cause) {
       if (generation !== generationRef.current) return;
-      const message = cause instanceof Error ? cause.message : "Tagging failed";
+      const message = errorText(cause, "errors.taggingFailed");
       errorsRef.current.set(id, message);
       move(id, "failed");
       if (currentBatchEntry(queueRef.current!)?.id === id) setError(message);
@@ -300,9 +311,9 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode, preview: Sa
       serverStoppedRef.current = false;
       capacityMessageRef.current = allowance.allowed
         ? allowance.remaining !== null && files.length > allowance.remaining
-          ? `This closet has room for ${allowance.remaining} more pieces. The rest will remain unprocessed.`
+          ? t("capture.batch.remaining", { remaining: allowance.remaining })
           : null
-        : allowance.reason ?? "Your closet is full.";
+        : t(allowance.message, allowance.values);
       if (!allowance.allowed) {
         queueRef.current.stopped = true;
         setError(capacityMessageRef.current);
@@ -310,9 +321,9 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode, preview: Sa
       }
       publishQueue();
       if (allowance.allowed) pump(generation);
-    } catch (cause) {
+    } catch {
       if (startingGeneration !== generationRef.current) return;
-      setError(cause instanceof Error ? cause.message : "Cannot check closet capacity");
+      setError(t("errors.capacityFailed"));
       setPhase("aim");
     } finally {
       if (startingRef.current === startToken) startingRef.current = null;
@@ -355,7 +366,7 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode, preview: Sa
         return;
       }
       if (res.status === "limited") {
-        setError(res.message);
+        setError(t(res.message, res.values));
         setPhase("aim");
         return;
       }
@@ -377,9 +388,9 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode, preview: Sa
         tags: res.tags,
       });
       setPhase("confirm");
-    } catch (e) {
+    } catch {
       if (generation !== generationRef.current) return;
-      setError(e instanceof Error ? e.message : "Capture failed");
+      setError(t("errors.captureFailed"));
       setPhase("aim");
     }
   }
@@ -436,7 +447,7 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode, preview: Sa
       });
     } catch (cause) {
       if (generation === generationRef.current && rotationRequestRef.current === request) {
-        setError(cause instanceof Error ? cause.message : "Rotation failed");
+        setError(errorText(cause, "errors.rotationFailed"));
       }
     } finally {
       if (rotationRequestRef.current === request) {
@@ -506,7 +517,7 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode, preview: Sa
       }
       if (generation !== generationRef.current) return;
       if (result.status === "limited") {
-        setError(result.message);
+        setError(t(result.message, result.values));
         if (batchEntry) move(batchEntry.id, "reviewing");
         return;
       }
@@ -525,10 +536,10 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode, preview: Sa
       setDraft(null);
       setPhase(batchEntry ? "removing" : "aim");
       if (batchEntry) pump(generationRef.current);
-    } catch (e) {
+    } catch {
       if (generation !== generationRef.current) return;
       if (batchEntry) move(batchEntry.id, "reviewing");
-      setError(e instanceof Error ? e.message : "Save failed");
+      setError(t("errors.saveFailed"));
     } finally {
       if (saveRequestRef.current === request) {
         saveRequestRef.current = null;
