@@ -4,8 +4,6 @@ import { expect, it } from "vitest";
 
 /** Remove entries as each area is extracted; Task 21 requires an empty list. */
 export const PENDING = [
-  "app/[locale]/settings/", "components/settings/", "components/billing/",
-  "app/[locale]/packing/", "components/packing/",
 ];
 
 const COPY_PROPS = new Set(["aria-label", "placeholder", "title", "alt", "label", "aria-description"]);

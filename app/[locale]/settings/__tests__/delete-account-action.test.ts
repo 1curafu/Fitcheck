@@ -32,8 +32,8 @@ import { DeletionFailure } from "@/lib/account-deletion/types";
 const USER_ID = "715ed5db-f090-4b8c-a067-640ecee36aa0";
 const EMAIL = "person@example.com";
 const REDIRECT = new Error("NEXT_REDIRECT");
-const SESSION_EXPIRED = "Your session has expired. Sign in and try again.";
-const CONFIRMATION_ERROR = "Type your account email exactly to continue.";
+const SESSION_EXPIRED = "settings.delete.sessionExpired";
+const CONFIRMATION_ERROR = "settings.delete.confirmationFailed";
 
 function confirmationForm(value?: FormDataEntryValue) {
   const formData = new FormData();
@@ -41,7 +41,7 @@ function confirmationForm(value?: FormDataEntryValue) {
   return formData;
 }
 
-function errorState(message: string): DeleteAccountState {
+function errorState(message: Extract<DeleteAccountState, { status: "error" }>["message"]): DeleteAccountState {
   return { status: "error", message };
 }
 
@@ -112,7 +112,7 @@ describe("deleteAccount", () => {
     deleteLiveAccount.mockRejectedValue(failure);
 
     await expect(deleteAccount({ status: "idle" }, confirmationForm(confirmation))).resolves.toEqual(
-      errorState("We couldn't delete your account. Please try again or contact support."),
+      errorState("settings.delete.failure"),
     );
 
     expect(captureException).toHaveBeenCalledTimes(1);
@@ -201,7 +201,7 @@ describe("deleteAccount", () => {
       deleteLiveAccount.mockRejectedValue(new DeletionFailure(stage));
 
       await expect(deleteAccount({ status: "idle" }, confirmationForm(EMAIL))).resolves.toEqual(
-        errorState("We couldn't delete your account. Please try again or contact support."),
+        errorState("settings.delete.failure"),
       );
       expect(signOut).not.toHaveBeenCalled();
       expect(redirect).not.toHaveBeenCalled();

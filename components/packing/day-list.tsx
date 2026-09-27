@@ -1,9 +1,13 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import { Link } from "@/lib/i18n/navigation";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { PackingBack } from "./back-link";
 import { WhyQuote } from "@/components/generate/why-quote";
 import { formatTemp, type TempUnit } from "@/lib/weather/format";
 import { WeatherAttribution } from "@/components/weather/attribution";
+import type { UiOccasion } from "@/lib/generator/types";
 
 export type DayCard = {
   /** The stored outfit, so the card can open the look it describes. */
@@ -17,12 +21,6 @@ export type DayCard = {
   why: string;
   pieces: { id: string; name: string; imageUrl: string; wear: number }[];
 };
-
-/** "1st wear" / "2nd wear" — the ordinal is what makes a small capsule believable. */
-export function wearLabel(n: number): string {
-  const suffix = n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th";
-  return `${n}${suffix} wear`;
-}
 
 /**
  * A day of the trip.
@@ -44,6 +42,8 @@ export function DayList({
   unit: TempUnit;
   backHref: string;
 }) {
+  const t = useTranslations("packing");
+  const tOccasion = useTranslations("vocab.occasion");
   return (
     <div className="flex min-h-dvh flex-1 flex-col">
       <div className="screen-top px-[22px]">
@@ -52,7 +52,7 @@ export function DayList({
         </div>
         <Kicker className="block">{`${destination} · ${dateRange}`}</Kicker>
         <h1 className="mt-[14px] font-serif text-3xl/[1.12] tracking-[-0.01em] text-foreground-strong">
-          {days.length} days, one case.
+          {t("dayTitle", { days: days.length })}
         </h1>
       </div>
 
@@ -75,12 +75,13 @@ export function DayList({
               <div className="font-serif text-[17px] text-foreground">{d.label}</div>
               <span className="size-[3px] rounded-full bg-muted-dim" aria-hidden="true" />
               <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-brand-high">
-                {d.occasion}
+                {(["everyday", "work", "weekend", "evening"] as string[]).includes(d.occasion)
+                  ? tOccasion(d.occasion as UiOccasion) : d.occasion}
               </div>
               <div className="flex-1" />
               <div className="text-[13px] tabular-nums text-muted-foreground">
                 {formatTemp(d.tempC, unit)}
-                {d.rain ? " · rain" : ""}
+                {d.rain ? ` · ${t("rain")}` : ""}
               </div>
             </header>
 
@@ -101,7 +102,7 @@ export function DayList({
             </div>
 
             <p className="mt-[9px] text-[10px] uppercase leading-[1.6] tracking-[0.13em] text-muted-foreground">
-              {d.pieces.map((p) => `${p.name} · ${wearLabel(p.wear)}`).join("  ·  ")}
+              {d.pieces.map((p) => `${p.name} · ${t("wearOrdinal", { n: p.wear })}`).join("  ·  ")}
             </p>
 
             <WhyQuote name={d.name} why={d.why} />

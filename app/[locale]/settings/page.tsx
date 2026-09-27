@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { ScreenHeader } from "@/components/shell/screen-header";
 import { redirect } from "@/lib/i18n/navigation";
-import { getLocale } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { MobileNav } from "@/components/shell/mobile-nav";
@@ -13,17 +13,19 @@ import { subscriptionFromRow } from "@/lib/billing/status-line";
 import { listMine } from "@/lib/share/store";
 import { deleteAccount, updatePreferences, setLocation, stopSharedLink } from "./actions";
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const t = await getTranslations("settings");
   // The session read is what blocks a shell, so it moves behind a boundary
   // and the route's chrome prerenders and prefetches without it.
   return (
-    <Suspense fallback={<ScreenHeader title="Settings" backHref="/profile" />}>
+    <Suspense fallback={<ScreenHeader title={t("title")} backHref="/profile" />}>
       <SettingsBody />
     </Suspense>
   );
 }
 
 async function SettingsBody() {
+  const tProfile = await getTranslations("profile");
   const supabase = await createClient();
   const {
     data: { user },
@@ -48,7 +50,7 @@ async function SettingsBody() {
   return (
     <div className="flex min-h-dvh flex-1 flex-col">
       <SettingsView
-        name={profile?.display_name ?? "You"}
+        name={profile?.display_name ?? tProfile("you")}
         email={user.email ?? ""}
         initials={initials(profile?.display_name ?? null, user.email ?? "")}
         locationLabel={location.label}

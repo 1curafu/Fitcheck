@@ -1,3 +1,6 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import { Link } from "@/lib/i18n/navigation";
 
 /**
@@ -11,10 +14,11 @@ import { Link } from "@/lib/i18n/navigation";
  * what the body will show, or nothing at all.
  */
 export function PackingBack({ href }: { href: string }) {
+  const t = useTranslations("packing");
   return (
     <Link
       href={href}
-      aria-label="Back"
+      aria-label={t("back")}
       className="grid size-[34px] shrink-0 place-items-center rounded-full bg-surface-2 text-[18px] text-foreground shadow-[inset_0_0_0_1px_var(--hairline-5)]"
     >
       ‹

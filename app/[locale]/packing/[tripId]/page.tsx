@@ -9,7 +9,7 @@ import { Shortfall } from "@/components/packing/shortfall";
 import { loadTrip } from "@/lib/packing/store";
 import { expandDays } from "@/lib/packing/plan";
 import { fetchTripForecast } from "@/lib/weather/forecast";
-import { getLocale } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 /**
  * The shell, and the `<Suspense>` fallback.
@@ -39,6 +39,7 @@ export default function TripPage({ params }: { params: Promise<{ tripId: string 
 }
 
 async function TripBody({ params }: { params: Promise<{ tripId: string }> }) {
+  const t = await getTranslations("packing");
   const { tripId } = await params;
   const supabase = await createClient();
   const {
@@ -118,7 +119,7 @@ async function TripBody({ params }: { params: Promise<{ tripId: string }> }) {
         pieceCount={pieces.length}
         why={
           (looks ?? [])[0]?.ai_reasoning ??
-          "Pack the days I can dress properly and keep the rest open — borrowed beats a bad substitute."
+          t("shortfall.fallbackWhy")
         }
         onBuildPartial={
           covered > 0 ? (
@@ -126,14 +127,14 @@ async function TripBody({ params }: { params: Promise<{ tripId: string }> }) {
               href={`/packing/${tripId}/days`}
               className="flex-1 rounded-[12px] bg-foreground py-[17px] text-center font-semibold text-canvas"
             >
-              Build the {covered} days
+              {t("shortfall.buildDays", { days: covered })}
             </Link>
           ) : (
             <Link
               href="/closet/upload"
               className="flex-1 rounded-[12px] bg-foreground py-[17px] text-center font-semibold text-canvas"
             >
-              Add a piece
+              {t("shortfall.addPiece")}
             </Link>
           )
         }

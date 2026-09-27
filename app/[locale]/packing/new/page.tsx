@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { redirect } from "@/lib/i18n/navigation";
-import { getLocale } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { PackingBack } from "@/components/packing/back-link";
@@ -12,24 +12,25 @@ import { resolveLocation } from "@/lib/weather/location";
  * both of which are identical for every user, in the same place the body puts
  * them, so nothing moves when the body lands.
  */
-function NewTripShell() {
+function NewTripShell({ mode, title }: { mode: string; title: string }) {
   return (
     <div className="screen-top px-[22px]">
       <PackingBack href="/packing" />
       <span className="mt-[10px] block text-[11px] uppercase tracking-[0.22em] text-muted-dim">
-        Packing mode
+        {mode}
       </span>
       <h1 className="mt-[13px] font-serif text-3xl/[1.12] tracking-[-0.01em] text-foreground-strong">
-        Where are you going?
+        {title}
       </h1>
     </div>
   );
 }
 
-export default function NewTripPage() {
+export default async function NewTripPage() {
+  const t = await getTranslations("packing");
   return (
     <div className="flex min-h-dvh flex-1 flex-col">
-      <Suspense fallback={<NewTripShell />}>
+      <Suspense fallback={<NewTripShell mode={t("mode")} title={t("newTitle")} />}>
         <NewTripBody />
       </Suspense>
     </div>

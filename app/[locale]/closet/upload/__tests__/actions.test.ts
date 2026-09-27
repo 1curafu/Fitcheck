@@ -59,7 +59,7 @@ import { confirmItem, discardDraft, getUploadCapacity, uploadAndTag } from "../a
 
 it("capacity preflight returns a key instead of English", async () => {
   vi.mocked(readUploadAllowance).mockResolvedValueOnce({
-    allowed: false, remaining: 0, reason: "A free closet holds 50 pieces.",
+    allowed: false, remaining: 0, reason: "errors.closetFull", values: { limit: 50 },
   });
   expect(await getUploadCapacity()).toEqual({
     allowed: false, remaining: 0, message: "errors.closetFull", values: { limit: 50 },

@@ -15,13 +15,19 @@ const renewalDate = (iso: string) => {
 };
 
 /** One line describing a Pro subscription for the Profile card and Settings. */
-export function statusLine(s: SubscriptionSummary): string | null {
+export function statusLine(s: SubscriptionSummary):
+  | { message: "billing.paymentFailed" }
+  | { message: "billing.proUntil"; values: { date: string } }
+  | { message: "billing.proRenews"; values: { plan: "billing.annual" | "billing.monthly"; date: string } }
+  | { message: "billing.proPlan"; values: { plan: "billing.annual" | "billing.monthly" } }
+  | null {
   if (!s.status) return null;
-  if (s.status === "past_due") return "Payment failed — update your card";
+  if (s.status === "past_due") return { message: "billing.paymentFailed" };
   const date = s.currentPeriodEnd ? renewalDate(s.currentPeriodEnd) : null;
-  if (s.cancelAtPeriodEnd && date) return `Pro until ${date}`;
-  const plan = s.interval === "year" ? "Annual" : "Monthly";
-  return date ? `Pro · ${plan} — renews ${date}` : `Pro · ${plan}`;
+  if (s.cancelAtPeriodEnd && date) return { message: "billing.proUntil", values: { date } };
+  const plan = s.interval === "year" ? "billing.annual" : "billing.monthly";
+  return date ? { message: "billing.proRenews", values: { plan, date } }
+    : { message: "billing.proPlan", values: { plan } };
 }
 
 type BillingRow = {

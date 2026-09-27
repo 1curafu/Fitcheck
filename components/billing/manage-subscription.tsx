@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "next-intl";
 
 import { unstable_rethrow } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -12,13 +13,16 @@ import { statusLine, type SubscriptionSummary } from "@/lib/billing/status-line"
  * tries to buy again to https://fitcheck.space/profile. It lives in Settings too.
  */
 export function ManageSubscription(props: SubscriptionSummary) {
+  const t = useTranslations("billing");
   const [pending, start] = useTransition();
   const [failed, setFailed] = useState(false);
   const line = statusLine(props);
 
   return (
     <div className="px-4 py-3">
-      {line && <p className="text-[13px] text-muted-foreground">{line}</p>}
+      {line && <p className="text-[13px] text-muted-foreground">{line.message === "billing.paymentFailed" ? t("paymentFailed")
+        : line.message === "billing.proUntil" ? t("proUntil", line.values)
+          : t(line.message === "billing.proRenews" ? "proRenews" : "proPlan", { ...line.values, plan: t(line.values.plan === "billing.annual" ? "annual" : "monthly") })}</p>}
       <button
         type="button"
         disabled={pending}
@@ -37,11 +41,11 @@ export function ManageSubscription(props: SubscriptionSummary) {
         }
         className="mt-2 min-h-[44px] w-full rounded-[14px] text-[14px] font-semibold text-foreground shadow-[inset_0_0_0_1px_var(--hairline-2)] disabled:opacity-50"
       >
-        {pending ? "Opening…" : "Manage subscription"}
+        {pending ? t("opening") : t("manageSubscription")}
       </button>
       {failed && (
         <p role="alert" className="mt-2 text-[13px] text-muted-foreground">
-          Couldn&apos;t open billing. Try again in a moment.
+          {t("openFailed")}
         </p>
       )}
     </div>

@@ -1,9 +1,11 @@
 "use client";
+import { useTranslations } from "next-intl";
 import { useRouter, Link } from "@/lib/i18n/navigation";
 
 import { useEffect, useRef, useState, useTransition } from "react";
 
 import { editCapsule } from "@/app/[locale]/packing/actions";
+import { PackingLockedError } from "@/lib/packing/errors";
 
 export type SheetPiece = { id: string; name: string; pinned: boolean; category: string };
 /** A closet piece offered as a replacement. */
@@ -33,6 +35,7 @@ export function PieceSheet({
   alternatives: Alternative[];
   onClose: () => void;
 }) {
+  const t = useTranslations("packing");
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +74,8 @@ export function PieceSheet({
         onClose();
         router.refresh();
       } catch (e) {
-        setError((e as Error)?.message ?? "Could not change the case");
+        setError(e instanceof PackingLockedError || (e as Error)?.message?.includes("packing.proRequired")
+          ? t("proRequired") : (e as Error)?.message === "packing.tripGone" ? t("tripGone") : t("editFailed"));
       }
     });
   }
@@ -83,7 +87,7 @@ export function PieceSheet({
   return (
     <div className="fixed inset-0 z-[60] flex items-end" role="dialog" aria-modal="true">
       <button
-        aria-label="Close"
+        aria-label={t("pieceSheet.close")}
         onClick={onClose}
         className="absolute inset-0 bg-canvas/70 backdrop-blur-[2px]"
       />
@@ -95,7 +99,7 @@ export function PieceSheet({
           <div className="mt-4 max-h-[46vh] overflow-y-auto">
             {swaps.length === 0 ? (
               <p className="py-6 text-center text-[14px] text-muted-foreground">
-                Nothing else in your closet fits this slot.
+                {t("pieceSheet.noAlternatives")}
               </p>
             ) : (
               <div className="flex flex-col gap-2">
@@ -121,7 +125,7 @@ export function PieceSheet({
               onClick={() => setSwapping(false)}
               className="mt-3 w-full py-3 text-center text-[14px] text-muted-foreground"
             >
-              Back
+              {t("pieceSheet.back")}
             </button>
           </div>
         ) : (
@@ -131,34 +135,34 @@ export function PieceSheet({
             disabled={pending}
             className="rounded-[12px] bg-surface-3 py-[15px] text-center text-[15px] text-foreground shadow-[inset_0_0_0_1px_var(--hairline-6)] disabled:opacity-60"
           >
-            Take something else instead
+            {t("pieceSheet.swap")}
           </button>
           <button
             onClick={() => act(piece.pinned ? { remove: piece.id } : { pin: piece.id })}
             disabled={pending}
             className="rounded-[12px] bg-surface-3 py-[15px] text-center text-[15px] text-foreground shadow-[inset_0_0_0_1px_var(--hairline-6)] disabled:opacity-60"
           >
-            {piece.pinned ? "Stop insisting on this" : "I'm definitely bringing this"}
+            {piece.pinned ? t("pieceSheet.unpin") : t("pieceSheet.pin")}
           </button>
           <button
             onClick={() => act({ remove: piece.id })}
             disabled={pending}
             className="rounded-[12px] bg-surface-3 py-[15px] text-center text-[15px] text-brand-high shadow-[inset_0_0_0_1px_var(--hairline-6)] disabled:opacity-60"
           >
-            Leave this behind
+            {t("pieceSheet.leave")}
           </button>
           <Link
             href={`/closet/${piece.id}`}
             className="rounded-[12px] py-[15px] text-center text-[15px] text-muted-foreground"
           >
-            See the piece
+            {t("pieceSheet.seePiece")}
           </Link>
         </div>
         )}
 
         {pending && (
           <p role="status" className="mt-3 text-center text-[13px] text-muted-foreground">
-            Repacking…
+            {t("pieceSheet.repacking")}
           </p>
         )}
         {error && <p className="mt-3 text-center text-[13px] text-brand">{error}</p>}

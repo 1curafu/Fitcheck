@@ -53,7 +53,7 @@ export async function planTrip(input: PlanTripInput): Promise<{ tripId: string }
   if (!entitlements.packingMode) throw new PackingLockedError();
 
   const days = expandDays(input.startDate, input.endDate, input.occasionMix);
-  if (days.length === 0) throw new Error("That date range has no days in it");
+  if (days.length === 0) throw new Error("packing.invalidDateRange");
 
   const { data: closet } = await supabase
     .from("items")
@@ -205,7 +205,7 @@ export async function editCapsule(
   if (!entitlements.packingMode) throw new PackingLockedError();
 
   const trip = await loadTrip(tripId);
-  if (!trip) throw new Error("That trip no longer exists");
+  if (!trip) throw new Error("packing.tripGone");
 
   const pinned = new Set(trip.capsule.filter((c) => c.pinned).map((c) => c.itemId));
   if (edit.pin) pinned.add(edit.pin);

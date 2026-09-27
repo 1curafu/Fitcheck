@@ -81,7 +81,7 @@ export async function regeneratesUsedToday(today: string): Promise<number> {
  */
 export async function assertCanUpload(): Promise<void> {
   const check = await readUploadAllowance();
-  if (!check.allowed) throw new UploadLimitError(check.reason);
+  if (!check.allowed) throw new UploadLimitError(check.reason, check.values?.limit);
 }
 
 /** Remaining unarchived-item capacity for the authenticated request. */

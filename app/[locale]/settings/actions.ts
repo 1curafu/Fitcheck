@@ -16,13 +16,14 @@ import { locationColumns, invalidatesDrop, resolveLocation } from "@/lib/weather
 import { localDateFor } from "@/lib/outfits/local-date";
 import { isShareToken } from "@/lib/share/snapshot";
 import { stop } from "@/lib/share/store";
+import type { MessageKey } from "@/lib/i18n/keys";
 
-export type DeleteAccountState = { status: "idle" } | { status: "error"; message: string };
+export type DeleteAccountState = { status: "idle" } | { status: "error"; message: MessageKey };
 
 const DeleteAccountConfirmationSchema = z.string().max(320);
-const SESSION_EXPIRED_MESSAGE = "Your session has expired. Sign in and try again.";
-const CONFIRMATION_MESSAGE = "Type your account email exactly to continue.";
-const DELETION_FAILURE_MESSAGE = "We couldn't delete your account. Please try again or contact support.";
+const SESSION_EXPIRED_MESSAGE = "settings.delete.sessionExpired";
+const CONFIRMATION_MESSAGE = "settings.delete.confirmationFailed";
+const DELETION_FAILURE_MESSAGE = "settings.delete.failure";
 
 /**
  * Delete the authenticated account after an exact email confirmation.

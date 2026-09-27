@@ -112,10 +112,10 @@ test("a failed save reverts the switch rather than lying about it", async () => 
   expect(sw).toHaveAttribute("aria-checked", "true");
 });
 
-test("deferred controls are visible but disabled, and say so", () => {
+test("the obsolete English/Deutsch control is removed before the language switcher lands", () => {
   renderSettings();
-  expect(screen.getByRole("button", { name: /deutsch/i })).toBeDisabled();
-  expect(screen.getByText(/soon/i)).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /deutsch/i })).not.toBeInTheDocument();
+  expect(screen.getByRole("switch", { name: /rain guard/i })).toBeInTheDocument();
 });
 
 test("no toggle is rendered for a preference nothing reads", () => {
