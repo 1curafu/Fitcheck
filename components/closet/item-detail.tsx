@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { archiveItem } from "@/app/closet/[itemId]/actions";
+import { useRouter } from "next/navigation";
+import { archiveItem, eraseOriginal, restoreItem } from "@/app/closet/[itemId]/actions";
+import { UpgradeSheet } from "@/components/billing/upgrade-sheet";
 import type { Tags } from "@/lib/ai/tagging-schema";
 
 import { ItemView, type GoesWithCard } from "./item-view";
@@ -45,13 +47,18 @@ export function ItemDetail({
   brandSuggestions,
   stats,
   goesWith,
+  archived,
+  canEraseOriginal,
 }: {
   item: DetailItem;
   imageUrl: string;
   brandSuggestions: string[];
   stats: { wears: number; costPerWear: string | null; lastWorn: string };
   goesWith: GoesWithCard[];
-  /** Whether this piece already has a styled set today — read on the server. */
+  /** The piece is removed (archived): the page offers Put back instead of Remove + Style. */
+  archived: boolean;
+  /** Read on the server: the piece has a cut-out and a well-formed original to erase (spec §3.3). */
+  canEraseOriginal: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   /**
@@ -62,11 +69,17 @@ export function ItemDetail({
    * sheet open and it is still open on return. The unmount used to do this for
    * free. Same fix as `components/generate/stylist.tsx`.
    */
-  const [removing, setRemoving] = useState(false);
+  const router = useRouter();
+  // "choose" opens the full Remove sheet; "erase" opens straight on the erase confirm (a removed piece's page).
+  const [sheet, setSheet] = useState<null | "choose" | "erase">(null);
+  const [eraseError, setEraseError] = useState<string | null>(null);
+  const [limit, setLimit] = useState<string | null>(null);
   useEffect(
     () => () => {
       setEditing(false);
-      setRemoving(false);
+      setSheet(null);
+      setEraseError(null);
+      setLimit(null);
     },
     [],
   );
@@ -79,6 +92,23 @@ export function ItemDetail({
     });
   }
 
+  function erase() {
+    setEraseError(null);
+    start(async () => {
+      // Success redirects to /closet and never returns here.
+      const result = await eraseOriginal(item.id);
+      if (result) setEraseError(result.message);
+    });
+  }
+
+  function restore() {
+    start(async () => {
+      const result = await restoreItem(item.id);
+      if (result.status === "limited") setLimit(result.message);
+      else router.refresh();
+    });
+  }
+
   return (
     <>
       <ItemView
@@ -87,7 +117,12 @@ export function ItemDetail({
         stats={stats}
         goesWith={goesWith}
         onEdit={() => setEditing(true)}
-        onArchive={() => setRemoving(true)}
+        onArchive={() => setSheet("choose")}
+        removed={
+          archived
+            ? { canEraseOriginal, restoring: pending, onRestore: restore, onEraseOriginal: () => setSheet("erase") }
+            : undefined
+        }
         // Built HERE, not passed down from the page. `page.tsx` is a Server
         // Component, and a JSX element handed across the RSC boundary is
         // serialised — React cannot give it positional identity and warns that
@@ -95,9 +130,26 @@ export function ItemDetail({
         // component keeps ItemView presentational without that round trip.
         styleCta={<StyleCta itemId={item.id} />}
       />
-      {removing && (
-        <RemovePieceSheet pending={pending} onConfirm={archive} onClose={() => setRemoving(false)} />
+      {sheet && (
+        <RemovePieceSheet
+          pending={pending}
+          canErase={canEraseOriginal}
+          startAt={sheet}
+          error={eraseError}
+          onRemove={archive}
+          onErase={erase}
+          onClose={() => {
+            setSheet(null);
+            setEraseError(null);
+          }}
+        />
       )}
+      <UpgradeSheet
+        open={Boolean(limit)}
+        title="Put more pieces back"
+        body={limit ?? ""}
+        onClose={() => setLimit(null)}
+      />
       {editing && (
         <ItemEditSheet
           item={item}

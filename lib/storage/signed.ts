@@ -54,10 +54,10 @@ export async function signItemImages(paths: string[], expiresIn = 3600) {
   return map;
 }
 
-/** A row as the readers select it. `thumb_url` may be absent entirely. */
+/** A row as the readers select it. `thumb_url` may be absent entirely. `image_url` is null once the original is erased. */
 export type ImageRow = {
   cutout_url: string | null;
-  image_url: string;
+  image_url: string | null;
   thumb_url?: string | null;
 };
 
@@ -78,5 +78,6 @@ export type ImageRow = {
  */
 export function displayPath(item: ImageRow, size: "thumb" | "full" = "full") {
   if (size === "thumb" && item.thumb_url) return item.thumb_url;
-  return item.cutout_url ?? item.image_url;
+  // `items_has_display_image` guarantees one of the two exists, so "" is unreachable for a real row.
+  return item.cutout_url ?? item.image_url ?? "";
 }

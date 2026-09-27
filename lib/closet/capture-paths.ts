@@ -1,5 +1,11 @@
 /** Only the files created by the two-stage capture flow may be confirmed or discarded. */
 const ITEM_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/** A row id as the database and capture create it (uuid). */
+export function isItemId(value: unknown): value is string {
+  return typeof value === "string" && ITEM_ID.test(value);
+}
+
 const DRAFT_FILE = /^(?:original\.jpg|cutout\.(?:webp|png)|thumb\.(?:webp|png))$/;
 
 export type DraftIdentity = {

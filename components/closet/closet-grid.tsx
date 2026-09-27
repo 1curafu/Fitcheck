@@ -15,9 +15,9 @@ type GridItem = ClosetItem & {
   imageUrl: string;
 };
 
-export function ClosetGrid({ items }: { items: GridItem[] }) {
+export function ClosetGrid({ items, archived = false }: { items: GridItem[]; archived?: boolean }) {
   const [cat, setCat] = useState("All");
-  const shown = filterItems(items, { category: cat });
+  const shown = filterItems(items, { category: cat, archived });
 
   return (
     <div className="flex flex-col gap-4 px-6">

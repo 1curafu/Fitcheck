@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assertDraftIdentity, groupOwnedDraftPaths } from "../capture-paths";
+import { assertDraftIdentity, groupOwnedDraftPaths, isItemId } from "../capture-paths";
 
 const owner = "11111111-1111-4111-8111-111111111111";
 const other = "22222222-2222-4222-8222-222222222222";
@@ -40,5 +40,14 @@ describe("draft path ownership", () => {
       [itemId, [draft.imagePath, draft.cutoutPath]],
       [anotherItem, [`${owner}/${anotherItem}/thumb.png`]],
     ]);
+  });
+});
+
+describe("isItemId", () => {
+  it("accepts a v4 uuid and rejects anything else", () => {
+    expect(isItemId("33333333-3333-4333-8333-333333333333")).toBe(true);
+    expect(isItemId("e2e-0")).toBe(false);
+    expect(isItemId(42)).toBe(false);
+    expect(isItemId("33333333-3333-4333-8333-333333333333/../x")).toBe(false);
   });
 });

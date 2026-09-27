@@ -13,9 +13,13 @@ vi.mock("@/app/closet/[itemId]/style-actions", () => ({ styleWithItem: vi.fn() }
 
 const updateItem = vi.fn().mockResolvedValue(undefined);
 const archiveItem = vi.fn().mockResolvedValue(undefined);
+const eraseOriginal = vi.fn();
+const restoreItem = vi.fn();
 vi.mock("@/app/closet/[itemId]/actions", () => ({
   updateItem: (...args: unknown[]) => updateItem(...args),
   archiveItem: (...args: unknown[]) => archiveItem(...args),
+  eraseOriginal: (...args: unknown[]) => eraseOriginal(...args),
+  restoreItem: (...args: unknown[]) => restoreItem(...args),
 }));
 
 const item: DetailItem = {
@@ -40,7 +44,7 @@ const item: DetailItem = {
   distressing: null,
 };
 
-function renderDetail(itemOverrides: Partial<DetailItem> = {}) {
+function renderDetail(itemOverrides: Partial<DetailItem> = {}, props: { archived?: boolean; canEraseOriginal?: boolean } = {}) {
   return render(
     <ItemDetail
       item={{ ...item, ...itemOverrides }}
@@ -48,6 +52,8 @@ function renderDetail(itemOverrides: Partial<DetailItem> = {}) {
       brandSuggestions={[]}
       stats={{ wears: 30, costPerWear: "€3.00", lastWorn: "Yesterday" }}
       goesWith={[]}
+      archived={props.archived ?? false}
+      canEraseOriginal={props.canEraseOriginal ?? true}
     />,
   );
 }
@@ -287,7 +293,7 @@ describe("removing a piece", () => {
 
     expect(within(sheet).getByText(/leaves your closet and won.t appear in new looks/i)).toBeInTheDocument();
     expect(within(sheet).getByText(/past looks and your wear history keep it/i)).toBeInTheDocument();
-    expect(within(sheet).getByText(/photos stay saved with your account/i)).toBeInTheDocument();
+    expect(within(sheet).getByText(/you can put it back from removed pieces/i)).toBeInTheDocument();
   });
 
   test("cancel and escape close the sheet without removing anything", async () => {
@@ -307,5 +313,97 @@ describe("removing a piece", () => {
     await userEvent.click(screen.getByRole("button", { name: /archive/i }));
     await userEvent.click(screen.getByRole("button", { name: /remove from closet/i }));
     expect(archiveItem).toHaveBeenCalledWith("i1");
+  });
+
+  test("erase is a second, confirmed step that calls eraseOriginal", async () => {
+    eraseOriginal.mockReset().mockResolvedValue(undefined);
+    renderDetail();
+    await userEvent.click(screen.getByRole("button", { name: /archive/i }));
+    await userEvent.click(screen.getByRole("button", { name: /remove and erase original photo/i }));
+    const confirm = screen.getByRole("dialog", { name: /erase the original photo/i });
+    expect(within(confirm).getByText(/cut-out garment stays in your past looks/i)).toBeInTheDocument();
+    expect(within(confirm).getByText(/encrypted backups expire within 30 days/i)).toBeInTheDocument();
+    expect(eraseOriginal).not.toHaveBeenCalled();
+    await userEvent.click(within(confirm).getByRole("button", { name: /^erase original$/i }));
+    expect(eraseOriginal).toHaveBeenCalledWith("i1");
+  });
+
+  test("Back returns from the erase step without erasing", async () => {
+    eraseOriginal.mockReset();
+    renderDetail();
+    await userEvent.click(screen.getByRole("button", { name: /archive/i }));
+    await userEvent.click(screen.getByRole("button", { name: /remove and erase original photo/i }));
+    // Scoped to the dialog: ItemView's own floating control is also named "Back" (item-view.tsx:100).
+    const confirm = screen.getByRole("dialog", { name: /erase the original photo/i });
+    await userEvent.click(within(confirm).getByRole("button", { name: /^back$/i }));
+    expect(screen.getByRole("dialog", { name: /remove this piece/i })).toBeInTheDocument();
+    expect(eraseOriginal).not.toHaveBeenCalled();
+  });
+
+  test("a failed erase keeps the sheet open with the retry message", async () => {
+    eraseOriginal.mockReset().mockResolvedValue({ status: "error", message: "Couldn't erase the photo. Nothing was changed — try again." });
+    renderDetail();
+    await userEvent.click(screen.getByRole("button", { name: /archive/i }));
+    await userEvent.click(screen.getByRole("button", { name: /remove and erase original photo/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^erase original$/i }));
+    expect(await screen.findByText(/couldn.t erase the photo/i)).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: /erase the original photo/i })).toBeInTheDocument();
+  });
+
+  test("an unavailable erase shows its reason in the sheet", async () => {
+    eraseOriginal.mockReset().mockResolvedValue({ status: "unavailable", message: "This photo was already erased." });
+    renderDetail();
+    await userEvent.click(screen.getByRole("button", { name: /archive/i }));
+    await userEvent.click(screen.getByRole("button", { name: /remove and erase original photo/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^erase original$/i }));
+    expect(await screen.findByText("This photo was already erased.")).toBeInTheDocument();
+  });
+
+  test("a piece without a cut-out, or already erased, is never offered the erase", async () => {
+    renderDetail({}, { canEraseOriginal: false });
+    await userEvent.click(screen.getByRole("button", { name: /archive/i }));
+    expect(screen.queryByRole("button", { name: /erase original photo/i })).not.toBeInTheDocument();
+  });
+});
+
+describe("a removed piece", () => {
+  beforeEach(() => { restoreItem.mockReset(); refresh.mockClear(); });
+
+  test("says it was removed, offers Put back, and hides Remove and the Style CTA", () => {
+    renderDetail({}, { archived: true });
+    const note = screen.getByText(/removed from your closet/i);
+    // The only text saying the piece is removed: it must meet 4.5:1 (DESIGN.md: muted-dim is decorative only).
+    expect(note).not.toHaveClass("text-muted-dim");
+    expect(note).toHaveClass("text-muted-foreground");
+    expect(screen.getByRole("button", { name: /put back/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /archive/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /style/i })).not.toBeInTheDocument();
+  });
+
+  test("Put back restores and refreshes", async () => {
+    restoreItem.mockResolvedValue({ status: "restored" });
+    renderDetail({}, { archived: true });
+    await userEvent.click(screen.getByRole("button", { name: /put back/i }));
+    expect(restoreItem).toHaveBeenCalledWith("i1");
+    expect(refresh).toHaveBeenCalled();
+  });
+
+  test("a full Free closet opens the upgrade sheet with the limit message", async () => {
+    restoreItem.mockResolvedValue({ status: "limited", message: "Free closets hold 50 pieces" });
+    renderDetail({}, { archived: true });
+    await userEvent.click(screen.getByRole("button", { name: /put back/i }));
+    expect(await screen.findByText("Free closets hold 50 pieces")).toBeInTheDocument();
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  test("still offers erasing the original, straight into the confirm step", async () => {
+    renderDetail({}, { archived: true, canEraseOriginal: true });
+    await userEvent.click(screen.getByRole("button", { name: /erase original photo/i }));
+    expect(screen.getByRole("dialog", { name: /erase the original photo/i })).toBeInTheDocument();
+  });
+
+  test("an erased piece offers only Put back", () => {
+    renderDetail({}, { archived: true, canEraseOriginal: false });
+    expect(screen.queryByRole("button", { name: /erase original photo/i })).not.toBeInTheDocument();
   });
 });

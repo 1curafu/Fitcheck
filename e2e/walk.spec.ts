@@ -24,6 +24,7 @@ const ROUTES = [
   "/settings",
   "/stats",
   "/closet/upload",
+  "/closet/removed",
   "/onboarding",
   // ⚠️ New routes must be added here or `npm run insights` passes without ever
   // visiting them — a green walk that proves nothing.

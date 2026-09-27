@@ -85,6 +85,10 @@ async function ClosetBody() {
     .select("*")
     .eq("archived", false)
     .order("created_at", { ascending: false });
+  const { count: removedCount } = await supabase
+    .from("items")
+    .select("id", { count: "exact", head: true })
+    .eq("archived", true);
 
   const rows = items ?? [];
 
@@ -127,6 +131,14 @@ async function ClosetBody() {
         </div>
       ) : (
         <ClosetGrid items={grid} />
+      )}
+      {(removedCount ?? 0) > 0 && (
+        <Link
+          href="/closet/removed"
+          className="mx-6 mt-6 grid min-h-[44px] place-items-center text-[13px] text-muted-foreground underline underline-offset-4"
+        >
+          Removed pieces ({removedCount})
+        </Link>
       )}
     </>
   );
