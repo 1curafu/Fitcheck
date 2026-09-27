@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { ScreenHeader } from "@/components/shell/screen-header";
 import { redirect } from "@/lib/i18n/navigation";
-import { getLocale } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { signItemImages, displayPath } from "@/lib/storage/signed";
@@ -31,17 +31,18 @@ type ItemRow = {
  * A pure VIEW over `wear_logs`: it writes nothing. Everything on this screen
  * arrives via the "Wear this today" button on an outfit.
  */
-export default function CalendarPage({
+export default async function CalendarPage({
   searchParams,
 }: {
   searchParams: Promise<{ m?: string }>;
 }) {
+  const t = await getTranslations("diary");
   return (
     <>
       {/* The nav is the shell: prerendered, prefetched, and identical for every
           user. The month grid needs both the session and `searchParams`, which
           are only known at request time, so it streams. */}
-      <Suspense fallback={<ScreenHeader title="Fit Diary" />}>
+      <Suspense fallback={<ScreenHeader title={t("title")} />}>
         <DiaryBody searchParams={searchParams} />
       </Suspense>
       <MobileNav />

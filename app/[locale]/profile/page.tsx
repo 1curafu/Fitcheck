@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { LinkRow } from "@/components/profile/profile-hub";
 import { redirect } from "@/lib/i18n/navigation";
-import { getLocale } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { MobileNav } from "@/components/shell/mobile-nav";
@@ -18,43 +18,43 @@ import { subscriptionFromRow } from "@/lib/billing/status-line";
  * Two of the four bottom tabs used to 404 for exactly this reason (BUGS.md #5);
  * an unready row renders disabled with "Soon" rather than linking into nothing.
  */
-const LINKS: HubLink[] = [
+const LINK_DEFS = [
   {
     href: "/style-dna",
-    label: "Style DNA",
-    desc: "Your archetype, shareable",
+    key: "styleDna",
     icon: "dna",
     ready: false,
   },
   {
     href: "/outfits",
-    label: "Saved Outfits",
-    desc: "Looks you kept",
+    key: "savedOutfits",
     icon: "saved",
     ready: false,
   },
   {
     href: "/packing",
-    label: "Packing Mode",
-    desc: "The smallest case that dresses the trip",
+    key: "packing",
     icon: "saved",
     ready: true,
   },
   {
     href: "/stats",
-    label: "Wear Stats",
-    desc: "What you actually wear",
+    key: "stats",
     icon: "stats",
     ready: true,
   },
   {
     href: "/settings",
-    label: "Settings",
-    desc: "Preferences and account",
+    key: "settings",
     icon: "settings",
     ready: true,
   },
-];
+] as const;
+
+async function profileLinks(): Promise<HubLink[]> {
+  const t = await getTranslations("profile.links");
+  return LINK_DEFS.map(({ key, ...link }) => ({ ...link, label: t(`${key}.label`), desc: t(`${key}.description`) }));
+}
 
 /**
  * ⚠️ The profile has NO title in the design, so the shell must not invent one.
@@ -67,11 +67,11 @@ const LINKS: HubLink[] = [
  * and readiness are the same for every user. Only the identity block and the
  * stat trio are personal, and those stream.
  */
-function ProfileShell() {
+function ProfileShell({ links }: { links: HubLink[] }) {
   return (
     <div className="screen-top px-[22px]">
       <div className="mt-[22px] flex flex-col gap-[10px]">
-        {LINKS.map((l) => (
+        {links.map((l) => (
           <LinkRow key={l.label} link={l} />
         ))}
       </div>
@@ -81,13 +81,14 @@ function ProfileShell() {
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
-export default function ProfilePage({ searchParams }: { searchParams: SearchParams }) {
+export default async function ProfilePage({ searchParams }: { searchParams: SearchParams }) {
+  const links = await profileLinks();
   return (
     <div className="flex min-h-dvh flex-1 flex-col">
       {/* The nav is the shell — identical for every user, so it prerenders
           and prefetches. Everything below needs the session — and the query
           string (`?pro=welcome` after Stripe Checkout), awaited inside it. */}
-      <Suspense fallback={<ProfileShell />}>
+      <Suspense fallback={<ProfileShell links={links} />}>
         <ProfileBody searchParams={searchParams} />
       </Suspense>
       <MobileNav />
@@ -96,6 +97,8 @@ export default function ProfilePage({ searchParams }: { searchParams: SearchPara
 }
 
 async function ProfileBody({ searchParams }: { searchParams: SearchParams }) {
+  const t = await getTranslations("profile");
+  const links = await profileLinks();
   const supabase = await createClient();
   const {
     data: { user },
@@ -131,7 +134,7 @@ async function ProfileBody({ searchParams }: { searchParams: SearchParams }) {
 
   return (
     <ProfileHub
-      name={profile?.display_name ?? "You"}
+      name={profile?.display_name ?? t("you")}
       handle={handleFrom(user.email ?? "")}
       initials={initials(profile?.display_name ?? null, user.email ?? "")}
       archetype={profile?.archetype ?? null}
@@ -142,7 +145,7 @@ async function ProfileBody({ searchParams }: { searchParams: SearchParams }) {
         outfits: wornDates.length,
         streak: currentStreak(wornDates, today),
       }}
-      links={LINKS}
+      links={links}
       subscription={subscriptionFromRow(profile)}
       proNotice={(await searchParams).pro === "welcome" ? "welcome" : null}
     />

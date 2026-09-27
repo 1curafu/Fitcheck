@@ -527,6 +527,73 @@
     "report": "Report this look",
     "notFound": "This look is no longer shared."
   },
+  "diary": {
+    "title": "Fit Diary",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "streakDays": "{n, plural, one {day} other {days}}",
+    "empty": "Wear a look from today’s set and it lands here.",
+    "weekdays": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    }
+  },
+  "stats": {
+    "title": "Wear Stats",
+    "back": "Back",
+    "closetValue": "Closet value",
+    "totalWears": "Total wears",
+    "costPerWear": "Cost per wear",
+    "empty": "Wear a look and log it, and this screen starts telling you what your wardrobe actually costs you.",
+    "mostWorn": "Most worn",
+    "mostWornPitch": "See which pieces earn their place",
+    "biggestGap": "Your biggest gap",
+    "biggestGapPitch": "The one piece that unlocks the most",
+    "gatheringDust": "Gathering dust",
+    "gatheringDustPitch": "What you own and never reach for",
+    "shareMissing": "Your closet can't build a look without one",
+    "shareAdds": "Adds {pct}% more outfits",
+    "neverWorn": "Never worn",
+    "wornToday": "Worn today",
+    "daysAgo": "{days, plural, one {1 day ago} other {# days ago}}",
+    "wornOnce": "Worn once",
+    "wornTimes": "Worn {n} times",
+    "thatPiece": "That piece",
+    "reasonPairs": "It pairs with more of your closet than anything else you're missing.",
+    "reasonCounts": "You have {mine} against {deepest} — that's what's holding the rest back.",
+    "slot": {
+      "Tops": "{n, plural, one {# top} other {# tops}}",
+      "Bottoms": "{n, plural, one {# bottom} other {# bottoms}}",
+      "Shoes": "{n, plural, one {# pair of shoes} other {# pairs of shoes}}",
+      "Outerwear": "{n, plural, one {# coat} other {# coats}}",
+      "other": "{n, plural, one {# piece} other {# pieces}}"
+    }
+  },
+  "profile": {
+    "you": "You",
+    "soon": "Soon",
+    "pieces": "Pieces",
+    "outfitsWorn": "Outfits worn",
+    "dayStreak": "Day streak",
+    "archetype": "Your archetype",
+    "notSet": "Not set yet",
+    "welcomePro": "Welcome to Pro.",
+    "activatingPro": "Activating Pro… refresh in a moment.",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "links": {
+      "styleDna": { "label": "Style DNA", "description": "Your archetype, shareable" },
+      "savedOutfits": { "label": "Saved Outfits", "description": "Looks you kept" },
+      "packing": { "label": "Packing Mode", "description": "The smallest case that dresses the trip" },
+      "stats": { "label": "Wear Stats", "description": "What you actually wear" },
+      "settings": { "label": "Settings", "description": "Preferences and account" }
+    }
+  },
   "errors": {
     "geoDenied": "Location access is off — search for a city instead.",
     "geoFailed": "Couldn't get your location — search for a city instead.",

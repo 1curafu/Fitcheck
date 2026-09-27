@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Link } from "@/lib/i18n/navigation";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
@@ -45,27 +46,6 @@ export type Gap = { label: string; share: number | null; reason: string };
  * sentence that argues against itself, and a piece that genuinely moves nothing
  * never reaches this card (`biggestGap` only reports a positive unlock).
  */
-function sharePhrase(share: number | null): string {
-  /**
-   * ⚠️ `null` means the wardrobe can build NOTHING right now — a missing
-   * required slot, or a closet straight out of onboarding. A proportion of zero
-   * is undefined, not 0%, and printing it as a percentage produced the app's
-   * worst message at the moment it mattered most: going from zero buildable
-   * outfits to 344 rendered as "Adds 1% more outfits". Found by the plan's own
-   * Task 4 Step 2, which is the reason that step exists.
-   */
-  if (share == null) return "Your closet can't build a look without one";
-  const pct = Math.max(1, Math.round(share * 100));
-  return `Adds ${pct}% more outfits`;
-}
-
-/** `days: null` means never worn — see `gatheringDust`. Never "∞ days ago". */
-function idleLabel(days: number | null): string {
-  if (days == null) return "Never worn";
-  if (days === 0) return "Worn today";
-  return days === 1 ? "1 day ago" : `${days} days ago`;
-}
-
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mt-[26px]">
@@ -140,20 +120,25 @@ export function StatsView({
   entitlements: { analytics: boolean; gapAnalysis: boolean };
   isPro: boolean;
 }) {
+  const t = useTranslations("stats");
   const [gateTitle, setGateTitle] = useState<string | null>(null);
   const empty = totalWears === 0;
+  const sharePhrase = (share: number | null) => share == null
+    ? t("shareMissing") : t("shareAdds", { pct: Math.max(1, Math.round(share * 100)) });
+  const idleLabel = (days: number | null) => days == null ? t("neverWorn")
+    : days === 0 ? t("wornToday") : t("daysAgo", { days });
 
   return (
     <div className="flex min-h-dvh flex-1 flex-col">
       <div className="flex items-center gap-3 px-[22px] screen-top">
         <Link
           href="/profile"
-          aria-label="Back"
+          aria-label={t("back")}
           className="grid size-[34px] shrink-0 place-items-center rounded-full bg-[#19181b] text-[18px] text-foreground shadow-[inset_0_0_0_1px_var(--hairline-5)]"
         >
           ‹
         </Link>
-        <h1 className="font-serif text-[30px] text-foreground">Wear Stats</h1>
+        <h1 className="font-serif text-[30px] text-foreground">{t("title")}</h1>
       </div>
 
       <div className="flex-1 overflow-y-auto px-[22px] pb-[120px] pt-[18px]">
@@ -164,13 +149,13 @@ export function StatsView({
         <div className="flex-1 px-[6px] py-4 text-center">
           <div className="font-serif text-[24px] text-foreground">{value}</div>
           <div className="mt-[5px] text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            Closet value
+            {t("closetValue")}
           </div>
         </div>
         <div className="flex-1 px-[6px] py-4 text-center">
           <div className="font-serif text-[24px] text-foreground">{totalWears}</div>
           <div className="mt-[5px] text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            Total wears
+            {t("totalWears")}
           </div>
         </div>
         {/* Hidden rather than "€0.00": an average of an unpriced closet, or of
@@ -179,7 +164,7 @@ export function StatsView({
           <div className="flex-1 px-[6px] py-4 text-center">
             <div className="font-serif text-[24px] text-foreground">{avgCostPerWear}</div>
             <div className="mt-[5px] text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-              Cost per wear
+              {t("costPerWear")}
             </div>
           </div>
         )}
@@ -187,28 +172,27 @@ export function StatsView({
 
       {empty ? (
         <p className="mt-[26px] text-[14px] leading-[1.5] text-muted-foreground">
-          Wear a look and log it, and this screen starts telling you what your wardrobe actually
-          costs you.
+          {t("empty")}
         </p>
       ) : (
         <>
           {entitlements.analytics ? (
-            <Section title="Most worn">
+            <Section title={t("mostWorn")}>
               {mostWorn.map((m) => (
                 <ItemRow key={m.id} href={`/closet/${m.id}`} name={m.name} sub={m.sub} />
               ))}
             </Section>
           ) : (
             <LockedSection
-              title="Most worn"
-              pitch="See which pieces earn their place"
+              title={t("mostWorn")}
+              pitch={t("mostWornPitch")}
               onOpen={setGateTitle}
             />
           )}
 
           {entitlements.gapAnalysis ? (
             gap && (
-              <Section title="Your biggest gap">
+              <Section title={t("biggestGap")}>
                 <div className="rounded-[16px] bg-surface-1 p-5 shadow-[inset_0_0_0_1px_var(--hairline-2)]">
                   <div className="font-serif text-[24px] text-foreground">{gap.label}</div>
                   {/* The screen's single rust spend — the One Rust Rule. */}
@@ -223,14 +207,14 @@ export function StatsView({
             )
           ) : (
             <LockedSection
-              title="Your biggest gap"
-              pitch="The one piece that unlocks the most"
+              title={t("biggestGap")}
+              pitch={t("biggestGapPitch")}
               onOpen={setGateTitle}
             />
           )}
 
           {entitlements.analytics ? (
-            <Section title="Gathering dust">
+            <Section title={t("gatheringDust")}>
               {dust.map((d) => (
                 <ItemRow
                   key={d.id}
@@ -242,8 +226,8 @@ export function StatsView({
             </Section>
           ) : (
             <LockedSection
-              title="Gathering dust"
-              pitch="What you own and never reach for"
+              title={t("gatheringDust")}
+              pitch={t("gatheringDustPitch")}
               onOpen={setGateTitle}
             />
           )}

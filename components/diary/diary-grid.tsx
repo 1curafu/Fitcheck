@@ -1,10 +1,13 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import { Link } from "@/lib/i18n/navigation";
 import type { CSSProperties } from "react";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import type { Cell, DiaryPiece } from "@/lib/diary/month";
 
 /** Monday-first, matching `buildMonth`'s leading pad. */
-const DOWS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const DOWS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 
 function Flame() {
   return (
@@ -153,6 +156,7 @@ export function DiaryGrid({
   prevHref: string;
   nextHref: string;
 }) {
+  const t = useTranslations("diary");
   const hasWears = cells.some((c) => c.log);
 
   return (
@@ -163,7 +167,7 @@ export function DiaryGrid({
             <div className="flex items-center gap-2">
               <Link
                 href={prevHref}
-                aria-label="Previous month"
+                aria-label={t("previousMonth")}
                 className="grid size-6 shrink-0 place-items-center rounded-full text-muted-dim"
               >
                 ‹
@@ -171,13 +175,13 @@ export function DiaryGrid({
               <Kicker className="truncate">{monthLabel}</Kicker>
               <Link
                 href={nextHref}
-                aria-label="Next month"
+                aria-label={t("nextMonth")}
                 className="grid size-6 shrink-0 place-items-center rounded-full text-muted-dim"
               >
                 ›
               </Link>
             </div>
-            <h1 className="mt-1 font-serif text-[34px]/[1] text-foreground">Fit Diary</h1>
+            <h1 className="mt-1 font-serif text-[34px]/[1] text-foreground">{t("title")}</h1>
           </div>
 
           {/* Hidden at zero: "0 days" congratulates you on nothing. */}
@@ -190,7 +194,7 @@ export function DiaryGrid({
               <div>
                 <span className="font-serif text-[18px] text-foreground">{streak}</span>
                 <span className="ml-1 text-[11px] text-muted-foreground">
-                  {streak === 1 ? "day" : "days"}
+                  {t("streakDays", { n: streak })}
                 </span>
               </div>
             </div>
@@ -204,7 +208,7 @@ export function DiaryGrid({
           className="mb-2 grid grid-cols-7 gap-[7px] text-center text-[10px] uppercase tracking-[0.1em] text-muted-dim"
         >
           {DOWS.map((d) => (
-            <div key={d}>{d}</div>
+            <div key={d}>{t(`weekdays.${d}`)}</div>
           ))}
         </div>
 
@@ -217,7 +221,7 @@ export function DiaryGrid({
         {!hasWears && (
           <div className="mt-[22px] flex items-center gap-[14px] rounded-[14px] bg-surface-1 px-[18px] py-4 shadow-[inset_0_0_0_1px_var(--hairline-2)]">
             <p className="font-serif text-[16px]/[1.4] italic text-muted-foreground text-pretty">
-              Wear a look from today&rsquo;s set and it lands here.
+              {t("empty")}
             </p>
           </div>
         )}

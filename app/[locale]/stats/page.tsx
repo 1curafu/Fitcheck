@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { ScreenHeader } from "@/components/shell/screen-header";
 import { redirect } from "@/lib/i18n/navigation";
-import { getLocale } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { MobileNav } from "@/components/shell/mobile-nav";
@@ -19,31 +19,14 @@ const ALL_OCCASIONS: UiOccasion[] = ["everyday", "work", "weekend", "evening"];
 
 const TOP_N = 3;
 
-/**
- * Plain words for a slot, singular and plural.
- *
- * "1 outerwear against 10 tops" is not English, and neither is "1 coats" —
- * both were shipped and caught on the screen rather than in a test.
- */
-const SLOT_WORD: Record<string, [string, string]> = {
-  Tops: ["top", "tops"],
-  Bottoms: ["bottom", "bottoms"],
-  Shoes: ["pair of shoes", "pairs of shoes"],
-  Outerwear: ["coat", "coats"],
-};
-
-function slotPhrase(category: string, n: number): string {
-  const [one, many] = SLOT_WORD[category] ?? ["piece", "pieces"];
-  return `${n} ${n === 1 ? one : many}`;
-}
-
-export default function StatsPage() {
+export default async function StatsPage() {
+  const t = await getTranslations("stats");
   return (
     <div className="flex min-h-dvh flex-1 flex-col">
       {/* The nav is the shell — identical for every user, so it prerenders
           and prefetches. Everything below needs the session. */}
       <Suspense
-        fallback={<ScreenHeader title="Wear Stats" backHref="/profile" />}
+        fallback={<ScreenHeader title={t("title")} backHref="/profile" />}
       >
         <StatsBody />
       </Suspense>
@@ -53,6 +36,12 @@ export default function StatsPage() {
 }
 
 async function StatsBody() {
+  const t = await getTranslations("stats");
+  const slotPhrase = (category: string, n: number) => {
+    const key = (["Tops", "Bottoms", "Shoes", "Outerwear"] as string[]).includes(category)
+      ? category as "Tops" | "Bottoms" | "Shoes" | "Outerwear" : "other";
+    return t(`slot.${key}`, { n });
+  };
   const supabase = await createClient();
   const {
     data: { user },
@@ -112,7 +101,7 @@ async function StatsBody() {
 
   const today = await todayFor(profile?.location_timezone);
   const byId = new Map(items.map((i) => [i.id, i]));
-  const nameOf = (id: string) => byId.get(id)?.name ?? "That piece";
+  const nameOf = (id: string) => byId.get(id)?.name ?? t("thatPiece");
 
   const stats = closetStats(
     items,
@@ -150,9 +139,9 @@ async function StatsBody() {
       b[1] > a[1] ? b : a,
     );
     if (deepest[0] === gap.candidate.category || deepest[1] <= mine) {
-      return "It pairs with more of your closet than anything else you're missing.";
+      return t("reasonPairs");
     }
-    return `You have ${slotPhrase(gap.candidate.category, mine)} against ${slotPhrase(deepest[0], deepest[1])} — that's what's holding the rest back.`;
+    return t("reasonCounts", { mine: slotPhrase(gap.candidate.category, mine), deepest: slotPhrase(deepest[0], deepest[1]) });
   })();
 
   return (
@@ -166,7 +155,7 @@ async function StatsBody() {
       mostWorn={mostWorn(items, wearsById, TOP_N).map((id) => ({
         id,
         name: nameOf(id),
-        sub: wearsById[id] === 1 ? "Worn once" : `Worn ${wearsById[id]} times`,
+        sub: wearsById[id] === 1 ? t("wornOnce") : t("wornTimes", { n: wearsById[id] }),
       }))}
       dust={gatheringDust(items, lastWornById, today, TOP_N).map((d) => ({
         id: d.id,

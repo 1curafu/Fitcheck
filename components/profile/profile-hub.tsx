@@ -1,3 +1,6 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import { Link } from "@/lib/i18n/navigation";
 import { Fingerprint, Bookmark, ChartColumn, Settings } from "lucide-react";
 import { ProCard } from "@/components/billing/pro-card";
@@ -40,6 +43,7 @@ function StatCell({ value, label }: { value: string; label: string }) {
 }
 
 export function LinkRow({ link }: { link: HubLink }) {
+  const t = useTranslations("profile");
   const Icon = ICONS[link.icon];
   const body = (
     <>
@@ -61,7 +65,7 @@ export function LinkRow({ link }: { link: HubLink }) {
         </span>
       ) : (
         <span className="text-[10px] uppercase tracking-[0.14em] text-muted-dim">
-          Soon
+          {t("soon")}
         </span>
       )}
     </>
@@ -111,6 +115,7 @@ export function ProfileHub({
   /** `?pro=welcome` after Stripe Checkout — shown once, above the Pro card. */
   proNotice?: "welcome" | null;
 }) {
+  const t = useTranslations("profile");
   return (
     <div className="flex-1 overflow-y-auto px-[22px] pb-[120px] screen-top">
       <div className="flex items-center gap-[14px]">
@@ -130,9 +135,9 @@ export function ProfileHub({
         data-testid="stat-trio"
         className="mt-[22px] flex overflow-hidden rounded-[14px] bg-surface-1 shadow-[inset_0_0_0_1px_var(--hairline-2)]"
       >
-        <StatCell value={String(stats.pieces)} label="Pieces" />
-        <StatCell value={String(stats.outfits)} label="Outfits worn" />
-        <StatCell value={String(stats.streak)} label="Day streak" />
+        <StatCell value={String(stats.pieces)} label={t("pieces")} />
+        <StatCell value={String(stats.outfits)} label={t("outfitsWorn")} />
+        <StatCell value={String(stats.streak)} label={t("dayStreak")} />
       </div>
 
       <Link
@@ -140,10 +145,10 @@ export function ProfileHub({
         className="relative mt-[13px] block overflow-hidden rounded-[16px] p-5 shadow-[inset_0_0_0_1px_rgba(184,106,71,0.18)] [background:radial-gradient(120%_120%_at_82%_8%,#241d18,#161517)]"
       >
         <span className="text-[10px] uppercase tracking-[0.22em] text-[#b89a6a]">
-          Your archetype
+          {t("archetype")}
         </span>
         <div className="mt-[6px] font-serif text-[30px] text-foreground">
-          {archetype ?? "Not set yet"}
+          {archetype ?? t("notSet")}
         </div>
         <div className="mt-[14px] flex gap-[5px]">
           {palette.map((c) => (
@@ -170,7 +175,7 @@ export function ProfileHub({
 
       {proNotice === "welcome" && (
         <p role="status" className="mt-[13px] text-center text-[13px] text-muted-foreground">
-          {tier === "pro" ? "Welcome to Pro." : "Activating Pro… refresh in a moment."}
+          {tier === "pro" ? t("welcomePro") : t("activatingPro")}
         </p>
       )}
 
@@ -180,9 +185,9 @@ export function ProfileHub({
           the policies live only behind Settings. The hub is the screen people
           come to for "everything about my account". */}
       <p className="mt-6 text-center text-[11.5px] text-muted-dim">
-        <Link href="/privacy" className="text-muted-foreground underline underline-offset-2">Privacy Policy</Link>
+        <Link href="/privacy" className="text-muted-foreground underline underline-offset-2">{t("privacy")}</Link>
         {" · "}
-        <Link href="/terms" className="text-muted-foreground underline underline-offset-2">Terms of Service</Link>
+        <Link href="/terms" className="text-muted-foreground underline underline-offset-2">{t("terms")}</Link>
       </p>
     </div>
   );
