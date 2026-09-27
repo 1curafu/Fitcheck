@@ -17,17 +17,19 @@ export function RemovePieceSheet({
   error,
   onRemove,
   onErase,
+  onDelete,
   onClose,
 }: {
   pending: boolean;
   canErase: boolean;
-  startAt?: "choose" | "erase";
+  startAt?: "choose" | "erase" | "delete";
   error: string | null;
   onRemove: () => void;
   onErase: () => void;
+  onDelete: () => void;
   onClose: () => void;
 }) {
-  const [step, setStep] = useState<"choose" | "erase">(startAt);
+  const [step, setStep] = useState<"choose" | "erase" | "delete">(startAt);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -58,7 +60,41 @@ export function RemovePieceSheet({
         <div className="mx-auto mb-4 h-1 w-[34px] rounded-full bg-faint" />
         <Kicker className="block">Closet</Kicker>
 
-        {erasing ? (
+        {step === "delete" ? (
+          <>
+            <h2 id="remove-piece-title" className="mt-1.5 font-serif text-[24px]/[1.15] text-foreground">
+              Delete this piece for good?
+            </h2>
+            <p className="mt-2 text-[13px]/[1.5] text-muted-foreground">
+              Its photos, cut-out and details are deleted. Past looks, your calendar and trips keep their other pieces; a
+              look styled around this piece is deleted with it.
+            </p>
+            <p className="mt-2 text-[13px]/[1.5] text-muted-foreground">
+              This can&rsquo;t be undone. Copies in our encrypted backups expire within 30 days.
+            </p>
+            {error && (
+              <p role="alert" className="mt-3 text-[13px]/[1.5] text-foreground">
+                {error}
+              </p>
+            )}
+            <button
+              type="button"
+              disabled={pending}
+              onClick={onDelete}
+              className="mt-5 min-h-[44px] w-full rounded-[12px] bg-destructive/90 px-4 py-3 text-[14px] font-semibold text-foreground disabled:cursor-not-allowed disabled:bg-foreground/10 disabled:text-muted-dim"
+            >
+              {pending ? "Deleting…" : "Delete for good"}
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={onClose}
+              className="mt-3 min-h-[44px] w-full text-[14px] text-muted-foreground disabled:cursor-not-allowed disabled:text-muted-dim"
+            >
+              Back
+            </button>
+          </>
+        ) : erasing ? (
           <>
             <h2 id="remove-piece-title" className="mt-1.5 font-serif text-[24px]/[1.15] text-foreground">
               Erase the original photo?

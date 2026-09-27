@@ -71,6 +71,7 @@ export function ItemView({
     restoring: boolean;
     onRestore: () => void;
     onEraseOriginal: () => void;
+    onDelete: () => void;
   };
 }) {
   const router = useRouter();
@@ -239,6 +240,14 @@ export function ItemView({
                 Erase original photo
               </button>
             )}
+            <button
+              type="button"
+              onClick={removed.onDelete}
+              disabled={removed.restoring}
+              className="min-h-[44px] w-full text-[13px] text-muted-foreground underline underline-offset-4 disabled:text-muted-dim"
+            >
+              Delete for good
+            </button>
           </div>
         ) : (
           <>

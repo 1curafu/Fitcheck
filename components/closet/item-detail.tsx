@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { archiveItem, eraseOriginal, restoreItem } from "@/app/closet/[itemId]/actions";
+import { archiveItem, deletePiece, eraseOriginal, restoreItem } from "@/app/closet/[itemId]/actions";
 import { UpgradeSheet } from "@/components/billing/upgrade-sheet";
 import type { Tags } from "@/lib/ai/tagging-schema";
 
@@ -70,8 +70,8 @@ export function ItemDetail({
    * free. Same fix as `components/generate/stylist.tsx`.
    */
   const router = useRouter();
-  // "choose" opens the full Remove sheet; "erase" opens straight on the erase confirm (a removed piece's page).
-  const [sheet, setSheet] = useState<null | "choose" | "erase">(null);
+  // "choose" opens the full Remove sheet; "erase" and "delete" open straight on their confirm (a removed piece's page).
+  const [sheet, setSheet] = useState<null | "choose" | "erase" | "delete">(null);
   const [eraseError, setEraseError] = useState<string | null>(null);
   const [limit, setLimit] = useState<string | null>(null);
   useEffect(
@@ -101,6 +101,15 @@ export function ItemDetail({
     });
   }
 
+  function remove() {
+    setEraseError(null);
+    start(async () => {
+      // Success redirects to Removed pieces and never returns here.
+      const result = await deletePiece(item.id);
+      if (result) setEraseError(result.message);
+    });
+  }
+
   function restore() {
     start(async () => {
       const result = await restoreItem(item.id);
@@ -120,7 +129,13 @@ export function ItemDetail({
         onArchive={() => setSheet("choose")}
         removed={
           archived
-            ? { canEraseOriginal, restoring: pending, onRestore: restore, onEraseOriginal: () => setSheet("erase") }
+            ? {
+                canEraseOriginal,
+                restoring: pending,
+                onRestore: restore,
+                onEraseOriginal: () => setSheet("erase"),
+                onDelete: () => setSheet("delete"),
+              }
             : undefined
         }
         // Built HERE, not passed down from the page. `page.tsx` is a Server
@@ -138,6 +153,7 @@ export function ItemDetail({
           error={eraseError}
           onRemove={archive}
           onErase={erase}
+          onDelete={remove}
           onClose={() => {
             setSheet(null);
             setEraseError(null);
