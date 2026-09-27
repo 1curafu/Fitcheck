@@ -1,7 +1,7 @@
 -- E (spec 2026-09-26-share-a-look-design.md §0 A1/A4/A5): owner-only rows, token minted by the database, a 30-day
 -- public read by exact token, and a bucket writable only at shares/<own token>/{story,post,og}.jpg.
 begin;
-select plan(22);
+select plan(28);
 
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -72,6 +72,27 @@ select lives_ok($$ insert into storage.objects (bucket_id, name, owner_id)
 select throws_ok($$ insert into storage.objects (bucket_id, name, owner_id)
   values ('shares', 'AAAAAAAAAAAAAAAAAAAAAA/x.jpg', '55555555-5555-4555-8555-555555555555') $$,
   '42501', null, 'only the three card file names are writable');
+reset role;
+
+-- Revocation is a database claim before Storage cleanup. A stale JWT may delete but cannot upload into that folder.
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '55555555-5555-4555-8555-555555555555', true);
+select set_config('request.jwt.claims', '{"sub":"55555555-5555-4555-8555-555555555555","role":"authenticated"}', true);
+select lives_ok($$ update public.look_shares set purging_at = now() where token = 'AAAAAAAAAAAAAAAAAAAAAA' $$,
+  'the owner can claim a link for purging');
+select is((select count(*)::int from public.get_shared_look('AAAAAAAAAAAAAAAAAAAAAA')), 0,
+  'a claimed link is immediately unavailable to anonymous readers');
+select throws_ok($$ insert into storage.objects (bucket_id, name, owner_id)
+  values ('shares', 'AAAAAAAAAAAAAAAAAAAAAA/post.jpg', '55555555-5555-4555-8555-555555555555') $$,
+  '42501', null, 'a claimed folder refuses a new upload');
+select throws_ok($$ update public.look_shares set ready_at = now() where token = 'AAAAAAAAAAAAAAAAAAAAAA' $$,
+  'P0001', 'share is being purged', 'a claimed row cannot be republished');
+select lives_ok($$ update public.look_shares set ready_at = now() + interval '2 years', updated_at = now() + interval '2 years'
+  where token = 'BBBBBBBBBBBBBBBBBBBBBB' $$, 'a direct owner update is allowed but gets server timestamps');
+select ok((select abs(extract(epoch from ready_at - clock_timestamp())) < 10
+    and abs(extract(epoch from updated_at - clock_timestamp())) < 10
+    from public.look_shares where token = 'BBBBBBBBBBBBBBBBBBBBBB'),
+  'a client cannot set a future expiry timestamp');
 reset role;
 
 -- The cap: the 101st row for one user is refused.

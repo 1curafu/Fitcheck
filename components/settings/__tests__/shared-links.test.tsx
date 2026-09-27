@@ -25,3 +25,12 @@ test("says so when nothing is shared", () => {
   render(<SharedLinks stop={vi.fn()} links={[]} />);
   expect(screen.getByText(/no shared links/i)).toBeInTheDocument();
 });
+
+test("a claimed link is labeled as stopping rather than still live", () => {
+  render(<SharedLinks stop={vi.fn()} links={[{
+    token: "AAAAAAAAAAAAAAAAAAAAAA", lookName: "Quiet Camel", readyAt: "2026-09-26T10:00:00.000Z",
+    purgingAt: "2026-10-01T10:00:00.000Z", createdAt: "2026-09-26T09:00:00.000Z",
+  }]} />);
+  expect(screen.getByText(/cleanup pending/i)).toBeInTheDocument();
+  expect(screen.queryByText(/expires 26 oct/i)).not.toBeInTheDocument();
+});

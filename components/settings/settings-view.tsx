@@ -126,7 +126,7 @@ export function SettingsView({
   /** Present only for a Pro subscriber: Settings is the second place to manage billing (spec §8). */
   subscription?: SubscriptionSummary | null;
   /** Every look the user has shared — including one whose look is now gone, so its link can still be stopped. */
-  sharedLinks: { token: string; lookName: string; readyAt: string | null; createdAt: string }[];
+  sharedLinks: { token: string; lookName: string; readyAt: string | null; purgingAt?: string; createdAt: string }[];
   onStopSharedLinkAction: typeof stopSharedLink;
 }) {
   const [prefs, setPrefs] = useState(preferences);

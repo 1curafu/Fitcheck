@@ -7,7 +7,7 @@ const token = "AAAAAAAAAAAAAAAAAAAAAA";
 
 let s: {
   outfit: Record<string, unknown> | null; links: { items: Record<string, unknown> }[];
-  existing: { token: string; ready_at: string | null } | null; rowCount: number;
+  existing: { token: string; ready_at: string | null; purging_at?: string | null } | null; rowCount: number;
   listed: { name: string }[]; removeError: Error | null; calls: string[];
   inserted: Record<string, unknown>[]; updated: Record<string, unknown>[]; mine: Record<string, unknown>[];
 };
@@ -19,7 +19,7 @@ function builder(table: string) {
   const self = () => b;
   Object.assign(b, {
     select: (_c?: string, o?: { head?: boolean }) => { head = Boolean(o?.head); return b; },
-    eq: self, not: self, order: self,
+    eq: self, not: self, order: self, is: self,
     maybeSingle: async () => ({ data: table === "outfits" ? s.outfit : s.existing, error: null }),
     single: async () => ({ data: { token }, error: null }),
     insert: (row: Record<string, unknown>) => { s.calls.push("insert"); s.inserted.push(row); return b; },
@@ -105,11 +105,18 @@ describe("publish", () => {
 });
 
 describe("stop", () => {
+  it("claims the row before Storage cleanup so new uploads are denied", async () => {
+    s.existing = { token, ready_at: "x" };
+    s.listed = [];
+    await stop(client(), token);
+    expect(s.calls[0]).toBe("update");
+    expect(s.updated[0]).toHaveProperty("purging_at");
+  });
   it("removes and verifies the images BEFORE deleting the row", async () => {
     s.existing = { token, ready_at: "x" };
     s.listed = [];
     expect(await stop(client(), token)).toEqual({ status: "stopped" });
-    expect(s.calls).toEqual([`remove:${token}/story.jpg,${token}/post.jpg,${token}/og.jpg`, "list", "delete"]);
+    expect(s.calls).toEqual(["update", `remove:${token}/story.jpg,${token}/post.jpg,${token}/og.jpg`, "list", "delete"]);
   });
   it("keeps the row when Storage fails or an image is still listed", async () => {
     s.existing = { token, ready_at: "x" };
@@ -128,5 +135,13 @@ describe("state and list", () => {
     expect(await stateFor(client(), outfitId)).toEqual({ token, readyAt: "2026-09-26T10:00:00Z" });
     s.mine = [{ token, look_name: "Quiet Camel", ready_at: null, created_at: "2026-09-26T09:00:00Z" }];
     expect(await listMine(client())).toEqual([{ token, lookName: "Quiet Camel", readyAt: null, createdAt: "2026-09-26T09:00:00Z" }]);
+  });
+  it("reports a claimed link as unavailable and lets Settings show cleanup in progress", async () => {
+    s.existing = { token, ready_at: "2026-09-26T10:00:00Z", purging_at: "2026-09-27T10:00:00Z" };
+    expect(await stateFor(client(), outfitId)).toEqual({ token, readyAt: null, purgingAt: "2026-09-27T10:00:00Z" });
+    s.mine = [{ token, look_name: "Quiet Camel", ready_at: "2026-09-26T10:00:00Z",
+      purging_at: "2026-09-27T10:00:00Z", created_at: "2026-09-26T09:00:00Z" }];
+    expect(await listMine(client())).toEqual([{ token, lookName: "Quiet Camel", readyAt: "2026-09-26T10:00:00Z",
+      purgingAt: "2026-09-27T10:00:00Z", createdAt: "2026-09-26T09:00:00Z" }]);
   });
 });

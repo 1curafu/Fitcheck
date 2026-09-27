@@ -35,9 +35,11 @@ export async function prepare(supabase: ShareClient, userId: string, input: { ou
     .from("look_shares").select("token, ready_at").eq("outfit_id", outfit.id).maybeSingle();
   if (existingError) throw existingError;
   if (existing) {
-    const { error: updateError } = await supabase.from("look_shares")
-      .update({ ...snapshot, ready_at: null, updated_at: new Date().toISOString() }).eq("token", existing.token);
+    const { data: refreshed, error: updateError } = await supabase.from("look_shares")
+      .update({ ...snapshot, ready_at: null, updated_at: new Date().toISOString() }).eq("token", existing.token)
+      .select("token").maybeSingle();
     if (updateError) throw updateError;
+    if (!refreshed) throw new Error("Share changed. Try again.");
     return { status: "ok", token: existing.token };
   }
 
@@ -53,9 +55,10 @@ export async function prepare(supabase: ShareClient, userId: string, input: { ou
 }
 
 async function mustOwn(supabase: ShareClient, token: string) {
-  const { data, error } = await supabase.from("look_shares").select("token, ready_at").eq("token", token).maybeSingle();
+  const { data, error } = await supabase.from("look_shares").select("token, ready_at, purging_at").eq("token", token).maybeSingle();
   if (error) throw error;
   if (!data) throw new Error("Not found");
+  return data;
 }
 
 export async function publish(supabase: ShareClient, token: string): Promise<{ status: "published" } | { status: "error"; message: string }> {
@@ -64,15 +67,22 @@ export async function publish(supabase: ShareClient, token: string): Promise<{ s
   const names = new Set((data ?? []).map((f) => f.name));
   if (error || !SHARE_IMAGE_FILES.every((f) => names.has(f))) return { status: "error", message: "Couldn't finish sharing. Try again." };
   const now = new Date().toISOString();
-  const { error: updateError } = await supabase.from("look_shares").update({ ready_at: now, updated_at: now }).eq("token", token);
+  const { data: published, error: updateError } = await supabase.from("look_shares")
+    .update({ ready_at: now, updated_at: now }).eq("token", token).select("token").maybeSingle();
   if (updateError) throw updateError;
+  if (!published) return { status: "error", message: "This link changed. Try again." };
   return { status: "published" };
 }
 
-/** Images first, verified, THEN the row (the R2 order): a failure leaves the row so the user can retry. */
+/** Claim first, then remove and verify images BEFORE deleting the row. A failed cleanup stays retryable. */
 export async function stop(supabase: ShareClient, token: string): Promise<{ status: "stopped" } | { status: "error"; message: string }> {
-  await mustOwn(supabase, token);
-  const failed = { status: "error" as const, message: "Couldn't stop sharing. Nothing was changed — try again." };
+  const row = await mustOwn(supabase, token);
+  if (!row.purging_at) {
+    const { error: claimError } = await supabase.from("look_shares")
+      .update({ purging_at: new Date().toISOString() }).eq("token", token).is("purging_at", null);
+    if (claimError) throw claimError;
+  }
+  const failed = { status: "error" as const, message: "Your link is off, but image cleanup didn't finish. Try again." };
   const bucket = supabase.storage.from("shares");
   const removed = await bucket.remove(SHARE_IMAGE_FILES.map((f) => `${token}/${f}`));
   if (removed.error) return failed;
@@ -83,16 +93,18 @@ export async function stop(supabase: ShareClient, token: string): Promise<{ stat
   return { status: "stopped" };
 }
 
-export async function stateFor(supabase: ShareClient, outfitId: string): Promise<{ token: string; readyAt: string | null } | null> {
-  const { data, error } = await supabase.from("look_shares").select("token, ready_at").eq("outfit_id", outfitId).maybeSingle();
+export async function stateFor(supabase: ShareClient, outfitId: string): Promise<{ token: string; readyAt: string | null; purgingAt?: string } | null> {
+  const { data, error } = await supabase.from("look_shares").select("token, ready_at, purging_at").eq("outfit_id", outfitId).maybeSingle();
   if (error) throw error;
-  return data ? { token: data.token, readyAt: data.ready_at } : null;
+  return data ? { token: data.token, readyAt: data.purging_at ? null : data.ready_at,
+    ...(data.purging_at ? { purgingAt: data.purging_at } : {}) } : null;
 }
 
 export async function listMine(supabase: ShareClient) {
   const { data, error } = await supabase
-    .from("look_shares").select("token, look_name, ready_at, created_at").order("created_at", { ascending: false });
+    .from("look_shares").select("token, look_name, ready_at, purging_at, created_at").order("created_at", { ascending: false });
   if (error) throw error;
-  return ((data ?? []) as { token: string; look_name: string; ready_at: string | null; created_at: string }[])
-    .map((r) => ({ token: r.token, lookName: r.look_name, readyAt: r.ready_at, createdAt: r.created_at }));
+  return ((data ?? []) as { token: string; look_name: string; ready_at: string | null; purging_at: string | null; created_at: string }[])
+    .map((r) => ({ token: r.token, lookName: r.look_name, readyAt: r.ready_at,
+      ...(r.purging_at ? { purgingAt: r.purging_at } : {}), createdAt: r.created_at }));
 }

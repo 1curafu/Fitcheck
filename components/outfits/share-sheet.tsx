@@ -11,6 +11,7 @@ import { orderPieces, pieceLabel, shareExpiry, shareKicker, snapshotPieces, SHAR
 import type { CardInput, CardTarget } from "@/lib/share/card-layout";
 
 type ShareOutfit = { id: string; lookName: string; occasion: string; reasoning: string | null; lookDate: string | null };
+type ShareLink = { token: string; readyAt: string | null; purgingAt?: string };
 const PHOTOS_FAILED = "Couldn't load this look's photos. Try again.";
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const day = (d: Date) => `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
@@ -23,7 +24,7 @@ export function ShareSheet({ outfit, pieces, onClose }: { outfit: ShareOutfit; p
   const [busy, setBusy] = useState<null | "link" | "stop">(null);
   const [message, setMessage] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
-  const [link, setLink] = useState<{ token: string; readyAt: string | null } | null>(null);
+  const [link, setLink] = useState<ShareLink | null>(null);
   const assets = useRef<Promise<{ fonts: Awaited<ReturnType<typeof loadFonts>>; images: Map<number, HTMLImageElement | null> }> | null>(null);
   const blobs = useRef(new Map<string, Blob>());
   const previewGen = useRef(0);
@@ -83,7 +84,7 @@ export function ShareSheet({ outfit, pieces, onClose }: { outfit: ShareOutfit; p
   }, [busy, onClose]);
 
   const fileName = `fitcheck-${outfit.lookName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${target}.jpg`;
-  const shareUrl = link?.readyAt ? `${window.location.origin}/l/${link.token}` : null;
+  const shareUrl = link?.readyAt && !link.purgingAt ? `${window.location.origin}/l/${link.token}` : null;
 
   // No await before navigator.share: iOS allows it only close to the tap (spec §0 A6). The blob is the cached preview.
   function shareImage() {
@@ -140,7 +141,13 @@ export function ShareSheet({ outfit, pieces, onClose }: { outfit: ShareOutfit; p
     setBusy("stop"); setMessage(null);
     try {
       const res = await stopSharing(link.token);
-      if (res.status === "error") setMessage(res.message); else setLink(null);
+      if (res.status === "error") {
+        setMessage(res.message);
+        setLink({ ...link, readyAt: null, purgingAt: new Date().toISOString() });
+      } else setLink(null);
+    } catch {
+      setMessage("Couldn't stop sharing. Try again.");
+      getShareState(outfit.id).then(setLink).catch(() => {});
     } finally { setBusy(null); }
   }
 
@@ -189,7 +196,7 @@ export function ShareSheet({ outfit, pieces, onClose }: { outfit: ShareOutfit; p
           className="mt-4 min-h-[48px] w-full rounded-[12px] bg-foreground px-4 text-[15px] font-semibold text-canvas disabled:opacity-60">
           Share image
         </button>
-        <button type="button" disabled={locked || failed} onClick={createLink}
+        <button type="button" disabled={locked || failed || Boolean(link?.purgingAt)} onClick={createLink}
           className="mt-3 min-h-[48px] w-full rounded-[12px] bg-surface-3 px-4 text-[15px] text-foreground disabled:opacity-60">
           {busy === "link" ? "Creating link…" : shareUrl ? "Update link" : "Create link"}
         </button>
@@ -206,6 +213,15 @@ export function ShareSheet({ outfit, pieces, onClose }: { outfit: ShareOutfit; p
             <button type="button" onClick={stop} disabled={locked}
               className="mt-2 min-h-[44px] w-full text-[13px] text-muted-foreground underline underline-offset-4">
               {busy === "stop" ? "Stopping…" : "Stop sharing"}
+            </button>
+          </div>
+        )}
+        {link?.purgingAt && (
+          <div className="mt-4 rounded-[12px] bg-surface-3 px-4 py-3 text-[13px] text-foreground">
+            <p>This link is off. Image cleanup is pending.</p>
+            <button type="button" onClick={stop} disabled={locked}
+              className="mt-2 min-h-[44px] text-muted-foreground underline underline-offset-4">
+              {busy === "stop" ? "Finishing cleanup…" : "Retry cleanup"}
             </button>
           </div>
         )}

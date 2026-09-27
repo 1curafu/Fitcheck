@@ -34,7 +34,7 @@ fi
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-psql "$SUPABASE_DB_URL" -Atq -v ON_ERROR_STOP=1 -c "select coalesce(json_agg(json_build_object('token', token, 'ready_at', ready_at, 'created_at', created_at)), '[]') from public.look_shares" > "$WORK/rows.json"
+psql "$SUPABASE_DB_URL" -Atq -v ON_ERROR_STOP=1 -c "select coalesce(json_agg(json_build_object('token', token, 'ready_at', ready_at, 'created_at', created_at, 'updated_at', updated_at, 'purging_at', purging_at)), '[]') from public.look_shares" > "$WORK/rows.json"
 # Supabase's S3 adapter can report an ancient ModTime even for a new object.
 # Storage metadata is the authority for the one-day orphan grace; updated_at
 # also protects a freshly overwritten image in an older folder.
@@ -85,9 +85,27 @@ NODE
 purged=0
 while IFS= read -r token || [[ -n "$token" ]]; do
   [[ -n "$token" ]] || continue
+  # Claim only if the row is STILL expired. The UPDATE row lock serializes with a concurrent refresh;
+  # purging_at then closes public reads and authenticated uploads before S3 I/O begins.
+  claimed="$(
+    cat <<'SQL' | psql "$SUPABASE_DB_URL" -Atq -v ON_ERROR_STOP=1 -v token="$token"
+with claimed as (
+  update public.look_shares
+  set purging_at = clock_timestamp()
+  where token = :'token' and purging_at is null
+    and (ready_at <= now() - interval '30 days'
+      or (ready_at is null and updated_at <= now() - interval '1 day'))
+  returning token
+)
+select token from claimed
+union all
+select token from public.look_shares where token = :'token' and purging_at is not null;
+SQL
+  )"
+  [[ "$claimed" == "$token" ]] || continue
   purge_token_folder "$token"
   # psql interpolates -v variables only in scripts read from stdin, never in -c.
-  printf "delete from public.look_shares where token = :'token';\n" |
+  printf "delete from public.look_shares where token = :'token' and purging_at is not null;\n" |
     psql "$SUPABASE_DB_URL" -Atq -v ON_ERROR_STOP=1 -v token="$token"
   purged=$((purged + 1))
 done < "$WORK/expire.txt"

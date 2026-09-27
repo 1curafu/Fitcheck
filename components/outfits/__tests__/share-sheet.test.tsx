@@ -110,6 +110,17 @@ test("an existing live link shows its expiry and can be stopped", async () => {
   expect(actions.stopSharing).toHaveBeenCalledWith(TOKEN);
 });
 
+test("a failed image cleanup leaves the public link off and offers a retry", async () => {
+  actions.getShareState.mockResolvedValue({ token: TOKEN, readyAt: "2026-09-26T10:00:00.000Z" });
+  actions.stopSharing.mockResolvedValue({ status: "error", message: "Your link is off, but image cleanup didn't finish. Try again." });
+  const sheet = await open();
+  expect(await within(sheet).findByTestId("share-url")).toBeInTheDocument();
+  await userEvent.click(within(sheet).getByRole("button", { name: /stop sharing/i }));
+  await waitFor(() => expect(within(sheet).queryByTestId("share-url")).not.toBeInTheDocument());
+  expect(within(sheet).getByRole("button", { name: /retry cleanup/i })).toBeInTheDocument();
+  expect(within(sheet).getByRole("button", { name: /create link/i })).toBeDisabled();
+});
+
 test("a tainted canvas disables sharing with a clear message", async () => {
   r.renderCard.mockRejectedValue(new Error("SHARE_TAINTED"));
   render(<ShareSheet outfit={outfit} pieces={pieces} onClose={() => {}} />);

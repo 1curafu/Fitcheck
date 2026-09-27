@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test, expect } from "vitest";
 
-test("the nightly job removes expired rows and orphan images while preserving live shares", () => {
+function runFixture(claimMode: "allow" | "skip") {
   const root = mkdtempSync(join(tmpdir(), "fitcheck-share-expiry-"));
   const bin = join(root, "bin");
   mkdirSync(bin);
@@ -15,9 +15,13 @@ if [[ "$*" == *"public.look_shares"* ]]; then
 elif [[ "$*" == *"storage.objects"* ]]; then
   printf '%s\\n' '[{"name":"old","modTime":"2000-01-01T00:00:00Z"},{"name":"live","modTime":"2000-01-01T00:00:00Z"},{"name":"ghost-old","modTime":"2000-01-01T00:00:00Z"},{"name":"ghost-new","modTime":"2099-01-01T00:00:00Z"}]'
 else
-  cat >/dev/null
+  statement="$(cat)"
   for arg in "$@"; do :; done
-  printf 'row:%s\\n' "$arg" >> "$TEST_LOG"
+  if [[ "$statement" == *"with claimed as"* ]]; then
+    if [[ "$TEST_CLAIM_MODE" == "allow" ]]; then printf '%s\\n' "\${arg#token=}"; fi
+  else
+    printf 'row:%s\\n' "$arg" >> "$TEST_LOG"
+  fi
 fi
 `;
   const rclone = `#!/usr/bin/env bash
@@ -50,6 +54,7 @@ fi
       writeFileSync(path, body);
       chmodSync(path, 0o755);
     }
+    writeFileSync(join(root, "log"), "");
     const output = execFileSync("bash", ["scripts/shares/expire.sh"], {
       encoding: "utf8",
       env: {
@@ -57,17 +62,27 @@ fi
         PATH: `${bin}:${process.env.PATH}`,
         TEST_LOG: join(root, "log"),
         TEST_STATE: root,
+        TEST_CLAIM_MODE: claimMode,
         SUPABASE_DB_URL: "postgresql://postgres@db.local.supabase.co/postgres",
         SUPABASE_PROJECT_REF: "local",
         SUPABASE_S3_ACCESS_KEY_ID: "fixture",
         SUPABASE_S3_SECRET_ACCESS_KEY: "fixture",
       },
     });
-    expect(output).toContain("1 expired share(s) removed, 1 orphan folder(s) removed");
-    expect(readFileSync(join(root, "log"), "utf8").trim().split("\n")).toEqual([
-      "image:old", "row:token=old", "image:ghost-old",
-    ]);
+    return { output, calls: readFileSync(join(root, "log"), "utf8").trim().split("\n") };
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+}
+
+test("the nightly job removes expired rows and orphan images while preserving live shares", () => {
+  const { output, calls } = runFixture("allow");
+  expect(output).toContain("1 expired share(s) removed, 1 orphan folder(s) removed");
+  expect(calls).toEqual(["image:old", "row:token=old", "image:ghost-old"]);
+});
+
+test("a share refreshed after the snapshot is skipped before any of its images are touched", () => {
+  const { output, calls } = runFixture("skip");
+  expect(output).toContain("0 expired share(s) removed, 1 orphan folder(s) removed");
+  expect(calls).toEqual(["image:ghost-old"]);
 });

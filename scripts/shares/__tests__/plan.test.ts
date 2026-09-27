@@ -28,4 +28,17 @@ describe("planExpiry", () => {
   it("refuses anything that is not a token", () => {
     expect(() => planExpiry({ now, rows: [], folders: [{ name: "../x", modTime: "2026-01-01T00:00:00Z" }] })).toThrow("Unexpected folder");
   });
+  it("keeps an old draft when its owner has just started refreshing it", () => {
+    const r = planExpiry({ now, folders: [], rows: [
+      { token: "refreshing", ready_at: null, created_at: "2026-09-01T00:00:00Z", updated_at: "2026-10-31T23:00:00Z" },
+    ] });
+    expect(r.expire).toEqual([]);
+  });
+  it("retries cleanup for a share already claimed for purging", () => {
+    const r = planExpiry({ now, folders: [], rows: [
+      { token: "claimed", ready_at: "2026-10-31T00:00:00Z", created_at: "2026-10-31T00:00:00Z",
+        updated_at: "2026-10-31T00:00:00Z", purging_at: "2026-10-31T20:00:00Z" },
+    ] });
+    expect(r.expire).toEqual(["claimed"]);
+  });
 });

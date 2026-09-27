@@ -1,4 +1,4 @@
-import { test } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 
 test.use({ storageState: "e2e/.auth/state.json" });
 
@@ -46,4 +46,12 @@ test("walk every route @insights", async ({ page }) => {
     .click()
     .catch(() => {});
   await page.waitForTimeout(1500);
+
+  // The public page's ready branch is distinct from the unknown-token route.
+  // The local insights fixture supplies a real token and cleans it up afterwards.
+  const readyToken = process.env.INSIGHTS_READY_SHARE_TOKEN;
+  if (readyToken) {
+    await page.goto(`/l/${readyToken}`);
+    await expect(page.getByRole("img", { name: /Insights ready share/ })).toBeVisible();
+  }
 });
