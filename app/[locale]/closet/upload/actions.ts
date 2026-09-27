@@ -80,7 +80,7 @@ export async function uploadAndTag(form: {
   try {
     await assertCanUpload();
   } catch (error) {
-    if (error instanceof UploadLimitError) return { status: "limited", ...uploadLimitMessage() };
+    if (error instanceof UploadLimitError) return { status: "limited", message: error.messageKey, values: error.values };
     throw error;
   }
 
@@ -165,7 +165,7 @@ export async function confirmItem(input: {
   try {
     await assertCanUpload();
   } catch (error) {
-    if (error instanceof UploadLimitError) return { status: "limited", ...uploadLimitMessage() };
+    if (error instanceof UploadLimitError) return { status: "limited", message: error.messageKey, values: error.values };
     throw error;
   }
 
