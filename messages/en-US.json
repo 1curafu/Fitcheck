@@ -65,5 +65,162 @@
     "title": "Nothing here",
     "body": "This page doesn't exist.",
     "home": "Go to Fitcheck"
+  },
+  "onboarding": {
+    "saveFailed": "Something went wrong",
+    "saving": "Saving…",
+    "agreementLead": "By continuing you confirm you are 16 or older and agree to the",
+    "terms": "Terms",
+    "and": "and",
+    "privacy": "Privacy Policy",
+    "questions": {
+      "archetype": {
+        "kicker": "Question 1 of 6",
+        "title": "Which closet feels like yours?",
+        "sub": "Pick the one you gravitate toward.",
+        "cta": "Continue",
+        "options": {
+          "Old Money": {
+            "label": "Old Money",
+            "desc": "Heritage, tailored, quiet"
+          },
+          "Smart Casual": {
+            "label": "Smart Casual",
+            "desc": "Knit, chino, ease"
+          },
+          "Preppy": {
+            "label": "Preppy",
+            "desc": "Oxford, polo, collegiate"
+          },
+          "Streetwear": {
+            "label": "Streetwear",
+            "desc": "Relaxed, tonal, sneaker-led"
+          }
+        }
+      },
+      "palette": {
+        "kicker": "Question 2 of 6",
+        "title": "Your colour instinct?",
+        "sub": "We tune recommendations to it.",
+        "cta": "Continue",
+        "options": {
+          "Neutrals": {
+            "label": "Quiet Neutrals",
+            "desc": "Cream, stone, charcoal"
+          },
+          "Earth": {
+            "label": "Earth & Tobacco",
+            "desc": "Camel, olive, rust"
+          },
+          "Navy": {
+            "label": "Ivy Navy",
+            "desc": "Navy, white, oxblood"
+          },
+          "Mono": {
+            "label": "Full Monochrome",
+            "desc": "Black, grey, white"
+          }
+        }
+      },
+      "fit": {
+        "kicker": "Question 3 of 6",
+        "title": "How should it sit?",
+        "sub": "Your default silhouette.",
+        "cta": "Continue",
+        "options": {
+          "Tailored": {
+            "label": "Tailored",
+            "desc": "Cut close, sharp lines"
+          },
+          "Relaxed": {
+            "label": "Relaxed",
+            "desc": "Room to move, drape"
+          },
+          "Oversized": {
+            "label": "Considered Oversized",
+            "desc": "Volume, on purpose"
+          }
+        }
+      },
+      "dress_codes": {
+        "kicker": "Question 4 of 6",
+        "title": "Where do you live on the scale?",
+        "sub": "Select every dress code you actually wear.",
+        "cta": "Continue",
+        "options": {
+          "Loungewear": {
+            "label": "Loungewear"
+          },
+          "Casual": {
+            "label": "Casual"
+          },
+          "Smart casual": {
+            "label": "Smart casual"
+          },
+          "Business": {
+            "label": "Business"
+          },
+          "Black tie": {
+            "label": "Black tie"
+          }
+        }
+      },
+      "occasions": {
+        "kicker": "Question 5 of 6",
+        "title": "What do you dress for?",
+        "sub": "Select all that apply.",
+        "cta": "Continue",
+        "options": {
+          "Work": {
+            "label": "Work",
+            "desc": "Office, meetings"
+          },
+          "Everyday": {
+            "label": "Everyday",
+            "desc": "Errands, coffee, life"
+          },
+          "Weekend": {
+            "label": "Weekend",
+            "desc": "Off-duty, relaxed"
+          },
+          "Evening": {
+            "label": "Evening",
+            "desc": "Dinner, drinks, dates"
+          }
+        }
+      },
+      "nogos": {
+        "kicker": "Question 6 of 6",
+        "title": "Anything off the table?",
+        "sub": "Your no-gos — we'll never put these in a look.",
+        "cta": "Finish profile",
+        "options": {
+          "logos": {
+            "label": "Big logos"
+          },
+          "skinny": {
+            "label": "Skinny fit"
+          },
+          "bright": {
+            "label": "Bright colours"
+          },
+          "shorts": {
+            "label": "Shorts"
+          },
+          "ripped": {
+            "label": "Ripped denim"
+          },
+          "double_denim": {
+            "label": "Double denim"
+          },
+          "graphic": {
+            "label": "Graphic tees"
+          },
+          "square_toe": {
+            "label": "Square-toe shoes"
+          }
+        }
+      }
+    }
   }
 }
