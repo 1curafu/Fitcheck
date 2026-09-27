@@ -25,6 +25,13 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.4.1",
+    date: "2026-09-27",
+    headline: "Sharing a look is smoother, and removed pieces can go for good.",
+    added: ["Create link now copies the link for you", "Delete a removed piece for good from its page"],
+    fixed: ["Copy now says Copied right on the button", "Show brands explains when your pieces have no brand yet"],
+  },
+  {
     version: "0.4.0",
     date: "2026-09-27",
     headline: "Share your looks, add pieces in batches, and bring pieces back.",
