@@ -12,6 +12,8 @@ import { PreferencesSchema, readPreferences } from "@/lib/profile/preferences";
 import { fetchForecast } from "@/lib/weather/forecast";
 import { locationColumns, invalidatesDrop, resolveLocation } from "@/lib/weather/location";
 import { localDateFor } from "@/lib/outfits/local-date";
+import { isShareToken } from "@/lib/share/snapshot";
+import { stop } from "@/lib/share/store";
 
 export type DeleteAccountState = { status: "idle" } | { status: "error"; message: string };
 
@@ -61,7 +63,7 @@ export async function deleteAccount(
     await Sentry.flush(2000);
     // After the Auth delete the account is gone: saying otherwise would be false and unretryable. The alert
     // above is the operator's cue; the orphan sweep collects whatever raced in.
-    if (error.stage !== "residual-storage") {
+    if (error.stage !== "residual-storage" && error.stage !== "residual-shares") {
       return { status: "error", message: DELETION_FAILURE_MESSAGE };
     }
   }
@@ -209,4 +211,18 @@ async function clearTodaysDrop(
 
   await supabase.from("outfit_items").delete().in("outfit_id", ids);
   await supabase.from("outfits").delete().in("id", ids);
+}
+
+/** Stops a shared look's public link from Settings — the only place to reach a link whose look has since gone (a
+ *  reroll, or the next day's drop): spec §0 A1. */
+export async function stopSharedLink(token: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  if (!isShareToken(token)) throw new Error("Not found");
+  const result = await stop(supabase, token);
+  revalidatePath("/settings");
+  return result;
 }

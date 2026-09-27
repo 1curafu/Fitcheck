@@ -5,6 +5,7 @@ import { signItemImages, displayPath } from "@/lib/storage/signed";
 import { todayFor } from "@/lib/outfits/today";
 import { itemWearStats } from "@/lib/closet/wear-stats";
 import { goesWith } from "@/lib/closet/goes-with";
+import { originalLocation } from "@/lib/closet/original-path";
 import { ItemDetail, type DetailItem } from "@/components/closet/item-detail";
 import type { GoesWithCard } from "@/components/closet/item-view";
 
@@ -135,6 +136,15 @@ async function ItemBody({ params }: { params: Promise<{ itemId: string }> }) {
       brandSuggestions={brandSuggestions}
       stats={stats}
       goesWith={goesWithCards}
+      archived={Boolean(item.archived)}
+      // Only a piece whose cut-out can carry its looks may lose its original (spec §3.3). Mirrors the action's cheap
+      // checks, so the UI never offers an erase the action would throw on. The cut-out OBJECT is checked by the
+      // action (Storage list), which answers "unavailable" with its reason.
+      canEraseOriginal={
+        Boolean(item.cutout_url) &&
+        item.image_url != null &&
+        originalLocation(user.id, item.image_url) !== null
+      }
     />
   );
 }

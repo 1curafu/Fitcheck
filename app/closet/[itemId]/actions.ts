@@ -5,6 +5,11 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { UpdateSchema } from "@/lib/closet/update-schema";
 import { resolveAccent } from "@/lib/ai/parse-tags";
+import { assertCanUpload } from "@/lib/billing/entitlements";
+import { UploadLimitError } from "@/lib/billing/errors";
+import { isItemId } from "@/lib/closet/capture-paths";
+import { originalLocation } from "@/lib/closet/original-path";
+import { ERASE_ALREADY, ERASE_FAILED, ERASE_NO_CUTOUT } from "@/lib/closet/erase-copy";
 
 export async function updateItem(itemId: string, input: unknown) {
   const data = UpdateSchema.parse(input);
@@ -49,4 +54,102 @@ export async function archiveItem(itemId: string) {
   if (error) throw error;
   revalidatePath("/closet");
   redirect("/closet");
+}
+
+export type EraseResult = { status: "unavailable"; message: string } | { status: "error"; message: string };
+export type RestoreResult = { status: "restored" } | { status: "limited"; message: string };
+
+function revalidatePiece(itemId: string) {
+  revalidatePath("/closet");
+  revalidatePath("/closet/removed");
+  revalidatePath(`/closet/${itemId}`);
+}
+
+function splitPath(path: string) {
+  const cut = path.lastIndexOf("/");
+  return { folder: path.slice(0, cut), file: path.slice(cut + 1) };
+}
+
+/**
+ * Erases a piece's ORIGINAL photo for good and removes the piece from the closet. The cut-out and thumbnail stay, so
+ * every past look, calendar cell and stat is unchanged (spec 2026-09-26, owner decisions D1/D2).
+ *
+ * ⚠️ The cut-out OBJECT must be proven present first. Before aa27095, capture ignored upload errors, so a row can
+ * name a cut-out that was never stored. Erasing that row's original would leave a blank piece forever.
+ * ⚠️ Then Storage, verified, THEN the row. If the photo cannot be proven gone, the row still points at it and the
+ * user can retry. Row-first would leave a photo we claim is erased, and the orphan sweep never deletes inside a live
+ * folder. A retry is idempotent: removing a missing object is not an error.
+ */
+export async function eraseOriginal(itemId: string): Promise<EraseResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  if (!isItemId(itemId)) throw new Error("Not found");
+
+  const { data: row, error } = await supabase
+    .from("items")
+    .select("id, image_url, cutout_url, archived")
+    .eq("id", itemId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!row) throw new Error("Not found");
+  if (!row.cutout_url) return { status: "unavailable", message: ERASE_NO_CUTOUT };
+  // Already erased: no writes. Re-archiving here would undo a Put back made since (e.g. from another tab).
+  if (!row.image_url) return { status: "unavailable", message: ERASE_ALREADY };
+
+  const where = originalLocation(user.id, row.image_url);
+  if (!where) throw new Error("Not your upload");
+  const cutout = splitPath(row.cutout_url);
+  if (cutout.folder !== where.folder) return { status: "unavailable", message: ERASE_NO_CUTOUT };
+
+  const bucket = supabase.storage.from("wardrobe");
+  const before = await bucket.list(where.folder);
+  if (before.error) return { status: "error", message: ERASE_FAILED };
+  if (!(before.data ?? []).some((f) => f.name === cutout.file)) {
+    return { status: "unavailable", message: ERASE_NO_CUTOUT };
+  }
+
+  const removed = await bucket.remove([row.image_url]);
+  if (removed.error) return { status: "error", message: ERASE_FAILED };
+  const after = await bucket.list(where.folder);
+  if (after.error || (after.data ?? []).some((f) => f.name === where.file)) {
+    return { status: "error", message: ERASE_FAILED };
+  }
+
+  const { error: updateError } = await supabase
+    .from("items")
+    .update({ image_url: null, archived: true })
+    .eq("id", itemId);
+  if (updateError) throw updateError;
+  revalidatePiece(itemId);
+  redirect("/closet");
+}
+
+/** Puts a removed piece back in the closet. It counts toward the Free limit exactly like a new capture. */
+export async function restoreItem(itemId: string): Promise<RestoreResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  if (!isItemId(itemId)) throw new Error("Not found");
+
+  const { data: row, error } = await supabase.from("items").select("id, archived").eq("id", itemId).maybeSingle();
+  if (error) throw error;
+  if (!row) throw new Error("Not found");
+
+  if (row.archived) {
+    try {
+      await assertCanUpload();
+    } catch (e) {
+      if (e instanceof UploadLimitError) return { status: "limited", message: e.message };
+      throw e;
+    }
+    const { error: updateError } = await supabase.from("items").update({ archived: false }).eq("id", itemId);
+    if (updateError) throw updateError;
+  }
+  revalidatePiece(itemId);
+  return { status: "restored" };
 }

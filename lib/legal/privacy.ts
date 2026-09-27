@@ -12,7 +12,7 @@ import { OPERATOR, type LegalDocument } from "./types";
  */
 export const PRIVACY: LegalDocument = {
   title: "Privacy Policy",
-  updated: "2026-09-24",
+  updated: "2026-09-26",
   intro:
     "Fitcheck photographs your wardrobe and suggests outfits from it. That means it holds photos of your clothes and a little about you. This page says exactly what, why, who else touches it, and how to make us delete it.",
   sections: [
@@ -30,11 +30,17 @@ export const PRIVACY: LegalDocument = {
         "Your account: your email address, and if you sign in with Google, the name and profile picture Google shares.",
         "Your style answers from the short quiz: how you like to dress, what you would rather not wear.",
         "Your wardrobe: the photos you upload, the cut-out versions we make of them, and the tags describing each piece — colour, fabric, formality and so on. You can edit every tag.",
-        "If a photo you upload shows you wearing the item, we store that photo as you took it. We keep the original only so the cut-out can be re-made with better tools later; it is never sent to the AI, never used to identify you, and never shown to anyone but you.",
+        "If a photo you upload shows you wearing the item, we store that photo as you took it. We keep the original only so the cut-out can be re-made with better tools later; it is never sent to the AI, never used to identify you, and never shown to anyone but you. You can erase the original photo of any piece that has a cut-out, from its page. The cut-out stays in your looks, and an erased original can't be used to re-make a better cut-out. For other pieces, write to legal@fitcheck.space and we will delete it.",
         "Your looks: the outfits the app suggests, the ones you favourite, and the days you say you wore one.",
         "Your location, only if you give it: a city or coordinates and a time zone, so the weather in your looks is your weather. You can clear it in Settings.",
         "If you subscribe to Pro: your Stripe customer ID, your subscription's status and renewal date, and when you confirmed that Pro should start immediately. Card details go to Stripe and Link and never reach us.",
         "Technical details when something breaks: the error, the page, and the browser. Not your name, and not what you typed.",
+      ],
+    },
+    {
+      heading: "Sharing a look",
+      paragraphs: [
+        "Sharing is always your choice. Share image makes a picture on your phone; we store nothing about it. Create link publishes a snapshot of one look: its pictures, its name, the stylist's sentence and the names of its pieces (and their brands, only if you choose). Anyone with the link can see it for 30 days, or until you stop sharing, from the look or from Settings. There is no name, no account and nothing else of yours on it, and it is not indexed by search engines. Deleting your account removes your shared looks at once. A picture you post to Instagram, TikTok or anywhere else is a copy we cannot delete. After a disaster restore of our systems, shared links are switched off and must be shared again.",
       ],
     },
     {
@@ -72,7 +78,7 @@ export const PRIVACY: LegalDocument = {
     {
       heading: "How long we keep it",
       paragraphs: [
-        "For as long as you have an account. Delete your account in Settings; a successful deletion removes your live data immediately. You can also write to legal@fitcheck.space if you need help with deletion.",
+        "For as long as you have an account. Delete your account in Settings; a successful deletion removes your live data immediately. To erase a single piece's original photo instead, use the option on that piece's page. You can also write to legal@fitcheck.space if you need help with deletion.",
         "Encrypted backups may retain deleted data for no more than 30 days before they expire. Error reports are kept for 90 days. Legally required payment records are kept by Link and Stripe for as long as tax law requires; our copy of your billing status goes when your account does.",
       ],
     },

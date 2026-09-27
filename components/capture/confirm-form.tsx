@@ -1,6 +1,6 @@
 "use client";
 
-import { Camera, RotateCw } from "lucide-react";
+import { Camera, RotateCw, X } from "lucide-react";
 
 import { Chip } from "@/components/ui-fitcheck/chip";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
@@ -33,6 +33,7 @@ const PICKABLE = CATEGORIES.filter((c) => c !== "Fragrance");
 export function ConfirmForm({
   draft,
   saving,
+  rotating = false,
   error,
   onDraft,
   onTags,
@@ -40,9 +41,11 @@ export function ConfirmForm({
   onSave,
   onRetake,
   onRotate,
+  rejectLabel = "Retake",
 }: {
   draft: Draft;
   saving: boolean;
+  rotating?: boolean;
   error: string | null;
   onDraft: (patch: Partial<Draft>) => void;
   onTags: (patch: Partial<Tags>) => void;
@@ -50,6 +53,7 @@ export function ConfirmForm({
   onSave: () => void;
   onRetake: () => void;
   onRotate: () => void;
+  rejectLabel?: "Retake" | "Skip photo";
 }) {
   return (
     <div className="flex flex-1 flex-col gap-5">
@@ -70,9 +74,9 @@ export function ConfirmForm({
         <button
           type="button"
           onClick={onRotate}
-          disabled={saving}
+          disabled={saving || rotating}
           aria-label="Rotate"
-          className="absolute right-3 top-3 flex h-9 items-center gap-1.5 rounded-full bg-canvas/70 px-3 text-[12px] font-medium text-foreground shadow-[inset_0_0_0_1px_var(--hairline-6)] backdrop-blur disabled:opacity-60"
+          className="absolute right-3 top-3 flex h-11 items-center gap-1.5 rounded-full bg-canvas/70 px-3 text-[12px] font-medium text-foreground shadow-[inset_0_0_0_1px_var(--hairline-6)] backdrop-blur disabled:opacity-60"
         >
           <RotateCw size={15} />
           Rotate
@@ -269,17 +273,17 @@ export function ConfirmForm({
           type="button"
           onClick={onRetake}
           disabled={saving}
-          aria-label="Retake"
+          aria-label={rejectLabel}
           className="grid h-[54px] w-14 shrink-0 place-items-center rounded-[14px] bg-surface-2 text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-6)] disabled:opacity-60"
         >
-          <Camera size={19} />
+          {rejectLabel === "Retake" ? <Camera size={19} /> : <X size={19} />}
         </button>
         <button
           onClick={onSave}
-          disabled={saving}
+          disabled={saving || rotating}
           className="flex-1 rounded-[12px] bg-foreground py-[17px] text-center font-semibold text-canvas disabled:opacity-60"
         >
-          {saving ? "Saving…" : "Add to closet"}
+          {saving ? "Saving…" : rotating ? "Rotating…" : "Add to closet"}
         </button>
       </div>
     </div>

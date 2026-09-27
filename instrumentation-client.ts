@@ -3,9 +3,13 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from "@sentry/nextjs";
+import { shareTelemetryFilters } from "@/lib/share/redact";
 
 Sentry.init({
   dsn: "https://bf4b894619f1d63080b7a4a52a1d00f8@o4511981956300800.ingest.de.sentry.io/4511981962002512",
+
+  // A shared look's URL is a capability (spec §0 A10); scrub every event and telemetry field.
+  ...shareTelemetryFilters,
 
   // ⚠️ No Session Replay, deliberately (removed 2026-09-15 with the privacy
   // policy). It recorded 10% of all sessions and every session with an error —

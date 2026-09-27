@@ -16,11 +16,12 @@
 set -euo pipefail
 
 LOG="$(mktemp -t fitcheck-insights)"
-trap 'kill "${DEV_PID:-}" 2>/dev/null || true; rm -f "$LOG"' EXIT
+WALK_LOG="$(mktemp -t fitcheck-insights-walk)"
+trap 'kill "${DEV_PID:-}" 2>/dev/null || true; rm -f "$LOG" "$WALK_LOG"' EXIT
 
 set -a; source .env.local; set +a
 
-npm run dev >"$LOG" 2>&1 &
+npm run dev -- --hostname 127.0.0.1 >"$LOG" 2>&1 &
 DEV_PID=$!
 
 echo "waiting for the dev server…"
@@ -28,7 +29,10 @@ until curl -sf -o /dev/null http://127.0.0.1:3000/ 2>/dev/null; do sleep 2; done
 
 # The walk itself is a Playwright spec so it reuses the signed-in storageState;
 # an unauthenticated walk just redirects and proves nothing.
-E2E_BASE_URL=http://127.0.0.1:3000 npx playwright test e2e/walk.spec.ts --grep @insights >/dev/null 2>&1 || true
+if ! E2E_BASE_URL=http://127.0.0.1:3000 npx playwright test e2e/walk.spec.ts --grep @insights >"$WALK_LOG" 2>&1; then
+  cat "$WALK_LOG"
+  exit 1
+fi
 
 # Strip ANSI so grep sees the text, and count anything Next flagged.
 FOUND=$(sed 's/\x1b\[[0-9;]*m//g' "$LOG" | grep -c "blocking-prerender\|unstable value" || true)

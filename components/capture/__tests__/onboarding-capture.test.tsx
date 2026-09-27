@@ -1,7 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import { OnboardingCapture } from "../onboarding-capture";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+  usePathname: () => "/onboarding/capture",
+}));
 vi.mock("@/lib/images/process", () => ({
   processImage: vi.fn(),
   blobToBase64: vi.fn(),

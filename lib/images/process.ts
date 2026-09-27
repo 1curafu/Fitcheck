@@ -1,5 +1,5 @@
 import imageCompression from "browser-image-compression";
-import { segment, configureRuntime, U2NETP, U2NETP_REFINE } from "./segment";
+import { directSegmentCutout, type SegmentCutout } from "./worker-client";
 import { compressionOptions, THUMB_MAX_PX } from "./options";
 import { encodeCutout, type CutoutMediaType } from "./encode";
 import { encodeThumb, type ThumbMediaType } from "./thumb";
@@ -17,13 +17,18 @@ import { encodeThumb, type ThumbMediaType } from "./thumb";
  * ⚠️ It is derived from the CUTOUT, not the original: the cutout is what every
  * thumbnail surface renders, and it is the one with alpha.
  */
-export async function processImage(file: File): Promise<{
+export type ProcessedImage = {
   original: Blob;
   cutout: Blob;
   cutoutMediaType: CutoutMediaType;
   thumb: Blob | null;
   thumbMediaType: ThumbMediaType | null;
-}> {
+};
+
+export async function processImage(
+  file: File,
+  segmentCutout: SegmentCutout = directSegmentCutout,
+): Promise<ProcessedImage> {
   const original = await imageCompression(file, compressionOptions());
   // ⚠️ The model sees the ORIGINAL file; the cutout is built on the compressed
   // one. encode.ts documents why compression hurts model accuracy, and the old
@@ -36,8 +41,7 @@ export async function processImage(file: File): Promise<{
   // input: one photo in 35 loses 0.0065. Paid only on the sideways minority.
   const orientation = await imageCompression.getExifOrientation(file);
   const modelSource = orientation > 1 ? original : file;
-  configureRuntime();
-  const raw = await segment(modelSource, U2NETP, original, U2NETP_REFINE); // our ONNX pipeline, on-device
+  const raw = await segmentCutout(modelSource, original); // same ONNX pipeline, on-device
   // segment() hands back an uncompressed PNG. It is the blob users actually see
   // (displayPath prefers the cutout), so it gets compressed too.
   const { blob: cutout, mediaType: cutoutMediaType } = await encodeCutout(raw);

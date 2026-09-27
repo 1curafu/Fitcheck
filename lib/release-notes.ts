@@ -25,6 +25,18 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.4.0",
+    date: "2026-09-27",
+    headline: "Share your looks, add pieces in batches, and bring pieces back.",
+    added: [
+      "Share a look as a story, a post or a link",
+      "Add several pieces at once from your photos",
+      "Put a removed piece back from Removed pieces",
+      "Erase a piece's original photo; its cut-out stays in your looks",
+    ],
+    fixed: ["Only photos can be added to your closet now"],
+  },
+  {
     version: "0.3.9",
     date: "2026-09-24",
     headline: "Refunds for Pro are now handled cleanly from start to finish.",

@@ -9,3 +9,7 @@ export const PRIVATE_PREFIXES = [
   "/closet", "/outfits", "/generate", "/profile", "/settings", "/stats",
   "/calendar", "/packing", "/onboarding", "/auth", "/api", "/monitoring", "/billing",
 ] as const;
+
+/** Openable by anyone with the exact URL; never in the sitemap; noindex in its metadata, NOT disallowed in robots
+ *  (link-preview crawlers honour robots.txt — spec §0 A2). */
+export const UNLISTED_PREFIXES = ["/l"] as const;

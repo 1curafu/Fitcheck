@@ -24,7 +24,7 @@ test("a real photo becomes a cutout on the confirm screen, on-device", async ({ 
   // ⚠️ A DRAWN shirt, not a photo. `Test assets/` is the owner's wardrobe and is
   // gitignored — the repo is public. This fixture has no copyright, and u2netp
   // segments it at 0.34 coverage, comfortably inside the band asserted below.
-  await page.locator('input[type="file"]').setInputFiles("e2e/fixtures/garment.jpg");
+  await page.locator('input[type="file"]:not([multiple])').setInputFiles("e2e/fixtures/garment.jpg");
 
   // The confirm screen renders the cutout on the stage. Give the WASM runtime
   // and a 4.6 MB model time to arrive on a cold cache.

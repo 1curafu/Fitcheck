@@ -5,11 +5,14 @@ import { useRef } from "react";
 export function Viewfinder({
   busy,
   onFile,
+  onMany,
 }: {
   busy: boolean;
   onFile: (file: File) => void;
+  onMany?: (files: File[]) => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const manyRef = useRef<HTMLInputElement>(null);
 
   return (
     <>
@@ -21,6 +24,7 @@ export function Viewfinder({
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];
+          e.currentTarget.value = "";
           if (f) onFile(f);
         }}
       />
@@ -50,6 +54,31 @@ export function Viewfinder({
           )}
         </span>
       </button>
+      {onMany && (
+        <>
+          <input
+            ref={manyRef}
+            type="file"
+            accept="image/*"
+            multiple
+            aria-label="Choose several photos"
+            className="hidden"
+            onChange={(event) => {
+              const files = Array.from(event.currentTarget.files ?? []);
+              event.currentTarget.value = "";
+              if (files.length > 0) onMany(files);
+            }}
+          />
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => manyRef.current?.click()}
+            className="mt-4 min-h-11 w-full rounded-[12px] border border-[--input] bg-surface-1 px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-surface-2 disabled:opacity-60"
+          >
+            Choose several photos
+          </button>
+        </>
+      )}
     </>
   );
 }

@@ -10,6 +10,9 @@ const SANITIZED_REASONS = new Set([
   "Wardrobe listing failed",
   "Wardrobe removal failed",
   "Wardrobe verification failed",
+  "Shares listing failed",
+  "Shares removal failed",
+  "Shares verification failed",
   "B2 deletion ledger configuration is required",
   "B2 authorization failed",
   "B2 key scope rejected",
@@ -37,8 +40,12 @@ export async function runAccountDeletion(
   // destroyed while a subscription could still charge.
   await runStage("billing", () => dependencies.cancelBilling(userId));
   await runStage("storage", () => dependencies.purgeStorage(userId));
+  await runStage("shares", () => dependencies.purgeShares(userId));
   await runStage("ledger", () => dependencies.writeTombstone(userId, requestedAt));
   await runStage("auth", () => dependencies.deleteAuthUser(userId));
+  // Public images outrank private leftovers: purge shares again before residual-storage, so a share published
+  // from another tab mid-deletion (RLS still allowed it right up to the Auth delete) never outlives the account.
+  await runStage("residual-shares", () => dependencies.purgeShares(userId));
   // The profile is gone now, so Storage RLS refuses any further upload: this second purge catches an upload
   // from another tab or device that landed between the first purge and the Auth delete, and is final.
   await runStage("residual-storage", () => dependencies.purgeStorage(userId));

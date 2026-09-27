@@ -26,6 +26,7 @@ const outfit = {
   occasion: "work",
   weatherLabel: "18° Cloudy",
   reasoning: "Camel over grey keeps the contrast soft enough for a long day.",
+  lookDate: "2026-09-26",
 };
 const pieces = [
   { id: "i1", name: "Brushed Oxford", brand: "Hartley", category: "Tops", imageUrl: "u1", slot },

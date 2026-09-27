@@ -7,6 +7,7 @@ import { createDeletionAdminClient, hardDeleteAuthUser } from "./admin";
 import { validateProductionDeletionTombstoneConfiguration, writeProductionDeletionTombstone } from "./b2-writer";
 import { runAccountDeletion } from "./coordinator";
 import { purgeWardrobePrefix } from "./storage.mjs";
+import { purgeShareObjects } from "./shares";
 
 /** Runs account deletion with production-only privileged adapters. */
 export async function deleteLiveAccount(userId: string, requestedAt: Date): Promise<void> {
@@ -26,6 +27,7 @@ export async function deleteLiveAccount(userId: string, requestedAt: Date): Prom
         await cancelAllSubscriptions({ store, gateway: getGateway() }, profile.stripeCustomerId);
       },
       purgeStorage: (id) => purgeWardrobePrefix(admin, id),
+      purgeShares: (id) => purgeShareObjects(admin, id),
       writeTombstone: writeProductionDeletionTombstone,
       deleteAuthUser: (id) => hardDeleteAuthUser(admin, id),
     },
