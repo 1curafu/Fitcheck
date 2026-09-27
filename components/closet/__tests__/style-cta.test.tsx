@@ -43,7 +43,7 @@ test("the first tap is a cache-friendly read, never a regenerate", async () => {
 test("a limited result opens the upgrade sheet with the reason verbatim", async () => {
   styleWithItem.mockResolvedValue({
     status: "limited",
-    message: "Building a look around a piece is a Pro feature.",
+    message: "item.style.proReason",
   });
   render(<StyleCta itemId="i1" />);
   await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
@@ -56,7 +56,7 @@ test("a limited result opens the upgrade sheet with the reason verbatim", async 
 // A gate the user cannot dismiss is a trap. "Not now" must stay as reachable
 // as the upgrade path.
 test("the upgrade sheet can be dismissed", async () => {
-  styleWithItem.mockResolvedValue({ status: "limited", message: "Pro feature." });
+  styleWithItem.mockResolvedValue({ status: "limited", message: "item.style.proReason" });
   render(<StyleCta itemId="i1" />);
   await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
   await screen.findByRole("dialog");
@@ -68,7 +68,7 @@ test("the upgrade sheet can be dismissed", async () => {
 // pitch itself — same list the profile card opens — so there is nowhere to
 // navigate to and nothing to look up.
 test("the gate's sheet makes the full case, not just the refusal", async () => {
-  styleWithItem.mockResolvedValue({ status: "limited", message: "Pro feature." });
+  styleWithItem.mockResolvedValue({ status: "limited", message: "item.style.proReason" });
   render(<StyleCta itemId="i1" />);
   await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
   const sheet = await screen.findByRole("dialog");
@@ -81,7 +81,7 @@ test("the gate's sheet makes the full case, not just the refusal", async () => {
 test("a non-billing failure stays a quiet line, not an upgrade sheet", async () => {
   styleWithItem.mockResolvedValue({
     status: "empty",
-    message: "Fragrance finishes a look rather than forming one.",
+    message: "item.style.fragrance",
   });
   render(<StyleCta itemId="i1" />);
   await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
@@ -92,7 +92,7 @@ test("a non-billing failure stays a quiet line, not an upgrade sheet", async () 
 // Nobody buys a feature they have never seen, and this is the screen where the
 // want is felt — so the gate explains itself rather than hiding the control.
 test("the button stays available to a gated user", async () => {
-  styleWithItem.mockResolvedValue({ status: "limited", message: "Pro feature." });
+  styleWithItem.mockResolvedValue({ status: "limited", message: "item.style.proReason" });
   render(<StyleCta itemId="i1" />);
   const button = screen.getByRole("button", { name: /style an outfit/i });
   await userEvent.click(button);
@@ -110,7 +110,7 @@ test("the button stays available to a gated user", async () => {
 test("an empty result explains itself too", async () => {
   styleWithItem.mockResolvedValue({
     status: "empty",
-    message: "Fragrance finishes a look rather than forming one.",
+    message: "item.style.fragrance",
   });
   render(<StyleCta itemId="i1" />);
   await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));

@@ -25,15 +25,13 @@ import {
 import { resolveLocation } from "@/lib/weather/location";
 import type { LookDraft, LookPiece, WeatherPayload } from "@/lib/generator/types";
 import { stylistInputFor, toCandidateItem } from "@/lib/generator/from-row";
+import type { MessageKey } from "@/lib/i18n/keys";
 
 export type StyleResult =
   | { status: "ok"; outfitIds: string[] }
-  // Carries the seam's own reason. Styling is a Pro capability rather than a
-  // daily allowance, so a message written here ("back tomorrow") would be
-  // actively false — tomorrow gives a free user no stylings either.
-  | { status: "limited"; message: string }
-  | { status: "empty"; message: string }
-  | { status: "error"; message: string };
+  | { status: "limited"; message: MessageKey }
+  | { status: "empty"; message: MessageKey }
+  | { status: "error"; message: MessageKey };
 
 /**
  * "Style an outfit with this" (Fitcheck.dc.html:654).
@@ -59,7 +57,7 @@ export async function styleWithItem(
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return { status: "error", message: "Not signed in" };
+    if (!user) return { status: "error", message: "item.style.notSignedIn" };
 
     const { data: profile } = await supabase
       .from("profiles")
@@ -76,11 +74,11 @@ export async function styleWithItem(
       .eq("archived", false);
     const items = itemsRaw ?? [];
     const subject = items.find((i) => i.id === itemId);
-    if (!subject) return { status: "error", message: "Piece not found" };
+    if (!subject) return { status: "error", message: "item.style.pieceNotFound" };
 
     // Fragrance occupies no slot in a look, so there is nothing to build around.
     if (subject.category === "Fragrance") {
-      return { status: "empty", message: "Fragrance finishes a look rather than forming one." };
+      return { status: "empty", message: "item.style.fragrance" };
     }
 
     const now = new Date();
@@ -104,7 +102,7 @@ export async function styleWithItem(
     try {
       await assertCanGenerate(user.id, { kind: "styled", today });
     } catch (e) {
-      if (e instanceof QuotaExceededError) return { status: "limited", message: e.message };
+      if (e instanceof QuotaExceededError) return { status: "limited", message: "item.style.proReason" };
       throw e;
     }
 
@@ -200,7 +198,7 @@ export async function styleWithItem(
     if (!pinned.length) {
       return {
         status: "empty",
-        message: "Not enough other pieces to build a look around this one yet.",
+        message: "item.style.thinCloset",
       };
     }
 
@@ -258,7 +256,7 @@ export async function styleWithItem(
       });
     }
 
-    if (!drafts.length) return { status: "error", message: "Couldn't style this" };
+    if (!drafts.length) return { status: "error", message: "item.style.failed" };
 
     // Delete-then-insert, exactly as saveDailyLooks does it: a fresh run may
     // return a different number of looks, and leftovers must not survive
@@ -266,7 +264,7 @@ export async function styleWithItem(
     if (opts?.regenerate) await clearStyledLooks(user.id, itemId, today);
 
     const outfitIds = await saveStyledLooks(user.id, itemId, occasion, today, weather, drafts);
-    if (!outfitIds.length) return { status: "error", message: "Couldn't save the look" };
+    if (!outfitIds.length) return { status: "error", message: "item.style.saveFailed" };
 
     // After the model answered AND the write landed. The occasion is known by
     // now, which is why recording is separate from the gate above.
@@ -275,6 +273,6 @@ export async function styleWithItem(
     return { status: "ok", outfitIds };
   } catch (e) {
     console.error("[styleWithItem] failed:", e);
-    return { status: "error", message: e instanceof Error ? e.message : "Couldn't style this" };
+    return { status: "error", message: "item.style.failed" };
   }
 }

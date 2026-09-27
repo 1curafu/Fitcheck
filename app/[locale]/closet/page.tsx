@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { Link, redirect } from "@/lib/i18n/navigation";
-import { getLocale } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { Camera } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -25,7 +25,8 @@ import { CURRENT_RELEASE } from "@/lib/release-notes";
  * is a hard error, so the session can never be baked into a cached fragment.
  * `e2e/shell-privacy.spec.ts` guards the rest.
  */
-export default function ClosetPage() {
+export default async function ClosetPage() {
+  const t = await getTranslations("closet");
   return (
     <div className="flex min-h-dvh flex-1 flex-col">
       <main className="screen-top flex flex-1 flex-col gap-5 pb-8">
@@ -46,7 +47,7 @@ export default function ClosetPage() {
           Rust Rule) — which is why the nav's active tab is cream, not rust. */}
       <Link
         href="/closet/upload"
-        aria-label="Add a piece"
+        aria-label={t("addPiece")}
         className="fixed bottom-[108px] right-[22px] z-[85] grid size-[60px] place-items-center rounded-full bg-brand text-[#1a0f09] shadow-[0_12px_28px_rgba(184,106,71,0.35),inset_0_1px_0_rgba(255,255,255,0.18)]"
       >
         <Camera size={26} strokeWidth={1.8} />
@@ -63,18 +64,20 @@ export default function ClosetPage() {
  * "0 Pieces" and then corrects itself to "22 Pieces" reads as a bug. The
  * kicker holds its space so the title does not jump when the count arrives.
  */
-function ClosetHeader({ count }: { count?: number }) {
+async function ClosetHeader({ count }: { count?: number }) {
+  const t = await getTranslations("closet");
   return (
     <header className="flex items-end justify-between px-6">
       <div>
-        <Kicker>{count == null ? " " : `${count} Pieces`}</Kicker>
-        <h1 className="font-serif text-3xl text-foreground">The Closet</h1>
+        <Kicker>{count == null ? " " : t("pieces", { count })}</Kicker>
+        <h1 className="font-serif text-3xl text-foreground">{t("title")}</h1>
       </div>
     </header>
   );
 }
 
 async function ClosetBody() {
+  const t = await getTranslations("closet");
   const supabase = await createClient();
   const {
     data: { user },
@@ -122,12 +125,12 @@ async function ClosetBody() {
       <ClosetHeader count={grid.length} />
       {grid.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-4 px-8 text-center">
-          <p className="text-sm text-muted-foreground">Your closet is empty.</p>
+          <p className="text-sm text-muted-foreground">{t("empty")}</p>
           <Link
             href="/closet/upload"
             className="rounded-[12px] bg-foreground px-6 py-3 text-sm font-semibold text-canvas"
           >
-            Add your first piece
+            {t("addFirst")}
           </Link>
         </div>
       ) : (
@@ -138,7 +141,7 @@ async function ClosetBody() {
           href="/closet/removed"
           className="mx-6 mt-6 grid min-h-[44px] place-items-center text-[13px] text-muted-foreground underline underline-offset-4"
         >
-          Removed pieces ({removedCount})
+          {t("removedCount", { count: removedCount ?? 0 })}
         </Link>
       )}
     </>

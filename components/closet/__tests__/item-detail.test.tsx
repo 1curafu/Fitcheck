@@ -46,18 +46,20 @@ const item: DetailItem = {
   distressing: null,
 };
 
+function detailProps(itemOverrides: Partial<DetailItem> = {}, props: { archived?: boolean; canEraseOriginal?: boolean } = {}) {
+  return {
+    item: { ...item, ...itemOverrides },
+    imageUrl: "/i1.png",
+    brandSuggestions: [],
+    stats: { wears: 30, costPerWear: "€3.00", lastWorn: "Yesterday" },
+    goesWith: [],
+    archived: props.archived ?? false,
+    canEraseOriginal: props.canEraseOriginal ?? true,
+  };
+}
+
 function renderDetail(itemOverrides: Partial<DetailItem> = {}, props: { archived?: boolean; canEraseOriginal?: boolean } = {}) {
-  return render(
-    <ItemDetail
-      item={{ ...item, ...itemOverrides }}
-      imageUrl="/i1.png"
-      brandSuggestions={[]}
-      stats={{ wears: 30, costPerWear: "€3.00", lastWorn: "Yesterday" }}
-      goesWith={[]}
-      archived={props.archived ?? false}
-      canEraseOriginal={props.canEraseOriginal ?? true}
-    />,
-  );
+  return render(<ItemDetail {...detailProps(itemOverrides, props)} />);
 }
 
 test("the screen opens on the read view, with no form in sight", () => {
@@ -343,7 +345,7 @@ describe("removing a piece", () => {
   });
 
   test("a failed erase keeps the sheet open with the retry message", async () => {
-    eraseOriginal.mockReset().mockResolvedValue({ status: "error", message: "Couldn't erase the photo. Nothing was changed — try again." });
+    eraseOriginal.mockReset().mockResolvedValue({ status: "error", message: "errors.eraseFailed" });
     renderDetail();
     await userEvent.click(screen.getByRole("button", { name: /archive/i }));
     await userEvent.click(screen.getByRole("button", { name: /remove and erase original photo/i }));
@@ -353,7 +355,7 @@ describe("removing a piece", () => {
   });
 
   test("an unavailable erase shows its reason in the sheet", async () => {
-    eraseOriginal.mockReset().mockResolvedValue({ status: "unavailable", message: "This photo was already erased." });
+    eraseOriginal.mockReset().mockResolvedValue({ status: "unavailable", message: "errors.eraseAlready" });
     renderDetail();
     await userEvent.click(screen.getByRole("button", { name: /archive/i }));
     await userEvent.click(screen.getByRole("button", { name: /remove and erase original photo/i }));
@@ -391,10 +393,10 @@ describe("a removed piece", () => {
   });
 
   test("a full Free closet opens the upgrade sheet with the limit message", async () => {
-    restoreItem.mockResolvedValue({ status: "limited", message: "Free closets hold 50 pieces" });
+    restoreItem.mockResolvedValue({ status: "limited", message: "errors.closetFull", values: { limit: 50 } });
     renderDetail({}, { archived: true });
     await userEvent.click(screen.getByRole("button", { name: /put back/i }));
-    expect(await screen.findByText("Free closets hold 50 pieces")).toBeInTheDocument();
+    expect(await screen.findByText(/a free closet holds 50 pieces/i)).toBeInTheDocument();
     expect(refresh).not.toHaveBeenCalled();
   });
 
@@ -434,7 +436,7 @@ describe("a removed piece", () => {
   });
 
   test("a failed delete keeps the sheet open with its message", async () => {
-    deletePiece.mockReset().mockResolvedValue({ status: "error", message: "Couldn't delete the piece. Nothing was changed — try again." });
+    deletePiece.mockReset().mockResolvedValue({ status: "error", message: "errors.deleteFailed" });
     renderDetail({}, { archived: true });
     await userEvent.click(screen.getByRole("button", { name: /delete for good/i }));
     await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: /^delete for good$/i }));
@@ -447,3 +449,7 @@ test("a piece still in the closet is never offered Delete for good", () => {
   renderDetail({}, { archived: false });
   expect(screen.queryByRole("button", { name: /delete for good/i })).not.toBeInTheDocument();
 });
+
+// Task 21 replaces this with renderInLocale(<ItemDetail {...detailProps({}, { archived: true })} />, "uk")
+// after the Ukrainian catalogue exists, then verifies the translated action failure in the alert.
+test.todo("a failed delete shows its message in the user's language");

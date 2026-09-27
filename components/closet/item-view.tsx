@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "next-intl";
 import { useRouter, Link } from "@/lib/i18n/navigation";
 
 import { Archive } from "lucide-react";
@@ -73,6 +74,7 @@ export function ItemView({
     onDelete: () => void;
   };
 }) {
+  const t = useTranslations("item");
   const router = useRouter();
   const title = item.name ?? item.subcategory ?? item.category;
   // Plenty of items are named after their own subcategory ("Oxford shirt"), and
@@ -84,12 +86,12 @@ export function ItemView({
     .join(" · ");
 
   const tags: [string, string | null][] = [
-    ["Category", item.category],
-    ["Colour", item.colors.join(" · ") || null],
-    ["Material", item.material],
-    ["Texture", item.texture],
-    ["Pattern", item.pattern],
-    ["Seasons", item.seasons.join(" · ") || null],
+    [t("edit.category"), item.category],
+    [t("edit.colour"), item.colors.join(" · ") || null],
+    [t("edit.material"), item.material],
+    [t("edit.texture"), item.texture],
+    [t("edit.pattern"), item.pattern],
+    [t("edit.seasons"), item.seasons.join(" · ") || null],
   ];
 
   return (
@@ -105,7 +107,7 @@ export function ItemView({
             if (window.history.length > 1) router.back();
             else router.push("/closet");
           }}
-          aria-label="Back"
+          aria-label={t("back")}
           className="grid size-10 place-items-center rounded-full bg-[rgba(20,19,22,0.7)] text-xl text-foreground shadow-[inset_0_0_0_1px_var(--hairline-7)] backdrop-blur-[10px]"
         >
           ‹
@@ -113,7 +115,7 @@ export function ItemView({
         <button
           type="button"
           onClick={onEdit}
-          aria-label="More"
+          aria-label={t("more")}
           className="grid size-10 place-items-center rounded-full bg-[rgba(20,19,22,0.7)] text-lg text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-7)] backdrop-blur-[10px]"
         >
           ⋯
@@ -142,23 +144,23 @@ export function ItemView({
           )}
           {/* Under the title, not in the sticky bar: the bar's gradient is transparent at its top, so text there
               overlapped the stat tiles scrolling beneath it (seen on a WebKit iPhone screenshot). */}
-          {removed && <p className="mt-2 text-[13px] text-muted-foreground">Removed from your closet</p>}
+          {removed && <p className="mt-2 text-[13px] text-muted-foreground">{t("removed")}</p>}
 
           <div className="mt-[22px] flex gap-[10px]">
-            <Tile value={String(stats.wears)} label="Times worn" />
+            <Tile value={String(stats.wears)} label={t("timesWorn")} />
             {/* Omitted rather than shown as £0.00 — an unpriced item has no
                 cost per wear, and printing one states something false. */}
             {stats.costPerWear && (
-              <Tile value={stats.costPerWear} label="Cost / wear" />
+              <Tile value={stats.costPerWear} label={t("costPerWear")} />
             )}
-            <Tile value={stats.lastWorn} label="Last worn" />
+            <Tile value={stats.lastWorn} label={t("lastWorn")} />
           </div>
 
           {/* The One Rust Rule's single spend on this screen. Always paired with
               the WORD — a bare 1–5 means nothing to the person reading it. */}
           <div className="mt-[22px]">
             <div className="mb-[10px] flex justify-between">
-              <Kicker>Formality</Kicker>
+              <Kicker>{t("formality")}</Kicker>
               <span className="text-xs text-muted-foreground">
                 {FORMALITY_LABEL[item.formality ?? 3]}
               </span>
@@ -185,7 +187,7 @@ export function ItemView({
 
           {goesWith.length > 0 && (
             <>
-              <Kicker className="mb-3 mt-[26px] block">Goes with</Kicker>
+              <Kicker className="mb-3 mt-[26px] block">{t("goesWith")}</Kicker>
               <div className="flex gap-[10px] overflow-x-auto">
                 {goesWith.map((g) => (
                   <Link key={g.id} href={`/closet/${g.id}`} className="w-[92px] shrink-0">
@@ -227,7 +229,7 @@ export function ItemView({
               disabled={removed.restoring}
               className="min-h-[54px] w-full rounded-[14px] bg-foreground px-4 text-[15px] font-semibold text-canvas disabled:opacity-60"
             >
-              {removed.restoring ? "Putting back…" : "Put back"}
+              {removed.restoring ? t("puttingBack") : t("putBack")}
             </button>
             {removed.canEraseOriginal && (
               <button
@@ -236,7 +238,7 @@ export function ItemView({
                 disabled={removed.restoring}
                 className="min-h-[44px] w-full text-[13px] text-muted-foreground underline underline-offset-4 disabled:text-muted-dim"
               >
-                Erase original photo
+                {t("eraseOriginalPhoto")}
               </button>
             )}
             <button
@@ -245,7 +247,7 @@ export function ItemView({
               disabled={removed.restoring}
               className="min-h-[44px] w-full text-[13px] text-muted-foreground underline underline-offset-4 disabled:text-muted-dim"
             >
-              Delete for good
+              {t("deleteForGood")}
             </button>
           </div>
         ) : (
@@ -253,7 +255,7 @@ export function ItemView({
             <button
               type="button"
               onClick={onArchive}
-              aria-label="Archive"
+              aria-label={t("archive")}
               className="grid h-[54px] w-14 place-items-center rounded-[14px] bg-surface-2 text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-6)]"
             >
               <Archive size={19} />

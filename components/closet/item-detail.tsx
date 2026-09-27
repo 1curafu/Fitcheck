@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "next-intl";
 import { useRouter } from "@/lib/i18n/navigation";
 
 import { useEffect, useState, useTransition } from "react";
@@ -61,6 +62,7 @@ export function ItemDetail({
   /** Read on the server: the piece has a cut-out and a well-formed original to erase (spec §3.3). */
   canEraseOriginal: boolean;
 }) {
+  const t = useTranslations();
   const [editing, setEditing] = useState(false);
   /**
    * ⚠️ Close the sheet when this screen is left.
@@ -98,7 +100,7 @@ export function ItemDetail({
     start(async () => {
       // Success redirects to /closet and never returns here.
       const result = await eraseOriginal(item.id);
-      if (result) setEraseError(result.message);
+      if (result) setEraseError(t(result.message));
     });
   }
 
@@ -107,14 +109,14 @@ export function ItemDetail({
     start(async () => {
       // Success redirects to Removed pieces and never returns here.
       const result = await deletePiece(item.id);
-      if (result) setEraseError(result.message);
+      if (result) setEraseError(t(result.message));
     });
   }
 
   function restore() {
     start(async () => {
       const result = await restoreItem(item.id);
-      if (result.status === "limited") setLimit(result.message);
+      if (result.status === "limited") setLimit(t(result.message, result.values));
       else router.refresh();
     });
   }
@@ -163,7 +165,7 @@ export function ItemDetail({
       )}
       <UpgradeSheet
         open={Boolean(limit)}
-        title="Put more pieces back"
+        title={t("item.putBackUpgradeTitle")}
         body={limit ?? ""}
         onClose={() => setLimit(null)}
       />

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { UploadLimitError } from "@/lib/billing/errors";
-import { ERASE_ALREADY, ERASE_FAILED, ERASE_NO_CUTOUT } from "@/lib/closet/erase-copy";
+import messages from "@/messages/en-US.json";
 
 const owner = "11111111-1111-4111-8111-111111111111";
 const itemId = "33333333-3333-4333-8333-333333333333";
@@ -74,13 +74,13 @@ describe("eraseOriginal", () => {
 
   it("is unavailable for a piece without a cut-out, with zero writes", async () => {
     state.row = { ...state.row!, cutout_url: null };
-    expect(await eraseOriginal(itemId)).toEqual({ status: "unavailable", message: ERASE_NO_CUTOUT });
+    expect(await eraseOriginal(itemId)).toEqual({ status: "unavailable", message: "errors.eraseNoCutout" });
     expect(state.calls).toEqual([]);
   });
 
   it("leaves an already-erased piece alone, even if it was put back since", async () => {
     state.row = { ...state.row!, image_url: null, archived: false };
-    expect(await eraseOriginal(itemId)).toEqual({ status: "unavailable", message: ERASE_ALREADY });
+    expect(await eraseOriginal(itemId)).toEqual({ status: "unavailable", message: "errors.eraseAlready" });
     expect(state.calls).toEqual([]);
   });
 
@@ -92,19 +92,19 @@ describe("eraseOriginal", () => {
 
   it("is unavailable when the cut-out lives in a different folder", async () => {
     state.row = { ...state.row!, cutout_url: `${owner}/other/cutout.webp` };
-    expect(await eraseOriginal(itemId)).toEqual({ status: "unavailable", message: ERASE_NO_CUTOUT });
+    expect(await eraseOriginal(itemId)).toEqual({ status: "unavailable", message: "errors.eraseNoCutout" });
     expect(state.calls).toEqual([]);
   });
 
   it("is unavailable when the cut-out object is missing from Storage (pre-aa27095 rows), removing nothing", async () => {
     state.lists = [files("original.jpg", "thumb.webp")];
-    expect(await eraseOriginal(itemId)).toEqual({ status: "unavailable", message: ERASE_NO_CUTOUT });
+    expect(await eraseOriginal(itemId)).toEqual({ status: "unavailable", message: "errors.eraseNoCutout" });
     expect(state.calls).toEqual([`list:${legacy}`]);
   });
 
   it("does nothing when the pre-check cannot list", async () => {
     state.lists = [{ data: null, error: new Error("list failed") }];
-    expect(await eraseOriginal(itemId)).toEqual({ status: "error", message: ERASE_FAILED });
+    expect(await eraseOriginal(itemId)).toEqual({ status: "error", message: "errors.eraseFailed" });
     expect(state.calls).toEqual([`list:${legacy}`]);
   });
 
@@ -116,19 +116,19 @@ describe("eraseOriginal", () => {
 
   it("leaves the row untouched when Storage fails", async () => {
     state.removeError = new Error("storage down");
-    expect(await eraseOriginal(itemId)).toEqual({ status: "error", message: ERASE_FAILED });
+    expect(await eraseOriginal(itemId)).toEqual({ status: "error", message: "errors.eraseFailed" });
     expect(state.updates).toEqual([]);
   });
 
   it("leaves the row untouched when the file is still listed afterwards", async () => {
     state.lists = [files("original.jpg", "cutout.webp"), files("original.jpg", "cutout.webp")];
-    expect(await eraseOriginal(itemId)).toEqual({ status: "error", message: ERASE_FAILED });
+    expect(await eraseOriginal(itemId)).toEqual({ status: "error", message: "errors.eraseFailed" });
     expect(state.updates).toEqual([]);
   });
 
   it("leaves the row untouched when verification cannot list", async () => {
     state.lists = [files("original.jpg", "cutout.webp"), { data: null, error: new Error("list failed") }];
-    expect(await eraseOriginal(itemId)).toEqual({ status: "error", message: ERASE_FAILED });
+    expect(await eraseOriginal(itemId)).toEqual({ status: "error", message: "errors.eraseFailed" });
     expect(state.updates).toEqual([]);
   });
 
@@ -149,7 +149,7 @@ describe("eraseOriginal", () => {
 
 describe("erase copy", () => {
   it("tells a user whose piece cannot be erased how else to get the photo deleted", () => {
-    expect(ERASE_NO_CUTOUT).toMatch(/legal@fitcheck\.space/);
+    expect(messages.errors.eraseNoCutout).toMatch(/legal@fitcheck\.space/);
   });
 });
 
@@ -164,7 +164,7 @@ describe("restoreItem", () => {
   it("reports the limit and changes nothing when the closet is full", async () => {
     state.row = { ...state.row!, archived: true };
     state.gate.mockRejectedValueOnce(new UploadLimitError("Free closets hold 50 pieces"));
-    expect(await restoreItem(itemId)).toEqual({ status: "limited", message: "Free closets hold 50 pieces" });
+    expect(await restoreItem(itemId)).toEqual({ status: "limited", message: "errors.closetFull", values: { limit: 50 } });
     expect(state.updates).toEqual([]);
   });
 

@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DELETE_FAILED, DELETE_NOT_REMOVED } from "@/lib/closet/erase-copy";
 
 const owner = "11111111-1111-4111-8111-111111111111";
 const itemId = "33333333-3333-4333-8333-333333333333";
@@ -72,7 +71,7 @@ describe("deletePiece", () => {
 
   it("only deletes a piece that is already removed, with zero writes otherwise", async () => {
     state.row = { ...state.row!, archived: false };
-    expect(await deletePiece(itemId)).toEqual({ status: "unavailable", message: DELETE_NOT_REMOVED });
+    expect(await deletePiece(itemId)).toEqual({ status: "unavailable", message: "errors.deleteNotRemoved" });
     expect(state.calls).toEqual([]);
   });
 
@@ -115,7 +114,7 @@ describe("deletePiece", () => {
     ["verification cannot list", () => { state.lists = [files("original.jpg"), { data: null, error: new Error("x") }]; }],
   ])("keeps the row when %s", async (_, arrange) => {
     arrange();
-    expect(await deletePiece(itemId)).toEqual({ status: "error", message: DELETE_FAILED });
+    expect(await deletePiece(itemId)).toEqual({ status: "error", message: "errors.deleteFailed" });
     expect(state.calls.some((c) => c.startsWith("delete:"))).toBe(false);
   });
 });

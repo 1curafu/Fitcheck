@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { COLORS, type ColorName } from "@/lib/closet/vocab";
 
@@ -28,6 +29,7 @@ export function ColorPicker({
   onChange: (next: ColorName[]) => void;
   max?: number;
 }) {
+  const t = useTranslations("closet.colourPicker");
   const [open, setOpen] = useState(value.length === 0);
 
   function toggle(name: ColorName) {
@@ -45,7 +47,7 @@ export function ColorPicker({
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        aria-label={open ? "Hide colour palette" : "Choose colours"}
+        aria-label={open ? t("hide") : t("choose")}
         className="flex w-full items-center gap-3 rounded-[12px] border border-[--input] bg-surface-1 px-4 py-3 text-left text-sm text-foreground outline-none focus:border-brand"
       >
         <span className="flex gap-1.5">
@@ -61,7 +63,7 @@ export function ColorPicker({
           ))}
         </span>
         <span className={value.length ? "text-value" : "text-muted-dim"}>
-          {value.length ? value.join(" · ") : "Choose colours"}
+          {value.length ? value.join(" · ") : t("choose")}
         </span>
         <span aria-hidden className="ml-auto text-muted-dim">
           {open ? "▴" : "▾"}

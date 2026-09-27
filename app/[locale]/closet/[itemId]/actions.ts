@@ -11,7 +11,6 @@ import { assertCanUpload } from "@/lib/billing/entitlements";
 import { UploadLimitError } from "@/lib/billing/errors";
 import { isItemId } from "@/lib/closet/capture-paths";
 import { originalLocation } from "@/lib/closet/original-path";
-import { DELETE_FAILED, DELETE_NOT_REMOVED, ERASE_ALREADY, ERASE_FAILED, ERASE_NO_CUTOUT } from "@/lib/closet/erase-copy";
 
 export async function updateItem(itemId: string, input: unknown) {
   const data = UpdateSchema.parse(input);
@@ -58,9 +57,14 @@ export async function archiveItem(itemId: string) {
   return redirect({ href: "/closet", locale: await getLocale() });
 }
 
-export type EraseResult = { status: "unavailable"; message: string } | { status: "error"; message: string };
-export type DeleteResult = { status: "unavailable"; message: string } | { status: "error"; message: string };
-export type RestoreResult = { status: "restored" } | { status: "limited"; message: string };
+export type EraseResult =
+  | { status: "unavailable"; message: "errors.eraseNoCutout" | "errors.eraseAlready" }
+  | { status: "error"; message: "errors.eraseFailed" };
+export type DeleteResult =
+  | { status: "unavailable"; message: "errors.deleteNotRemoved" }
+  | { status: "error"; message: "errors.deleteFailed" };
+export type RestoreResult = { status: "restored" } |
+  { status: "limited"; message: "errors.closetFull"; values: { limit: number } };
 
 function revalidatePiece(itemId: string) {
   revalidateEverywhere("/closet");
@@ -98,27 +102,27 @@ export async function eraseOriginal(itemId: string): Promise<EraseResult> {
     .maybeSingle();
   if (error) throw error;
   if (!row) throw new Error("Not found");
-  if (!row.cutout_url) return { status: "unavailable", message: ERASE_NO_CUTOUT };
+  if (!row.cutout_url) return { status: "unavailable", message: "errors.eraseNoCutout" };
   // Already erased: no writes. Re-archiving here would undo a Put back made since (e.g. from another tab).
-  if (!row.image_url) return { status: "unavailable", message: ERASE_ALREADY };
+  if (!row.image_url) return { status: "unavailable", message: "errors.eraseAlready" };
 
   const where = originalLocation(user.id, row.image_url);
   if (!where) throw new Error("Not your upload");
   const cutout = splitPath(row.cutout_url);
-  if (cutout.folder !== where.folder) return { status: "unavailable", message: ERASE_NO_CUTOUT };
+  if (cutout.folder !== where.folder) return { status: "unavailable", message: "errors.eraseNoCutout" };
 
   const bucket = supabase.storage.from("wardrobe");
   const before = await bucket.list(where.folder);
-  if (before.error) return { status: "error", message: ERASE_FAILED };
+  if (before.error) return { status: "error", message: "errors.eraseFailed" };
   if (!(before.data ?? []).some((f) => f.name === cutout.file)) {
-    return { status: "unavailable", message: ERASE_NO_CUTOUT };
+    return { status: "unavailable", message: "errors.eraseNoCutout" };
   }
 
   const removed = await bucket.remove([row.image_url]);
-  if (removed.error) return { status: "error", message: ERASE_FAILED };
+  if (removed.error) return { status: "error", message: "errors.eraseFailed" };
   const after = await bucket.list(where.folder);
   if (after.error || (after.data ?? []).some((f) => f.name === where.file)) {
-    return { status: "error", message: ERASE_FAILED };
+    return { status: "error", message: "errors.eraseFailed" };
   }
 
   const { error: updateError } = await supabase
@@ -147,7 +151,7 @@ export async function restoreItem(itemId: string): Promise<RestoreResult> {
     try {
       await assertCanUpload();
     } catch (e) {
-      if (e instanceof UploadLimitError) return { status: "limited", message: e.message };
+      if (e instanceof UploadLimitError) return { status: "limited", message: e.messageKey, values: e.values };
       throw e;
     }
     const { error: updateError } = await supabase.from("items").update({ archived: false }).eq("id", itemId);
@@ -190,7 +194,7 @@ export async function deletePiece(itemId: string): Promise<DeleteResult> {
     .maybeSingle();
   if (error) throw error;
   if (!row) throw new Error("Not found");
-  if (!row.archived) return { status: "unavailable", message: DELETE_NOT_REMOVED };
+  if (!row.archived) return { status: "unavailable", message: "errors.deleteNotRemoved" };
 
   const own = new Map<string, string[]>();
   for (const path of [row.image_url, row.cutout_url, row.thumb_url]) {
@@ -208,17 +212,17 @@ export async function deletePiece(itemId: string): Promise<DeleteResult> {
       .neq("id", itemId)
       .or(`image_url.like.${folder}/*,cutout_url.like.${folder}/*,thumb_url.like.${folder}/*`)
       .limit(1);
-    if (othersError) return { status: "error", message: DELETE_FAILED };
+    if (othersError) return { status: "error", message: "errors.deleteFailed" };
     const before = await bucket.list(folder);
-    if (before.error) return { status: "error", message: DELETE_FAILED };
+    if (before.error) return { status: "error", message: "errors.deleteFailed" };
     const targets = (others ?? []).length > 0 ? paths : (before.data ?? []).map((f) => `${folder}/${f.name}`);
     if (targets.length > 0) {
       const removed = await bucket.remove(targets);
-      if (removed.error) return { status: "error", message: DELETE_FAILED };
+      if (removed.error) return { status: "error", message: "errors.deleteFailed" };
     }
     const after = await bucket.list(folder);
     const left = new Set((after.data ?? []).map((f) => `${folder}/${f.name}`));
-    if (after.error || targets.some((t) => left.has(t))) return { status: "error", message: DELETE_FAILED };
+    if (after.error || targets.some((t) => left.has(t))) return { status: "error", message: "errors.deleteFailed" };
   }
 
   const { error: deleteError } = await supabase.from("items").delete().eq("id", itemId);
