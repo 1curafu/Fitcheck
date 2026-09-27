@@ -1,5 +1,6 @@
 "use server";
 
+import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { signItemImages, displayPath } from "@/lib/storage/signed";
 import { fetchForecast } from "@/lib/weather/forecast";
@@ -110,6 +111,9 @@ export async function styleWithItem(
     const f = await fetchForecast(loc.lat, loc.lon);
     const prefs = readPreferences(profile?.preferences);
     const advice = laterAdvice(f.hourly, prefs.tempUnit, f.highC);
+    const tAdvice = await getTranslations("weather.advice");
+    const tWeather = await getTranslations("weather");
+    const adviceClause = tAdvice(advice.clauseKey);
     const weather: WeatherPayload = {
       tempC: f.tempC,
       feelsLikeC: f.feelsLikeC,
@@ -117,9 +121,9 @@ export async function styleWithItem(
       cityLabel: loc.label,
       timezone: f.timezone,
       locationOrigin: loc.origin,
-      laterSentence: advice.sentence,
-      adviceClause: advice.adviceClause,
-      laterLabel: "Later",
+      laterSentence: `${tAdvice(advice.leadKey, advice.leadValues)} — ${adviceClause}`,
+      adviceClause,
+      laterLabel: tWeather("later"),
       hourly: f.hourly,
       tempUnit: prefs.tempUnit,
     };
@@ -203,6 +207,8 @@ export async function styleWithItem(
     }
 
     const byId = new Map(items.map((i) => [i.id, i]));
+    const tStyle = await getTranslations("item.style");
+    const fallbackName = styledLookName(subject);
     // Diversified, exactly as the daily path does it. A raw slice hands the
     // model twenty variations of one idea, because ranking clusters.
     const shortlist = shortlistFor(pinned);
@@ -249,7 +255,7 @@ export async function styleWithItem(
       }));
 
       drafts.push({
-        name: pick.name || styledLookName(subject),
+        name: pick.name || tStyle("around", fallbackName.values),
         why: pick.why ?? "",
         pieces,
         anchorIndex: staggerOrder(slots)[0],

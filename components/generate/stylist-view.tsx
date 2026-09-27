@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Link } from "@/lib/i18n/navigation";
 import { RotateCcw } from "lucide-react";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
@@ -20,21 +21,6 @@ export type StylistStatus = "loading" | "ok" | "empty" | "error" | "limited";
  * one specific occasion (e.g. no shoes formal enough for Evening). Naming the gap
  * turns a dead end into a next step.
  */
-function emptyCopy(missing: string | null | undefined, occasionLabel: string): string {
-  switch (missing) {
-    case "Shoes":
-      return `No shoes formal enough for ${occasionLabel} — add dressier footwear, or try another occasion.`;
-    case "Tops":
-      return `No tops that suit ${occasionLabel} — add one, or try another occasion.`;
-    case "Bottoms":
-      return `No bottoms that suit ${occasionLabel} — add a pair, or try another occasion.`;
-    case "One-piece":
-      return `No dresses that suit ${occasionLabel} — add one, or try another occasion.`;
-    default:
-      return "Add a few more pieces to unlock outfits";
-  }
-}
-
 export function StylistView(props: {
   status: StylistStatus;
   weather: WeatherPayload | null;
@@ -71,9 +57,15 @@ export function StylistView(props: {
   /** The legible "why" for the predicted default occasion (empty until seeded). */
   reason?: string;
 }) {
+  const t = useTranslations("generate");
+  const tOccasion = useTranslations("vocab.occasion");
   const { status, weather, looks, selectedLook, occasion } = props;
   const look = looks[selectedLook];
-  const occLabel = occasion.charAt(0).toUpperCase() + occasion.slice(1);
+  const occLabel = tOccasion(occasion);
+  const missingKey = props.missing === "Shoes" ? "emptyShoes"
+    : props.missing === "Tops" ? "emptyTops"
+      : props.missing === "Bottoms" ? "emptyBottoms"
+        : props.missing === "One-piece" ? "emptyOnePiece" : null;
 
   return (
     <main className="relative flex flex-1 flex-col overflow-hidden screen-top px-[22px]">
@@ -83,7 +75,7 @@ export function StylistView(props: {
         <p className="mb-1 text-[11px] uppercase tracking-[0.22em] text-muted-dim">{props.reason}</p>
       )}
       <div className="mb-[10px] flex items-center justify-between gap-3">
-        <h1 className="font-serif text-[24px] text-foreground">Today&apos;s Looks</h1>
+        <h1 className="font-serif text-[24px] text-foreground">{t("title")}</h1>
         <RefineButton onRefine={props.onOpenRefine} />
       </div>
 
@@ -121,9 +113,9 @@ export function StylistView(props: {
 
         {status === "empty" && (
           <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
-            <p className="font-serif text-[20px] text-foreground">Nothing to style yet</p>
+            <p className="font-serif text-[20px] text-foreground">{t("emptyTitle")}</p>
             <p data-testid="empty-copy" className="max-w-[30ch] text-sm text-muted-foreground">
-              {emptyCopy(props.missing, occLabel)}
+              {missingKey ? t(missingKey, { occasion: occLabel }) : t("emptyGeneric")}
             </p>
           </div>
         )}
@@ -138,7 +130,7 @@ export function StylistView(props: {
             be a lie, and the app is working correctly. */}
         {status === "limited" && !look && (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 text-center">
-            <p className="font-serif text-[20px] text-foreground">That&apos;s today&apos;s looks</p>
+            <p className="font-serif text-[20px] text-foreground">{t("limitTitle")}</p>
             <p data-testid="limit-copy" className="max-w-[32ch] text-sm text-muted-foreground">
               {props.limitMessage}
             </p>
@@ -147,13 +139,13 @@ export function StylistView(props: {
 
         {status === "error" && (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
-            <p className="text-sm text-muted-foreground">Couldn&apos;t reach the stylist.</p>
+            <p className="text-sm text-muted-foreground">{t("error")}</p>
             <button
               type="button"
               onClick={props.onRetry}
               className="rounded-[12px] bg-foreground px-5 py-2.5 text-sm font-semibold text-canvas"
             >
-              Try again
+              {t("retry")}
             </button>
           </div>
         )}
@@ -167,7 +159,7 @@ export function StylistView(props: {
                   screen's one rust accent belongs to the why. */}
               {look.worn && (
                 <span className="absolute right-3 top-3 rounded-full bg-[rgba(20,19,22,0.78)] px-[10px] py-[5px] shadow-[inset_0_0_0_1px_var(--hairline-5)] backdrop-blur-[10px]">
-                  <Kicker className="text-value">Worn today</Kicker>
+                  <Kicker className="text-value">{t("wornToday")}</Kicker>
                 </span>
               )}
             </div>
@@ -186,7 +178,7 @@ export function StylistView(props: {
               href={`/outfits/${look.id}`}
               className="mt-[18px] block rounded-[13px] bg-foreground p-4 text-center text-base font-semibold text-canvas"
             >
-              See the full look
+              {t("seeFullLook")}
             </Link>
 
             {/* Regenerate keeps its WORDS. It was a bare uppercase line, which
@@ -207,7 +199,7 @@ export function StylistView(props: {
               className="mt-[10px] flex w-full items-center justify-center gap-2 rounded-[13px] bg-surface-1 p-4 text-sm text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-7)]"
             >
               <RotateCcw size={15} />
-              Regenerate today&apos;s looks
+              {t("regenerate")}
             </button>
           </>
         )}
@@ -222,7 +214,7 @@ export function StylistView(props: {
 
       <UpgradeSheet
         open={Boolean(props.upgradeOpen)}
-        title="Regenerate as often as you like"
+        title={t("upgradeTitle")}
         body={props.limitMessage ?? ""}
         onClose={props.onCloseUpgrade ?? (() => {})}
       />

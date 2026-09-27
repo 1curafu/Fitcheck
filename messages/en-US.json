@@ -274,7 +274,8 @@
       "fragrance": "Fragrance finishes a look rather than forming one.",
       "thinCloset": "Not enough other pieces to build a look around this one yet.",
       "failed": "Couldn't style this",
-      "saveFailed": "Couldn't save the look"
+      "saveFailed": "Couldn't save the look",
+      "around": "Around the {name}"
     },
     "edit": {
       "close": "Close",
@@ -387,7 +388,85 @@
       "chooseSeveral": "Choose several photos"
     }
   },
+  "vocab": {
+    "occasion": {
+      "everyday": "Everyday",
+      "work": "Work",
+      "weekend": "Weekend",
+      "evening": "Evening"
+    }
+  },
+  "generate": {
+    "title": "Today's Looks",
+    "reason": {
+      "work": "Styled for your work day",
+      "everyday": "Everyday ease",
+      "weekend": "Weekend, off-duty",
+      "evening": "Out tonight"
+    },
+    "emptyTitle": "Nothing to style yet",
+    "emptyShoes": "No shoes formal enough for {occasion} — add dressier footwear, or try another occasion.",
+    "emptyTops": "No tops that suit {occasion} — add one, or try another occasion.",
+    "emptyBottoms": "No bottoms that suit {occasion} — add a pair, or try another occasion.",
+    "emptyOnePiece": "No dresses that suit {occasion} — add one, or try another occasion.",
+    "emptyGeneric": "Add a few more pieces to unlock outfits",
+    "limitTitle": "That's today's looks",
+    "error": "Couldn't reach the stylist.",
+    "retry": "Try again",
+    "wornToday": "Worn today",
+    "seeFullLook": "See the full look",
+    "regenerate": "Regenerate today's looks",
+    "upgradeTitle": "Regenerate as often as you like",
+    "refine": {
+      "button": "Refine",
+      "close": "Close",
+      "title": "Refine the looks",
+      "description": "Dressing for {occasion} — nudge the rest.",
+      "formality": "Formality",
+      "leanInto": "Lean into",
+      "showLooks": "Show 3 looks"
+    }
+  },
+  "weather": {
+    "feels": "feels {temperature}",
+    "now": "Now",
+    "later": "Later",
+    "locating": "Locating…",
+    "currentLocation": "Current location",
+    "attribution": "Weather data © OpenWeather",
+    "location": {
+      "close": "Close",
+      "title": "Location",
+      "question": "Where are you?",
+      "description": "Your looks are built around this forecast.",
+      "cancel": "Cancel",
+      "chooseCity": "Choose a city",
+      "useMyLocation": "Use my location",
+      "searchCity": "Search a city",
+      "searchPlaceholder": "Search a city…"
+    },
+    "advice": {
+      "rainFrom": "Rain from {hour}",
+      "downTonight": "Down to {temperature} tonight",
+      "coldDay": "Cold through the day",
+      "upLater": "Up to {temperature} later",
+      "upAfternoon": "Up to {temperature} this afternoon",
+      "dryEvening": "Dry through the evening",
+      "takeShell": "take a shell.",
+      "keepCoat": "keep the coat on.",
+      "coatEarns": "the coat earns its place.",
+      "takeLayer": "take a layer for now.",
+      "dressedForIt": "you're dressed for it.",
+      "carryJacket": "carry a jacket.",
+      "noLayer": "no extra layer."
+    }
+  },
   "errors": {
+    "geoDenied": "Location access is off — search for a city instead.",
+    "geoFailed": "Couldn't get your location — search for a city instead.",
+    "generateNotSignedIn": "Not signed in",
+    "generateFailed": "Generation failed",
+    "regenerateLimit": "That's your {limit} rerolls for today. Pro rerolls without limit.",
     "eraseFailed": "Couldn't erase the photo. Nothing was changed — try again.",
     "eraseNoCutout": "This photo can't be erased here: the piece has no cut-out to show in its place. Write to legal@fitcheck.space and we'll delete it.",
     "eraseAlready": "This photo was already erased.",

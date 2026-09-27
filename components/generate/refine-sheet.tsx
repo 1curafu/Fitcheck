@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,7 @@ export function RefineSheet({
   onApply: (r: { formality: number; lean: string[] }) => void;
   onClose: () => void;
 }) {
+  const t = useTranslations("generate.refine");
   const [formality, setFormality] = useState(3);
   const [colors, setColors] = useState<string[]>([]);
   if (!open) return null;
@@ -37,7 +39,7 @@ export function RefineSheet({
     <>
       <button
         type="button"
-        aria-label="Close"
+        aria-label={t("close")}
         onClick={onClose}
         // `fixed`, not `absolute`: as a child of <main> this was clipped by that
         // element's `overflow-hidden` and, at z-30, painted UNDER the bottom nav
@@ -46,14 +48,14 @@ export function RefineSheet({
       />
       <div
         role="dialog"
-        aria-label="Refine the looks"
+        aria-label={t("title")}
         className="fixed inset-x-0 bottom-0 z-[70] mx-auto max-w-[440px] rounded-t-[22px] border-t border-[rgba(237,230,216,0.12)] bg-surface-2 px-[18px] pb-[calc(env(safe-area-inset-bottom)+20px)] pt-3.5"
       >
         <div className="mx-auto mb-3 h-1 w-[34px] rounded-full bg-faint" />
-        <h4 className="font-serif text-[19px] text-foreground">Refine the looks</h4>
-        <p className="mb-4 text-xs text-muted-dim">Dressing for {occasionLabel} — nudge the rest.</p>
+        <h4 className="font-serif text-[19px] text-foreground">{t("title")}</h4>
+        <p className="mb-4 text-xs text-muted-dim">{t("description", { occasion: occasionLabel })}</p>
 
-        <p className="mb-2 text-[9px] uppercase tracking-[0.16em] text-muted-dim">Formality</p>
+        <p className="mb-2 text-[9px] uppercase tracking-[0.16em] text-muted-dim">{t("formality")}</p>
         <div className="flex gap-[5px]">
           {[1, 2, 3, 4, 5].map((n) => (
             <button
@@ -73,7 +75,7 @@ export function RefineSheet({
           ))}
         </div>
 
-        <p className="mb-2 mt-[15px] text-[9px] uppercase tracking-[0.16em] text-muted-dim">Lean into</p>
+        <p className="mb-2 mt-[15px] text-[9px] uppercase tracking-[0.16em] text-muted-dim">{t("leanInto")}</p>
         <div className="flex gap-2.5">
           {PALETTE.map((c) => {
             const on = colors.includes(c.id);
@@ -99,7 +101,7 @@ export function RefineSheet({
           onClick={() => onApply({ formality, lean: colors })}
           className="mt-[18px] w-full rounded-[12px] bg-foreground py-3.5 text-sm font-semibold text-canvas"
         >
-          Show 3 looks
+          {t("showLooks")}
         </button>
       </div>
     </>

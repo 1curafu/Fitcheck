@@ -35,9 +35,9 @@ test("timezone decides which day it is", () => {
   expect(predictOccasion(lateFriUtc, "Europe/Berlin", ALL)).toBe("weekend"); // already Sat
 });
 
-test("each occasion has its own legible reason", () => {
-  expect(defaultReason("work")).toMatch(/work/i);
-  expect(defaultReason("weekend")).toMatch(/weekend/i);
-  expect(defaultReason("everyday")).toBeTruthy();
-  expect(defaultReason("evening")).toBeTruthy();
+test("each occasion returns a stable reason key", () => {
+  expect(defaultReason("work")).toBe("generate.reason.work");
+  expect(defaultReason("weekend")).toBe("generate.reason.weekend");
+  expect(defaultReason("everyday")).toBe("generate.reason.everyday");
+  expect(defaultReason("evening")).toBe("generate.reason.evening");
 });

@@ -1,4 +1,5 @@
 import type { UiOccasion } from "@/lib/generator/types";
+import type { MessageKey } from "@/lib/i18n/keys";
 
 /**
  * The predicted occasion for the user's morning.
@@ -32,14 +33,14 @@ function isWeekend(now: Date, timeZone: string): boolean {
   return day === "Sat" || day === "Sun";
 }
 
-const REASONS: Record<UiOccasion, string> = {
-  work: "Styled for your work day",
-  everyday: "Everyday ease",
-  weekend: "Weekend, off-duty",
-  evening: "Out tonight",
-};
+const REASONS = {
+  work: "generate.reason.work",
+  everyday: "generate.reason.everyday",
+  weekend: "generate.reason.weekend",
+  evening: "generate.reason.evening",
+} as const satisfies Record<UiOccasion, MessageKey>;
 
 /** The legible "why" shown above the looks — makes the smart default feel intentional. */
-export function defaultReason(occasion: UiOccasion): string {
+export function defaultReason(occasion: UiOccasion): MessageKey {
   return REASONS[occasion];
 }

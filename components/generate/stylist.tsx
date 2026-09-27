@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StylistView, type StylistStatus } from "./stylist-view";
 import {
@@ -13,15 +14,14 @@ import { searchCities, type City } from "@/lib/weather/geocode";
 import { getCurrentPosition, permissionState, GeoError } from "@/lib/weather/geolocate";
 import type { LocationSource } from "@/lib/weather/location";
 import type { GenerateResult, Look, UiOccasion, WeatherPayload } from "@/lib/generator/types";
+import type { MessageKey } from "@/lib/i18n/keys";
 
 type Chosen = { lat: number; lon: number; label: string; source: LocationSource };
-
-const DENIED_COPY = "Location access is off — search for a city instead.";
-const FAILED_COPY = "Couldn't get your location — search for a city instead.";
 
 const OCCASIONS: UiOccasion[] = ["everyday", "work", "weekend", "evening"];
 
 export function Stylist() {
+  const t = useTranslations();
 
   /**
    * Which occasion and which of the day's looks you were on lives in the URL,
@@ -69,7 +69,7 @@ export function Stylist() {
   const [lean, setLean] = useState<string[]>([]);
   const [city, setCity] = useState<Chosen | null>(null);
   const [nonce, setNonce] = useState(0);
-  const [reason, setReason] = useState<string>("");
+  const [reason, setReason] = useState<MessageKey | "">("");
   const [seeded, setSeeded] = useState(false);
   const predictedRef = useRef<UiOccasion>("everyday");
 
@@ -80,7 +80,7 @@ export function Stylist() {
   const [refineOpen, setRefineOpen] = useState(false);
   const [missing, setMissing] = useState<string | null>(null);
   // The seam's own words for which allowance ran out — never re-worded here.
-  const [limitMessage, setLimitMessage] = useState<string>("");
+  const [limitMessage, setLimitMessage] = useState<{ message: "errors.regenerateLimit"; values: { limit: number } } | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   /**
@@ -103,7 +103,7 @@ export function Stylist() {
     [],
   );
   const [locating, setLocating] = useState(false);
-  const [geoError, setGeoError] = useState<string | null>(null);
+  const [geoError, setGeoError] = useState<"errors.geoDenied" | "errors.geoFailed" | null>(null);
   // Optimistic: the row shows until we learn the browser has no geolocation at
   // all, at which point it disappears and city search is the only path.
   const [geoSupported, setGeoSupported] = useState(true);
@@ -162,7 +162,7 @@ export function Stylist() {
     getCurrentPosition()
       .then((c) => setCity({ ...c, label: "Current location", source: "geo" }))
       .catch((e) =>
-        setGeoError(e instanceof GeoError && e.kind === "denied" ? DENIED_COPY : FAILED_COPY),
+        setGeoError(e instanceof GeoError && e.kind === "denied" ? "errors.geoDenied" : "errors.geoFailed"),
       )
       .finally(() => setLocating(false));
   }, []);
@@ -194,7 +194,7 @@ export function Stylist() {
         // cleared for the same reason a limit is not an error: whatever the
         // user was already looking at is still theirs to look at.
         setWeather(res.weather);
-        setLimitMessage(res.message);
+        setLimitMessage({ message: res.message, values: res.values });
         setStatus("limited");
       } else {
         setStatus("error");
@@ -295,13 +295,13 @@ export function Stylist() {
       cities={cities}
       refineOpen={refineOpen}
       missing={missing}
-      limitMessage={limitMessage}
+      limitMessage={limitMessage ? t(limitMessage.message, limitMessage.values) : ""}
       upgradeOpen={upgradeOpen}
       onShowUpgrade={() => setUpgradeOpen(true)}
       onCloseUpgrade={() => setUpgradeOpen(false)}
       locating={locating}
-      geoError={geoError}
-      reason={reason}
+      geoError={geoError ? t(geoError) : null}
+      reason={reason ? t(reason) : ""}
       onOccasion={(o) => {
         setOccasion(o);
         setReason(defaultReason(o));

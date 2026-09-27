@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { WeatherPayload } from "@/lib/generator/types";
@@ -27,6 +28,7 @@ export function WeatherStrip({
   locating?: boolean;
   geoError?: string | null;
 }) {
+  const t = useTranslations("weather");
   const [menuOpen, setMenuOpen] = useState(false);
   const [showHourly, setShowHourly] = useState(false);
   // laterSentence === lead + adviceClause; render the clause in rust (README §2).
@@ -48,17 +50,17 @@ export function WeatherStrip({
           <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z" />
           </svg>
-          <span>{weather.cityLabel}</span>
+          <span>{weather.cityLabel === "Current location" ? t("currentLocation") : weather.cityLabel}</span>
           <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" aria-hidden="true">
             <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        <span className="text-[11px] text-muted-dim">feels {formatTemp(weather.feelsLikeC, weather.tempUnit)}</span>
+        <span className="text-[11px] text-muted-dim">{t("feels", { temperature: formatTemp(weather.feelsLikeC, weather.tempUnit) })}</span>
       </div>
 
       {(locating || geoError) && (
         <p role="status" className="mt-1 text-[11.5px] text-muted-foreground">
-          {locating ? "Locating…" : geoError}
+          {locating ? t("locating") : geoError}
         </p>
       )}
 
@@ -90,7 +92,7 @@ export function WeatherStrip({
         onClick={() => setShowHourly((s) => !s)}
         className="mt-[7px] flex w-full items-center gap-2 text-left text-[11.5px] text-muted-foreground"
       >
-        <span className="text-[9px] uppercase tracking-[0.16em] text-muted-dim">{weather.laterLabel}</span>
+        <span className="text-[9px] uppercase tracking-[0.16em] text-muted-dim">{t("later")}</span>
         <span className="h-[3px] w-[3px] rounded-full bg-faint" />
         <span>
           {lead}
@@ -116,7 +118,7 @@ export function WeatherStrip({
               )}
             >
               <div className={cn("text-[9px]", h.isNow ? "text-brand-high" : "text-muted-dim")}>
-                {h.isNow ? "Now" : h.hh}
+                {h.isNow ? t("now") : h.hh}
               </div>
               <div
                 data-rain={h.rain}

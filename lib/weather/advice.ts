@@ -11,8 +11,9 @@ const SWING_C = 5;
 
 /**
  * The single dressing-advice voice on the screen (README §2). Deterministic.
- * Returns the full `sentence` and the `adviceClause` on its own so the UI can
- * render the clause in rust (README wraps it in #D69873/600).
+ * Returns stable message keys and parameters. The server action renders the
+ * sentence in the request locale and keeps the clause separate for the rust
+ * emphasis in the weather strip.
  *
  * Two rules hold across every branch, and both were learned by getting them
  * wrong on 2026-08-14:
@@ -40,20 +41,24 @@ const SWING_C = 5;
  * Omitted → every day-aware branch is skipped and the behaviour is exactly what
  * it was before the day-planning change.
  */
+export type AdviceCopy = {
+  leadKey: "rainFrom" | "downTonight" | "coldDay" | "upLater" | "upAfternoon" | "dryEvening";
+  leadValues: Record<string, string>;
+  clauseKey: "takeShell" | "keepCoat" | "coatEarns" | "takeLayer" | "dressedForIt" | "carryJacket" | "noLayer";
+};
+
 export function laterAdvice(
   hourly: HourCell[],
   unit: TempUnit = "C",
   dayHighC?: number,
-): { sentence: string; adviceClause: string } {
-  const say = (sentence: string, adviceClause: string) => ({
-    sentence: `${sentence} — ${adviceClause}`,
-    adviceClause,
-  });
+): AdviceCopy {
+  const say = (leadKey: AdviceCopy["leadKey"], clauseKey: AdviceCopy["clauseKey"], leadValues: Record<string, string> = {}) =>
+    ({ leadKey, clauseKey, leadValues });
 
   // Rain outranks temperature in both directions: wet is the more urgent
   // instruction whether the day is freezing or sweltering.
   const rainHour = hourly.find((h) => h.rain);
-  if (rainHour) return say(`Rain from ${rainHour.hh}`, "take a shell.");
+  if (rainHour) return say("rainFrom", "takeShell", { hour: rainHour.hh });
 
   const now = hourly[0]?.tempC ?? 0;
   const last = hourly[hourly.length - 1]?.tempC ?? now;
@@ -63,23 +68,23 @@ export function laterAdvice(
   // The look carries a coat, so every clause below is about the cold itself.
   const lookHasCoat = dayHighC != null && dayHighC < OUTERWEAR_C;
   if (lookHasCoat) {
-    if (drop >= SWING_C) return say(`Down to ${formatTemp(last, unit)} tonight`, "keep the coat on.");
-    return say("Cold through the day", "the coat earns its place.");
+    if (drop >= SWING_C) return say("downTonight", "keepCoat", { temperature: formatTemp(last, unit) });
+    return say("coldDay", "coatEarns");
   }
 
   // No coat in the look, and the day still has to climb into what it was built
   // for. This is the instruction half of "dress for the peak" — without it a
   // linen shirt at 6°C reads as the stylist getting it wrong.
   if (rise >= SWING_C && now < OUTERWEAR_C) {
-    return say(`Up to ${formatTemp(dayHighC!, unit)} later`, "take a layer for now.");
+    return say("upLater", "takeLayer", { temperature: formatTemp(dayHighC!, unit) });
   }
 
   // Already warm and climbing: the look is right and the user is in it.
   if (rise >= SWING_C) {
-    return say(`Up to ${formatTemp(dayHighC!, unit)} this afternoon`, "you're dressed for it.");
+    return say("upAfternoon", "dressedForIt", { temperature: formatTemp(dayHighC!, unit) });
   }
 
-  if (drop >= SWING_C) return say(`Down to ${formatTemp(last, unit)} tonight`, "carry a jacket.");
+  if (drop >= SWING_C) return say("downTonight", "carryJacket", { temperature: formatTemp(last, unit) });
 
-  return say("Dry through the evening", "no extra layer.");
+  return say("dryEvening", "noLayer");
 }

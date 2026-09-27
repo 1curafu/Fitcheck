@@ -2,6 +2,7 @@
 // README §State Management. See docs/superpowers/plans/2026-07-18-stylist-generator.md.
 
 import type { TempUnit } from "@/lib/weather/format";
+import type { MessageKey } from "@/lib/i18n/keys";
 
 export type UiOccasion = "everyday" | "work" | "weekend" | "evening";
 
@@ -70,5 +71,5 @@ export type GenerateResult =
   // Hitting the meter is a STATE, not a failure. It carries `weather` so the
   // screen keeps its strip, and the reason verbatim so it can say what ran out
   // and what Pro gives — never "something went wrong" for a working app.
-  | { status: "limited"; weather: WeatherPayload; message: string }
-  | { status: "error"; message: string };
+  | { status: "limited"; weather: WeatherPayload; message: "errors.regenerateLimit"; values: { limit: number } }
+  | { status: "error"; message: MessageKey };

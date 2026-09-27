@@ -1,5 +1,7 @@
 "use server";
 
+import { getTranslations } from "next-intl/server";
+
 import { createClient } from "@/lib/supabase/server";
 import { signItemImages, displayPath } from "@/lib/storage/signed";
 import { fetchForecast } from "@/lib/weather/forecast";
@@ -40,6 +42,8 @@ import type {
   WeatherPayload,
 } from "@/lib/generator/types";
 import { stylistInputFor, toCandidateItem } from "@/lib/generator/from-row";
+import { FREE } from "@/lib/billing/tiers";
+import type { MessageKey } from "@/lib/i18n/keys";
 
 export async function generate(input: {
   occasion: UiOccasion;
@@ -55,7 +59,7 @@ export async function generate(input: {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return { status: "error", message: "Not signed in" };
+    if (!user) return { status: "error", message: "errors.generateNotSignedIn" };
 
     const { data: profile } = await supabase
       .from("profiles")
@@ -82,6 +86,9 @@ export async function generate(input: {
     const f = await fetchForecast(loc.lat, loc.lon);
     const prefs = readPreferences(profile?.preferences);
     const advice = laterAdvice(f.hourly, prefs.tempUnit, f.highC);
+    const tAdvice = await getTranslations("weather.advice");
+    const tWeather = await getTranslations("weather");
+    const adviceClause = tAdvice(advice.clauseKey);
     const weather: WeatherPayload = {
       tempC: f.tempC,
       feelsLikeC: f.feelsLikeC,
@@ -89,9 +96,9 @@ export async function generate(input: {
       cityLabel: loc.label,
       timezone: f.timezone,
       locationOrigin: loc.origin,
-      laterSentence: advice.sentence,
-      adviceClause: advice.adviceClause,
-      laterLabel: "Later",
+      laterSentence: `${tAdvice(advice.leadKey, advice.leadValues)} — ${adviceClause}`,
+      adviceClause,
+      laterLabel: tWeather("later"),
       hourly: f.hourly,
       tempUnit: prefs.tempUnit,
     };
@@ -178,7 +185,8 @@ export async function generate(input: {
       await assertCanGenerate(user.id, gen);
     } catch (e) {
       if (e instanceof QuotaExceededError) {
-        return { status: "limited", weather, message: e.message };
+        if (FREE.regeneratesPerDay === null) throw new Error("Free reroll limit is missing");
+        return { status: "limited", weather, message: "errors.regenerateLimit", values: { limit: FREE.regeneratesPerDay } };
       }
       throw e;
     }
@@ -313,7 +321,7 @@ export async function generate(input: {
     return { status: "ok", weather, looks: [...pinned, ...fresh] };
   } catch (e) {
     console.error("[generate] failed:", e);
-    return { status: "error", message: e instanceof Error ? e.message : "Generation failed" };
+    return { status: "error", message: "errors.generateFailed" };
   }
 }
 
@@ -343,7 +351,7 @@ export async function saveLocation(input: unknown): Promise<void> {
  * AI and NO weather — so the client can pick the right occasion before the first
  * generate without adding latency.
  */
-export async function predictDefaultOccasion(): Promise<{ occasion: UiOccasion; reason: string }> {
+export async function predictDefaultOccasion(): Promise<{ occasion: UiOccasion; reason: MessageKey }> {
   const supabase = await createClient();
   const {
     data: { user },

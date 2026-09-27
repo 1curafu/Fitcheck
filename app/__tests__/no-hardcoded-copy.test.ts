@@ -4,7 +4,6 @@ import { expect, it } from "vitest";
 
 /** Remove entries as each area is extracted; Task 21 requires an empty list. */
 export const PENDING = [
-  "app/[locale]/generate/", "components/generate/", "components/weather/",
   "app/[locale]/outfits/", "components/outfits/", "app/[locale]/l/",
   "app/[locale]/calendar/", "components/diary/", "app/[locale]/stats/", "components/stats/", "app/[locale]/profile/", "components/profile/",
   "app/[locale]/settings/", "components/settings/", "components/billing/",

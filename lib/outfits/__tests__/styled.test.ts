@@ -24,13 +24,11 @@ test("a piece that fits no combo returns empty rather than throwing", () => {
 // or the schema repair drops the pick.
 test("the fallback name is built from the piece, never left blank", () => {
   expect(styledLookName({ name: "Brushed Oxford", subcategory: "Oxford shirt", category: "Tops" }))
-    .toBe("Around the Brushed Oxford");
-  expect(styledLookName({ name: null, subcategory: "Oxford shirt", category: "Tops" })).toBe(
-    "Around the Oxford shirt",
-  );
-  expect(styledLookName({ name: null, subcategory: null, category: "Tops" })).toBe(
-    "Around the Tops",
-  );
+    .toEqual({ message: "item.style.around", values: { name: "Brushed Oxford" } });
+  expect(styledLookName({ name: null, subcategory: "Oxford shirt", category: "Tops" }))
+    .toEqual({ message: "item.style.around", values: { name: "Oxford shirt" } });
+  expect(styledLookName({ name: null, subcategory: null, category: "Tops" }))
+    .toEqual({ message: "item.style.around", values: { name: "Tops" } });
 });
 
 // ── The shortlist handed to the model ───────────────────────────────────────
