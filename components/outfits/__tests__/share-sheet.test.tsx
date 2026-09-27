@@ -173,3 +173,46 @@ test("Show brands explains itself and stays off when no piece has a brand", asyn
   expect(toggle).toBeDisabled();
   expect(toggle).toHaveAccessibleDescription(/add a brand on a piece/i);
 });
+
+test("Create link starts the clipboard write inside the tap and fills it with the new link (iOS activation)", async () => {
+  let written: Promise<Blob> | undefined;
+  class FakeClipboardItem { constructor(data: Record<string, Promise<Blob>>) { written = data["text/plain"]; } }
+  vi.stubGlobal("ClipboardItem", FakeClipboardItem);
+  const write = vi.fn(async () => { await written; });
+  Object.defineProperty(navigator, "clipboard", { value: { write, writeText: vi.fn() }, configurable: true });
+  let finishPrepare!: (v: unknown) => void;
+  actions.prepareShare.mockReturnValue(new Promise((res) => { finishPrepare = res; }));
+  actions.publishShare.mockResolvedValue({ status: "published" });
+  const sheet = await open();
+  fireEvent.click(within(sheet).getByRole("button", { name: /create link/i }));
+  expect(write).toHaveBeenCalledTimes(1); // synchronously, before the server has answered
+  finishPrepare({ status: "ok", token: TOKEN });
+  expect(await within(sheet).findByRole("button", { name: /^copied$/i })).toBeInTheDocument();
+  expect(await (await written!).text()).toContain(`/l/${TOKEN}`);
+  vi.unstubAllGlobals();
+});
+
+test("without ClipboardItem, Create link copies the link once it exists", async () => {
+  vi.stubGlobal("ClipboardItem", undefined);
+  const writeText = vi.fn(async () => {});
+  Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+  actions.prepareShare.mockResolvedValue({ status: "ok", token: TOKEN });
+  actions.publishShare.mockResolvedValue({ status: "published" });
+  const sheet = await open();
+  fireEvent.click(within(sheet).getByRole("button", { name: /create link/i }));
+  await waitFor(() => expect(writeText).toHaveBeenCalledWith(expect.stringContaining(`/l/${TOKEN}`)));
+  expect(await within(sheet).findByRole("button", { name: /^copied$/i })).toBeInTheDocument();
+  vi.unstubAllGlobals();
+});
+
+test("a failed Create link copies nothing", async () => {
+  vi.stubGlobal("ClipboardItem", undefined);
+  const writeText = vi.fn(async () => {});
+  Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+  actions.prepareShare.mockResolvedValue({ status: "limited", message: "You can have up to 100 shared links." });
+  const sheet = await open();
+  fireEvent.click(within(sheet).getByRole("button", { name: /create link/i }));
+  expect(await within(sheet).findByText(/up to 100 shared links/i)).toBeInTheDocument();
+  expect(writeText).not.toHaveBeenCalled();
+  vi.unstubAllGlobals();
+});

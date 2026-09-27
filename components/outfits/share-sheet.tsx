@@ -16,6 +16,26 @@ const PHOTOS_FAILED = "Couldn't load this look's photos. Try again.";
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const day = (d: Date) => `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
 
+/**
+ * Starts a clipboard write INSIDE the tap, with the text still pending. Safari allows a clipboard write only during a
+ * user gesture, and the link exists only seconds later; a ClipboardItem holding a promise is the supported way to
+ * bridge that. Without ClipboardItem it waits for the text and writes it (fine in Chrome and Firefox).
+ */
+function copyWhenReady(text: Promise<string>): Promise<boolean> {
+  try {
+    if (typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) {
+      const blob = text.then((t) => new Blob([t], { type: "text/plain" }));
+      blob.catch(() => {}); // a failed link must not surface as an unhandled rejection
+      const item = new ClipboardItem({ "text/plain": blob });
+      return navigator.clipboard.write([item]).then(() => true, () => false);
+    }
+  } catch { /* fall through */ }
+  return text.then(
+    (t) => (navigator.clipboard?.writeText ? navigator.clipboard.writeText(t).then(() => true, () => false) : false),
+    () => false,
+  );
+}
+
 /** For browsers without the async clipboard API (older iOS, some in-app browsers). */
 function copyBySelection(text: string): boolean {
   if (typeof document.execCommand !== "function") return false;
@@ -127,10 +147,14 @@ export function ShareSheet({ outfit, pieces, onClose }: { outfit: ShareOutfit; p
   }
 
   async function createLink() {
-    setBusy("link"); setMessage(null);
+    setBusy("link"); setMessage(null); setCopyError(null);
+    let settle!: { ok: (url: string) => void; fail: () => void };
+    const url = new Promise<string>((ok, fail) => { settle = { ok, fail: () => fail(new Error("no link")) }; });
+    // Synchronously, before any await: this is still the user's tap.
+    const copying = copyWhenReady(url);
     try {
       const prepared = await prepareShare({ outfitId: outfit.id, showBrands });
-      if (prepared.status === "limited") { setMessage(prepared.message); return; }
+      if (prepared.status === "limited") { settle.fail(); setMessage(prepared.message); return; }
       const bucket = createClient().storage.from("shares");
       const targets: CardTarget[] = ["story", "post", "preview"];
       for (const [i, name] of SHARE_IMAGE_FILES.entries()) {
@@ -139,9 +163,12 @@ export function ShareSheet({ outfit, pieces, onClose }: { outfit: ShareOutfit; p
         if (error) throw error;
       }
       const published = await publishShare(prepared.token);
-      if (published.status === "error") { setMessage(published.message); return; }
+      if (published.status === "error") { settle.fail(); setMessage(published.message); return; }
       setLink({ token: prepared.token, readyAt: new Date().toISOString() });
+      settle.ok(`${window.location.origin}/l/${prepared.token}`);
+      if (await copying) setCopied(true);
     } catch {
+      settle.fail();
       setMessage("Couldn't create the link. Try again.");
       assets.current = null;
       router.refresh(); // signed image URLs expire; a fresh render gets new ones
