@@ -13,7 +13,7 @@ import {
 } from "@/components/outfits/outfit-detail";
 import type { Slot } from "@/lib/generator/types";
 import { redirect } from "@/lib/i18n/navigation";
-import { getLocale } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 type ItemRow = {
   id: string;
@@ -41,6 +41,7 @@ export default function OutfitPage({
 }
 
 async function OutfitBody({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getTranslations("outfit");
   const { id } = await params;
   const supabase = await createClient();
   const {
@@ -117,7 +118,7 @@ async function OutfitBody({ params }: { params: Promise<{ id: string }> }) {
     <OutfitDetail
       outfit={{
         id: outfit.id,
-        lookName: outfit.look_name ?? "Today's look",
+        lookName: outfit.look_name ?? t("todayLook"),
         occasion: outfit.occasion ?? "",
         weatherLabel: weather
           ? `${formatTemp(weather.tempC ?? 0, prefs.tempUnit)} ${weather.condition ?? ""}`.trim()

@@ -1,5 +1,6 @@
 import type { createClient } from "@/lib/supabase/server";
 import { SHARE_CAP, SHARE_IMAGE_FILES, SHARE_LIMITS, clipText, snapshotPieces } from "./snapshot";
+import type { MessageKey } from "@/lib/i18n/keys";
 
 export type ShareClient = Awaited<ReturnType<typeof createClient>>;
 type ItemRow = { id: string; name: string | null; subcategory: string | null; category: string; brand: string | null };
@@ -9,7 +10,7 @@ type ItemRow = { id: string; name: string | null; subcategory: string | null; ca
  * caller's RLS; the TOKEN is minted by the database (spec §0 A4). A refresh clears ready_at until publish (A7).
  */
 export async function prepare(supabase: ShareClient, userId: string, input: { outfitId: string; showBrands: boolean }):
-  Promise<{ status: "ok"; token: string } | { status: "limited"; message: string }> {
+  Promise<{ status: "ok"; token: string } | { status: "limited"; message: "share.cap"; values: { limit: number } }> {
   const { data: outfit, error } = await supabase
     .from("outfits").select("id, look_name, occasion, ai_reasoning").eq("id", input.outfitId).maybeSingle();
   if (error) throw error;
@@ -46,7 +47,7 @@ export async function prepare(supabase: ShareClient, userId: string, input: { ou
   const { count, error: countError } = await supabase.from("look_shares").select("id", { count: "exact", head: true });
   if (countError || count === null) throw new Error("Cannot check shares");
   if (count >= SHARE_CAP) {
-    return { status: "limited", message: `You can have up to ${SHARE_CAP} shared links. Stop sharing one in Settings to share another.` };
+    return { status: "limited", message: "share.cap", values: { limit: SHARE_CAP } };
   }
   const { data: created, error: insertError } = await supabase
     .from("look_shares").insert({ ...snapshot, user_id: userId, outfit_id: outfit.id }).select("token").single();
@@ -61,28 +62,28 @@ async function mustOwn(supabase: ShareClient, token: string) {
   return data;
 }
 
-export async function publish(supabase: ShareClient, token: string): Promise<{ status: "published" } | { status: "error"; message: string }> {
+export async function publish(supabase: ShareClient, token: string): Promise<{ status: "published" } | { status: "error"; message: MessageKey }> {
   await mustOwn(supabase, token);
   const { data, error } = await supabase.storage.from("shares").list(token);
   const names = new Set((data ?? []).map((f) => f.name));
-  if (error || !SHARE_IMAGE_FILES.every((f) => names.has(f))) return { status: "error", message: "Couldn't finish sharing. Try again." };
+  if (error || !SHARE_IMAGE_FILES.every((f) => names.has(f))) return { status: "error", message: "share.publishFailed" };
   const now = new Date().toISOString();
   const { data: published, error: updateError } = await supabase.from("look_shares")
     .update({ ready_at: now, updated_at: now }).eq("token", token).select("token").maybeSingle();
   if (updateError) throw updateError;
-  if (!published) return { status: "error", message: "This link changed. Try again." };
+  if (!published) return { status: "error", message: "share.changed" };
   return { status: "published" };
 }
 
 /** Claim first, then remove and verify images BEFORE deleting the row. A failed cleanup stays retryable. */
-export async function stop(supabase: ShareClient, token: string): Promise<{ status: "stopped" } | { status: "error"; message: string }> {
+export async function stop(supabase: ShareClient, token: string): Promise<{ status: "stopped" } | { status: "error"; message: MessageKey }> {
   const row = await mustOwn(supabase, token);
   if (!row.purging_at) {
     const { error: claimError } = await supabase.from("look_shares")
       .update({ purging_at: new Date().toISOString() }).eq("token", token).is("purging_at", null);
     if (claimError) throw claimError;
   }
-  const failed = { status: "error" as const, message: "Your link is off, but image cleanup didn't finish. Try again." };
+  const failed = { status: "error" as const, message: "share.cleanupFailed" as const };
   const bucket = supabase.storage.from("shares");
   const removed = await bucket.remove(SHARE_IMAGE_FILES.map((f) => `${token}/${f}`));
   if (removed.error) return failed;

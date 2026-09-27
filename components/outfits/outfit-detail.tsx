@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "next-intl";
 import { useRouter, Link } from "@/lib/i18n/navigation";
 
 import { useOptimistic, useTransition, type CSSProperties, useEffect, useState } from "react";
@@ -10,7 +11,7 @@ import { ShareSheet } from "./share-sheet";
 import { WeatherAttribution } from "@/components/weather/attribution";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { wearLabel } from "@/lib/outfits/wear";
-import type { Slot } from "@/lib/generator/types";
+import type { Slot, UiOccasion } from "@/lib/generator/types";
 
 export type DetailPiece = {
   id: string;
@@ -43,6 +44,10 @@ export function OutfitDetail({
   /** The piece this look was styled around, when it came from "Style an outfit with this". */
   styledItemId?: string | null;
 }) {
+  const t = useTranslations("outfit");
+  const tOccasion = useTranslations("vocab.occasion");
+  const occasionLabel = (["everyday", "work", "weekend", "evening"] as string[]).includes(outfit.occasion)
+    ? tOccasion(outfit.occasion as UiOccasion) : outfit.occasion;
   const router = useRouter();
   // Optimistic rather than local state: both toggles revalidate this route, so
   // the server value is the truth a moment later. `useState(worn)` would seed
@@ -87,7 +92,7 @@ export function OutfitDetail({
           if (window.history.length > 1) router.back();
           else router.push("/generate");
         }}
-        aria-label="Back"
+        aria-label={t("back")}
         className="absolute left-[18px] top-[calc(env(safe-area-inset-top)+18px)] z-40 grid size-10 place-items-center rounded-full bg-[rgba(20,19,22,0.7)] text-xl text-foreground shadow-[inset_0_0_0_1px_var(--hairline-7)] backdrop-blur-[10px]"
       >
         ‹
@@ -95,7 +100,7 @@ export function OutfitDetail({
       <button
         type="button"
         onClick={() => setSharing(true)}
-        aria-label="Share"
+        aria-label={t("share")}
         className="absolute right-[18px] top-[calc(env(safe-area-inset-top)+18px)] z-40 grid size-10 place-items-center rounded-full bg-[rgba(20,19,22,0.7)] text-xl text-foreground shadow-[inset_0_0_0_1px_var(--hairline-7)] backdrop-blur-[10px]"
       >
         <Share size={18} />
@@ -142,7 +147,7 @@ export function OutfitDetail({
 
         <div className="px-6 pt-2">
           <Kicker>
-            {outfit.occasion} · {outfit.weatherLabel}
+            {occasionLabel} · {outfit.weatherLabel}
           </Kicker>
           {/* ⚠️ REQUIRED by ODbL — but ONLY when a temperature is actually on
               screen. `weatherLabel` is "" when the look was stored without a
@@ -159,12 +164,12 @@ export function OutfitDetail({
                 f
               </span>
               <p className="font-serif text-lg/[1.45] italic text-value text-pretty">
-                &ldquo;{outfit.reasoning}&rdquo;
+                {"“"}{outfit.reasoning}{"”"}
               </p>
             </div>
           )}
 
-          <Kicker className="mb-3 block">In this look</Kicker>
+          <Kicker className="mb-3 block">{t("inLook")}</Kicker>
           <div className="flex flex-col gap-[10px]">
             {pieces.map((p) => (
               // Every piece row is a way into that garment — this is the screen
@@ -216,7 +221,7 @@ export function OutfitDetail({
       <div className="sticky bottom-0 z-30 grid grid-cols-[56px_1fr] gap-3 bg-gradient-to-t from-canvas from-60% to-transparent px-[22px] pb-[calc(env(safe-area-inset-bottom)+14px)] pt-[14px]">
         <button
           type="button"
-          aria-label="Favourite"
+          aria-label={t("favourite")}
           aria-pressed={isFav}
           disabled={pending}
           onClick={() =>
@@ -245,7 +250,7 @@ export function OutfitDetail({
             isWorn ? "bg-surface-2 text-value" : "bg-foreground text-canvas"
           }`}
         >
-          {wearLabel(isWorn)}
+          {t(wearLabel(isWorn))}
         </button>
         {styledItemId && (
           // Spans both columns and centres: a hairline PILL at natural width,

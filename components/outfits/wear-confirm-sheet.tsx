@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "next-intl";
 
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 
@@ -36,6 +37,7 @@ export function WearConfirmSheet({
   /** Backdrop only. Records NOTHING — the question stays askable. */
   onDismiss: () => void;
 }) {
+  const t = useTranslations("outfit.wearConfirm");
   if (!open) return null;
 
   // One string, used twice. Two class lists that merely look alike are two
@@ -48,33 +50,33 @@ export function WearConfirmSheet({
     <>
       <button
         type="button"
-        aria-label="Dismiss"
+        aria-label={t("dismiss")}
         onClick={onDismiss}
         className="fixed inset-0 z-[60] bg-[rgba(6,6,8,0.5)] backdrop-blur-[1.5px]"
       />
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Wear confirmation"
+        aria-label={t("label")}
         style={{ maxWidth: 440 }}
         className="fixed inset-x-0 bottom-0 z-[70] mx-auto rounded-t-[22px] border-t border-[rgba(237,230,216,0.12)] bg-surface-2 px-[22px] pb-[calc(env(safe-area-inset-bottom)+20px)] pt-3.5"
       >
         <div className="mx-auto mb-4 h-1 w-[34px] rounded-full bg-faint" />
 
-        <Kicker className="block">Today</Kicker>
+        <Kicker className="block">{t("today")}</Kicker>
         <h2 className="mt-1.5 font-serif text-[22px]/[1.2] text-foreground text-pretty">
-          Did you wear {lookName} today?
+          {t("question", { lookName })}
         </h2>
         <p className="mt-1.5 text-[12.5px] text-muted-foreground">
-          Only you can say — we never log a wear for you.
+          {t("explanation")}
         </p>
 
         <div className="mt-4 flex gap-2">
           <button type="button" disabled={pending} onClick={onNo} className={answer}>
-            No
+            {t("no")}
           </button>
           <button type="button" disabled={pending} onClick={onYes} className={answer}>
-            Yes
+            {t("yes")}
           </button>
         </div>
       </div>

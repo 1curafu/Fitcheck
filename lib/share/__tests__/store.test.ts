@@ -89,7 +89,8 @@ describe("prepare", () => {
 
   it("stops at the cap with a message instead of inserting", async () => {
     s.rowCount = 100;
-    expect((await prepare(client(), owner, { outfitId, showBrands: false })).status).toBe("limited");
+    expect(await prepare(client(), owner, { outfitId, showBrands: false }))
+      .toEqual({ status: "limited", message: "share.cap", values: { limit: 100 } });
     expect(s.inserted).toEqual([]);
   });
 
@@ -103,7 +104,7 @@ describe("publish", () => {
   it("publishes only when all three images exist", async () => {
     s.existing = { token, ready_at: null };
     s.listed = [{ name: "story.jpg" }, { name: "post.jpg" }];
-    expect((await publish(client(), token)).status).toBe("error");
+    expect(await publish(client(), token)).toEqual({ status: "error", message: "share.publishFailed" });
     expect(s.updated).toEqual([]);
     s.listed = [{ name: "story.jpg" }, { name: "post.jpg" }, { name: "og.jpg" }];
     expect(await publish(client(), token)).toEqual({ status: "published" });
@@ -131,7 +132,7 @@ describe("stop", () => {
   it("keeps the row when Storage fails or an image is still listed", async () => {
     s.existing = { token, ready_at: "x" };
     s.removeError = new Error("down");
-    expect((await stop(client(), token)).status).toBe("error");
+    expect(await stop(client(), token)).toEqual({ status: "error", message: "share.cleanupFailed" });
     s.removeError = null;
     s.listed = [{ name: "og.jpg" }];
     expect((await stop(client(), token)).status).toBe("error");

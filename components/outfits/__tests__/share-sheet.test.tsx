@@ -93,7 +93,7 @@ test("Create link prepares, uploads the three images with a short cache, publish
 });
 
 test("the cap shows its message and uploads nothing", async () => {
-  actions.prepareShare.mockResolvedValue({ status: "limited", message: "You can have up to 100 shared links." });
+  actions.prepareShare.mockResolvedValue({ status: "limited", message: "share.cap", values: { limit: 100 } });
   const sheet = await open();
   await userEvent.click(within(sheet).getByRole("button", { name: /create link/i }));
   expect(await within(sheet).findByText(/up to 100 shared links/i)).toBeInTheDocument();
@@ -112,7 +112,7 @@ test("an existing live link shows its expiry and can be stopped", async () => {
 
 test("a failed image cleanup leaves the public link off and offers a retry", async () => {
   actions.getShareState.mockResolvedValue({ token: TOKEN, readyAt: "2026-09-26T10:00:00.000Z" });
-  actions.stopSharing.mockResolvedValue({ status: "error", message: "Your link is off, but image cleanup didn't finish. Try again." });
+  actions.stopSharing.mockResolvedValue({ status: "error", message: "share.cleanupFailed" });
   const sheet = await open();
   expect(await within(sheet).findByTestId("share-url")).toBeInTheDocument();
   await userEvent.click(within(sheet).getByRole("button", { name: /stop sharing/i }));
@@ -209,7 +209,7 @@ test("a failed Create link copies nothing", async () => {
   vi.stubGlobal("ClipboardItem", undefined);
   const writeText = vi.fn(async () => {});
   Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
-  actions.prepareShare.mockResolvedValue({ status: "limited", message: "You can have up to 100 shared links." });
+  actions.prepareShare.mockResolvedValue({ status: "limited", message: "share.cap", values: { limit: 100 } });
   const sheet = await open();
   fireEvent.click(within(sheet).getByRole("button", { name: /create link/i }));
   expect(await within(sheet).findByText(/up to 100 shared links/i)).toBeInTheDocument();
