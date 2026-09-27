@@ -46,11 +46,11 @@ async function SharedBody({ params }: Params) {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={shareImageUrl(token, "post.jpg", look.version)} width={1080} height={1350} alt={`${look.lookName}. ${look.reasoning ?? ""}`.trim()}
         className="h-auto w-full rounded-[18px] shadow-[inset_0_0_0_1px_var(--hairline-7)]" />
-      <ol className="flex flex-col gap-1.5 text-[14px] text-foreground">
-        {look.pieces.map((p) => <li key={p.n}><span className="mr-2 text-muted-foreground">{p.n}</span>{pieceLabel(p)}</li>)}
+      <ol aria-label="Pieces in this look" className="sr-only">
+        {look.pieces.map((p) => <li key={p.n}>{pieceLabel(p)}</li>)}
       </ol>
       <section className="mt-2 flex flex-col gap-3">
-        <p className="font-serif text-[19px]/[1.3] text-foreground">Looks like this, from the clothes you already own.</p>
+        <p className="text-center font-serif text-[19px]/[1.3] text-foreground">Looks like this, from the clothes you already own.</p>
         <Link href={user ? "/generate" : "/"} className="grid min-h-[52px] place-items-center rounded-[14px] bg-foreground text-[15px] font-semibold text-canvas">
           {user ? "Open Fitcheck" : "Get your own looks — free"}
         </Link>
