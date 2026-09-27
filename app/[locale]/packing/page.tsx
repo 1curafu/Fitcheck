@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { PackingBack } from "@/components/packing/back-link";
 import { listTrips } from "@/lib/packing/store";
+import { formatDateRange } from "@/lib/i18n/format";
 
 /**
  * The shell: the header, identical for every user, in the place the body puts
@@ -38,6 +39,7 @@ export default async function TripsPage() {
 
 async function TripsBody() {
   const t = await getTranslations("packing");
+  const locale = await getLocale();
   const supabase = await createClient();
   const {
     data: { user },
@@ -63,7 +65,7 @@ async function TripsBody() {
                 href={`/packing/${trip.id}`}
                 className="block rounded-[16px] bg-surface-1 px-4 py-[15px] shadow-[inset_0_0_0_1px_var(--hairline-3)]"
               >
-                <Kicker className="block">{formatRange(trip.startDate, trip.endDate)}</Kicker>
+                <Kicker className="block">{formatDateRange(trip.startDate, trip.endDate, locale)}</Kicker>
                 <div className="mt-[6px] font-serif text-[20px]/[1.2] text-foreground">
                   {trip.destinationLabel}
                 </div>
@@ -86,15 +88,4 @@ async function TripsBody() {
       </div>
     </div>
   );
-}
-
-/** "1–7 Sept" — one month named once. */
-function formatRange(start: string, end: string): string {
-  const a = new Date(`${start}T00:00:00Z`);
-  const b = new Date(`${end}T00:00:00Z`);
-  const month = (d: Date) => d.toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" });
-  const day = (d: Date) => d.getUTCDate();
-  return month(a) === month(b)
-    ? `${day(a)}–${day(b)} ${month(b)}`
-    : `${day(a)} ${month(a)} – ${day(b)} ${month(b)}`;
 }

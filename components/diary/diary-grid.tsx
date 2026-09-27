@@ -1,13 +1,12 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/lib/i18n/navigation";
 import type { CSSProperties } from "react";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import type { Cell, DiaryPiece } from "@/lib/diary/month";
-
-/** Monday-first, matching `buildMonth`'s leading pad. */
-const DOWS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
+import { intlLocale, weekStartsOn } from "@/lib/i18n/format";
+import type { ShippedLocale } from "@/lib/i18n/locales";
 
 function Flame() {
   return (
@@ -18,9 +17,9 @@ function Flame() {
 }
 
 /** `2026-07-09` → `9 July` — the cell's accessible name. */
-function dayLabel(key: string): string {
+function dayLabel(key: string, locale: ShippedLocale): string {
   const [y, m, d] = key.split("-").map(Number);
-  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", timeZone: "UTC" }).format(
+  return new Intl.DateTimeFormat(intlLocale(locale), { day: "numeric", month: "long", timeZone: "UTC" }).format(
     new Date(Date.UTC(y, m - 1, d)),
   );
 }
@@ -66,6 +65,7 @@ function Thumbnail({ pieces }: { pieces: DiaryPiece[] }) {
 }
 
 function DayCell({ cell }: { cell: Cell }) {
+  const locale = useLocale();
   if (!cell.inMonth) return <div aria-hidden="true" />;
 
   const worn = Boolean(cell.log);
@@ -123,7 +123,7 @@ function DayCell({ cell }: { cell: Cell }) {
     return (
       <Link
         href={`/outfits/${cell.log.outfitId}`}
-        aria-label={dayLabel(cell.key)}
+        aria-label={dayLabel(cell.key, locale)}
         data-testid={`cell-${cell.key}`}
         className={shell}
       >
@@ -157,6 +157,9 @@ export function DiaryGrid({
   nextHref: string;
 }) {
   const t = useTranslations("diary");
+  const locale = useLocale();
+  const start = weekStartsOn(locale);
+  const weekday = new Intl.DateTimeFormat(intlLocale(locale), { weekday: "narrow", timeZone: "UTC" });
   const hasWears = cells.some((c) => c.log);
 
   return (
@@ -207,8 +210,8 @@ export function DiaryGrid({
           data-testid="weekday-header"
           className="mb-2 grid grid-cols-7 gap-[7px] text-center text-[10px] uppercase tracking-[0.1em] text-muted-dim"
         >
-          {DOWS.map((d) => (
-            <div key={d}>{t(`weekdays.${d}`)}</div>
+          {Array.from({ length: 7 }, (_, offset) => (
+            <div key={offset}>{weekday.format(new Date(Date.UTC(2026, 0, 4 + start + offset)))}</div>
           ))}
         </div>
 

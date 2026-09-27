@@ -1,18 +1,19 @@
 "use client";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/lib/i18n/navigation";
 
 import { useState, useTransition } from "react";
 
 import { shareExpiry } from "@/lib/share/snapshot";
 import type { stopSharedLink } from "@/app/[locale]/settings/actions";
+import { formatShortDate } from "@/lib/i18n/format";
 
 type Link = { token: string; lookName: string; readyAt: string | null; purgingAt?: string; createdAt: string };
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const day = (d: Date) => `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
 
 /** Every link the user has shared, so one whose look is gone (reroll, another day) can still be stopped (spec §0 A1). */
 export function SharedLinks({ links, stop }: { links: Link[]; stop: typeof stopSharedLink }) {
+  const locale = useLocale();
+  const day = (date: Date) => formatShortDate(date, locale);
   const t = useTranslations("settings.links");
   const tRoot = useTranslations();
   const router = useRouter();

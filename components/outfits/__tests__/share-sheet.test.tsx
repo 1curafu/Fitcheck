@@ -104,7 +104,7 @@ test("an existing live link shows its expiry and can be stopped", async () => {
   actions.getShareState.mockResolvedValue({ token: TOKEN, readyAt: "2026-09-26T10:00:00.000Z" });
   actions.stopSharing.mockResolvedValue({ status: "stopped" });
   const sheet = await open();
-  expect(await within(sheet).findByText(/expires 26 oct/i)).toBeInTheDocument();
+  expect(await within(sheet).findByText(/expires oct 26/i)).toBeInTheDocument();
   await userEvent.click(within(sheet).getByRole("button", { name: /stop sharing/i }));
   await waitFor(() => expect(within(sheet).queryByTestId("share-url")).not.toBeInTheDocument());
   expect(actions.stopSharing).toHaveBeenCalledWith(TOKEN);

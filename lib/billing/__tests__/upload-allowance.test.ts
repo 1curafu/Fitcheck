@@ -44,7 +44,7 @@ describe("upload allowance", () => {
   it("stops a free closet at 50 items", async () => {
     state.count = 50;
     expect(await readUploadAllowance()).toMatchObject({ allowed: false, remaining: 0 });
-    await expect(assertCanUpload()).rejects.toThrow("A free closet holds 50 pieces");
+    await expect(assertCanUpload()).rejects.toThrow("errors.closetFull");
   });
 
   it("does not count items for Pro", async () => {

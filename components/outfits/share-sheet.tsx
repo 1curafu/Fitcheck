@@ -1,5 +1,5 @@
 "use client";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/lib/i18n/navigation";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -12,11 +12,10 @@ import { loadFonts, loadImages, renderCard } from "@/lib/share/render";
 import { orderPieces, pieceLabel, shareExpiry, shareKicker, snapshotPieces, SHARE_IMAGE_FILES } from "@/lib/share/snapshot";
 import type { CardInput, CardTarget } from "@/lib/share/card-layout";
 import type { UiOccasion } from "@/lib/generator/types";
+import { formatShortDate } from "@/lib/i18n/format";
 
 type ShareOutfit = { id: string; lookName: string; occasion: string; reasoning: string | null; lookDate: string | null };
 type ShareLink = { token: string; readyAt: string | null; purgingAt?: string };
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const day = (d: Date) => `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
 
 /**
  * Starts a clipboard write INSIDE the tap, with the text still pending. Safari allows a clipboard write only during a
@@ -52,6 +51,8 @@ function copyBySelection(text: string): boolean {
 }
 
 export function ShareSheet({ outfit, pieces, onClose }: { outfit: ShareOutfit; pieces: DetailPiece[]; onClose: () => void }) {
+  const locale = useLocale();
+  const day = (d: Date) => formatShortDate(d, locale);
   const t = useTranslations("share");
   const tRoot = useTranslations();
   const tOccasion = useTranslations("vocab.occasion");
@@ -84,7 +85,7 @@ export function ShareSheet({ outfit, pieces, onClose }: { outfit: ShareOutfit; p
     return {
       title: outfit.lookName, why: outfit.reasoning,
       kicker: shareKicker((["everyday", "work", "weekend", "evening"] as string[]).includes(outfit.occasion)
-        ? tOccasion(outfit.occasion as UiOccasion) : outfit.occasion, outfit.lookDate),
+        ? tOccasion(outfit.occasion as UiOccasion) : outfit.occasion, outfit.lookDate, locale),
       footer: t("cardFooter"),
       pieces: ordered.map((p, i) => ({ n: i + 1, label: pieceLabel(labels[i]), slot: p.slot })),
     };

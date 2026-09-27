@@ -1,5 +1,5 @@
 "use client";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { unstable_rethrow } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -16,7 +16,7 @@ export function ManageSubscription(props: SubscriptionSummary) {
   const t = useTranslations("billing");
   const [pending, start] = useTransition();
   const [failed, setFailed] = useState(false);
-  const line = statusLine(props);
+  const line = statusLine(props, useLocale());
 
   return (
     <div className="px-4 py-3">

@@ -108,6 +108,7 @@ async function StatsBody() {
     wears.flatMap((w) =>
       (itemsByOutfit.get(w.outfit_id) ?? []).map((item_id) => ({ item_id })),
     ),
+    await getLocale(),
   );
   const entitlements = entitlementsFor(profile?.tier);
 

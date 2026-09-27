@@ -10,6 +10,8 @@ import { loadTrip } from "@/lib/packing/store";
 import { expandDays } from "@/lib/packing/plan";
 import { fetchTripForecast } from "@/lib/weather/forecast";
 import { getLocale, getTranslations } from "next-intl/server";
+import { formatDateRange, intlLocale } from "@/lib/i18n/format";
+import type { ShippedLocale } from "@/lib/i18n/locales";
 
 /**
  * The shell, and the `<Suspense>` fallback.
@@ -40,6 +42,7 @@ export default function TripPage({ params }: { params: Promise<{ tripId: string 
 
 async function TripBody({ params }: { params: Promise<{ tripId: string }> }) {
   const t = await getTranslations("packing");
+  const locale = await getLocale();
   const { tripId } = await params;
   const supabase = await createClient();
   const {
@@ -96,7 +99,7 @@ async function TripBody({ params }: { params: Promise<{ tripId: string }> }) {
   });
 
   const covered = (looks ?? []).length;
-  const range = formatRange(trip.startDate, trip.endDate);
+  const range = formatRange(trip.startDate, trip.endDate, locale);
   const forecast = await fetchTripForecast(trip.lat, trip.lon, days.map((d) => d.date));
 
   // ⚠️ The shortfall branch. Reachable at an ordinary setting — "Fresh every
@@ -106,7 +109,7 @@ async function TripBody({ params }: { params: Promise<{ tripId: string }> }) {
     const uncoveredDays = days.filter((d) => !(looks ?? []).some((l) => l.trip_day === d.date));
     const byOccasion = new Map<string, string[]>();
     for (const d of uncoveredDays) {
-      byOccasion.set(d.occasion, [...(byOccasion.get(d.occasion) ?? []), shortDay(d.date)]);
+      byOccasion.set(d.occasion, [...(byOccasion.get(d.occasion) ?? []), shortDay(d.date, locale)]);
     }
 
     return (
@@ -170,19 +173,12 @@ async function TripBody({ params }: { params: Promise<{ tripId: string }> }) {
   );
 }
 
-/** "12–18 May" — one month named once. */
-export function formatRange(start: string, end: string): string {
-  const a = new Date(`${start}T00:00:00Z`);
-  const b = new Date(`${end}T00:00:00Z`);
-  const month = (d: Date) => d.toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" });
-  const day = (d: Date) => d.getUTCDate();
-  return month(a) === month(b)
-    ? `${day(a)}–${day(b)} ${month(b)}`
-    : `${day(a)} ${month(a)} – ${day(b)} ${month(b)}`;
+export function formatRange(start: string, end: string, locale: ShippedLocale = "en-GB"): string {
+  return formatDateRange(start, end, locale);
 }
 
-function shortDay(date: string): string {
-  return new Date(`${date}T00:00:00Z`).toLocaleDateString("en-GB", {
+function shortDay(date: string, locale: ShippedLocale): string {
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString(intlLocale(locale), {
     weekday: "short",
     day: "numeric",
     timeZone: "UTC",

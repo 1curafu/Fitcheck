@@ -8,6 +8,7 @@
 
 import { formatMoney } from "@/lib/format/money";
 import { daysBetween } from "@/lib/format/days";
+import type { ShippedLocale } from "@/lib/i18n/locales";
 
 /**
  * Cost-per-wear is null rather than 0 or "—" when there is no price or no
@@ -18,9 +19,10 @@ export function itemWearStats(
   logs: { worn_on: string }[],
   price: number | null,
   today: string,
+  locale: ShippedLocale = "en-US",
 ): { wears: number; costPerWear: string | null; lastWorn: string } {
   const wears = logs.length;
-  const costPerWear = price != null && wears > 0 ? formatMoney(price / wears) : null;
+  const costPerWear = price != null && wears > 0 ? formatMoney(price / wears, locale) : null;
 
   if (!wears) return { wears, costPerWear, lastWorn: "Never" };
 

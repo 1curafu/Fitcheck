@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { signItemImages, displayPath } from "@/lib/storage/signed";
 import { todayFor } from "@/lib/outfits/today";
 import { buildMonth, monthLabel, type DayLog } from "@/lib/diary/month";
+import { weekStartsOn } from "@/lib/i18n/format";
 import { currentStreak } from "@/lib/diary/streak";
 import { thumbnailPieces } from "@/lib/diary/thumbnail";
 import {
@@ -75,6 +76,7 @@ async function DiaryBody({
   const today = await todayFor(profile?.location_timezone);
 
   const { year, month } = parseMonth(m, today);
+  const locale = await getLocale();
   const { start, end } = monthBounds(year, month);
 
   /**
@@ -152,8 +154,8 @@ async function DiaryBody({
 
   return (
     <DiaryGrid
-      cells={buildMonth(year, month, today, logs)}
-      monthLabel={monthLabel(year, month)}
+      cells={buildMonth(year, month, today, logs, weekStartsOn(locale))}
+      monthLabel={monthLabel(year, month, locale)}
       streak={currentStreak(
         (allDates ?? []).map((r) => r.worn_on),
         today,

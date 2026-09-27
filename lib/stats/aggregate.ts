@@ -1,5 +1,6 @@
 import { formatMoney } from "@/lib/format/money";
 import { daysBetween } from "@/lib/format/days";
+import type { ShippedLocale } from "@/lib/i18n/locales";
 
 /**
  * The aggregates behind `/stats` (Fitcheck.dc.html:737-780).
@@ -20,16 +21,17 @@ type PricedItem = { id: string; price: number | null };
 export function closetStats(
   items: PricedItem[],
   logs: { item_id: string }[],
+  locale: ShippedLocale = "en-US",
 ): { value: string; totalWears: number; avgCostPerWear: string | null } {
   const total = items.reduce((sum, i) => sum + (i.price ?? 0), 0);
   const totalWears = logs.length;
   return {
-    value: formatMoney(total),
+    value: formatMoney(total, locale),
     totalWears,
     // Null rather than 0 or "€0.00" on either empty branch. Dividing by zero
     // wears prints €Infinity, and €0.00 for an unpriced closet states something
     // false — the UI hides the tile instead. Same stance as `itemWearStats`.
-    avgCostPerWear: totalWears > 0 && total > 0 ? formatMoney(total / totalWears) : null,
+    avgCostPerWear: totalWears > 0 && total > 0 ? formatMoney(total / totalWears, locale) : null,
   };
 }
 

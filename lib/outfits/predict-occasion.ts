@@ -22,7 +22,7 @@ export function predictOccasion(now: Date, timeZone: string, occasions: string[]
   return priority.find((o) => dressesFor.has(o)) ?? "everyday";
 }
 
-/** Day-of-week in the user's zone. `Intl` `weekday: "short"` is locale-stable in en-US. */
+/** Day-of-week in the user's zone. This Intl call computes a weekday key, not display copy. */
 function isWeekend(now: Date, timeZone: string): boolean {
   let day: string;
   try {

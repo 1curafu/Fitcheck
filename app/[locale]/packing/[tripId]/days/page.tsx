@@ -10,6 +10,7 @@ import { fetchTripForecast } from "@/lib/weather/forecast";
 import { formatRange } from "../page";
 import { redirect } from "@/lib/i18n/navigation";
 import { getLocale } from "next-intl/server";
+import { intlLocale } from "@/lib/i18n/format";
 
 /**
  * Only the back control — see the note in the capsule route's shell.
@@ -47,6 +48,7 @@ export default function DaysPage({ params }: { params: Promise<{ tripId: string 
 }
 
 async function DaysBody({ params }: { params: Promise<{ tripId: string }> }) {
+  const locale = await getLocale();
   const { tripId } = await params;
   const supabase = await createClient();
   const {
@@ -113,7 +115,7 @@ async function DaysBody({ params }: { params: Promise<{ tripId: string }> }) {
     return {
       outfitId: l.id as string,
       date,
-      label: new Date(`${date}T00:00:00Z`).toLocaleDateString("en-GB", {
+      label: new Date(`${date}T00:00:00Z`).toLocaleDateString(intlLocale(locale), {
         weekday: "short",
         day: "numeric",
         timeZone: "UTC",
@@ -130,7 +132,7 @@ async function DaysBody({ params }: { params: Promise<{ tripId: string }> }) {
   return (
     <DayList
       destination={trip.destinationLabel}
-      dateRange={formatRange(trip.startDate, trip.endDate)}
+      dateRange={formatRange(trip.startDate, trip.endDate, locale)}
       days={days}
       unit={(prefs?.temp_unit as "C" | "F") ?? "C"}
       backHref={`/packing/${tripId}`}

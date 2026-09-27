@@ -1,3 +1,6 @@
+import { formatShortDate } from "@/lib/i18n/format";
+import type { ShippedLocale } from "@/lib/i18n/locales";
+
 export type SubscriptionSummary = {
   status: string | null;
   interval: "month" | "year" | null;
@@ -5,17 +8,11 @@ export type SubscriptionSummary = {
   cancelAtPeriodEnd: boolean;
 };
 
-// This text is server-rendered and hydrated, so it must come out identical in Node and in Safari (review I1). Not
-// Intl: even with a fixed locale the engines' ICU data differ — Node writes "Sept" for en-GB where Safari writes
-// "Sep". The UI is English; a renewal date shown as its UTC day is off by at most a few hours near midnight.
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const renewalDate = (iso: string) => {
-  const d = new Date(iso);
-  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
-};
+// UTC plus fixed month names keep server HTML and Safari hydration identical.
+const renewalDate = (iso: string, locale: ShippedLocale) => formatShortDate(new Date(iso), locale, true);
 
 /** One line describing a Pro subscription for the Profile card and Settings. */
-export function statusLine(s: SubscriptionSummary):
+export function statusLine(s: SubscriptionSummary, locale: ShippedLocale = "en-GB"):
   | { message: "billing.paymentFailed" }
   | { message: "billing.proUntil"; values: { date: string } }
   | { message: "billing.proRenews"; values: { plan: "billing.annual" | "billing.monthly"; date: string } }
@@ -23,7 +20,7 @@ export function statusLine(s: SubscriptionSummary):
   | null {
   if (!s.status) return null;
   if (s.status === "past_due") return { message: "billing.paymentFailed" };
-  const date = s.currentPeriodEnd ? renewalDate(s.currentPeriodEnd) : null;
+  const date = s.currentPeriodEnd ? renewalDate(s.currentPeriodEnd, locale) : null;
   if (s.cancelAtPeriodEnd && date) return { message: "billing.proUntil", values: { date } };
   const plan = s.interval === "year" ? "billing.annual" : "billing.monthly";
   return date ? { message: "billing.proRenews", values: { plan, date } }
