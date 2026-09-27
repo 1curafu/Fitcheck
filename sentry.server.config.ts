@@ -3,12 +3,16 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from "@sentry/nextjs";
+import { shareTelemetryFilters } from "@/lib/share/redact";
 
 Sentry.init({
   dsn: "https://bf4b894619f1d63080b7a4a52a1d00f8@o4511981956300800.ingest.de.sentry.io/4511981962002512",
 
   // 10%, matching the client. 100% was the template default.
   tracesSampleRate: 0.1,
+
+  // A shared look's URL is a capability (spec §0 A10); scrub every event and telemetry field.
+  ...shareTelemetryFilters,
 
   dataCollection: {
     // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:

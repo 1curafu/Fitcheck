@@ -1,6 +1,6 @@
 import robots from "../robots";
 import sitemap from "../sitemap";
-import { PRIVATE_PREFIXES, PUBLIC_PATHS, SITE_URL } from "@/lib/site";
+import { PRIVATE_PREFIXES, PUBLIC_PATHS, SITE_URL, UNLISTED_PREFIXES } from "@/lib/site";
 import { readdirSync } from "node:fs";
 import { config as proxyConfig } from "../../proxy";
 
@@ -23,9 +23,17 @@ test("every app route is classified public or private — a new route must choos
     .filter((d) => d.isDirectory() && !d.name.startsWith("_") && d.name !== "__tests__")
     .map((d) => `/${d.name}`);
   for (const r of routes) {
-    const known = PUBLIC_PATHS.includes(r as never) || PRIVATE_PREFIXES.includes(r as never);
+    const known = PUBLIC_PATHS.includes(r as never) || PRIVATE_PREFIXES.includes(r as never) || UNLISTED_PREFIXES.includes(r as never);
     expect(known, `${r} is neither public nor private in lib/site`).toBe(true);
   }
+});
+
+test("an unlisted share route stays out of the sitemap but is NOT disallowed (previews must fetch it)", () => {
+  expect(UNLISTED_PREFIXES).toContain("/l");
+  const r = robots();
+  const rule = Array.isArray(r.rules) ? r.rules[0] : r.rules;
+  expect(rule.disallow).not.toContain("/l/");
+  expect(sitemap().some((e) => e.url.includes("/l/"))).toBe(false);
 });
 
 test("the session-refresh proxy skips the crawler files", () => {

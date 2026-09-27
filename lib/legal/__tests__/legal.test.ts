@@ -121,6 +121,25 @@ test("the Privacy policy names Link and what billing data Fitcheck keeps", () =>
   expect(privacy).not.toMatch(/once subscriptions exist/);
 });
 
+test("E — the policy explains what sharing a look makes public, and for how long", () => {
+  const text = JSON.stringify(PRIVACY);
+  expect(text).toMatch(/sharing a look/i);
+  expect(text).toMatch(/anyone with the link/i);
+  expect(text).toMatch(/no name/i);
+  expect(text).toMatch(/30 days/i);
+  expect(text).toMatch(/stop sharing/i);
+  expect(text).toMatch(/not indexed/i);
+  expect(text).toMatch(/a copy we cannot delete/i);
+  expect(text).not.toMatch(/\*\*/);
+});
+
+test("E — the terms make the sharer responsible and name the report route", () => {
+  const text = JSON.stringify(TERMS);
+  expect(text).toMatch(/shared look/i);
+  expect(text).toMatch(/report/i);
+  expect(text).toMatch(/may remove/i);
+});
+
 test("R2 — the policy says a piece's original can be erased while its cut-out stays", () => {
   const text = JSON.stringify(PRIVACY);
   // Only a piece with a cut-out can lose its original (spec §3.3): "any piece" would be an inaccurate legal statement.

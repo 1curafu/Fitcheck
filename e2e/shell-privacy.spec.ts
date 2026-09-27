@@ -22,7 +22,7 @@ import { admin, testUserId } from "./helpers";
  * and it must contain nothing that belongs to anybody.
  */
 
-const ROUTES = ["/closet", "/closet/removed", "/generate", "/stats", "/profile", "/calendar", "/settings"];
+const ROUTES = ["/closet", "/closet/removed", "/generate", "/stats", "/profile", "/calendar", "/settings", "/l/AAAAAAAAAAAAAAAAAAAAAA"];
 
 /** Strings that exist ONLY because a specific user owns specific things. */
 async function privateStrings(): Promise<string[]> {

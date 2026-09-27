@@ -50,7 +50,7 @@ async function OutfitBody({ params }: { params: Promise<{ id: string }> }) {
   const { data: outfit } = await supabase
     .from("outfits")
     .select(
-      "id, look_name, occasion, ai_reasoning, weather_snapshot, is_favorite, layout, styled_item_id",
+      "id, look_name, occasion, ai_reasoning, weather_snapshot, is_favorite, layout, styled_item_id, generated_on, created_at",
     )
     .eq("id", id)
     .maybeSingle();
@@ -121,6 +121,8 @@ async function OutfitBody({ params }: { params: Promise<{ id: string }> }) {
           ? `${formatTemp(weather.tempC ?? 0, prefs.tempUnit)} ${weather.condition ?? ""}`.trim()
           : "",
         reasoning: outfit.ai_reasoning,
+        // The share card's kicker date: the daily drop's local date, else the row's created day. Never weather (A3).
+        lookDate: outfit.generated_on ?? (outfit.created_at ? outfit.created_at.slice(0, 10) : null),
       }}
       pieces={pieces}
       worn={isWornToday(logs ?? [], today)}

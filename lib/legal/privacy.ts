@@ -38,6 +38,12 @@ export const PRIVACY: LegalDocument = {
       ],
     },
     {
+      heading: "Sharing a look",
+      paragraphs: [
+        "Sharing is always your choice. Share image makes a picture on your phone; we store nothing about it. Create link publishes a snapshot of one look: its pictures, its name, the stylist's sentence and the names of its pieces (and their brands, only if you choose). Anyone with the link can see it for 30 days, or until you stop sharing, from the look or from Settings. There is no name, no account and nothing else of yours on it, and it is not indexed by search engines. Deleting your account removes your shared looks at once. A picture you post to Instagram, TikTok or anywhere else is a copy we cannot delete. After a disaster restore of our systems, shared links are switched off and must be shared again.",
+      ],
+    },
+    {
       heading: "Why we use it",
       paragraphs: [
         "To run the service you signed up for — tagging your clothes, building looks, remembering what you wore. Under the GDPR this is performance of a contract.",

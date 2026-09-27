@@ -11,6 +11,8 @@ import { vi } from "vitest";
 // `regionLabel` that export became undefined and the component threw — three
 // tests failed with an empty document and an error that named none of this.
 vi.mock("@/app/billing/actions", () => ({ startCheckout: vi.fn(), openBillingPortal: vi.fn() }));
+// SharedLinks (Shared links section) calls useRouter().refresh() after Stop sharing.
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("@/lib/weather/geocode", async (orig) => ({
   ...(await orig<typeof import("@/lib/weather/geocode")>()),
   searchCities: vi
@@ -49,6 +51,8 @@ function renderSettings(
       onSaveAction={onSaveAction}
       onSetLocationAction={onSetLocationAction}
       onDeleteAction={onDeleteAction}
+      sharedLinks={[]}
+      onStopSharedLinkAction={vi.fn()}
     />,
   );
   return onSaveAction;

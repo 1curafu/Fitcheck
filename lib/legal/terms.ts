@@ -9,7 +9,7 @@ import { OPERATOR, type LegalDocument } from "./types";
  */
 export const TERMS: LegalDocument = {
   title: "Terms of Service",
-  updated: "2026-09-24",
+  updated: "2026-09-26",
   intro:
     "These are the terms for using Fitcheck. They are short because the deal is simple: you bring your wardrobe, we suggest what to wear, and you stay in charge of your own clothes and your own data.",
   sections: [
@@ -30,6 +30,7 @@ export const TERMS: LegalDocument = {
       paragraphs: [
         "Everything you upload stays yours. You give us permission to store it, cut the background out of it, describe it with tags, send it to the AI that does the describing, and show it back to you in outfits — and for nothing else. That permission ends when you delete the item or your account.",
         "Upload only photos you have the right to use. Your own wardrobe is the point; other people's photos, and other people, are not.",
+        "You are responsible for what you share. A shared look can be reported from its page, and Fitcheck may remove a shared look that breaks these terms.",
       ],
     },
     {

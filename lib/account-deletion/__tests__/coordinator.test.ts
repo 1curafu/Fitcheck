@@ -2,12 +2,13 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-const { adminClient, createDeletionAdminClient, hardDeleteAuthUser, purgeWardrobePrefix, writeProductionDeletionTombstone } = vi.hoisted(
+const { adminClient, createDeletionAdminClient, hardDeleteAuthUser, purgeWardrobePrefix, purgeShareObjects, writeProductionDeletionTombstone } = vi.hoisted(
   () => ({
     adminClient: { storage: { from: vi.fn() }, auth: { admin: { deleteUser: vi.fn() } } },
     createDeletionAdminClient: vi.fn(),
     hardDeleteAuthUser: vi.fn(),
     purgeWardrobePrefix: vi.fn(),
+    purgeShareObjects: vi.fn(),
     writeProductionDeletionTombstone: vi.fn(),
   }),
 );
@@ -18,6 +19,7 @@ vi.mock("../b2-writer", async (importOriginal) => ({
   writeProductionDeletionTombstone,
 }));
 vi.mock("../storage.mjs", () => ({ purgeWardrobePrefix }));
+vi.mock("../shares", () => ({ purgeShareObjects }));
 const billing = vi.hoisted(() => ({ getGateway: vi.fn(), createBillingStore: vi.fn() }));
 vi.mock("@/lib/billing/stripe/client", () => ({ billingEnabled: () => false, getGateway: billing.getGateway }));
 vi.mock("@/lib/billing/admin", () => ({ createBillingStore: billing.createBillingStore }));
@@ -37,15 +39,17 @@ describe("runAccountDeletion", () => {
       {
         cancelBilling: async () => void order.push("billing"),
         purgeStorage: async () => void order.push("storage"),
+        purgeShares: async () => void order.push("shares"),
         writeTombstone: async () => void order.push("ledger"),
         deleteAuthUser: async () => void order.push("auth"),
       },
     );
-    expect(order).toEqual(["billing", "storage", "ledger", "auth", "storage"]);
+    expect(order).toEqual(["billing", "storage", "shares", "ledger", "auth", "shares", "storage"]);
   });
 
   test("a billing failure stops deletion before any data is destroyed", async () => {
     const purgeStorage = vi.fn();
+    const purgeShares = vi.fn();
     await expect(
       runAccountDeletion(
         { userId: USER_ID, requestedAt: NOW },
@@ -54,12 +58,14 @@ describe("runAccountDeletion", () => {
             throw new Error("Billing cancellation failed");
           },
           purgeStorage,
+          purgeShares,
           writeTombstone: vi.fn(),
           deleteAuthUser: vi.fn(),
         },
       ),
     ).rejects.toMatchObject({ stage: "billing", reason: "Billing cancellation failed" });
     expect(purgeStorage).not.toHaveBeenCalled();
+    expect(purgeShares).not.toHaveBeenCalled();
   });
 
   test("deletes storage, writes the ledger, deletes Auth, then purges residual storage", async () => {
@@ -70,12 +76,13 @@ describe("runAccountDeletion", () => {
       {
         cancelBilling: async () => undefined,
         purgeStorage: async () => void calls.push("storage"),
+        purgeShares: async () => void calls.push("shares"),
         writeTombstone: async () => void calls.push("ledger"),
         deleteAuthUser: async () => void calls.push("auth"),
       },
     );
 
-    expect(calls).toEqual(["storage", "ledger", "auth", "storage"]);
+    expect(calls).toEqual(["storage", "shares", "ledger", "auth", "shares", "storage"]);
   });
 
   test("reports a residual Storage failure only after Auth is already deleted", async () => {
@@ -92,17 +99,41 @@ describe("runAccountDeletion", () => {
           purges += 1;
           if (purges === 2) throw new Error(providerMessage);
         },
+        purgeShares: async () => void calls.push("shares"),
         writeTombstone: async () => void calls.push("ledger"),
         deleteAuthUser: async () => void calls.push("auth"),
       },
     );
 
     await expect(deletion).rejects.toMatchObject({ name: "DeletionFailure", stage: "residual-storage" });
-    expect(calls).toEqual(["storage", "ledger", "auth", "storage"]);
+    expect(calls).toEqual(["storage", "shares", "ledger", "auth", "shares", "storage"]);
     await deletion.catch((error) => {
       expect((error as Error).message).not.toContain(providerMessage);
       expect((error as Error).message).not.toContain(USER_ID);
     });
+  });
+
+  test("a purgeShares failure raises DeletionFailure at stage shares, and Auth is never deleted", async () => {
+    const calls: string[] = [];
+    const deleteAuthUser = vi.fn(async () => void calls.push("auth"));
+
+    const deletion = runAccountDeletion(
+      { userId: USER_ID, requestedAt: NOW },
+      {
+        cancelBilling: async () => undefined,
+        purgeStorage: async () => void calls.push("storage"),
+        purgeShares: async () => {
+          calls.push("shares");
+          throw new Error("Shares removal failed");
+        },
+        writeTombstone: async () => void calls.push("ledger"),
+        deleteAuthUser,
+      },
+    );
+
+    await expect(deletion).rejects.toMatchObject({ stage: "shares", reason: "Shares removal failed" });
+    expect(calls).toEqual(["storage", "shares"]);
+    expect(deleteAuthUser).not.toHaveBeenCalled();
   });
 
   test("carries a known adapter reason, and never an unknown provider message", async () => {
@@ -111,6 +142,7 @@ describe("runAccountDeletion", () => {
       {
         cancelBilling: async () => undefined,
         purgeStorage: async () => undefined,
+        purgeShares: async () => undefined,
         writeTombstone: async () => {
           throw new Error("B2 key scope rejected");
         },
@@ -126,6 +158,7 @@ describe("runAccountDeletion", () => {
         purgeStorage: async () => {
           throw new Error(`provider said no for ${USER_ID} person@example.com`);
         },
+        purgeShares: async () => undefined,
         writeTombstone: async () => undefined,
         deleteAuthUser: async () => undefined,
       },
@@ -146,6 +179,7 @@ describe("runAccountDeletion", () => {
             calls.push("storage");
             throw new Error(providerMessage);
           },
+          purgeShares: async () => undefined,
           writeTombstone: async () => void calls.push("ledger"),
           deleteAuthUser: async () => void calls.push("auth"),
         },
@@ -166,6 +200,7 @@ describe("runAccountDeletion", () => {
           purgeStorage: async () => {
             throw new Error(providerMessage);
           },
+          purgeShares: async () => undefined,
           writeTombstone: async () => undefined,
           deleteAuthUser: async () => undefined,
         },
@@ -188,6 +223,7 @@ describe("runAccountDeletion", () => {
       {
         cancelBilling: async () => undefined,
         purgeStorage: async () => void calls.push("storage"),
+        purgeShares: async () => void calls.push("shares"),
         writeTombstone: async () => {
           calls.push("ledger");
           throw new Error(providerMessage);
@@ -198,7 +234,7 @@ describe("runAccountDeletion", () => {
 
     await expect(deletion).rejects.toMatchObject({ stage: "ledger" });
 
-    expect(calls).toEqual(["storage", "ledger"]);
+    expect(calls).toEqual(["storage", "shares", "ledger"]);
     await deletion.catch((error) => {
       expect(error).toBeInstanceOf(DeletionFailure);
       expect(error).toHaveProperty("stage", "ledger");
@@ -219,6 +255,7 @@ describe("runAccountDeletion", () => {
       {
         cancelBilling: async () => undefined,
         purgeStorage: async () => void calls.push("storage"),
+        purgeShares: async () => void calls.push("shares"),
         writeTombstone: async () => void calls.push("ledger"),
         deleteAuthUser: async () => {
           calls.push("auth");
@@ -229,7 +266,7 @@ describe("runAccountDeletion", () => {
 
     await expect(deletion).rejects.toMatchObject({ stage: "auth" });
 
-    expect(calls).toEqual(["storage", "ledger", "auth"]);
+    expect(calls).toEqual(["storage", "shares", "ledger", "auth"]);
     await deletion.catch((error) => {
       expect(error).toBeInstanceOf(DeletionFailure);
       expect(error).toHaveProperty("stage", "auth");
@@ -246,6 +283,7 @@ describe("runAccountDeletion", () => {
     const dependencies = {
       cancelBilling: async () => undefined,
       purgeStorage: async () => void calls.push("storage"),
+      purgeShares: async () => void calls.push("shares"),
       writeTombstone: async () => void calls.push("ledger"),
       deleteAuthUser: async () => void calls.push("auth"),
     };
@@ -253,7 +291,10 @@ describe("runAccountDeletion", () => {
     await runAccountDeletion({ userId: USER_ID, requestedAt: NOW }, dependencies);
     await runAccountDeletion({ userId: USER_ID, requestedAt: NOW }, dependencies);
 
-    expect(calls).toEqual(["storage", "ledger", "auth", "storage", "storage", "ledger", "auth", "storage"]);
+    expect(calls).toEqual([
+      "storage", "shares", "ledger", "auth", "shares", "storage",
+      "storage", "shares", "ledger", "auth", "shares", "storage",
+    ]);
   });
 });
 
@@ -273,6 +314,7 @@ describe("deleteLiveAccount", () => {
     await expect(deleteLiveAccount(USER_ID, NOW)).rejects.toThrow("B2 deletion ledger configuration is required");
 
     expect(purgeWardrobePrefix).not.toHaveBeenCalled();
+    expect(purgeShareObjects).not.toHaveBeenCalled();
     expect(writeProductionDeletionTombstone).not.toHaveBeenCalled();
     expect(hardDeleteAuthUser).not.toHaveBeenCalled();
   });
@@ -300,13 +342,18 @@ describe("deleteLiveAccount — billing stage (review C1)", () => {
     });
     await expect(deleteLiveAccount(USER_ID, NOW)).rejects.toMatchObject({ stage: "billing" });
     expect(purgeWardrobePrefix).not.toHaveBeenCalled();
+    expect(purgeShareObjects).not.toHaveBeenCalled();
     expect(hardDeleteAuthUser).not.toHaveBeenCalled();
   });
 
-  test("a user who never subscribed is deleted without contacting Stripe", async () => {
+  test("a user who never subscribed is deleted without contacting Stripe, and share objects are purged twice", async () => {
     withCustomer(null);
     await deleteLiveAccount(USER_ID, NOW);
     expect(billing.getGateway).not.toHaveBeenCalled();
     expect(hardDeleteAuthUser).toHaveBeenCalled();
+    // Once before the Auth delete (stage "shares"), once after (stage "residual-shares") — both with the admin client.
+    expect(purgeShareObjects).toHaveBeenCalledTimes(2);
+    expect(purgeShareObjects).toHaveBeenNthCalledWith(1, adminClient, USER_ID);
+    expect(purgeShareObjects).toHaveBeenNthCalledWith(2, adminClient, USER_ID);
   });
 });
