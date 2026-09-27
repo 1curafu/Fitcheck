@@ -1,10 +1,38 @@
 import "@testing-library/jest-dom/vitest";
-import { vi } from "vitest";
+import { afterEach, vi } from "vitest";
+import enUS from "./messages/en-US.json";
 
-vi.mock("next-intl/server", async (importOriginal) => ({
-  ...await importOriginal<typeof import("next-intl/server")>(),
-  getLocale: async () => "en-US",
-}));
+vi.mock("next-intl", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("next-intl")>();
+  const ctx = globalThis as { __intl?: { locale: string; messages: object } };
+  const current = () => ctx.__intl ?? { locale: "en-US", messages: enUS };
+  return {
+    ...actual,
+    useLocale: () => current().locale,
+    useTranslations: (namespace?: string) =>
+      actual.createTranslator({ ...current(), namespace } as never),
+  };
+});
+
+vi.mock("next-intl/server", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("next-intl/server")>();
+  const { createTranslator } = await import("next-intl");
+  const ctx = globalThis as { __intl?: { locale: string; messages: object } };
+  const current = () => ctx.__intl ?? { locale: "en-US", messages: enUS };
+  return {
+    ...actual,
+    getLocale: async () => current().locale,
+    getTranslations: async (ns?: string | { namespace?: string }) =>
+      createTranslator({
+        ...current(),
+        namespace: typeof ns === "string" ? ns : ns?.namespace,
+      } as never),
+  };
+});
+
+afterEach(() => {
+  delete (globalThis as { __intl?: unknown }).__intl;
+});
 
 // Existing feature tests mock Next's router locally. Delegate the locale-aware
 // facade to those mocks so the tests keep exercising each feature's behavior.
