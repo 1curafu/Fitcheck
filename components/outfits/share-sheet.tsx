@@ -16,6 +16,39 @@ const PHOTOS_FAILED = "Couldn't load this look's photos. Try again.";
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const day = (d: Date) => `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
 
+/**
+ * Starts a clipboard write INSIDE the tap, with the text still pending. Safari allows a clipboard write only during a
+ * user gesture, and the link exists only seconds later; a ClipboardItem holding a promise is the supported way to
+ * bridge that. Without ClipboardItem it waits for the text and writes it (fine in Chrome and Firefox).
+ */
+function copyWhenReady(text: Promise<string>): Promise<boolean> {
+  try {
+    if (typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) {
+      const blob = text.then((t) => new Blob([t], { type: "text/plain" }));
+      blob.catch(() => {}); // a failed link must not surface as an unhandled rejection
+      const item = new ClipboardItem({ "text/plain": blob });
+      return navigator.clipboard.write([item]).then(() => true, () => false);
+    }
+  } catch { /* fall through */ }
+  return text.then(
+    (t) => (navigator.clipboard?.writeText ? navigator.clipboard.writeText(t).then(() => true, () => false) : false),
+    () => false,
+  );
+}
+
+/** For browsers without the async clipboard API (older iOS, some in-app browsers). */
+function copyBySelection(text: string): boolean {
+  if (typeof document.execCommand !== "function") return false;
+  const area = document.createElement("textarea");
+  area.value = text;
+  area.readOnly = true;
+  area.style.position = "fixed";
+  area.style.opacity = "0";
+  document.body.appendChild(area);
+  area.select();
+  try { return document.execCommand("copy"); } catch { return false; } finally { area.remove(); }
+}
+
 export function ShareSheet({ outfit, pieces, onClose }: { outfit: ShareOutfit; pieces: DetailPiece[]; onClose: () => void }) {
   const router = useRouter();
   const [target, setTarget] = useState<"story" | "post">("story");
@@ -25,11 +58,20 @@ export function ShareSheet({ outfit, pieces, onClose }: { outfit: ShareOutfit; p
   const [message, setMessage] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const [link, setLink] = useState<ShareLink | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
   const assets = useRef<Promise<{ fonts: Awaited<ReturnType<typeof loadFonts>>; images: Map<number, HTMLImageElement | null> }> | null>(null);
   const blobs = useRef(new Map<string, Blob>());
   const previewGen = useRef(0);
 
   const ordered = useMemo(() => orderPieces(pieces).slice(0, 8), [pieces]);
+  const anyBrand = useMemo(() => ordered.some((p) => Boolean(p.brand?.trim())), [ordered]);
+
+  useEffect(() => {
+    if (!copied) return;
+    const t = window.setTimeout(() => setCopied(false), 2000);
+    return () => window.clearTimeout(t);
+  }, [copied]);
   // Labels come from the SAME rules as the server snapshot (trimmed brands, blank → none), so the card and the link
   // page list can never disagree (Review Focus 1).
   const card = (brands: boolean): CardInput => {
@@ -105,10 +147,14 @@ export function ShareSheet({ outfit, pieces, onClose }: { outfit: ShareOutfit; p
   }
 
   async function createLink() {
-    setBusy("link"); setMessage(null);
+    setBusy("link"); setMessage(null); setCopyError(null);
+    let settle!: { ok: (url: string) => void; fail: () => void };
+    const url = new Promise<string>((ok, fail) => { settle = { ok, fail: () => fail(new Error("no link")) }; });
+    // Synchronously, before any await: this is still the user's tap.
+    const copying = copyWhenReady(url);
     try {
       const prepared = await prepareShare({ outfitId: outfit.id, showBrands });
-      if (prepared.status === "limited") { setMessage(prepared.message); return; }
+      if (prepared.status === "limited") { settle.fail(); setMessage(prepared.message); return; }
       const bucket = createClient().storage.from("shares");
       const targets: CardTarget[] = ["story", "post", "preview"];
       for (const [i, name] of SHARE_IMAGE_FILES.entries()) {
@@ -117,9 +163,12 @@ export function ShareSheet({ outfit, pieces, onClose }: { outfit: ShareOutfit; p
         if (error) throw error;
       }
       const published = await publishShare(prepared.token);
-      if (published.status === "error") { setMessage(published.message); return; }
+      if (published.status === "error") { settle.fail(); setMessage(published.message); return; }
       setLink({ token: prepared.token, readyAt: new Date().toISOString() });
+      settle.ok(`${window.location.origin}/l/${prepared.token}`);
+      if (await copying) setCopied(true);
     } catch {
+      settle.fail();
       setMessage("Couldn't create the link. Try again.");
       assets.current = null;
       router.refresh(); // signed image URLs expire; a fresh render gets new ones
@@ -131,9 +180,16 @@ export function ShareSheet({ outfit, pieces, onClose }: { outfit: ShareOutfit; p
     if (navigator.share) navigator.share({ url: shareUrl, title: outfit.lookName }).catch(() => {});
     else copyLink();
   }
-  function copyLink() {
+  async function copyLink() {
     if (!shareUrl) return;
-    navigator.clipboard?.writeText(shareUrl).then(() => setMessage("Copied")).catch(() => setMessage("Couldn't copy — select the link above."));
+    setCopyError(null);
+    let ok = false;
+    try {
+      if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(shareUrl); ok = true; }
+    } catch { /* fall through to the selection copy */ }
+    if (!ok) ok = copyBySelection(shareUrl);
+    if (ok) setCopied(true);
+    else setCopyError("Couldn't copy. Press and hold the link to copy it.");
   }
 
   async function stop() {
@@ -183,12 +239,15 @@ export function ShareSheet({ outfit, pieces, onClose }: { outfit: ShareOutfit; p
 
         <div className="mt-4 flex min-h-[44px] items-center justify-between text-[14px] text-foreground">
           <span id="brands-label">Show brands</span>
-          <button type="button" role="switch" aria-checked={showBrands} aria-labelledby="brands-label" disabled={locked}
+          <button type="button" role="switch" aria-checked={showBrands} aria-labelledby="brands-label" disabled={locked || !anyBrand}
+            aria-describedby={anyBrand ? undefined : "brands-hint"}
             onClick={() => { setPreview(null); setShowBrands((v) => !v); }}
             className={`h-7 w-12 rounded-full ${showBrands ? "bg-foreground" : "bg-surface-3"}`}>
             <span className={`block size-6 rounded-full bg-canvas transition-transform ${showBrands ? "translate-x-5" : "translate-x-0.5"}`} />
           </button>
         </div>
+
+        {!anyBrand && <p id="brands-hint" className="text-[12px] text-muted-foreground">Add a brand on a piece&rsquo;s page to show it here.</p>}
 
         {message && <p role="status" className="mt-2 text-[13px] text-foreground">{message}</p>}
 
@@ -204,12 +263,13 @@ export function ShareSheet({ outfit, pieces, onClose }: { outfit: ShareOutfit; p
 
         {shareUrl && link?.readyAt && (
           <div className="mt-4 rounded-[12px] bg-surface-3 px-4 py-3">
-            <span data-testid="share-url" className="block truncate text-[13px] text-foreground">{shareUrl}</span>
+            <span data-testid="share-url" className="block select-all truncate text-[13px] text-foreground">{shareUrl}</span>
             <span className="mt-1 block text-[12px] text-muted-foreground">Expires {day(shareExpiry(link.readyAt))}</span>
             <div className="mt-2 flex gap-2">
               <button type="button" onClick={shareLink} disabled={locked} className="min-h-[44px] flex-1 rounded-[10px] bg-foreground text-[14px] font-semibold text-canvas">Share</button>
-              <button type="button" onClick={copyLink} disabled={locked} className="min-h-[44px] flex-1 rounded-[10px] bg-surface-2 text-[14px] text-foreground">Copy</button>
+              <button type="button" onClick={copyLink} disabled={locked} className="min-h-[44px] flex-1 rounded-[10px] bg-surface-2 text-[14px] text-foreground" aria-live="polite">{copied ? "Copied" : "Copy"}</button>
             </div>
+            {copyError && <p role="status" className="mt-2 text-[12px] text-foreground">{copyError}</p>}
             <button type="button" onClick={stop} disabled={locked}
               className="mt-2 min-h-[44px] w-full text-[13px] text-muted-foreground underline underline-offset-4">
               {busy === "stop" ? "Stopping…" : "Stop sharing"}
