@@ -19,9 +19,13 @@ test("robots points at the sitemap and blocks every signed-in surface", () => {
 });
 
 test("every app route is classified public or private — a new route must choose", () => {
-  const routes = readdirSync("app", { withFileTypes: true })
-    .filter((d) => d.isDirectory() && !d.name.startsWith("_") && d.name !== "__tests__")
-    .map((d) => `/${d.name}`);
+  // Pages live under the `[locale]` root segment; handlers (`api`, `auth`, `billing`) stay at `app/`.
+  const dirs = (root: string) =>
+    readdirSync(root, { withFileTypes: true })
+      .filter((d) => d.isDirectory() && !d.name.startsWith("_") && !d.name.startsWith("[") && d.name !== "__tests__")
+      .map((d) => `/${d.name}`);
+  const routes = [...dirs("app"), ...dirs("app/[locale]")];
+  expect(routes).toContain("/closet");
   for (const r of routes) {
     const known = PUBLIC_PATHS.includes(r as never) || PRIVATE_PREFIXES.includes(r as never) || UNLISTED_PREFIXES.includes(r as never);
     expect(known, `${r} is neither public nor private in lib/site`).toBe(true);

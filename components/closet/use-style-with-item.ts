@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { styleWithItem } from "@/app/closet/[itemId]/style-actions";
+import { styleWithItem } from "@/app/[locale]/closet/[itemId]/style-actions";
 
 /**
  * Style a look around one piece, and land on it.

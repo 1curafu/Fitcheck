@@ -9,14 +9,14 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ back: vi.fn(), push: vi.fn(), refresh }),
 }));
 
-vi.mock("@/app/closet/[itemId]/style-actions", () => ({ styleWithItem: vi.fn() }));
+vi.mock("@/app/[locale]/closet/[itemId]/style-actions", () => ({ styleWithItem: vi.fn() }));
 
 const updateItem = vi.fn().mockResolvedValue(undefined);
 const archiveItem = vi.fn().mockResolvedValue(undefined);
 const eraseOriginal = vi.fn();
 const restoreItem = vi.fn();
 const deletePiece = vi.fn();
-vi.mock("@/app/closet/[itemId]/actions", () => ({
+vi.mock("@/app/[locale]/closet/[itemId]/actions", () => ({
   updateItem: (...args: unknown[]) => updateItem(...args),
   archiveItem: (...args: unknown[]) => archiveItem(...args),
   eraseOriginal: (...args: unknown[]) => eraseOriginal(...args),

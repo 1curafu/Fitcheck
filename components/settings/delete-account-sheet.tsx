@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
-import type { deleteAccount } from "@/app/settings/actions";
+import type { deleteAccount } from "@/app/[locale]/settings/actions";
 
 type DeleteAccountSheetProps = {
   open: boolean;

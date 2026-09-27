@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { processImage, blobToBase64, type ProcessedImage } from "@/lib/images/process";
 import { uploadAndTag, confirmItem, discardDraft, getUploadCapacity,
-  type UploadAndTagResult } from "@/app/closet/upload/actions";
+  type UploadAndTagResult } from "@/app/[locale]/closet/upload/actions";
 import { createSegmenter } from "@/lib/images/worker-client";
 import { batchSummary, createBatchQueue, currentBatchEntry, markBatch,
   nextProcessable, nextTaggable, type BatchQueue, type BatchStage } from "./batch-queue";

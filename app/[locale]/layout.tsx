@@ -1,7 +1,10 @@
 import type { Metadata, Viewport } from "next";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale } from "next-intl/server";
+import { SHIPPED_LOCALES } from "@/lib/i18n/locales";
 import { SITE_URL } from "@/lib/site";
 import { Libre_Caslon_Text, Hanken_Grotesk } from "next/font/google";
-import "./globals.css";
+import "../globals.css";
 import { MobileShell } from "@/components/shell/mobile-shell";
 import { SiteAnalytics } from "@/components/shell/analytics";
 
@@ -48,13 +51,19 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export function generateStaticParams() {
+  return SHIPPED_LOCALES.map((locale) => ({ locale }));
+}
+
+// Not `LayoutProps<"/[locale]">`: that helper exists only after `next typegen`, and CI type-checks before building.
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const locale = await getLocale();
   return (
-    <html lang="en" className={`${serif.variable} ${sans.variable} h-full`}>
+    <html lang={locale} className={`${serif.variable} ${sans.variable} h-full`}>
       <body className="flex min-h-full flex-col">
-        <MobileShell>{children}</MobileShell>
+        <NextIntlClientProvider>
+          <MobileShell>{children}</MobileShell>
+        </NextIntlClientProvider>
         {/* Cookieless page-view counting — a daily-rotating hash, nothing stored
             on the device — which is what lets the cookie notice stay a notice.
             Disclosed in /privacy; a test holds the policy to that. */}

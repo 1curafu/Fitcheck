@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { answerWearConfirmation } from "@/app/outfits/[id]/actions";
+import { answerWearConfirmation } from "@/app/[locale]/outfits/[id]/actions";
 import { WearConfirmSheet } from "./wear-confirm-sheet";
 
 /**

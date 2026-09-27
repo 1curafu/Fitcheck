@@ -7,7 +7,7 @@ import {
   saveLocation,
   predictDefaultOccasion,
   logOccasionOverride,
-} from "@/app/generate/actions";
+} from "@/app/[locale]/generate/actions";
 import { defaultReason } from "@/lib/outfits/predict-occasion";
 import { searchCities, type City } from "@/lib/weather/geocode";
 import { getCurrentPosition, permissionState, GeoError } from "@/lib/weather/geolocate";

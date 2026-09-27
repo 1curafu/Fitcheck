@@ -9,7 +9,7 @@ const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ back, push }) }));
 // The Server Actions are the write path, exercised live rather than here — this
 // keeps the component test about what the screen SAYS.
-vi.mock("@/app/outfits/[id]/actions", () => ({
+vi.mock("@/app/[locale]/outfits/[id]/actions", () => ({
   toggleWear: vi.fn(),
   toggleFavorite: vi.fn(),
   // Fired on mount to stamp `viewed_at`, which is what the evening wear
@@ -147,7 +147,7 @@ test("back returns to where you came from when there is history", async () => {
 });
 
 // "Try another look" belongs to the look that has a piece to keep.
-vi.mock("@/app/closet/[itemId]/style-actions", () => ({ styleWithItem: vi.fn() }));
+vi.mock("@/app/[locale]/closet/[itemId]/style-actions", () => ({ styleWithItem: vi.fn() }));
 
 test("a look styled around a piece offers to try another", () => {
   render(<OutfitDetail outfit={outfit} pieces={pieces} worn={false} favorite={false} styledItemId="i1" />);

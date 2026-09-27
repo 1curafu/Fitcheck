@@ -8,7 +8,7 @@ const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 
 const styleWithItem = vi.fn();
-vi.mock("@/app/closet/[itemId]/style-actions", () => ({
+vi.mock("@/app/[locale]/closet/[itemId]/style-actions", () => ({
   styleWithItem: (...args: unknown[]) => styleWithItem(...args),
 }));
 

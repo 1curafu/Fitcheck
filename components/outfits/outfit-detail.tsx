@@ -4,7 +4,7 @@ import { useOptimistic, useTransition, type CSSProperties, useEffect, useState }
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bookmark, Share } from "lucide-react";
-import { toggleWear, toggleFavorite, noteOutfitViewed } from "@/app/outfits/[id]/actions";
+import { toggleWear, toggleFavorite, noteOutfitViewed } from "@/app/[locale]/outfits/[id]/actions";
 import { TryAnotherLook } from "./try-another-look";
 import { ShareSheet } from "./share-sheet";
 import { WeatherAttribution } from "@/components/weather/attribution";

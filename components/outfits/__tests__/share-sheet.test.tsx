@@ -4,7 +4,7 @@ import { beforeEach, expect, test, vi } from "vitest";
 import type { CardInput } from "@/lib/share/card-layout";
 
 const actions = vi.hoisted(() => ({ prepareShare: vi.fn(), publishShare: vi.fn(), stopSharing: vi.fn(), getShareState: vi.fn() }));
-vi.mock("@/app/outfits/[id]/share-actions", () => actions);
+vi.mock("@/app/[locale]/outfits/[id]/share-actions", () => actions);
 const upload = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ storage: { from: () => ({ upload }) } }) }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));

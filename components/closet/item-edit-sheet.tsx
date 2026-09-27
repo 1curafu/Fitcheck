@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { updateItem } from "@/app/closet/[itemId]/actions";
+import { updateItem } from "@/app/[locale]/closet/[itemId]/actions";
 import { Chip } from "@/components/ui-fitcheck/chip";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { Select } from "@/components/ui-fitcheck/select";

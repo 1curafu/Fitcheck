@@ -303,10 +303,12 @@ function ProPurchase({ timeZone }: { timeZone?: string }) {
 
       <p className="mt-3 text-center text-[11.5px]/[1.45] text-muted-dim">
         Payments processed by Stripe · sold through Link. Renews automatically — cancel any time in the app.{" "}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- unchanged plain link; the rule fires since `app/[locale]` makes every one-segment path a page. Task 2 converts links. */}
         <a href="/terms" className="underline underline-offset-2">
           Terms
         </a>
         {" · "}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- unchanged plain link; the rule fires since `app/[locale]` makes every one-segment path a page. Task 2 converts links. */}
         <a href="/privacy" className="underline underline-offset-2">
           Privacy
         </a>

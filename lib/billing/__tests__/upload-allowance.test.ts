@@ -26,7 +26,7 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 
 import { readUploadAllowance, assertCanUpload } from "../entitlements";
-import { getUploadCapacity } from "@/app/closet/upload/actions";
+import { getUploadCapacity } from "@/app/[locale]/closet/upload/actions";
 
 beforeEach(() => {
   state.user = { id: "user-1" };

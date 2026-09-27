@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import { useState, useTransition } from "react";
 import { QUESTIONS } from "@/lib/onboarding/questions";
-import { saveStyleProfile } from "@/app/onboarding/actions";
+import { saveStyleProfile } from "@/app/[locale]/onboarding/actions";
 import { Chip } from "@/components/ui-fitcheck/chip";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 

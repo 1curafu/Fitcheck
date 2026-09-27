@@ -10,7 +10,7 @@ import { LocationSheet } from "@/components/weather/location-sheet";
 import { DeleteAccountSheet } from "./delete-account-sheet";
 import { SharedLinks } from "./shared-links";
 import type { City } from "@/lib/weather/geocode";
-import type { deleteAccount, stopSharedLink } from "@/app/settings/actions";
+import type { deleteAccount, stopSharedLink } from "@/app/[locale]/settings/actions";
 
 const CARD =
   "rounded-[14px] bg-surface-1 shadow-[inset_0_0_0_1px_var(--hairline-2)]";

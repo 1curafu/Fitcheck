@@ -21,7 +21,7 @@ vi.mock("@/lib/weather/geocode", async (orig) => ({
 }));
 import { SettingsView } from "../settings-view";
 import type { Preferences } from "@/lib/profile/preferences";
-import type { deleteAccount } from "@/app/settings/actions";
+import type { deleteAccount } from "@/app/[locale]/settings/actions";
 
 const props: {
   name: string;

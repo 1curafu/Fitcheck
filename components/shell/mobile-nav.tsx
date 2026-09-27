@@ -26,7 +26,7 @@ export function MobileNav() {
     // already occupies that band and `env(safe-area-inset-bottom)` is 0.
     // Now: 12px in the browser, 46px on an iPhone in standalone (34 + 12), so
     // the pill sits just clear of the indicator either way. `viewportFit:
-    // "cover"` in app/layout.tsx is what makes the variable resolve at all.
+    // "cover"` in app/[locale]/layout.tsx is what makes the variable resolve at all.
     <nav className="sticky bottom-0 z-50 bg-gradient-to-t from-canvas from-72% to-transparent px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-[10px]">
       <div className="flex items-center justify-around rounded-[22px] bg-[rgba(24,23,26,0.82)] px-2 py-[11px] shadow-[inset_0_0_0_1px_var(--hairline-5),0_10px_30px_rgba(0,0,0,0.4)] backdrop-blur-[18px] backdrop-saturate-150">
         {TABS.map(({ href, label, Icon }) => {

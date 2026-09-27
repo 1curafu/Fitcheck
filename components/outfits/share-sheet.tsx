@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import type { DetailPiece } from "./outfit-detail";
 import { createClient } from "@/lib/supabase/client";
-import { getShareState, prepareShare, publishShare, stopSharing } from "@/app/outfits/[id]/share-actions";
+import { getShareState, prepareShare, publishShare, stopSharing } from "@/app/[locale]/outfits/[id]/share-actions";
 import { loadFonts, loadImages, renderCard } from "@/lib/share/render";
 import { orderPieces, pieceLabel, shareExpiry, shareKicker, snapshotPieces, SHARE_IMAGE_FILES } from "@/lib/share/snapshot";
 import type { CardInput, CardTarget } from "@/lib/share/card-layout";

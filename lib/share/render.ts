@@ -1,7 +1,7 @@
 import { CARD_SIZES, layoutCard, type CardInput, type CardTarget, type FontSpec } from "./card-layout";
 import { cssFont, encodeWithinBudget, paintCard, type Fonts } from "./draw";
 
-/** next/font renames the faces; the real family lists live in the root CSS variables (app/layout.tsx). */
+/** next/font renames the faces; the real family lists live in the root CSS variables (app/[locale]/layout.tsx). */
 export async function loadFonts(): Promise<Fonts> {
   const root = getComputedStyle(document.documentElement);
   const fonts = {

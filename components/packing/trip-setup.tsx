@@ -8,7 +8,7 @@ import { REWEAR_LABELS, REWEAR_HINTS } from "@/lib/packing/rewear";
 import { useLocationPicker } from "@/lib/weather/use-location-picker";
 import { LocationSheet } from "@/components/weather/location-sheet";
 import type { City } from "@/lib/weather/geocode";
-import { planTrip } from "@/app/packing/actions";
+import { planTrip } from "@/app/[locale]/packing/actions";
 import { PackingLockedError } from "@/lib/packing/errors";
 
 /** The product's four occasions. A fifth is never invented here. */

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { editCapsule } from "@/app/packing/actions";
+import { editCapsule } from "@/app/[locale]/packing/actions";
 
 export type SheetPiece = { id: string; name: string; pinned: boolean; category: string };
 /** A closet piece offered as a replacement. */

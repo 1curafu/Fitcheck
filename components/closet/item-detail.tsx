@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { archiveItem, deletePiece, eraseOriginal, restoreItem } from "@/app/closet/[itemId]/actions";
+import { archiveItem, deletePiece, eraseOriginal, restoreItem } from "@/app/[locale]/closet/[itemId]/actions";
 import { UpgradeSheet } from "@/components/billing/upgrade-sheet";
 import type { Tags } from "@/lib/ai/tagging-schema";
 
