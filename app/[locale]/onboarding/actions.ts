@@ -1,7 +1,9 @@
 "use server";
+import { redirect } from "@/lib/i18n/navigation";
+import { getLocale } from "next-intl/server";
 
 import { z } from "zod";
-import { redirect } from "next/navigation";
+
 import { createClient } from "@/lib/supabase/server";
 
 const Schema = z.object({
@@ -30,7 +32,7 @@ export async function saveStyleProfile(input: unknown) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/");
+  if (!user) return redirect({ href: "/", locale: await getLocale() });
 
   const { error } = await supabase
     .from("profiles")
@@ -44,5 +46,5 @@ export async function saveStyleProfile(input: unknown) {
   if (error) throw error;
 
   // First-5-items capture (plan 04, Task 9).
-  redirect("/onboarding/capture");
+  return redirect({ href: "/onboarding/capture", locale: await getLocale() });
 }

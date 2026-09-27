@@ -1,7 +1,8 @@
 "use client";
+import { usePathname } from "@/lib/i18n/navigation";
 
 import { useEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
+
 import { processImage, blobToBase64, type ProcessedImage } from "@/lib/images/process";
 import { uploadAndTag, confirmItem, discardDraft, getUploadCapacity,
   type UploadAndTagResult } from "@/app/[locale]/closet/upload/actions";

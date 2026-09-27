@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidateEverywhere } from "@/lib/i18n/revalidate";
 import { createClient } from "@/lib/supabase/server";
 import { localDateFor } from "@/lib/outfits/local-date";
 import { readPreferences } from "@/lib/profile/preferences";
@@ -46,8 +46,8 @@ export async function toggleWear(outfitId: string): Promise<{ worn: boolean }> {
   if (existing) {
     const { error } = await supabase.from("wear_logs").delete().eq("id", existing.id);
     if (error) throw new Error(error.message);
-    revalidatePath(`/outfits/${outfitId}`);
-    revalidatePath("/generate");
+    revalidateEverywhere(`/outfits/${outfitId}`);
+    revalidateEverywhere("/generate");
     return { worn: false };
   }
 
@@ -65,8 +65,8 @@ export async function toggleWear(outfitId: string): Promise<{ worn: boolean }> {
   });
   if (error) throw new Error(error.message);
 
-  revalidatePath(`/outfits/${outfitId}`);
-  revalidatePath("/generate");
+  revalidateEverywhere(`/outfits/${outfitId}`);
+  revalidateEverywhere("/generate");
   return { worn: true };
 }
 
@@ -85,7 +85,7 @@ export async function toggleFavorite(outfitId: string): Promise<{ favorite: bool
     .eq("id", outfitId);
   if (error) throw new Error(error.message);
 
-  revalidatePath(`/outfits/${outfitId}`);
+  revalidateEverywhere(`/outfits/${outfitId}`);
   return { favorite: next };
 }
 
@@ -184,5 +184,5 @@ export async function answerWearConfirmation(
     if (!already?.length) await toggleWear(outfitId);
   }
 
-  revalidatePath("/generate");
+  revalidateEverywhere("/generate");
 }

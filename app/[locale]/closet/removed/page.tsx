@@ -1,6 +1,7 @@
 import { Suspense } from "react";
-import Link from "next/link";
-import { redirect } from "next/navigation";
+import { Link, redirect } from "@/lib/i18n/navigation";
+import { getLocale } from "next-intl/server";
+
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { displayPath, signItemImages } from "@/lib/storage/signed";
@@ -34,7 +35,7 @@ async function RemovedBody() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/");
+  if (!user) return redirect({ href: "/", locale: await getLocale() });
 
   const { data: items } = await supabase
     .from("items")

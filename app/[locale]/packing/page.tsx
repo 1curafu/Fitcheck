@@ -1,6 +1,7 @@
 import { Suspense } from "react";
-import Link from "next/link";
-import { redirect } from "next/navigation";
+import { Link, redirect } from "@/lib/i18n/navigation";
+import { getLocale } from "next-intl/server";
+
 import { createClient } from "@/lib/supabase/server";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { PackingBack } from "@/components/packing/back-link";
@@ -39,7 +40,7 @@ async function TripsBody() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/");
+  if (!user) return redirect({ href: "/", locale: await getLocale() });
 
   const trips = await listTrips();
 

@@ -1,7 +1,8 @@
 "use client";
+import { useRouter } from "@/lib/i18n/navigation";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+
 import { shareExpiry } from "@/lib/share/snapshot";
 
 type Link = { token: string; lookName: string; readyAt: string | null; purgingAt?: string; createdAt: string };

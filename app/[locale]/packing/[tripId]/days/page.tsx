@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { signItemImages, displayPath } from "@/lib/storage/signed";
 import { MobileNav } from "@/components/shell/mobile-nav";
@@ -8,6 +8,8 @@ import { PackingBack } from "@/components/packing/back-link";
 import { loadTrip } from "@/lib/packing/store";
 import { fetchTripForecast } from "@/lib/weather/forecast";
 import { formatRange } from "../page";
+import { redirect } from "@/lib/i18n/navigation";
+import { getLocale } from "next-intl/server";
 
 /**
  * Only the back control — see the note in the capsule route's shell.
@@ -50,7 +52,7 @@ async function DaysBody({ params }: { params: Promise<{ tripId: string }> }) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/");
+  if (!user) return redirect({ href: "/", locale: await getLocale() });
 
   const trip = await loadTrip(tripId);
   if (!trip) notFound();

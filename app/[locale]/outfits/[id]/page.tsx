@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { signItemImages, displayPath } from "@/lib/storage/signed";
 import { todayFor } from "@/lib/outfits/today";
@@ -12,6 +12,8 @@ import {
   type DetailPiece,
 } from "@/components/outfits/outfit-detail";
 import type { Slot } from "@/lib/generator/types";
+import { redirect } from "@/lib/i18n/navigation";
+import { getLocale } from "next-intl/server";
 
 type ItemRow = {
   id: string;
@@ -44,7 +46,7 @@ async function OutfitBody({ params }: { params: Promise<{ id: string }> }) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/");
+  if (!user) return redirect({ href: "/", locale: await getLocale() });
 
   // RLS scopes this to the owner — another user's id simply returns no row.
   const { data: outfit } = await supabase

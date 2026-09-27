@@ -1,7 +1,8 @@
 "use client";
+import { useRouter } from "@/lib/i18n/navigation";
 
 import { useEffect, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { PackingBack } from "./back-link";
 import { REWEAR_LABELS, REWEAR_HINTS } from "@/lib/packing/rewear";

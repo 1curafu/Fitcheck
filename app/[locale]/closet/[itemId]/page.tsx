@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { signItemImages, displayPath } from "@/lib/storage/signed";
 import { todayFor } from "@/lib/outfits/today";
@@ -8,6 +8,8 @@ import { goesWith } from "@/lib/closet/goes-with";
 import { originalLocation } from "@/lib/closet/original-path";
 import { ItemDetail, type DetailItem } from "@/components/closet/item-detail";
 import type { GoesWithCard } from "@/components/closet/item-view";
+import { redirect } from "@/lib/i18n/navigation";
+import { getLocale } from "next-intl/server";
 
 export default function ItemPage({
   params,
@@ -33,7 +35,7 @@ async function ItemBody({ params }: { params: Promise<{ itemId: string }> }) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/");
+  if (!user) return redirect({ href: "/", locale: await getLocale() });
 
   const { data: item } = await supabase
     .from("items")

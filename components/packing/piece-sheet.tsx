@@ -1,8 +1,8 @@
 "use client";
+import { useRouter, Link } from "@/lib/i18n/navigation";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+
 import { editCapsule } from "@/app/[locale]/packing/actions";
 
 export type SheetPiece = { id: string; name: string; pinned: boolean; category: string };

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/lib/i18n/navigation";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import type { LegalDocument } from "@/lib/legal/types";
 

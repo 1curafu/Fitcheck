@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidateEverywhere } from "@/lib/i18n/revalidate";
 import { createClient } from "@/lib/supabase/server";
 import { tagItem } from "@/lib/ai/tag-item";
 import { TagSchema, type Rotation, type Tags } from "@/lib/ai/tagging-schema";
@@ -213,7 +213,7 @@ export async function confirmItem(input: {
     }
     throw error;
   }
-  revalidatePath("/closet");
+  revalidateEverywhere("/closet");
   return { status: "saved" };
 }
 

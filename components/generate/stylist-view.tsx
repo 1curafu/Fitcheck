@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/lib/i18n/navigation";
 import { RotateCcw } from "lucide-react";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { WeatherStrip } from "./weather-strip";

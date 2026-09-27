@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import { LinkRow } from "@/components/profile/profile-hub";
-import { redirect } from "next/navigation";
+import { redirect } from "@/lib/i18n/navigation";
+import { getLocale } from "next-intl/server";
+
 import { createClient } from "@/lib/supabase/server";
 import { MobileNav } from "@/components/shell/mobile-nav";
 import { todayFor } from "@/lib/outfits/today";
@@ -98,7 +100,7 @@ async function ProfileBody({ searchParams }: { searchParams: SearchParams }) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/");
+  if (!user) return redirect({ href: "/", locale: await getLocale() });
 
   const { data: profile } = await supabase
     .from("profiles")

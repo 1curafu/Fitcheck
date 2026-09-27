@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/lib/i18n/navigation";
 import { Fingerprint, Bookmark, ChartColumn, Settings } from "lucide-react";
 import { ProCard } from "@/components/billing/pro-card";
 import type { SubscriptionSummary } from "@/lib/billing/status-line";

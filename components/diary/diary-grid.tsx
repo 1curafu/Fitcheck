@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/lib/i18n/navigation";
 import type { CSSProperties } from "react";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import type { Cell, DiaryPiece } from "@/lib/diary/month";

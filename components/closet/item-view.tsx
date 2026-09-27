@@ -1,7 +1,6 @@
 "use client";
+import { useRouter, Link } from "@/lib/i18n/navigation";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Archive } from "lucide-react";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { FORMALITY_LABEL } from "@/lib/closet/vocab";

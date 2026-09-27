@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/lib/i18n/navigation";
 
 /**
  * A screen's title bar — the part of a route that is identical for every user.

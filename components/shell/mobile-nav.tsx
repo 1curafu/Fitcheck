@@ -1,7 +1,6 @@
 "use client";
+import { usePathname, Link } from "@/lib/i18n/navigation";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { Shirt, Sparkles, CalendarDays, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 

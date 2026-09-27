@@ -1,7 +1,8 @@
 "use client";
+import { useRouter } from "@/lib/i18n/navigation";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+
 import { styleWithItem } from "@/app/[locale]/closet/[itemId]/style-actions";
 
 /**

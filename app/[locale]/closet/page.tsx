@@ -1,6 +1,7 @@
 import { Suspense } from "react";
-import Link from "next/link";
-import { redirect } from "next/navigation";
+import { Link, redirect } from "@/lib/i18n/navigation";
+import { getLocale } from "next-intl/server";
+
 import { Camera } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { signItemImages, displayPath } from "@/lib/storage/signed";
@@ -78,7 +79,7 @@ async function ClosetBody() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/");
+  if (!user) return redirect({ href: "/", locale: await getLocale() });
 
   const { data: items } = await supabase
     .from("items")

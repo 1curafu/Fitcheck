@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidateEverywhere } from "@/lib/i18n/revalidate";
 import { createClient } from "@/lib/supabase/server";
 import { currentEntitlements, recordGeneration } from "@/lib/billing/entitlements";
 import { fetchTripForecast } from "@/lib/weather/forecast";
@@ -93,7 +93,7 @@ export async function planTrip(input: PlanTripInput): Promise<{ tripId: string }
   // the trip row.
   await recordGeneration(user.id, `trip:${input.startDate}`, todayIso(), "trip");
 
-  revalidatePath("/packing");
+  revalidateEverywhere("/packing");
   return { tripId };
 }
 
@@ -260,6 +260,6 @@ export async function editCapsule(
 
   // An edit re-runs the model, so it is a real generation and is recorded.
   await recordGeneration(user.id, `trip:${trip.startDate}`, todayIso(), "trip");
-  revalidatePath(`/packing/${tripId}`);
+  revalidateEverywhere(`/packing/${tripId}`);
   return { tripId };
 }

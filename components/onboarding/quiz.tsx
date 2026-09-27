@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/lib/i18n/navigation";
 
 import { useState, useTransition } from "react";
 import { QUESTIONS } from "@/lib/onboarding/questions";

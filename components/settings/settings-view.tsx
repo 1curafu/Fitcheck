@@ -3,7 +3,7 @@
 import { ManageSubscription } from "@/components/billing/manage-subscription";
 import type { SubscriptionSummary } from "@/lib/billing/status-line";
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { Link } from "@/lib/i18n/navigation";
 import type { Preferences } from "@/lib/profile/preferences";
 import { useLocationPicker } from "@/lib/weather/use-location-picker";
 import { LocationSheet } from "@/components/weather/location-sheet";

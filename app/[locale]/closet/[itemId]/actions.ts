@@ -1,7 +1,9 @@
 "use server";
+import { redirect } from "@/lib/i18n/navigation";
+import { getLocale } from "next-intl/server";
 
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { revalidateEverywhere } from "@/lib/i18n/revalidate";
+
 import { createClient } from "@/lib/supabase/server";
 import { UpdateSchema } from "@/lib/closet/update-schema";
 import { resolveAccent } from "@/lib/ai/parse-tags";
@@ -41,8 +43,8 @@ export async function updateItem(itemId: string, input: unknown) {
     })
     .eq("id", itemId);
   if (error) throw error;
-  revalidatePath("/closet");
-  revalidatePath(`/closet/${itemId}`);
+  revalidateEverywhere("/closet");
+  revalidateEverywhere(`/closet/${itemId}`);
 }
 
 export async function archiveItem(itemId: string) {
@@ -52,8 +54,8 @@ export async function archiveItem(itemId: string) {
     .update({ archived: true })
     .eq("id", itemId);
   if (error) throw error;
-  revalidatePath("/closet");
-  redirect("/closet");
+  revalidateEverywhere("/closet");
+  return redirect({ href: "/closet", locale: await getLocale() });
 }
 
 export type EraseResult = { status: "unavailable"; message: string } | { status: "error"; message: string };
@@ -61,9 +63,9 @@ export type DeleteResult = { status: "unavailable"; message: string } | { status
 export type RestoreResult = { status: "restored" } | { status: "limited"; message: string };
 
 function revalidatePiece(itemId: string) {
-  revalidatePath("/closet");
-  revalidatePath("/closet/removed");
-  revalidatePath(`/closet/${itemId}`);
+  revalidateEverywhere("/closet");
+  revalidateEverywhere("/closet/removed");
+  revalidateEverywhere(`/closet/${itemId}`);
 }
 
 function splitPath(path: string) {
@@ -125,7 +127,7 @@ export async function eraseOriginal(itemId: string): Promise<EraseResult> {
     .eq("id", itemId);
   if (updateError) throw updateError;
   revalidatePiece(itemId);
-  redirect("/closet");
+  return redirect({ href: "/closet", locale: await getLocale() });
 }
 
 /** Puts a removed piece back in the closet. It counts toward the Free limit exactly like a new capture. */
@@ -222,7 +224,7 @@ export async function deletePiece(itemId: string): Promise<DeleteResult> {
   const { error: deleteError } = await supabase.from("items").delete().eq("id", itemId);
   if (deleteError) throw deleteError;
   revalidatePiece(itemId);
-  revalidatePath("/calendar");
-  revalidatePath("/stats");
-  redirect("/closet/removed");
+  revalidateEverywhere("/calendar");
+  revalidateEverywhere("/stats");
+  return redirect({ href: "/closet/removed", locale: await getLocale() });
 }

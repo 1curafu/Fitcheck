@@ -1,7 +1,8 @@
 "use client";
+import { useRouter } from "@/lib/i18n/navigation";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import type { DetailPiece } from "./outfit-detail";
 import { createClient } from "@/lib/supabase/client";

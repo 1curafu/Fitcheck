@@ -1,5 +1,7 @@
 import { Suspense } from "react";
-import { redirect } from "next/navigation";
+import { redirect } from "@/lib/i18n/navigation";
+import { getLocale } from "next-intl/server";
+
 import { createClient } from "@/lib/supabase/server";
 import { MobileNav } from "@/components/shell/mobile-nav";
 import { Stylist } from "@/components/generate/stylist";
@@ -35,7 +37,7 @@ async function EveningConfirm() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/");
+  if (!user) return redirect({ href: "/", locale: await getLocale() });
 
   /**
    * The evening wear confirmation.

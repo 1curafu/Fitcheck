@@ -1,8 +1,8 @@
 "use client";
+import { useRouter, Link } from "@/lib/i18n/navigation";
 
 import { useOptimistic, useTransition, type CSSProperties, useEffect, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+
 import { Bookmark, Share } from "lucide-react";
 import { toggleWear, toggleFavorite, noteOutfitViewed } from "@/app/[locale]/outfits/[id]/actions";
 import { TryAnotherLook } from "./try-another-look";

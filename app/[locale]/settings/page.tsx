@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import { ScreenHeader } from "@/components/shell/screen-header";
-import { redirect } from "next/navigation";
+import { redirect } from "@/lib/i18n/navigation";
+import { getLocale } from "next-intl/server";
+
 import { createClient } from "@/lib/supabase/server";
 import { MobileNav } from "@/components/shell/mobile-nav";
 import { initials } from "@/lib/profile/identity";
@@ -26,7 +28,7 @@ async function SettingsBody() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/");
+  if (!user) return redirect({ href: "/", locale: await getLocale() });
 
   const { data: profile } = await supabase
     .from("profiles")

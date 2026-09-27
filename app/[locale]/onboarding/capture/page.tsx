@@ -1,5 +1,7 @@
 import { Suspense } from "react";
-import { redirect } from "next/navigation";
+import { redirect } from "@/lib/i18n/navigation";
+import { getLocale } from "next-intl/server";
+
 import { createClient } from "@/lib/supabase/server";
 import { displayPath, signItemImages } from "@/lib/storage/signed";
 import { OnboardingCapture } from "@/components/capture/onboarding-capture";
@@ -19,7 +21,7 @@ async function CaptureBody() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/");
+  if (!user) return redirect({ href: "/", locale: await getLocale() });
 
   // Seed the five saved slots with the user's latest items, including after a reload.
   // Removed (archived) pieces have left the closet, so they neither count nor show.

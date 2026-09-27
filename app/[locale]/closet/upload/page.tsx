@@ -1,5 +1,7 @@
 import { Suspense } from "react";
-import { redirect } from "next/navigation";
+import { redirect } from "@/lib/i18n/navigation";
+import { getLocale } from "next-intl/server";
+
 import { createClient } from "@/lib/supabase/server";
 import { CaptureFlow } from "@/components/capture/capture-flow";
 
@@ -18,6 +20,6 @@ async function UploadBody() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/");
+  if (!user) return redirect({ href: "/", locale: await getLocale() });
   return <CaptureFlow />;
 }

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import Link from "next/link";
-import { redirect } from "next/navigation";
+import { Link, redirect } from "@/lib/i18n/navigation";
+import { getLocale } from "next-intl/server";
+
 import { createClient } from "@/lib/supabase/server";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
 import { EmailSignIn } from "@/components/auth/email-sign-in";
@@ -38,7 +39,7 @@ async function WelcomeBody({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (user) redirect("/onboarding");
+  if (user) return redirect({ href: "/onboarding", locale: await getLocale() });
 
   return (
     <main className="screen-top flex flex-1 flex-col justify-between px-7 pb-10">

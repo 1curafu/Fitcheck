@@ -1,10 +1,12 @@
 "use server";
+import { redirect } from "@/lib/i18n/navigation";
+import { getLocale } from "next-intl/server";
 
 import { randomUUID } from "node:crypto";
 import * as Sentry from "@sentry/nextjs";
-import { RedirectType, redirect } from "next/navigation";
+import { RedirectType } from "next/navigation";
 import { z } from "zod";
-import { revalidatePath } from "next/cache";
+import { revalidateEverywhere } from "@/lib/i18n/revalidate";
 import { deleteLiveAccount } from "@/lib/account-deletion/runtime";
 import { DeletionFailure } from "@/lib/account-deletion/types";
 import { createClient } from "@/lib/supabase/server";
@@ -74,7 +76,7 @@ export async function deleteAccount(
     // Hard deletion completed; a cookie-clearing failure must not report a false failure.
   }
 
-  redirect("/?account=deleted", RedirectType.replace);
+  return redirect({ href: "/?account=deleted", locale: await getLocale() }, RedirectType.replace);
 }
 
 /**
@@ -106,10 +108,10 @@ export async function updatePreferences(patch: unknown): Promise<void> {
   const { error } = await supabase.from("profiles").update({ preferences: next }).eq("id", user.id);
   if (error) throw new Error(error.message);
 
-  revalidatePath("/settings");
+  revalidateEverywhere("/settings");
   // The stylist screen reads both preferences: rain guard reaches weatherRules,
   // tempUnit reaches the weather strip.
-  revalidatePath("/generate");
+  revalidateEverywhere("/generate");
 }
 
 const PickedCitySchema = z.object({
@@ -172,8 +174,8 @@ export async function setLocation(input: unknown): Promise<void> {
 
   if (moved) await clearTodaysDrop(supabase, user.id, forecast.timezone);
 
-  revalidatePath("/settings");
-  revalidatePath("/generate");
+  revalidateEverywhere("/settings");
+  revalidateEverywhere("/generate");
 }
 
 /**
@@ -223,6 +225,6 @@ export async function stopSharedLink(token: string) {
   if (!user) throw new Error("Not authenticated");
   if (!isShareToken(token)) throw new Error("Not found");
   const result = await stop(supabase, token);
-  revalidatePath("/settings");
+  revalidateEverywhere("/settings");
   return result;
 }

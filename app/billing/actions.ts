@@ -1,11 +1,13 @@
 "use server";
+import { redirect } from "@/lib/i18n/navigation";
 
 import * as Sentry from "@sentry/nextjs";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+
 import { z } from "zod";
 import { createBillingStore } from "@/lib/billing/admin";
 import { LOOKUP_KEYS } from "@/lib/billing/prices";
+import { DEFAULT_LOCALE } from "@/lib/i18n/locales";
 import { billingEnabled, getGateway } from "@/lib/billing/stripe/client";
 import { ensureCustomer } from "@/lib/billing/stripe/customer";
 import { trustedOrigin } from "@/lib/billing/urls";
@@ -57,7 +59,7 @@ export async function startCheckout(input: unknown): Promise<StartCheckoutResult
     Sentry.captureException(new Error("Billing checkout failed"));
     return { status: "error" };
   }
-  redirect(url);
+  return redirect({ href: url, locale: DEFAULT_LOCALE });
 }
 
 export type OpenBillingPortalResult = { status: "signed-out" | "no-subscription" | "unavailable" | "error" };
@@ -84,5 +86,5 @@ export async function openBillingPortal(): Promise<OpenBillingPortalResult> {
     Sentry.captureException(new Error("Billing portal failed"));
     return { status: "error" };
   }
-  redirect(url);
+  return redirect({ href: url, locale: DEFAULT_LOCALE });
 }

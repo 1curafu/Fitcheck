@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/lib/i18n/navigation";
 import { Surface } from "@/components/ui-fitcheck/surface";
 
 export function ItemCard({

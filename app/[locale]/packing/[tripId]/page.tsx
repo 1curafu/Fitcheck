@@ -1,6 +1,6 @@
 import { Suspense } from "react";
-import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { Link, redirect } from "@/lib/i18n/navigation";
+import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { signItemImages, displayPath } from "@/lib/storage/signed";
 import { CapsuleView } from "@/components/packing/capsule-view";
@@ -9,6 +9,7 @@ import { Shortfall } from "@/components/packing/shortfall";
 import { loadTrip } from "@/lib/packing/store";
 import { expandDays } from "@/lib/packing/plan";
 import { fetchTripForecast } from "@/lib/weather/forecast";
+import { getLocale } from "next-intl/server";
 
 /**
  * The shell, and the `<Suspense>` fallback.
@@ -43,7 +44,7 @@ async function TripBody({ params }: { params: Promise<{ tripId: string }> }) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/");
+  if (!user) return redirect({ href: "/", locale: await getLocale() });
 
   const trip = await loadTrip(tripId);
   if (!trip) notFound();
