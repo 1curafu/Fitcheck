@@ -9,7 +9,7 @@ import { assertCanUpload } from "@/lib/billing/entitlements";
 import { UploadLimitError } from "@/lib/billing/errors";
 import { isItemId } from "@/lib/closet/capture-paths";
 import { originalLocation } from "@/lib/closet/original-path";
-import { ERASE_ALREADY, ERASE_FAILED, ERASE_NO_CUTOUT } from "@/lib/closet/erase-copy";
+import { DELETE_FAILED, DELETE_NOT_REMOVED, ERASE_ALREADY, ERASE_FAILED, ERASE_NO_CUTOUT } from "@/lib/closet/erase-copy";
 
 export async function updateItem(itemId: string, input: unknown) {
   const data = UpdateSchema.parse(input);
@@ -57,6 +57,7 @@ export async function archiveItem(itemId: string) {
 }
 
 export type EraseResult = { status: "unavailable"; message: string } | { status: "error"; message: string };
+export type DeleteResult = { status: "unavailable"; message: string } | { status: "error"; message: string };
 export type RestoreResult = { status: "restored" } | { status: "limited"; message: string };
 
 function revalidatePiece(itemId: string) {
@@ -152,4 +153,76 @@ export async function restoreItem(itemId: string): Promise<RestoreResult> {
   }
   revalidatePiece(itemId);
   return { status: "restored" };
+}
+
+const FOLDER_SEGMENT = /^[A-Za-z0-9_-]+$/;
+
+/** `<userId>/<folder>` for a stored path the caller owns; the segment is strict because it goes into a filter string. */
+function ownedFolder(userId: string, path: string): string | null {
+  const parts = path.split("/");
+  if (parts.length !== 3) return null;
+  const [owner, folder, file] = parts;
+  if (owner !== userId || !FOLDER_SEGMENT.test(folder) || !file || file === "." || file === "..") return null;
+  return `${owner}/${folder}`;
+}
+
+/**
+ * Deletes a removed piece for good (owner decision 2026-09-27): every photo in its folder, then the row. Past looks,
+ * the calendar and trips lose the piece and keep their other pieces; a look styled around it goes with it (FK cascades).
+ *
+ * ⚠️ Storage first, verified, THEN the row — the same order as eraseOriginal, so a failure leaves a piece the user can
+ * retry rather than photos no row points at. A folder another saved piece still uses keeps that piece's files.
+ */
+export async function deletePiece(itemId: string): Promise<DeleteResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  if (!isItemId(itemId)) throw new Error("Not found");
+
+  const { data: row, error } = await supabase
+    .from("items")
+    .select("id, image_url, cutout_url, thumb_url, archived")
+    .eq("id", itemId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!row) throw new Error("Not found");
+  if (!row.archived) return { status: "unavailable", message: DELETE_NOT_REMOVED };
+
+  const own = new Map<string, string[]>();
+  for (const path of [row.image_url, row.cutout_url, row.thumb_url]) {
+    if (!path) continue;
+    const folder = ownedFolder(user.id, path);
+    if (!folder) throw new Error("Not your upload");
+    own.set(folder, [...(own.get(folder) ?? []), path]);
+  }
+
+  const bucket = supabase.storage.from("wardrobe");
+  for (const [folder, paths] of own) {
+    const { data: others, error: othersError } = await supabase
+      .from("items")
+      .select("id")
+      .neq("id", itemId)
+      .or(`image_url.like.${folder}/*,cutout_url.like.${folder}/*,thumb_url.like.${folder}/*`)
+      .limit(1);
+    if (othersError) return { status: "error", message: DELETE_FAILED };
+    const before = await bucket.list(folder);
+    if (before.error) return { status: "error", message: DELETE_FAILED };
+    const targets = (others ?? []).length > 0 ? paths : (before.data ?? []).map((f) => `${folder}/${f.name}`);
+    if (targets.length > 0) {
+      const removed = await bucket.remove(targets);
+      if (removed.error) return { status: "error", message: DELETE_FAILED };
+    }
+    const after = await bucket.list(folder);
+    const left = new Set((after.data ?? []).map((f) => `${folder}/${f.name}`));
+    if (after.error || targets.some((t) => left.has(t))) return { status: "error", message: DELETE_FAILED };
+  }
+
+  const { error: deleteError } = await supabase.from("items").delete().eq("id", itemId);
+  if (deleteError) throw deleteError;
+  revalidatePiece(itemId);
+  revalidatePath("/calendar");
+  revalidatePath("/stats");
+  redirect("/closet/removed");
 }
