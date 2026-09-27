@@ -149,3 +149,9 @@ test("R2 — the policy says a piece's original can be erased while its cut-out 
   expect(text).toMatch(/cut-out stays in your looks/i);
   expect(text).toMatch(/can.t be used to re-make a better cut-out/i);
 });
+
+test("the policy says a removed piece can be deleted for good, and what past looks keep", () => {
+  const text = JSON.stringify(PRIVACY);
+  expect(text).toMatch(/delete a removed piece for good/i);
+  expect(text).toMatch(/past looks keep their other pieces/i);
+});

@@ -92,3 +92,38 @@ test("erasing the original keeps the cut-out, and past looks stay complete", asy
     await reseed();
   }
 });
+
+test("deleting a removed piece for good empties its folder and past looks keep their other pieces", async ({ page }) => {
+  const db = admin();
+  const userId = await testUserId();
+  const { data: look } = await db.from("outfits").select("id")
+    .eq("user_id", userId).eq("look_name", "E2E Seeded Look").single();
+  if (!look) throw new Error("seed changed: E2E Seeded Look is missing");
+  const { data: links } = await db.from("outfit_items").select("item_id").eq("outfit_id", look.id);
+  if (!links || links.length < 2) throw new Error("seed changed: the look needs at least two pieces");
+  const { data: row } = await db.from("items").select("id, name, image_url, cutout_url").eq("id", links[0].item_id).single();
+  if (!row?.cutout_url) throw new Error("seed changed: the look's piece needs a cut-out");
+  const folder = row.cutout_url.slice(0, row.cutout_url.lastIndexOf("/"));
+
+  try {
+    await db.from("items").update({ archived: true }).eq("id", row.id);
+    await page.goto(`/closet/${row.id}`);
+    await page.getByRole("button", { name: /delete for good/i }).click();
+    await page.getByRole("dialog", { name: /delete this piece for good/i })
+      .getByRole("button", { name: /^delete for good$/i }).click();
+    await expect(page).toHaveURL(/\/closet\/removed$/);
+    await expect(page.getByText(row.name as string).filter({ visible: true })).toHaveCount(0);
+
+    const { data: gone } = await db.from("items").select("id").eq("id", row.id);
+    expect(gone).toEqual([]);
+    const { data: files } = await db.storage.from("wardrobe").list(folder);
+    expect(files ?? []).toEqual([]);
+
+    const { count } = await db.from("outfit_items").select("item_id", { count: "exact", head: true }).eq("outfit_id", look.id);
+    expect(count).toBe(links.length - 1);
+    await page.goto(`/outfits/${look.id}`);
+    await expect(page.getByTestId("detail-stage").locator("img")).toHaveCount(links.length - 1);
+  } finally {
+    await reseed();
+  }
+});

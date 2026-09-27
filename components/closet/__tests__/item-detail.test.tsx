@@ -15,11 +15,13 @@ const updateItem = vi.fn().mockResolvedValue(undefined);
 const archiveItem = vi.fn().mockResolvedValue(undefined);
 const eraseOriginal = vi.fn();
 const restoreItem = vi.fn();
+const deletePiece = vi.fn();
 vi.mock("@/app/closet/[itemId]/actions", () => ({
   updateItem: (...args: unknown[]) => updateItem(...args),
   archiveItem: (...args: unknown[]) => archiveItem(...args),
   eraseOriginal: (...args: unknown[]) => eraseOriginal(...args),
   restoreItem: (...args: unknown[]) => restoreItem(...args),
+  deletePiece: (...args: unknown[]) => deletePiece(...args),
 }));
 
 const item: DetailItem = {
@@ -402,8 +404,46 @@ describe("a removed piece", () => {
     expect(screen.getByRole("dialog", { name: /erase the original photo/i })).toBeInTheDocument();
   });
 
-  test("an erased piece offers only Put back", () => {
+  test("an erased piece offers Put back and Delete for good, but no erase", () => {
     renderDetail({}, { archived: true, canEraseOriginal: false });
     expect(screen.queryByRole("button", { name: /erase original photo/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /put back/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /delete for good/i })).toBeInTheDocument();
   });
+
+  test("Delete for good confirms in its own step, says what goes and what stays, then calls deletePiece", async () => {
+    deletePiece.mockReset().mockResolvedValue(undefined);
+    renderDetail({}, { archived: true });
+    await userEvent.click(screen.getByRole("button", { name: /delete for good/i }));
+    const sheet = screen.getByRole("dialog", { name: /delete this piece for good/i });
+    expect(within(sheet).getByText(/photos, cut-out and details are deleted/i)).toBeInTheDocument();
+    expect(within(sheet).getByText(/past looks, your calendar and trips keep their other pieces/i)).toBeInTheDocument();
+    expect(within(sheet).getByText(/can.t be undone/i)).toBeInTheDocument();
+    expect(deletePiece).not.toHaveBeenCalled();
+    await userEvent.click(within(sheet).getByRole("button", { name: /^delete for good$/i }));
+    expect(deletePiece).toHaveBeenCalledWith("i1");
+  });
+
+  test("Back from the delete step deletes nothing", async () => {
+    deletePiece.mockReset();
+    renderDetail({}, { archived: true });
+    await userEvent.click(screen.getByRole("button", { name: /delete for good/i }));
+    await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: /back/i }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(deletePiece).not.toHaveBeenCalled();
+  });
+
+  test("a failed delete keeps the sheet open with its message", async () => {
+    deletePiece.mockReset().mockResolvedValue({ status: "error", message: "Couldn't delete the piece. Nothing was changed — try again." });
+    renderDetail({}, { archived: true });
+    await userEvent.click(screen.getByRole("button", { name: /delete for good/i }));
+    await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: /^delete for good$/i }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/couldn.t delete the piece/i);
+    expect(screen.getByRole("dialog", { name: /delete this piece for good/i })).toBeInTheDocument();
+  });
+});
+
+test("a piece still in the closet is never offered Delete for good", () => {
+  renderDetail({}, { archived: false });
+  expect(screen.queryByRole("button", { name: /delete for good/i })).not.toBeInTheDocument();
 });

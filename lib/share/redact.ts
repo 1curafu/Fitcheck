@@ -5,18 +5,29 @@ export function redactShareUrl(url: string): string {
     .replace(/\/shares\/[A-Za-z0-9_-]{22}(?=\/|[?#]|$)/g, "/shares/[token]");
 }
 
-/** Sentry payloads can carry URLs in breadcrumbs, headers, exceptions, spans, logs and metric attributes. */
+/**
+ * Sentry payloads can carry URLs in breadcrumbs, headers, exceptions, spans, logs and metric attributes. Returns a
+ * scrubbed COPY of plain objects and arrays: a console breadcrumb holds the app's own argument array, so editing in
+ * place would rewrite what the app logged (or its state). Class instances are passed through untouched.
+ */
 export function redactShareData<T>(value: T): T {
-  const seen = new WeakSet<object>();
+  const seen = new WeakMap<object, unknown>();
   const visit = (item: unknown): unknown => {
     if (typeof item === "string") return redactShareUrl(item);
-    if (item === null || typeof item !== "object" || seen.has(item)) return item;
-    seen.add(item);
-    for (const key of Object.keys(item)) {
-      const record = item as Record<string, unknown>;
-      record[key] = visit(record[key]);
+    if (item === null || typeof item !== "object") return item;
+    if (seen.has(item)) return seen.get(item);
+    if (Array.isArray(item)) {
+      const out: unknown[] = [];
+      seen.set(item, out);
+      for (const v of item) out.push(visit(v));
+      return out;
     }
-    return item;
+    const proto = Object.getPrototypeOf(item);
+    if (proto !== Object.prototype && proto !== null) return item;
+    const out: Record<string, unknown> = {};
+    seen.set(item, out);
+    for (const [k, v] of Object.entries(item)) out[k] = visit(v);
+    return out;
   };
   return visit(value) as T;
 }
