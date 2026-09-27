@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isShareToken, isUuid, orderPieces, pieceLabel, shareExpiry, shareKicker, snapshotPieces } from "../snapshot";
+import { SHARE_LIMITS, clipText, isShareToken, isUuid, orderPieces, pieceLabel, shareExpiry, shareKicker, snapshotPieces } from "../snapshot";
 
 const p = (id: string, category: string, name = id, brand: string | null = null) => ({ id, category, name, brand });
 
@@ -52,5 +52,24 @@ describe("labels, kicker, expiry, guards", () => {
     expect(isShareToken("AAAA/AAAAAAAAAAAAAAAAA")).toBe(false);
     expect(isUuid("77777777-7777-4777-8777-777777777777")).toBe(true);
     expect(isUuid("../x")).toBe(false);
+  });
+});
+
+describe("share text limits", () => {
+  it("clips by characters, never splitting an emoji, and leaves short text alone", () => {
+    expect(clipText("abc", 5)).toBe("abc");
+    expect(clipText("abcdef", 3)).toBe("abc");
+    expect(clipText("👗👠👜", 2)).toBe("👗👠");
+  });
+
+  it("keeps every piece name and brand inside the database limits, so a long closet name never breaks a share", () => {
+    const [piece] = snapshotPieces([p("a", "Tops", "n".repeat(500), "b".repeat(500))], true);
+    expect(piece.name).toHaveLength(SHARE_LIMITS.pieceName);
+    expect(piece.brand).toHaveLength(SHARE_LIMITS.brand);
+  });
+
+  it("fits eight worst-case pieces inside the stored pieces budget", () => {
+    const pieces = snapshotPieces(Array.from({ length: 8 }, (_, i) => p(`${i}`, "Accessories", "𝒳".repeat(500), "𝒳".repeat(500))), true);
+    expect(new TextEncoder().encode(JSON.stringify(pieces)).length).toBeLessThanOrEqual(SHARE_LIMITS.piecesBytes);
   });
 });

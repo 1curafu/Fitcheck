@@ -1,14 +1,16 @@
 -- E (spec 2026-09-26-share-a-look-design.md §0 A1/A4/A5): owner-only rows, token minted by the database, a 30-day
 -- public read by exact token, and a bucket writable only at shares/<own token>/{story,post,og}.jpg.
 begin;
-select plan(28);
+select plan(35);
 
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
   ('55555555-5555-4555-8555-555555555555', 'authenticated', 'authenticated', 'share-owner@example.test', 'x', now(), '{}', '{}', now(), now()),
   ('66666666-6666-4666-8666-666666666666', 'authenticated', 'authenticated', 'share-other@example.test', 'x', now(), '{}', '{}', now(), now());
 insert into public.outfits (id, user_id, look_name, occasion)
-values ('77777777-7777-4777-8777-777777777777', '55555555-5555-4555-8555-555555555555', 'Quiet Camel', 'everyday');
+values ('77777777-7777-4777-8777-777777777777', '55555555-5555-4555-8555-555555555555', 'Quiet Camel', 'everyday'),
+       ('88888888-8888-4888-8888-888888888888', '55555555-5555-4555-8555-555555555555', 'Second Look', 'work'),
+       ('99999999-9999-4999-8999-999999999999', '66666666-6666-4666-8666-666666666666', 'Their Look', 'work');
 
 -- Rows inserted as the table owner (tests only): fixed tokens so the assertions can name them.
 insert into public.look_shares (token, user_id, outfit_id, look_name, reasoning, pieces, ready_at) values
@@ -72,6 +74,34 @@ select lives_ok($$ insert into storage.objects (bucket_id, name, owner_id)
 select throws_ok($$ insert into storage.objects (bucket_id, name, owner_id)
   values ('shares', 'AAAAAAAAAAAAAAAAAAAAAA/x.jpg', '55555555-5555-4555-8555-555555555555') $$,
   '42501', null, 'only the three card file names are writable');
+reset role;
+
+-- A client can insert directly, and the row is public: its look must be its own, and its text is bounded.
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '55555555-5555-4555-8555-555555555555', true);
+select set_config('request.jwt.claims', '{"sub":"55555555-5555-4555-8555-555555555555","role":"authenticated"}', true);
+select throws_ok($$ insert into public.look_shares (user_id, outfit_id, look_name, pieces)
+  values ('55555555-5555-4555-8555-555555555555', '99999999-9999-4999-8999-999999999999', 'x', '[{"n":1}]') $$,
+  '42501', null, 'a share cannot point at another user''s look');
+select lives_ok($$ insert into public.look_shares (user_id, outfit_id, look_name, reasoning, occasion, pieces)
+  values ('55555555-5555-4555-8555-555555555555', '88888888-8888-4888-8888-888888888888',
+          repeat('l', 120), repeat('r', 1000), repeat('o', 40), '[{"n":1}]') $$,
+  'a share of my own look at the exact text limits is accepted');
+select throws_ok($$ insert into public.look_shares (user_id, look_name, pieces)
+  values ('55555555-5555-4555-8555-555555555555', repeat('l', 121), '[{"n":1}]') $$,
+  '23514', null, 'a look name over 120 characters is refused');
+select throws_ok($$ insert into public.look_shares (user_id, look_name, reasoning, pieces)
+  values ('55555555-5555-4555-8555-555555555555', 'x', repeat('r', 1001), '[{"n":1}]') $$,
+  '23514', null, 'a reason over 1000 characters is refused');
+select throws_ok($$ insert into public.look_shares (user_id, look_name, occasion, pieces)
+  values ('55555555-5555-4555-8555-555555555555', 'x', repeat('o', 41), '[{"n":1}]') $$,
+  '23514', null, 'an occasion over 40 characters is refused');
+select throws_ok($$ insert into public.look_shares (user_id, look_name, pieces)
+  values ('55555555-5555-4555-8555-555555555555', 'x', jsonb_build_array(jsonb_build_object('n', 1, 'name', repeat('y', 9000)))) $$,
+  '23514', null, 'pieces over 8 KB are refused');
+select throws_ok($$ insert into public.look_shares (user_id, look_name, pieces)
+  values ('55555555-5555-4555-8555-555555555555', '', '[{"n":1}]') $$,
+  '23514', null, 'an empty look name is refused');
 reset role;
 
 -- Revocation is a database claim before Storage cleanup. A stale JWT may delete but cannot upload into that folder.

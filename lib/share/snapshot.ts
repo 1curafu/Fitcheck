@@ -6,6 +6,14 @@ export const SHARE_IMAGE_FILES = ["story.jpg", "post.jpg", "og.jpg"] as const;
 export const MAX_SHARE_PIECES = 8;
 export const SHARE_CAP = 100;
 export const SHARE_TTL_DAYS = 30;
+/** Mirrored by check constraints in migration 20260928092000: clients can write look_shares directly, and the row is public. */
+export const SHARE_LIMITS = { lookName: 120, reasoning: 1000, occasion: 40, pieceName: 80, brand: 60, piecesBytes: 8192 } as const;
+
+/** Clips by code point (what Postgres char_length counts), so an emoji is never split. */
+export function clipText(text: string, max: number): string {
+  const chars = Array.from(text);
+  return chars.length <= max ? text : chars.slice(0, max).join("");
+}
 
 const READING_ORDER: Record<string, number> = { Outerwear: 0, "One-piece": 1, Tops: 1, Bottoms: 2, Shoes: 3 };
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -22,7 +30,8 @@ export function snapshotPieces(
   showBrands: boolean,
 ): SnapshotPiece[] {
   return orderPieces(pieces).slice(0, MAX_SHARE_PIECES).map((p, i) => ({
-    n: i + 1, name: p.name, category: p.category, brand: showBrands && p.brand?.trim() ? p.brand.trim() : null,
+    n: i + 1, name: clipText(p.name, SHARE_LIMITS.pieceName), category: p.category,
+    brand: showBrands && p.brand?.trim() ? clipText(p.brand.trim(), SHARE_LIMITS.brand) : null,
   }));
 }
 

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { SHARE_LIMITS } from "../snapshot";
 import { listMine, prepare, publish, stateFor, stop } from "../store";
 
 const owner = "55555555-5555-4555-8555-555555555555";
@@ -53,6 +54,15 @@ beforeEach(() => {
 });
 
 describe("prepare", () => {
+  it("clips the look name, reason and occasion to the database limits", async () => {
+    s.outfit = { id: outfitId, look_name: "L".repeat(500), occasion: "o".repeat(500), ai_reasoning: "w".repeat(5000) };
+    await prepare(client(), owner, { outfitId, showBrands: false });
+    const row = s.inserted[0] as { look_name: string; reasoning: string; occasion: string };
+    expect(row.look_name).toHaveLength(SHARE_LIMITS.lookName);
+    expect(row.reasoning).toHaveLength(SHARE_LIMITS.reasoning);
+    expect(row.occasion).toHaveLength(SHARE_LIMITS.occasion);
+  });
+
   it("builds the snapshot from the database, in reading order, without brands by default, and reads the minted token", async () => {
     expect(await prepare(client(), owner, { outfitId, showBrands: false })).toEqual({ status: "ok", token });
     const row = s.inserted[0];

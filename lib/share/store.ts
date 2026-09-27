@@ -1,5 +1,5 @@
 import type { createClient } from "@/lib/supabase/server";
-import { SHARE_CAP, SHARE_IMAGE_FILES, snapshotPieces } from "./snapshot";
+import { SHARE_CAP, SHARE_IMAGE_FILES, SHARE_LIMITS, clipText, snapshotPieces } from "./snapshot";
 
 export type ShareClient = Awaited<ReturnType<typeof createClient>>;
 type ItemRow = { id: string; name: string | null; subcategory: string | null; category: string; brand: string | null };
@@ -24,9 +24,9 @@ export async function prepare(supabase: ShareClient, userId: string, input: { ou
   if (rows.length === 0) throw new Error("Not found");
 
   const snapshot = {
-    look_name: outfit.look_name ?? "Today's look",
-    reasoning: outfit.ai_reasoning ?? null,
-    occasion: outfit.occasion ?? null,
+    look_name: clipText(outfit.look_name ?? "Today's look", SHARE_LIMITS.lookName),
+    reasoning: outfit.ai_reasoning == null ? null : clipText(outfit.ai_reasoning, SHARE_LIMITS.reasoning),
+    occasion: outfit.occasion == null ? null : clipText(outfit.occasion, SHARE_LIMITS.occasion),
     pieces: snapshotPieces(rows.map((r) => ({ id: r.id, name: r.name ?? r.subcategory ?? r.category, brand: r.brand, category: r.category })), input.showBrands),
     show_brands: input.showBrands,
   };
