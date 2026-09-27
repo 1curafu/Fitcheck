@@ -1,9 +1,11 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 export function EmailSignIn() {
+  const t = useTranslations("auth");
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -28,9 +30,9 @@ export function EmailSignIn() {
   if (sent) {
     return (
       <div className="text-center">
-        <p className="font-serif text-2xl text-foreground">Check your inbox</p>
+        <p className="font-serif text-2xl text-foreground">{t("checkInbox")}</p>
         <p className="mt-2 text-sm text-muted-foreground">
-          We sent a sign-in link to {email}.
+          {t("sentBody", { email })}
         </p>
       </div>
     );
@@ -49,7 +51,7 @@ export function EmailSignIn() {
         required
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        placeholder="you@email.com"
+        placeholder={t("emailPlaceholder")}
         autoComplete="email"
         className="rounded-[12px] border border-[--input] bg-surface-1 px-4 py-[16px] text-foreground outline-none placeholder:text-muted-dim focus:border-brand"
       />
@@ -58,7 +60,7 @@ export function EmailSignIn() {
         disabled={loading}
         className="rounded-[12px] bg-foreground py-[18px] font-semibold tracking-[0.01em] text-canvas disabled:opacity-50"
       >
-        {loading ? "Sending…" : "Email me a sign-in link"}
+        {loading ? t("sending") : t("emailLink")}
       </button>
       {error && <p className="text-sm text-brand">{error}</p>}
     </form>

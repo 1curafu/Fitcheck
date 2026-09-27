@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
-import { getLocale } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { SHIPPED_LOCALES } from "@/lib/i18n/locales";
 import { SITE_URL } from "@/lib/site";
 import { Libre_Caslon_Text, Hanken_Grotesk } from "next/font/google";
@@ -23,26 +23,28 @@ const sans = Hanken_Grotesk({
   display: "swap",
 });
 
-const DESCRIPTION = "Your AI stylist. Daily looks from the clothes you already own.";
-
-export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
-  title: { default: "Fitcheck", template: "%s — Fitcheck" },
-  description: DESCRIPTION,
-  applicationName: "Fitcheck",
-  openGraph: { type: "website", siteName: "Fitcheck", title: "Fitcheck", description: DESCRIPTION, locale: "en_GB" },
-  twitter: { card: "summary_large_image", title: "Fitcheck", description: DESCRIPTION },
-  // Google Search Console: paste the token from "HTML tag" verification into Vercel env.
-  verification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
-    ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
-    : undefined,
-  manifest: "/manifest.webmanifest",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
-    title: "Fitcheck",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("landing");
+  const description = t("description");
+  return {
+    metadataBase: new URL(SITE_URL),
+    title: { default: "Fitcheck", template: "%s — Fitcheck" },
+    description,
+    applicationName: "Fitcheck",
+    openGraph: { type: "website", siteName: "Fitcheck", title: "Fitcheck", description, locale: "en_GB" },
+    twitter: { card: "summary_large_image", title: "Fitcheck", description },
+    // Google Search Console: paste the token from "HTML tag" verification into Vercel env.
+    verification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+      ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
+      : undefined,
+    manifest: "/manifest.webmanifest",
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "black-translucent",
+      title: "Fitcheck",
+    },
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: "#0E0E10",

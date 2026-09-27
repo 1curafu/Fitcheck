@@ -1,4 +1,5 @@
 import { Link } from "@/lib/i18n/navigation";
+import { getTranslations } from "next-intl/server";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import type { LegalDocument } from "@/lib/legal/types";
 
@@ -6,13 +7,14 @@ import type { LegalDocument } from "@/lib/legal/types";
  * One layout for both legal pages. Pure, static, no session read — so the
  * whole page prerenders as a shell and nothing here can leak a user.
  */
-export function LegalDocumentView({ doc, other }: { doc: LegalDocument; other: { href: string; label: string } }) {
+export async function LegalDocumentView({ doc, other }: { doc: LegalDocument; other: { href: string; label: string } }) {
+  const t = await getTranslations("legal");
   return (
     <main className="screen-top flex flex-1 flex-col px-7 pb-16">
       <Link href="/" className="mb-8 text-[13px] text-muted-foreground">
-        ← Fitcheck
+        {t("back")}
       </Link>
-      <Kicker>Updated {doc.updated}</Kicker>
+      <Kicker>{t("updated", { date: doc.updated })}</Kicker>
       <h1 className="mt-2 font-serif text-[34px] leading-[1.05] tracking-[-0.01em] text-foreground">
         {doc.title}
       </h1>
@@ -40,7 +42,7 @@ export function LegalDocumentView({ doc, other }: { doc: LegalDocument; other: {
       ))}
 
       <p className="mt-12 text-[13px] text-muted-dim">
-        See also the <Link href={other.href} className="underline underline-offset-2 text-muted-foreground">{other.label}</Link>.
+        {t("seeAlso")}{" "}<Link href={other.href} className="underline underline-offset-2 text-muted-foreground">{other.label}</Link>.
       </p>
     </main>
   );

@@ -24,6 +24,43 @@
       "fixed": "Fixed"
     }
   },
+  "landing": {
+    "description": "Your AI stylist. Daily looks from the clothes you already own.",
+    "metadata": {
+      "title": "Fitcheck — your AI stylist",
+      "description": "Upload your wardrobe once. Every day, three outfits composed from the clothes you already own, matched to the weather and the occasion, with a reason why each one works."
+    },
+    "kicker": "Your AI Stylist",
+    "wordmark": "fitcheck",
+    "heroDescription": "A wardrobe that thinks. Daily looks, composed from the clothes you already own.",
+    "or": "or",
+    "legalLead": "By continuing you agree to the",
+    "terms": "Terms",
+    "and": "and",
+    "privacy": "Privacy Policy"
+  },
+  "auth": {
+    "deleted": "Your account and live data have been deleted.",
+    "checkInbox": "Check your inbox",
+    "sentBody": "We sent a sign-in link to {email}.",
+    "emailPlaceholder": "you@email.com",
+    "sending": "Sending…",
+    "emailLink": "Email me a sign-in link",
+    "google": "Continue with Google"
+  },
+  "legal": {
+    "back": "← Fitcheck",
+    "updated": "Updated {date}",
+    "seeAlso": "See also the",
+    "privacy": {
+      "title": "Privacy Policy",
+      "description": "How Fitcheck handles your photos and data — Swiss and EU law, processors named, no tracking cookies."
+    },
+    "terms": {
+      "title": "Terms of Service",
+      "description": "The terms for using Fitcheck."
+    }
+  },
   "notFound": {
     "title": "Nothing here",
     "body": "This page doesn't exist.",
