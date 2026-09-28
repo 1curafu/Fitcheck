@@ -1,3 +1,5 @@
+import { renderInLocale } from "@/lib/i18n/__tests__/render";
+import uk from "@/messages/uk.json";
 import { render, screen, cleanup, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ItemDetail, type DetailItem } from "../item-detail";
@@ -450,7 +452,19 @@ test("a piece still in the closet is never offered Delete for good", () => {
   expect(screen.queryByRole("button", { name: /delete for good/i })).not.toBeInTheDocument();
 });
 
-// Task 21 replaces this with renderInLocale(<ItemDetail {...detailProps({}, { archived: true })} />, "uk")
-// after the Ukrainian catalogue exists, then verifies the translated action failure in the alert.
-test.todo("a failed delete shows its message in the user's language");
-test.todo("uk edit sheet writes the stored English value");
+test("a failed delete shows its message in the user's language", async () => {
+  deletePiece.mockReset().mockResolvedValue({ status: "error", message: "errors.deleteFailed" });
+  await renderInLocale(<ItemDetail {...detailProps({}, { archived: true })} />, "uk");
+  await userEvent.click(screen.getByRole("button", { name: uk.item.deleteForGood }));
+  await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: uk.item.remove.delete }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(uk.errors.deleteFailed);
+  expect(screen.getByRole("dialog")).toBeInTheDocument();
+});
+test("uk edit sheet writes the stored English value", async () => {
+  updateItem.mockClear();
+  await renderInLocale(<ItemDetail {...detailProps({ category: "Bottoms" })} />, "uk");
+  await userEvent.click(screen.getByRole("button", { name: uk.item.more }));
+  await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: uk.vocab.category.Tops }));
+  await userEvent.click(screen.getByRole("button", { name: uk.item.edit.save }));
+  expect(updateItem).toHaveBeenCalledWith("i1", expect.objectContaining({ category: "Tops" }));
+});

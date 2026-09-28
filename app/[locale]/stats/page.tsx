@@ -163,7 +163,7 @@ async function StatsBody() {
         name: nameOf(d.id),
         days: d.days,
       }))}
-      gap={gap && { label: gap.candidate.label, share: gap.share, reason }}
+      gap={gap && { label: t(`gapPieces.${gap.candidate.label}`), share: gap.share, reason }}
       entitlements={{
         analytics: entitlements.analytics,
         gapAnalysis: entitlements.gapAnalysis,

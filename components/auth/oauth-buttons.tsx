@@ -10,12 +10,16 @@ export function OAuthButtons() {
 
   async function signIn(provider: "google") {
     setError(null);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: { redirectTo: `${location.origin}/auth/callback?next=/onboarding` },
-    });
-    if (error) setError(error.message);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo: `${location.origin}/auth/callback?next=/onboarding` },
+      });
+      if (error) setError(t("failed"));
+    } catch {
+      setError(t("failed"));
+    }
   }
 
   return (

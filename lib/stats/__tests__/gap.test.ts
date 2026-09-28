@@ -227,9 +227,9 @@ test("a dress wardrobe is never told to buy a white oxford shirt", () => {
     { id: "s", category: "Shoes", colors: ["black"], formality: 4, seasons: [], material: null, texture: null, pattern: null },
   ];
   const labels = candidatesFor(dressCloset as never).map((c) => c.label);
-  expect(labels).not.toContain("A white shirt");
-  expect(labels).not.toContain("Grey wool trousers");
-  expect(labels).toContain("Black leather shoes"); // shoes suit everyone
+  expect(labels).not.toContain("whiteShirt");
+  expect(labels).not.toContain("woolTrousers");
+  expect(labels).toContain("blackShoes"); // shoes suit everyone
 });
 
 test("a separates wardrobe is never told to buy a dress", () => {
@@ -238,8 +238,8 @@ test("a separates wardrobe is never told to buy a dress", () => {
     { id: "b", category: "Bottoms", colors: ["navy"], formality: 3, seasons: [], material: null, texture: null, pattern: null },
   ];
   const labels = candidatesFor(closet as never).map((c) => c.label);
-  expect(labels).not.toContain("A black dress");
-  expect(labels).toContain("A white shirt");
+  expect(labels).not.toContain("blackDress");
+  expect(labels).toContain("whiteShirt");
 });
 
 test("a mixed wardrobe sees both", () => {
@@ -248,8 +248,8 @@ test("a mixed wardrobe sees both", () => {
     { id: "d", category: "One-piece", colors: ["navy"], formality: 4, seasons: [], material: null, texture: null, pattern: null },
   ];
   const labels = candidatesFor(closet as never).map((c) => c.label);
-  expect(labels).toContain("A black dress");
-  expect(labels).toContain("A white shirt");
+  expect(labels).toContain("blackDress");
+  expect(labels).toContain("whiteShirt");
 });
 
 test("biggestGap only ever proposes a candidate the closet's shape allows", () => {

@@ -14,17 +14,22 @@ export function EmailSignIn() {
   async function sendLink() {
     setLoading(true);
     setError(null);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${location.origin}/auth/callback?next=/onboarding`,
-        shouldCreateUser: true,
-      },
-    });
-    setLoading(false);
-    if (error) setError(error.message);
-    else setSent(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${location.origin}/auth/callback?next=/onboarding`,
+          shouldCreateUser: true,
+        },
+      });
+      if (error) setError(t("failed"));
+      else setSent(true);
+    } catch {
+      setError(t("failed"));
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (sent) {

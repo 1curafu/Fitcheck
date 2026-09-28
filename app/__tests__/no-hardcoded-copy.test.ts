@@ -44,6 +44,6 @@ it("no user-facing copy is hard-coded outside the folders still pending extracti
   expect(found).toEqual([]);
 });
 
-it.skip("every folder has been extracted (Task 21 unskips)", () => {
+it("every folder has been extracted", () => {
   expect(PENDING).toEqual([]);
 });

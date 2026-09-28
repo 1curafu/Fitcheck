@@ -82,7 +82,7 @@ async function ItemBody({ params }: { params: Promise<{ itemId: string }> }) {
     .single();
   const today = await todayFor(profile?.location_timezone);
 
-  const stats = itemWearStats(logs ?? [], item.price, today, await getLocale());
+  const stats = itemWearStats(logs ?? [], item.price, today, await getLocale(), (await getTranslations("item"))("never"));
 
   const pairIds = goesWith(
     {

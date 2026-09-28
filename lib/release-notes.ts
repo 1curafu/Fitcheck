@@ -38,11 +38,10 @@ export const RELEASE_NOTES: ReleaseNote[] = [
         added: ["Create link now copies the link for you", "Delete a removed piece for good from its page"],
         fixed: ["Copy now says Copied right on the button", "Show brands explains when your pieces have no brand yet"],
       },
-      // TASK 21: Ukrainian text.
       uk: {
-        headline: "Sharing a look is smoother, and removed pieces can go for good.",
-        added: ["Create link now copies the link for you", "Delete a removed piece for good from its page"],
-        fixed: ["Copy now says Copied right on the button", "Show brands explains when your pieces have no brand yet"],
+        headline: "Ділитися образами зручніше, а прибрані речі можна видалити назавжди.",
+        added: ["Створене посилання тепер одразу копіюється", "Прибрану річ можна видалити назавжди з її сторінки"],
+        fixed: ["Кнопка копіювання тепер одразу показує «Скопійовано»", "Показ брендів пояснює, чому для речей без бренду нічого не видно"],
       },
     },
   },

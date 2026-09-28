@@ -12,7 +12,7 @@
     },
     "cookie": {
       "label": "Cookie notice",
-      "body": "Only the cookies that keep you signed in. No tracking.",
+      "body": "Only cookies for sign-in and your language. No tracking.",
       "privacy": "How we handle your data",
       "dismiss": "OK"
     },
@@ -46,7 +46,8 @@
     "emailPlaceholder": "you@email.com",
     "sending": "Sending…",
     "emailLink": "Email me a sign-in link",
-    "google": "Continue with Google"
+    "google": "Continue with Google",
+    "failed": "Couldn’t sign in. Please try again."
   },
   "legal": {
     "back": "← Fitcheck",
@@ -327,7 +328,8 @@
       "remove": "Remove from closet",
       "removeErase": "Remove and erase original photo",
       "cancel": "Cancel"
-    }
+    },
+    "never": "Never"
   },
   "capture": {
     "addPiece": "Add a piece",
@@ -724,6 +726,18 @@
       "Shoes": "{n, plural, one {# pair of shoes} other {# pairs of shoes}}",
       "Outerwear": "{n, plural, one {# coat} other {# coats}}",
       "other": "{n, plural, one {# piece} other {# pieces}}"
+    },
+    "gapPieces": {
+      "navyKnit": "A navy knit",
+      "whiteShirt": "A white shirt",
+      "woolTrousers": "Grey wool trousers",
+      "darkDenim": "Dark denim",
+      "camelCoat": "A camel overcoat",
+      "whiteSneakers": "Clean white sneakers",
+      "brownLoafers": "Brown leather loafers",
+      "blackShoes": "Black leather shoes",
+      "blackDress": "A black dress",
+      "navyDress": "A navy day dress"
     }
   },
   "profile": {
