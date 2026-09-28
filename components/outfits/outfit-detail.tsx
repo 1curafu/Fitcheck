@@ -12,6 +12,8 @@ import { ShareSheet } from "./share-sheet";
 import { WeatherAttribution } from "@/components/weather/attribution";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { wearLabel } from "@/lib/outfits/wear";
+import type { OutfitTextSource } from "@/lib/outfits/text";
+import type { ShippedLocale } from "@/lib/i18n/locales";
 import type { Slot, UiOccasion } from "@/lib/generator/types";
 
 export type DetailPiece = {
@@ -31,6 +33,9 @@ export function OutfitDetail({
   styledItemId = null,
 }: {
   outfit: {
+    textSource: OutfitTextSource;
+    textLocale: ShippedLocale;
+    textTranslated: boolean;
     id: string;
     lookName: string;
     occasion: string;

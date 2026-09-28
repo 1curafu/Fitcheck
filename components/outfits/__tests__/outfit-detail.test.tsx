@@ -21,6 +21,8 @@ vi.mock("@/app/[locale]/outfits/[id]/actions", () => ({
 const slot = { xPct: 10, yPct: 20, wPct: 30, hPct: 40, rotationDeg: -3, z: 2 };
 
 const outfit = {
+  textSource: { id: "o1", sourceLocale: "en-US" as const, name: "The Quiet Standard", why: "Camel over grey keeps the contrast soft enough for a long day." },
+  textLocale: "en-US" as const, textTranslated: false,
   id: "o1",
   lookName: "The Quiet Standard",
   occasion: "work",
@@ -163,4 +165,11 @@ test("wear and favourite are still there beside it", () => {
   render(<OutfitDetail outfit={outfit} pieces={pieces} worn={false} favorite={false} styledItemId="i1" />);
   expect(screen.getByRole("button", { name: /favourite/i })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /wear/i })).toBeInTheDocument();
+});
+
+test("cached translated prose renders without altering garment names or wear state", () => {
+ render(<OutfitDetail outfit={{...outfit, lookName: "Тихий стандарт", reasoning: "Спокійний контраст.", textLocale: "uk", textTranslated: true}} pieces={pieces} worn={true} favorite={true} />);
+ expect(screen.getByRole("heading", {name: "Тихий стандарт"})).toBeInTheDocument();
+ expect(screen.getByText(/Спокійний контраст/)).toBeInTheDocument();
+ expect(screen.getByText("Brushed Oxford")).toBeInTheDocument();
 });

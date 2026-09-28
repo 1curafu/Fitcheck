@@ -1,6 +1,7 @@
 import { DEFAULT_LOCALE, type Locale, type ShippedLocale } from "@/lib/i18n/locales";
 import { createClient } from "@/lib/supabase/server";
 import type { LookDraft, WeatherPayload } from "@/lib/generator/types";
+import { readOutfitTexts } from "./text-store";
 import type { StoredLook } from "./reassemble";
 import { freshIndexStart, isWornToday } from "./wear";
 
@@ -29,18 +30,21 @@ export async function loadDailyLooks(
 
   if (!data || data.length === 0) return null;
 
-  return data.map((row) => {
+  const sources = data.map(row => ({ id: row.id, sourceLocale: row.text_locale as Locale, name: row.look_name ?? "", why: row.ai_reasoning as string | null }));
+  const texts = await readOutfitTexts(supabase, sources, locale);
+  return data.map((row, index) => {
+    const text = texts[index];
     const layout = (row.layout ?? {}) as {
       anchorIndex?: number;
       pieces?: StoredLook["pieces"];
     };
     return {
       id: row.id,
-      textSource: { id: row.id, sourceLocale: row.text_locale as Locale, name: row.look_name ?? "", why: row.ai_reasoning },
+      textSource: sources[index],
       textLocale: locale,
-      textTranslated: false,
-      lookName: row.look_name ?? "",
-      why: row.ai_reasoning ?? "",
+      textTranslated: text.translated,
+      lookName: text.name,
+      why: text.why ?? "",
       anchorIndex: layout.anchorIndex ?? 0,
       pieces: layout.pieces ?? [],
       worn: isWornToday(row.wear_logs ?? [], generatedOn),

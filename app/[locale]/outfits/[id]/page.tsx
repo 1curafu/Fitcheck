@@ -12,6 +12,8 @@ import {
   OutfitDetail,
   type DetailPiece,
 } from "@/components/outfits/outfit-detail";
+import { readOutfitTexts } from "@/lib/outfits/text-store";
+import type { Locale } from "@/lib/i18n/locales";
 import type { Slot } from "@/lib/generator/types";
 import { redirect } from "@/lib/i18n/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -44,6 +46,7 @@ export default function OutfitPage({
 async function OutfitBody({ params }: { params: Promise<{ id: string }> }) {
   const tVocab = await getTranslations("vocab");
   const t = await getTranslations("outfit");
+  const locale = await getLocale();
   const { id } = await params;
   const supabase = await createClient();
   const {
@@ -55,11 +58,13 @@ async function OutfitBody({ params }: { params: Promise<{ id: string }> }) {
   const { data: outfit } = await supabase
     .from("outfits")
     .select(
-      "id, look_name, occasion, ai_reasoning, weather_snapshot, is_favorite, layout, styled_item_id, generated_on, created_at",
+      "id, text_locale, look_name, occasion, ai_reasoning, weather_snapshot, is_favorite, layout, styled_item_id, generated_on, created_at",
     )
     .eq("id", id)
     .maybeSingle();
   if (!outfit) notFound();
+  const source = { id: outfit.id, sourceLocale: outfit.text_locale as Locale, name: outfit.look_name ?? "", why: outfit.ai_reasoning as string | null };
+  const [text] = await readOutfitTexts(supabase, [source], locale);
 
   const { data: links } = await supabase
     .from("outfit_items")
@@ -120,12 +125,13 @@ async function OutfitBody({ params }: { params: Promise<{ id: string }> }) {
     <OutfitDetail
       outfit={{
         id: outfit.id,
-        lookName: outfit.look_name ?? t("todayLook"),
+        textSource: source, textLocale: locale, textTranslated: text.translated,
+        lookName: text.name || t("todayLook"),
         occasion: outfit.occasion ?? "",
         weatherLabel: weather
           ? `${formatTemp(weather.tempC ?? 0, prefs.tempUnit)} ${weather.condition ?? ""}`.trim()
           : "",
-        reasoning: outfit.ai_reasoning,
+        reasoning: text.why,
         // The share card's kicker date: the daily drop's local date, else the row's created day. Never weather (A3).
         lookDate: outfit.generated_on ?? (outfit.created_at ? outfit.created_at.slice(0, 10) : null),
       }}

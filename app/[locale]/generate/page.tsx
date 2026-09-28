@@ -8,6 +8,8 @@ import { Stylist } from "@/components/generate/stylist";
 import { WearConfirm } from "@/components/outfits/wear-confirm";
 import { hourFor, todayFor } from "@/lib/outfits/today";
 import { readPreferences } from "@/lib/profile/preferences";
+import { readOutfitTexts } from "@/lib/outfits/text-store";
+import type { Locale } from "@/lib/i18n/locales";
 import { shouldAsk } from "@/lib/outfits/confirm";
 
 export default function GeneratePage() {
@@ -63,7 +65,7 @@ async function EveningConfirm() {
   const [{ data: viewed }, { data: worn }] = await Promise.all([
     supabase
       .from("outfits")
-      .select("id, look_name, viewed_at")
+      .select("id, text_locale, look_name, ai_reasoning, viewed_at")
       .eq("user_id", user.id)
       .eq("generated_on", today)
       .not("viewed_at", "is", null),
@@ -75,14 +77,17 @@ async function EveningConfirm() {
       .limit(1),
   ]);
 
+  const texts = await readOutfitTexts(supabase, (viewed ?? []).map(row => ({
+    id: row.id, sourceLocale: row.text_locale as Locale, name: row.look_name ?? "", why: row.ai_reasoning as string | null,
+  })), await getLocale());
   const confirm = shouldAsk({
     nowLocalHour: await hourFor(tz),
     today,
     askedOn: readPreferences(profile?.preferences).wearAskedOn,
     hasWearToday: Boolean(worn?.length),
-    viewedToday: (viewed ?? []).map((o) => ({
+    viewedToday: (viewed ?? []).map((o, index) => ({
       id: o.id,
-      lookName: o.look_name ?? "today's look",
+      lookName: texts[index].name || "today's look",
       viewedAt: o.viewed_at as string,
     })),
   });
