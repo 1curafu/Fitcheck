@@ -28,7 +28,7 @@ fi
 
 # An explicit 127.0.0.1 bind makes Next treat next-intl's localhost rewrite
 # as an external redirect during development. The default bind serves both.
-npm run dev >"$LOG" 2>&1 &
+FITCHECK_STUB_AI=1 FITCHECK_STUB_STRIPE=1 npm run dev >"$LOG" 2>&1 &
 DEV_PID=$!
 
 echo "waiting for the dev server…"

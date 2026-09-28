@@ -4,8 +4,8 @@ import { getRequestConfig } from "next-intl/server";
 import { isShippedLocale } from "./locales";
 import { messagesFor } from "./messages";
 
-export default getRequestConfig(async () => {
-  const locale = await rootParams.locale();
+export default getRequestConfig(async ({ locale: override }) => {
+  const locale = override ?? await rootParams.locale();
   if (!isShippedLocale(locale)) notFound();
   return { locale, messages: await messagesFor(locale) };
 });

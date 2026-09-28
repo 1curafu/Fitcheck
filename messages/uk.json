@@ -935,7 +935,7 @@
     "seeDays": "Переглянути дні",
     "dayTitle": "{days, plural, one {# день} few {# дні} many {# днів} other {# дня}}, одна валіза.",
     "rain": "дощ",
-    "wearOrdinal": "{n, selectordinal, one {#-те носіння} few {#-тє носіння} many {#-те носіння} other {#-те носіння}}",
+    "wearOrdinal": "Носіння №{n}",
     "pieceSheet": {
       "close": "Закрити",
       "noAlternatives": "У гардеробі немає іншої речі для цього місця.",

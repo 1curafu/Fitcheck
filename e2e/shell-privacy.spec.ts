@@ -32,14 +32,15 @@ async function privateStrings(): Promise<string[]> {
   const { data: items } = await db.from("items").select("name").eq("user_id", userId);
   const { data: profile } = await db
     .from("profiles")
-    .select("display_name, archetype, location_label")
+    .select("display_name, location_label")
     .eq("id", userId)
     .single();
 
   return [
     ...(items ?? []).map((i) => i.name as string),
     profile?.display_name,
-    profile?.archetype,
+    // Archetype options/keys are public catalogue data, so their raw strings cannot prove a leak.
+    // Account identity, unique item names and saved location remain private markers.
     profile?.location_label,
   ].filter((s): s is string => typeof s === "string" && s.length > 2);
 }
@@ -61,7 +62,7 @@ test("no route's unauthenticated response contains another user's data", async (
     baseURL: process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000",
   });
 
-  for (const route of ROUTES) {
+  for (const route of ["", "/uk"].flatMap(prefix => ROUTES.map(route => prefix + route))) {
     const response = await api.get(route, { maxRedirects: 0 });
     const html = await response.text();
 
@@ -105,7 +106,11 @@ test("no PRERENDERED shell contains user data", async () => {
    * because those files ARE what gets served.
    */
   const secrets = await privateStrings();
-  const files = shellArtefacts();
+  const files = ["en-US", "uk"].flatMap(locale => {
+    const shells = shellArtefacts(`.next/server/app/${locale}`);
+    expect(shells.length, `${locale} has no shells — did the build run?`).toBeGreaterThan(0);
+    return shells;
+  });
   expect(files.length, "no prerendered artefacts — did the build run?").toBeGreaterThan(0);
 
   for (const file of files) {

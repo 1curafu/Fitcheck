@@ -1,6 +1,6 @@
 "use server";
 import { redirect } from "@/lib/i18n/navigation";
-import { getLocale } from "next-intl/server";
+import { getActionLocale } from "@/lib/i18n/action-locale";
 
 import { z } from "zod";
 
@@ -32,7 +32,7 @@ export async function saveStyleProfile(input: unknown) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return redirect({ href: "/", locale: await getLocale() });
+  if (!user) return redirect({ href: "/", locale: await getActionLocale() });
 
   const { error } = await supabase
     .from("profiles")
@@ -46,5 +46,5 @@ export async function saveStyleProfile(input: unknown) {
   if (error) throw error;
 
   // First-5-items capture (plan 04, Task 9).
-  return redirect({ href: "/onboarding/capture", locale: await getLocale() });
+  return redirect({ href: "/onboarding/capture", locale: await getActionLocale() });
 }

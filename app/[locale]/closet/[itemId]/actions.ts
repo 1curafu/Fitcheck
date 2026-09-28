@@ -1,6 +1,6 @@
 "use server";
 import { redirect } from "@/lib/i18n/navigation";
-import { getLocale } from "next-intl/server";
+import { getActionLocale } from "@/lib/i18n/action-locale";
 
 import { revalidateEverywhere } from "@/lib/i18n/revalidate";
 
@@ -54,7 +54,7 @@ export async function archiveItem(itemId: string) {
     .eq("id", itemId);
   if (error) throw error;
   revalidateEverywhere("/closet");
-  return redirect({ href: "/closet", locale: await getLocale() });
+  return redirect({ href: "/closet", locale: await getActionLocale() });
 }
 
 export type EraseResult =
@@ -131,7 +131,7 @@ export async function eraseOriginal(itemId: string): Promise<EraseResult> {
     .eq("id", itemId);
   if (updateError) throw updateError;
   revalidatePiece(itemId);
-  return redirect({ href: "/closet", locale: await getLocale() });
+  return redirect({ href: "/closet", locale: await getActionLocale() });
 }
 
 /** Puts a removed piece back in the closet. It counts toward the Free limit exactly like a new capture. */
@@ -230,5 +230,5 @@ export async function deletePiece(itemId: string): Promise<DeleteResult> {
   revalidatePiece(itemId);
   revalidateEverywhere("/calendar");
   revalidateEverywhere("/stats");
-  return redirect({ href: "/closet/removed", locale: await getLocale() });
+  return redirect({ href: "/closet/removed", locale: await getActionLocale() });
 }

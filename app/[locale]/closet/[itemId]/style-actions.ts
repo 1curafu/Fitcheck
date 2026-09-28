@@ -1,5 +1,6 @@
 "use server";
 
+import { getActionLocale } from "@/lib/i18n/action-locale";
 import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { signItemImages, displayPath } from "@/lib/storage/signed";
@@ -111,8 +112,9 @@ export async function styleWithItem(
     const f = await fetchForecast(loc.lat, loc.lon);
     const prefs = readPreferences(profile?.preferences);
     const advice = laterAdvice(f.hourly, prefs.tempUnit, f.highC);
-    const tAdvice = await getTranslations("weather.advice");
-    const tWeather = await getTranslations("weather");
+    const locale = await getActionLocale();
+    const tAdvice = await getTranslations({ locale, namespace: "weather.advice" });
+    const tWeather = await getTranslations({ locale, namespace: "weather" });
     const adviceClause = tAdvice(advice.clauseKey);
     const weather: WeatherPayload = {
       tempC: f.tempC,
@@ -207,7 +209,7 @@ export async function styleWithItem(
     }
 
     const byId = new Map(items.map((i) => [i.id, i]));
-    const tStyle = await getTranslations("item.style");
+    const tStyle = await getTranslations({ locale, namespace: "item.style" });
     const fallbackName = styledLookName(subject);
     // Diversified, exactly as the daily path does it. A raw slice hands the
     // model twenty variations of one idea, because ranking clusters.

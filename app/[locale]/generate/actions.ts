@@ -1,5 +1,6 @@
 "use server";
 
+import { getActionLocale } from "@/lib/i18n/action-locale";
 import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
@@ -86,8 +87,9 @@ export async function generate(input: {
     const f = await fetchForecast(loc.lat, loc.lon);
     const prefs = readPreferences(profile?.preferences);
     const advice = laterAdvice(f.hourly, prefs.tempUnit, f.highC);
-    const tAdvice = await getTranslations("weather.advice");
-    const tWeather = await getTranslations("weather");
+    const locale = await getActionLocale();
+    const tAdvice = await getTranslations({ locale, namespace: "weather.advice" });
+    const tWeather = await getTranslations({ locale, namespace: "weather" });
     const adviceClause = tAdvice(advice.clauseKey);
     const weather: WeatherPayload = {
       tempC: f.tempC,

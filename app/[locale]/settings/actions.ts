@@ -1,6 +1,6 @@
 "use server";
 import { redirect } from "@/lib/i18n/navigation";
-import { getLocale } from "next-intl/server";
+import { getActionLocale } from "@/lib/i18n/action-locale";
 
 import { randomUUID } from "node:crypto";
 import * as Sentry from "@sentry/nextjs";
@@ -77,7 +77,7 @@ export async function deleteAccount(
     // Hard deletion completed; a cookie-clearing failure must not report a false failure.
   }
 
-  return redirect({ href: "/?account=deleted", locale: await getLocale() }, RedirectType.replace);
+  return redirect({ href: "/?account=deleted", locale: await getActionLocale() }, RedirectType.replace);
 }
 
 /**

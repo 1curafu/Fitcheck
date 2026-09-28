@@ -34,6 +34,11 @@ afterEach(() => {
   delete (globalThis as { __intl?: unknown }).__intl;
 });
 
+// Existing action tests run outside a Next request; the real header reader has its own tests.
+vi.mock("@/lib/i18n/action-locale", () => ({
+  getActionLocale: async () => (globalThis as { __intl?: { locale: string } }).__intl?.locale ?? "en-US",
+}));
+
 // Existing feature tests mock Next's router locally. Delegate the locale-aware
 // facade to those mocks so the tests keep exercising each feature's behavior.
 vi.mock("@/lib/i18n/navigation", async () => {

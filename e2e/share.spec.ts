@@ -1,17 +1,11 @@
-import { test, expect, type Page } from "@playwright/test";
+import { noNativeShare, seededLookId, cleanupShares, createLink } from "./share-helpers";
+import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { admin, disposableSessionCookies, testUserId } from "./helpers";
 
 test.use({ storageState: "e2e/.auth/state.json" });
 const BOT = { "user-agent": "facebookexternalhit/1.1" };
-
-async function noNativeShare(page: Page) {
-  await page.addInitScript(() => {
-    Object.defineProperty(navigator, "share", { value: undefined, configurable: true });
-    Object.defineProperty(navigator, "canShare", { value: undefined, configurable: true });
-  });
-}
 
 function jpegSize(buf: Buffer): { w: number; h: number } {
   for (let i = 2; i < buf.length; ) {
@@ -22,25 +16,6 @@ function jpegSize(buf: Buffer): { w: number; h: number } {
     i += 2 + len;
   }
   throw new Error("not a JPEG");
-}
-
-async function seededLookId() {
-  const { data } = await admin().from("outfits").select("id").eq("user_id", await testUserId()).eq("look_name", "E2E Seeded Look").single();
-  return data!.id as string;
-}
-
-async function cleanupShares() {
-  const db = admin();
-  const { data } = await db.from("look_shares").select("token").eq("user_id", await testUserId());
-  for (const s of data ?? []) await db.storage.from("shares").remove(["story.jpg", "post.jpg", "og.jpg"].map((f) => `${s.token}/${f}`));
-  await db.from("look_shares").delete().eq("user_id", await testUserId());
-}
-
-async function createLink(page: Page): Promise<string> {
-  await page.getByRole("button", { name: "Share" }).click();
-  const sheet = page.getByRole("dialog", { name: /share this look/i });
-  await sheet.getByRole("button", { name: /create link/i }).click();
-  return (await sheet.getByTestId("share-url").textContent({ timeout: 30_000 }))!.trim();
 }
 
 test("create a link, open it signed out, then stop sharing", async ({ page, browser, request }) => {
