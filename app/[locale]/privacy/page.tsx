@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import { LegalDocumentView } from "@/components/legal/legal-document";
 import { PRIVACY } from "@/lib/legal/privacy";
 
@@ -14,5 +14,5 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function PrivacyPage() {
   const t = await getTranslations("legal.terms");
-  return <LegalDocumentView doc={PRIVACY} other={{ href: "/terms", label: t("title") }} />;
+  return <LegalDocumentView doc={PRIVACY[await getLocale()]} other={{ href: "/terms", label: t("title") }} />;
 }

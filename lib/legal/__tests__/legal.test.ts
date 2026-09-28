@@ -1,7 +1,11 @@
 import { readFileSync } from "node:fs";
-import { PRIVACY } from "../privacy";
-import { TERMS } from "../terms";
+import { PRIVACY as PRIVACY_BY_LOCALE } from "../privacy";
+import { TERMS as TERMS_BY_LOCALE } from "../terms";
 import { OPERATOR } from "../types";
+
+import { SHIPPED_LOCALES } from "@/lib/i18n/locales";
+const PRIVACY = PRIVACY_BY_LOCALE["en-US"];
+const TERMS = TERMS_BY_LOCALE["en-US"];
 
 const text = (d: typeof PRIVACY) =>
   [d.intro, ...d.sections.flatMap((s) => [s.heading, ...s.paragraphs, ...(s.bullets ?? [])])].join("\n");
@@ -72,9 +76,9 @@ test("both documents name the operator and carry a date", () => {
   }
 });
 
-test("the cookie section matches what the app sets: sign-in cookies only, no consent asked", () => {
+test("the cookie section matches what the app sets: sign-in and language cookies, no consent asked", () => {
   const policy = text(PRIVACY);
-  expect(policy).toMatch(/only the cookies it needs to keep you signed in/i);
+  expect(policy).toMatch(/cookies it needs to keep you signed in and remember your language/i);
   expect(policy).toMatch(/notice rather than asked for consent/i);
 });
 
@@ -155,3 +159,18 @@ test("the policy says a removed piece can be deleted for good, and what past loo
   expect(text).toMatch(/delete a removed piece for good/i);
   expect(text).toMatch(/past looks keep their other pieces/i);
 });
+
+const FACTS = [/Stripe/, /Link/, /Anthropic/, /Supabase/, /Vercel/, /Sentry/, /OpenWeather/, /Backblaze|B2/, /legal@fitcheck\.space/, /\b30\b/, /\b90\b/];
+for (const [name, documents] of [["privacy", PRIVACY_BY_LOCALE], ["terms", TERMS_BY_LOCALE]] as const) {
+  test.each(SHIPPED_LOCALES)("%s " + name + " preserves sections and facts", (locale) => {
+    const en = documents["en-US"], translated = documents[locale];
+    expect(translated.sections.map(s => s.id)).toEqual(en.sections.map(s => s.id));
+    expect(new Set(en.sections.map(s => s.id)).size).toBe(en.sections.length);
+    translated.sections.forEach((s, i) => {
+      expect(s.paragraphs.length).toBe(en.sections[i].paragraphs.length);
+      expect(s.bullets?.length ?? 0).toBe(en.sections[i].bullets?.length ?? 0);
+    });
+    for (const fact of FACTS) if (fact.test(JSON.stringify(en))) expect(JSON.stringify(translated)).toMatch(fact);
+  });
+  test(name + " says English prevails in Ukrainian", () => expect(documents.uk.intro).toMatch(/англійська версія/i));
+}

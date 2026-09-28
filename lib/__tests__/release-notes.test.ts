@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { CURRENT_RELEASE, RELEASE_NOTES } from "../release-notes";
+import { CURRENT_RELEASE, RELEASE_NOTES, noteFor } from "../release-notes";
 
 test("the newest entry IS the shipped version", () => {
   // ⚠️ Shipping a version with no notes is the failure this catches. The card
@@ -16,7 +16,7 @@ test("entries run newest first", () => {
 });
 
 test("every entry says something, and says it briefly", () => {
-  for (const r of RELEASE_NOTES) {
+  for (const r of RELEASE_NOTES.flatMap(note => [note, ...Object.values(note.i18n ?? {})])) {
     expect(r.added.length + r.fixed.length).toBeGreaterThan(0);
     for (const line of [...r.added, ...r.fixed]) {
       // A popup is not a changelog page. Long lines mean it stopped being one.
@@ -30,7 +30,7 @@ test("no entry leaks internals at the user", () => {
   // The reason notes are hand-written rather than derived from commits: our
   // subjects name files, functions and weights.
   const jargon = /\b(scoreCombo|rankTopN|null|weight|mutation|tsc|refactor|\.ts)\b/i;
-  for (const r of RELEASE_NOTES) {
+  for (const r of RELEASE_NOTES.flatMap(note => [note, ...Object.values(note.i18n ?? {})])) {
     for (const line of [...r.added, ...r.fixed]) expect(line).not.toMatch(jargon);
   }
 });
@@ -39,3 +39,9 @@ test("versions are unique", () => {
   const versions = RELEASE_NOTES.map((r) => r.version);
   expect(new Set(versions).size).toBe(versions.length);
 });
+
+test.each(["en-GB", "uk"] as const)("latest release has %s text", locale => {
+  expect(CURRENT_RELEASE.i18n?.[locale]).toBeDefined();
+  expect(noteFor(CURRENT_RELEASE, locale)).toMatchObject(CURRENT_RELEASE.i18n![locale]!);
+});
+test("older releases fall back to English", () => expect(noteFor(RELEASE_NOTES[1], "uk")).toEqual(RELEASE_NOTES[1]));

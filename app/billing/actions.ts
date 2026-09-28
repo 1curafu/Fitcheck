@@ -44,7 +44,7 @@ export async function startCheckout(input: unknown): Promise<StartCheckoutResult
     if (profile.tier === "pro") return { status: "already-pro" };
 
     const now = new Date();
-    await store.recordWaiver(user.id, now, TERMS.updated);
+    await store.recordWaiver(user.id, now, TERMS["en-US"].updated);
     const customerId = await ensureCustomer({ store, gateway }, { ...profile, email: user.email ?? profile.email });
     const origin = trustedOrigin((await headers()).get("origin"));
     ({ url } = await gateway.createCheckoutSession({

@@ -1,3 +1,4 @@
+import type { ShippedLocale } from "@/lib/i18n/locales";
 import { OPERATOR, type LegalDocument } from "./types";
 
 /**
@@ -7,25 +8,28 @@ import { OPERATOR, type LegalDocument } from "./types";
  * professional eyes. It is written to be accurate about what the app does and
  * fair to the person reading it; that is the part this file can promise.
  */
-export const TERMS: LegalDocument = {
+const TERMS_EN: LegalDocument = {
   title: "Terms of Service",
   updated: "2026-09-26",
   intro:
     "These are the terms for using Fitcheck. They are short because the deal is simple: you bring your wardrobe, we suggest what to wear, and you stay in charge of your own clothes and your own data.",
   sections: [
     {
+      id: "who-you-are-dealing-with",
       heading: "Who you are dealing with",
       paragraphs: [
         `Fitcheck is operated by ${OPERATOR.name}, ${OPERATOR.address}. Questions, notices and complaints go to ${OPERATOR.email}.`,
       ],
     },
     {
+      id: "your-account",
       heading: "Your account",
       paragraphs: [
         "You need to be at least 16 to use Fitcheck. Keep your sign-in email under your control; anything done from your account is yours to answer for. One account per person.",
       ],
     },
     {
+      id: "your-clothes-your-photos",
       heading: "Your clothes, your photos",
       paragraphs: [
         "Everything you upload stays yours. You give us permission to store it, cut the background out of it, describe it with tags, send it to the AI that does the describing, and show it back to you in outfits — and for nothing else. That permission ends when you delete the item or your account.",
@@ -34,6 +38,7 @@ export const TERMS: LegalDocument = {
       ],
     },
     {
+      id: "what-the-suggestions-are",
       heading: "What the suggestions are",
       paragraphs: [
         "Fitcheck's looks are suggestions made by software from the tags on your clothes and the weather. They are usually good and sometimes wrong. They are not a promise that an outfit suits an occasion, a dress code, or you. Look in the mirror before you leave the house.",
@@ -41,6 +46,7 @@ export const TERMS: LegalDocument = {
       ],
     },
     {
+      id: "free-and-paid",
       heading: "Free and paid",
       paragraphs: [
         "The free plan is meant to be genuinely useful and stays free. The paid plan, Fitcheck Pro, adds features and lifts limits; what it includes and what it costs are shown before you buy, and the price includes any VAT that applies.",
@@ -52,18 +58,21 @@ export const TERMS: LegalDocument = {
       ],
     },
     {
+      id: "fair-use",
       heading: "Fair use",
       paragraphs: [
         "Do not try to break into other people's accounts, overload the service, copy it, or use it to build a competing one. Do not upload anything unlawful. We can suspend or close an account that does these things, and will tell you why.",
       ],
     },
     {
+      id: "ending-things",
       heading: "Ending things",
       paragraphs: [
         `You can delete your account whenever you like in Settings. A successful deletion removes your live data immediately, while encrypted backups expire within 30 days; ${OPERATOR.email} remains available if you need help. We can end the service or your access to it with 30 days' notice, and immediately if you break these terms.`,
       ],
     },
     {
+      id: "what-we-are-and-are-not-responsible-for",
       heading: "What we are and are not responsible for",
       paragraphs: [
         "We work to keep Fitcheck available, accurate and secure, but we provide it as it is. To the extent the law allows, we are not liable for losses that come from relying on an outfit suggestion, from the service being unavailable, or from anything outside our control. Nothing here limits liability for intent, gross negligence, or anything the law does not allow us to limit.",
@@ -71,12 +80,14 @@ export const TERMS: LegalDocument = {
       ],
     },
     {
+      id: "law-and-disputes",
       heading: "Law and disputes",
       paragraphs: [
         "Swiss law applies, and disputes go to the courts at the operator's seat in Switzerland. If you are a consumer in the EU, you keep the protections of your home country's law and may bring a claim in your home courts.",
       ],
     },
     {
+      id: "changes",
       heading: "Changes",
       paragraphs: [
         "If we change these terms in a way that matters, the date at the top moves and the app tells you on your next visit. Continuing to use Fitcheck after that means you accept the change. If you are a paying Pro subscriber and a change is materially worse for you, we will ask you to actively confirm it before it applies, and you can cancel instead at no cost. If you do not accept a change, delete your account and we will not hold you to it.",
@@ -84,3 +95,10 @@ export const TERMS: LegalDocument = {
     },
   ],
 };
+
+// TASK 21: replace the temporary English body with the Ukrainian translation.
+const TERMS_UK: LegalDocument = {
+  ...structuredClone(TERMS_EN),
+  intro: "Якщо цей переклад відрізняється від англійської версії, діє англійська версія. " + TERMS_EN.intro,
+};
+export const TERMS: Record<ShippedLocale, LegalDocument> = { "en-US": TERMS_EN, "en-GB": TERMS_EN, uk: TERMS_UK };

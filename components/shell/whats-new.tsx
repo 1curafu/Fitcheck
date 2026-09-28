@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useSyncExternalStore } from "react";
-import { CURRENT_RELEASE } from "@/lib/release-notes";
+import { useLocale } from "next-intl";
+import { CURRENT_RELEASE, noteFor } from "@/lib/release-notes";
 import { WhatsNewCard } from "./whats-new-card";
 
 /**
@@ -79,6 +80,7 @@ function subscribe(notify: () => void) {
 export function WhatsNew({ returning = false }: { returning?: boolean } = {}) {
   // The server has no localStorage, so it answers "already seen" and renders
   // nothing — the card appears on hydration, and no markup differs.
+  const locale = useLocale();
   const seen = useSyncExternalStore(subscribe, read, () => CURRENT_RELEASE.version);
 
   // ⚠️ First run: record the version and show NOTHING. Someone who has never
@@ -92,7 +94,7 @@ export function WhatsNew({ returning = false }: { returning?: boolean } = {}) {
 
   return (
     <WhatsNewCard
-      release={CURRENT_RELEASE}
+      release={noteFor(CURRENT_RELEASE, locale)}
       onDismiss={() => write(CURRENT_RELEASE.version)}
     />
   );

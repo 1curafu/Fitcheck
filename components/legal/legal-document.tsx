@@ -21,7 +21,7 @@ export async function LegalDocumentView({ doc, other }: { doc: LegalDocument; ot
       <p className="mt-5 text-[15px] leading-[1.55] text-value">{doc.intro}</p>
 
       {doc.sections.map((s) => (
-        <section key={s.heading} className="mt-9">
+        <section key={s.id} id={s.id} className="mt-9">
           <h2 className="font-serif text-[21px] leading-[1.2] text-foreground">{s.heading}</h2>
           {s.paragraphs.map((p) => (
             <p key={p} className="mt-3 text-[14.5px] leading-[1.6] text-muted-foreground">

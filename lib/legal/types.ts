@@ -5,7 +5,7 @@
  * privacy policy to every third party the code actually sends data to — and so
  * a translation is a second object, not a second page.
  */
-export type LegalSection = { heading: string; paragraphs: string[]; bullets?: string[] };
+export type LegalSection = { id: string; heading: string; paragraphs: string[]; bullets?: string[] };
 export type LegalDocument = {
   title: string;
   /** ISO date. Shown, and bumped on any change of substance. */

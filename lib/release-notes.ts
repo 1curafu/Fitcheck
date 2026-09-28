@@ -1,3 +1,4 @@
+import type { ShippedLocale } from "@/lib/i18n/locales";
 /**
  * What each release changed, in the user's language.
  *
@@ -21,6 +22,7 @@ export type ReleaseNote = {
   headline: string;
   added: string[];
   fixed: string[];
+  i18n?: Partial<Record<Exclude<ShippedLocale, "en-US">, { headline: string; added: string[]; fixed: string[] }>>;
 };
 
 export const RELEASE_NOTES: ReleaseNote[] = [
@@ -30,6 +32,19 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     headline: "Sharing a look is smoother, and removed pieces can go for good.",
     added: ["Create link now copies the link for you", "Delete a removed piece for good from its page"],
     fixed: ["Copy now says Copied right on the button", "Show brands explains when your pieces have no brand yet"],
+    i18n: {
+      "en-GB": {
+        headline: "Sharing a look is smoother, and removed pieces can go for good.",
+        added: ["Create link now copies the link for you", "Delete a removed piece for good from its page"],
+        fixed: ["Copy now says Copied right on the button", "Show brands explains when your pieces have no brand yet"],
+      },
+      // TASK 21: Ukrainian text.
+      uk: {
+        headline: "Sharing a look is smoother, and removed pieces can go for good.",
+        added: ["Create link now copies the link for you", "Delete a removed piece for good from its page"],
+        fixed: ["Copy now says Copied right on the button", "Show brands explains when your pieces have no brand yet"],
+      },
+    },
   },
   {
     version: "0.4.0",
@@ -154,3 +169,8 @@ export const RELEASE_NOTES: ReleaseNote[] = [
 
 /** The release the app is running. */
 export const CURRENT_RELEASE = RELEASE_NOTES[0];
+
+export function noteFor(note: ReleaseNote, locale: ShippedLocale): ReleaseNote {
+  const translated = locale === "en-US" ? undefined : note.i18n?.[locale];
+  return translated ? { ...note, ...translated } : note;
+}

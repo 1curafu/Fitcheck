@@ -1,3 +1,4 @@
+import type { ShippedLocale } from "@/lib/i18n/locales";
 import { OPERATOR, type LegalDocument } from "./types";
 
 /**
@@ -10,13 +11,14 @@ import { OPERATOR, type LegalDocument } from "./types";
  * what the app does accurately; whether it satisfies every clause of the FADP
  * and GDPR is a legal opinion this file cannot give.
  */
-export const PRIVACY: LegalDocument = {
+const PRIVACY_EN: LegalDocument = {
   title: "Privacy Policy",
-  updated: "2026-09-26",
+  updated: "2026-09-28",
   intro:
     "Fitcheck photographs your wardrobe and suggests outfits from it. That means it holds photos of your clothes and a little about you. This page says exactly what, why, who else touches it, and how to make us delete it.",
   sections: [
     {
+      id: "who-is-responsible",
       heading: "Who is responsible",
       paragraphs: [
         `${OPERATOR.name}, operating from ${OPERATOR.country}, is the controller of your data. For anything on this page, write to ${OPERATOR.email}.`,
@@ -24,6 +26,7 @@ export const PRIVACY: LegalDocument = {
       ],
     },
     {
+      id: "what-we-collect",
       heading: "What we collect",
       paragraphs: ["Only what the app needs to do its job. Nothing is collected for advertising, and nothing is sold."],
       bullets: [
@@ -38,12 +41,14 @@ export const PRIVACY: LegalDocument = {
       ],
     },
     {
+      id: "sharing-a-look",
       heading: "Sharing a look",
       paragraphs: [
         "Sharing is always your choice. Share image makes a picture on your phone; we store nothing about it. Create link publishes a snapshot of one look: its pictures, its name, the stylist's sentence and the names of its pieces (and their brands, only if you choose). Anyone with the link can see it for 30 days, or until you stop sharing, from the look or from Settings. There is no name, no account and nothing else of yours on it, and it is not indexed by search engines. Deleting your account removes your shared looks at once. A picture you post to Instagram, TikTok or anywhere else is a copy we cannot delete. After a disaster restore of our systems, shared links are switched off and must be shared again.",
       ],
     },
     {
+      id: "why-we-use-it",
       heading: "Why we use it",
       paragraphs: [
         "To run the service you signed up for — tagging your clothes, building looks, remembering what you wore. Under the GDPR this is performance of a contract.",
@@ -53,6 +58,7 @@ export const PRIVACY: LegalDocument = {
       ],
     },
     {
+      id: "who-else-sees-it",
       heading: "Who else sees it",
       paragraphs: [
         "We use a small number of companies to run Fitcheck. Each receives only what its job needs, and is bound by a data-processing agreement.",
@@ -70,12 +76,14 @@ export const PRIVACY: LegalDocument = {
       ],
     },
     {
+      id: "data-leaving-europe",
       heading: "Data leaving Europe",
       paragraphs: [
         "Anthropic, Resend, Google and Stripe are based in, or process data through, the United States. Transfers to them rest on the EU–US Data Privacy Framework where the provider is certified, and on the European Commission's Standard Contractual Clauses otherwise, which Switzerland recognises with its own addendum. Where they offer it, Google and Stripe handle Swiss and EU users through their European entities.",
       ],
     },
     {
+      id: "how-long-we-keep-it",
       heading: "How long we keep it",
       paragraphs: [
         "For as long as you have an account. Delete your account in Settings; a successful deletion removes your live data immediately. To erase a single piece's original photo instead, or to delete a removed piece for good, use the options on that piece's page. You can also write to legal@fitcheck.space if you need help with deletion.",
@@ -83,6 +91,7 @@ export const PRIVACY: LegalDocument = {
       ],
     },
     {
+      id: "your-rights",
       heading: "Your rights",
       paragraphs: [
         `Delete your account in Settings, or write to ${OPERATOR.email} if you need help. We respond to other rights requests within 30 days. You can:`,
@@ -96,17 +105,20 @@ export const PRIVACY: LegalDocument = {
       ],
     },
     {
+      id: "cookies-and-storage-on-your-device",
       heading: "Cookies and storage on your device",
       paragraphs: [
-        "Fitcheck sets only the cookies it needs to keep you signed in. There are no advertising or tracking cookies, which is why you are shown a notice rather than asked for consent.",
+        "Fitcheck sets only the cookies it needs to keep you signed in and remember your language. There are no advertising or tracking cookies, which is why you are shown a notice rather than asked for consent.",
         "The app also keeps a few small preferences in your browser's own storage — for example, which release notes you have already dismissed. These never leave your device.",
       ],
     },
     {
+      id: "age",
       heading: "Age",
       paragraphs: ["Fitcheck is for people aged 16 and over. If you are younger, please do not create an account."],
     },
     {
+      id: "changes",
       heading: "Changes",
       paragraphs: [
         "When this page changes in any way that matters, the date at the top moves and the app tells you on your next visit. The current version is always at fitcheck.space/privacy.",
@@ -114,3 +126,10 @@ export const PRIVACY: LegalDocument = {
     },
   ],
 };
+
+// TASK 21: replace the temporary English body with the Ukrainian translation.
+const PRIVACY_UK: LegalDocument = {
+  ...structuredClone(PRIVACY_EN),
+  intro: "Якщо цей переклад відрізняється від англійської версії, діє англійська версія. " + PRIVACY_EN.intro,
+};
+export const PRIVACY: Record<ShippedLocale, LegalDocument> = { "en-US": PRIVACY_EN, "en-GB": PRIVACY_EN, uk: PRIVACY_UK };
