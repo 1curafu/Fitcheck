@@ -1,4 +1,5 @@
 import type { Locale } from "@/lib/i18n/locales";
+import { FR_NOTES } from "./release-notes-i18n/fr";
 import { RU_NOTES } from "./release-notes-i18n/ru";
 import { DE_NOTES } from "./release-notes-i18n/de";
 /**
@@ -348,7 +349,7 @@ const BASE_NOTES: ReleaseNote[] = [
 
 type MoreLocale = Exclude<Locale, "en-US" | "en-GB" | "uk">;
 /** Plan 3 languages keep their history in lib/release-notes-i18n/<locale>.ts, keyed by version. */
-const MORE_NOTES: Partial<Record<MoreLocale, Record<string, LocalizedNote>>> = {de: DE_NOTES, ru: RU_NOTES };
+const MORE_NOTES: Partial<Record<MoreLocale, Record<string, LocalizedNote>>> = {de: DE_NOTES, ru: RU_NOTES, fr: FR_NOTES };
 export const MORE_NOTES_FOR_TEST = MORE_NOTES;
 
 export const RELEASE_NOTES: ReleaseNote[] = BASE_NOTES.map(note => ({

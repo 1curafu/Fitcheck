@@ -1,0 +1,1034 @@
+{
+  "common": {
+    "back": "Retour",
+    "brand": "Fitcheck"
+  },
+  "shell": {
+    "nav": {
+      "closet": "Garde-robe",
+      "stylist": "Styliste",
+      "diary": "Journal",
+      "profile": "Profil"
+    },
+    "cookie": {
+      "label": "Avis sur les cookies",
+      "body": "Uniquement des cookies pour la connexion et ta langue. Aucun pistage.",
+      "privacy": "Comment nous traitons tes données",
+      "dismiss": "OK"
+    },
+    "whatsNew": {
+      "label": "Quoi de neuf dans Fitcheck",
+      "kicker": "Nouveau dans Fitcheck",
+      "dismiss": "Fermer les nouveautés",
+      "new": "Nouveau",
+      "fixed": "Corrigé"
+    }
+  },
+  "landing": {
+    "description": "Ton styliste IA. Des looks chaque jour avec les vêtements que tu as déjà.",
+    "metadata": {
+      "title": "Fitcheck — ton styliste IA",
+      "description": "Ajoute ta garde-robe une fois. Chaque jour, trois tenues composées avec les vêtements que tu as déjà, adaptées à la météo et à l’occasion, avec la raison pour laquelle chacune fonctionne."
+    },
+    "kicker": "Ton styliste IA",
+    "wordmark": "fitcheck",
+    "heroDescription": "Une garde-robe qui réfléchit. Des looks chaque jour, composés avec les vêtements que tu as déjà.",
+    "or": "ou",
+    "legalLead": "En continuant, tu acceptes les",
+    "terms": "Conditions",
+    "and": "et la",
+    "privacy": "Politique de confidentialité"
+  },
+  "auth": {
+    "deleted": "Ton compte et tes données actives ont été supprimés.",
+    "checkInbox": "Consulte ta boîte mail",
+    "sentBody": "Nous avons envoyé un lien de connexion à {email}.",
+    "emailPlaceholder": "toi@email.fr",
+    "sending": "Envoi…",
+    "emailLink": "Recevoir un lien de connexion",
+    "google": "Continuer avec Google",
+    "failed": "Connexion impossible. Réessaie."
+  },
+  "legal": {
+    "back": "← Vers Fitcheck",
+    "updated": "Mis à jour le {date}",
+    "seeAlso": "Voir aussi la",
+    "privacy": {
+      "title": "Politique de confidentialité",
+      "description": "Comment Fitcheck traite tes photos et tes données — droit suisse et européen, sous-traitants nommés, aucun cookie de pistage."
+    },
+    "terms": {
+      "title": "Conditions d’utilisation",
+      "description": "Les conditions d’utilisation de Fitcheck."
+    }
+  },
+  "notFound": {
+    "title": "Rien ici",
+    "body": "Cette page n’existe pas.",
+    "home": "Aller sur Fitcheck"
+  },
+  "onboarding": {
+    "saveFailed": "Une erreur s’est produite",
+    "saving": "Enregistrement…",
+    "agreementLead": "En continuant, tu confirmes avoir 16 ans ou plus et tu acceptes les",
+    "terms": "Conditions",
+    "and": "et la",
+    "privacy": "Politique de confidentialité",
+    "questions": {
+      "archetype": {
+        "kicker": "Question 1 sur 6",
+        "title": "Quelle garde-robe te ressemble ?",
+        "sub": "Choisis celle vers laquelle tu tends.",
+        "cta": "Continuer",
+        "options": {
+          "Old Money": {
+            "label": "Classique discret",
+            "desc": "Héritage, coupe, sobriété"
+          },
+          "Smart Casual": {
+            "label": "Décontracté chic",
+            "desc": "Maille, chino, aisance"
+          },
+          "Preppy": {
+            "label": "Style BCBG",
+            "desc": "Oxford, polo, campus"
+          },
+          "Streetwear": {
+            "label": "Style urbain",
+            "desc": "Ample, ton sur ton, baskets"
+          }
+        }
+      },
+      "palette": {
+        "kicker": "Question 2 sur 6",
+        "title": "Ton instinct pour les couleurs ?",
+        "sub": "Nous y ajustons nos suggestions.",
+        "cta": "Continuer",
+        "options": {
+          "Neutrals": {
+            "label": "Neutres calmes",
+            "desc": "Crème, pierre, anthracite"
+          },
+          "Earth": {
+            "label": "Terre et tabac",
+            "desc": "Camel, olive, rouille"
+          },
+          "Navy": {
+            "label": "Marine classique",
+            "desc": "Marine, blanc, sang-de-bœuf"
+          },
+          "Mono": {
+            "label": "Tout monochrome",
+            "desc": "Noir, gris, blanc"
+          }
+        }
+      },
+      "fit": {
+        "kicker": "Question 3 sur 6",
+        "title": "Comment ça doit tomber ?",
+        "sub": "Ta silhouette par défaut.",
+        "cta": "Continuer",
+        "options": {
+          "Tailored": {
+            "label": "Ajusté",
+            "desc": "Près du corps, lignes nettes"
+          },
+          "Relaxed": {
+            "label": "Décontracté",
+            "desc": "De l’aisance, du tombé"
+          },
+          "Oversized": {
+            "label": "Ample assumé",
+            "desc": "Du volume, exprès"
+          }
+        }
+      },
+      "dress_codes": {
+        "kicker": "Question 4 sur 6",
+        "title": "Où te situes-tu sur l’échelle ?",
+        "sub": "Choisis chaque code vestimentaire que tu portes vraiment.",
+        "cta": "Continuer",
+        "options": {
+          "Loungewear": {
+            "label": "Tenue d’intérieur"
+          },
+          "Casual": {
+            "label": "Décontracté"
+          },
+          "Smart casual": {
+            "label": "Décontracté chic"
+          },
+          "Business": {
+            "label": "Tenue de bureau"
+          },
+          "Black tie": {
+            "label": "Tenue de soirée"
+          }
+        }
+      },
+      "occasions": {
+        "kicker": "Question 5 sur 6",
+        "title": "Pour quoi t’habilles-tu ?",
+        "sub": "Choisis tout ce qui s’applique.",
+        "cta": "Continuer",
+        "options": {
+          "Work": {
+            "label": "Travail",
+            "desc": "Bureau, réunions"
+          },
+          "Everyday": {
+            "label": "Quotidien",
+            "desc": "Courses, café, la vie"
+          },
+          "Weekend": {
+            "label": "Week-end",
+            "desc": "Repos, détente"
+          },
+          "Evening": {
+            "label": "Soirée",
+            "desc": "Dîner, verre, rendez-vous"
+          }
+        }
+      },
+      "nogos": {
+        "kicker": "Question 6 sur 6",
+        "title": "Quelque chose d’exclu ?",
+        "sub": "Tes interdits — on ne les mettra jamais dans un look.",
+        "cta": "Terminer le profil",
+        "options": {
+          "logos": {
+            "label": "Gros logos"
+          },
+          "skinny": {
+            "label": "Coupe skinny"
+          },
+          "bright": {
+            "label": "Couleurs vives"
+          },
+          "shorts": {
+            "label": "Shorts"
+          },
+          "ripped": {
+            "label": "Jean déchiré"
+          },
+          "double_denim": {
+            "label": "Total look jean"
+          },
+          "graphic": {
+            "label": "T-shirts imprimés"
+          },
+          "square_toe": {
+            "label": "Bouts carrés"
+          }
+        }
+      }
+    }
+  },
+  "closet": {
+    "title": "La garde-robe",
+    "pieces": "{count} pièces",
+    "empty": "Ta garde-robe est vide.",
+    "addPiece": "Ajouter une pièce",
+    "addFirst": "Ajoute ta première pièce",
+    "removedCount": "Pièces retirées ({count})",
+    "removedTitle": "Pièces retirées",
+    "nothingRemoved": "Rien de retiré.",
+    "backToCloset": "Retour à ta garde-robe",
+    "nothingIn": "Rien dans {category}.",
+    "filters": {
+      "All": "Tout",
+      "Tops": "Hauts",
+      "Bottoms": "Bas",
+      "One-piece": "Une pièce",
+      "Outerwear": "Manteaux",
+      "Shoes": "Chaussures",
+      "Bags": "Sacs",
+      "Accessories": "Accessoires"
+    },
+    "colourPicker": {
+      "hide": "Masquer la palette",
+      "choose": "Choisir des couleurs"
+    }
+  },
+  "item": {
+    "back": "Retour",
+    "more": "Plus",
+    "removed": "Retirée de ta garde-robe",
+    "timesWorn": "Portée",
+    "costPerWear": "Coût / port",
+    "lastWorn": "Dernier port",
+    "formality": "Formalité",
+    "goesWith": "Va avec",
+    "puttingBack": "Remise en place…",
+    "putBack": "Remettre",
+    "eraseOriginalPhoto": "Effacer la photo originale",
+    "deleteForGood": "Supprimer définitivement",
+    "archive": "Archiver",
+    "putBackUpgradeTitle": "Remettre plus de pièces",
+    "style": {
+      "styling": "Création du look…",
+      "button": "Créer une tenue avec cette pièce",
+      "upgradeTitle": "Crée un look autour de n’importe quelle pièce",
+      "proReason": "Créer un look autour d’une pièce est une fonction Pro.",
+      "notSignedIn": "Non connecté",
+      "pieceNotFound": "Pièce introuvable",
+      "fragrance": "Un parfum complète un look, il ne le construit pas.",
+      "thinCloset": "Pas encore assez d’autres pièces pour créer un look autour de celle-ci.",
+      "failed": "Impossible de créer ce look",
+      "saveFailed": "Impossible d’enregistrer le look",
+      "around": "Autour de : {name}"
+    },
+    "edit": {
+      "close": "Fermer",
+      "title": "Modifier la pièce",
+      "cancel": "Annuler",
+      "name": "Nom",
+      "brand": "Marque",
+      "brandOptional": "Marque (facultatif)",
+      "category": "Catégorie",
+      "fit": "Coupe",
+      "sole": "Semelle",
+      "notSet": "Non défini",
+      "material": "Matière",
+      "formality": "Formalité · {label}",
+      "formalityNumber": "Formalité {number}",
+      "seasons": "Saisons",
+      "subcategory": "Sous-catégorie",
+      "colour": "Couleur",
+      "accentColour": "Couleur d’accent",
+      "none": "Aucune",
+      "texture": "Texture",
+      "pattern": "Motif",
+      "branding": "Marquage",
+      "length": "Longueur",
+      "wear": "Usure",
+      "pricePaid": "Prix payé",
+      "priceHint": "Facultatif — active le coût par port",
+      "saving": "Enregistrement…",
+      "save": "Enregistrer"
+    },
+    "remove": {
+      "close": "Fermer",
+      "kicker": "Garde-robe",
+      "deleteTitle": "Supprimer définitivement cette pièce ?",
+      "deleteBody": "Ses photos, son détourage et ses détails sont supprimés. Les looks passés, ton calendrier et tes voyages gardent leurs autres pièces ; un look créé autour de cette pièce est supprimé avec elle.",
+      "deleteBackup": "C’est irréversible. Les copies dans nos sauvegardes chiffrées expirent sous 30 jours.",
+      "deleting": "Suppression…",
+      "delete": "Supprimer définitivement",
+      "back": "Retour",
+      "eraseTitle": "Effacer la photo originale ?",
+      "eraseBody": "La photo que tu as prise est effacée définitivement. Le vêtement détouré reste dans tes looks passés, ton calendrier et ton historique, et tu peux toujours remettre la pièce.",
+      "eraseBackup": "Les copies dans nos sauvegardes chiffrées expirent sous 30 jours. Un original effacé ne pourra pas servir à refaire un meilleur détourage.",
+      "erasing": "Effacement…",
+      "erase": "Effacer l’original",
+      "archiveTitle": "Retirer cette pièce ?",
+      "archiveBody": "Elle quitte ta garde-robe et n’apparaîtra plus dans les nouveaux looks. Les looks passés et ton historique la gardent.",
+      "archiveRestore": "Tu peux la remettre depuis Pièces retirées.",
+      "removing": "Retrait…",
+      "remove": "Retirer de la garde-robe",
+      "removeErase": "Retirer et effacer la photo originale",
+      "cancel": "Annuler"
+    },
+    "never": "Jamais"
+  },
+  "capture": {
+    "addPiece": "Ajouter une pièce",
+    "reviewPieces": "Vérifie tes pièces.",
+    "preparingPhoto": "Préparation de la photo…",
+    "captureItemTitle": "Photographie une pièce.",
+    "instructions": "Photographie chaque pièce sur une surface plane qui contraste — vêtements sombres sur sol clair. Nous la détourons et reconnaissons sa couleur, sa matière et sa formalité.",
+    "batch": {
+      "summaryLabel": "Résumé",
+      "complete": "Ta capture est terminée.",
+      "counts": "{saved} enregistrées · {skipped} ignorées · {unprocessed} non traitées",
+      "summaryHint": "Les pièces enregistrées sont dans ta garde-robe. Les photos non traitées n’ont pas été enregistrées.",
+      "enterCloset": "Voir la garde-robe",
+      "progressLabel": "Progression",
+      "photoProgress": "Photo {index} sur {total}",
+      "lastPhoto": "Dernière photo",
+      "nextReady": "Photo suivante prête",
+      "preparingNext": "Préparation de la photo suivante",
+      "preparationFailed": "Échec de la préparation de la photo.",
+      "retryPhoto": "Réessayer la photo",
+      "skipPhoto": "Ignorer la photo",
+      "finishBatch": "Terminer",
+      "waitingHint": "Les photos encore en attente ne seront pas enregistrées si tu termines.",
+      "remaining": "Cette garde-robe peut encore accueillir {remaining} pièces. Le reste ne sera pas traité."
+    },
+    "confirm": {
+      "rotate": "Pivoter",
+      "name": "Nom",
+      "brand": "Marque (facultatif)",
+      "aiDetected": "Détecté par l’IA",
+      "subcategory": "Sous-catégorie",
+      "colour": "Couleur",
+      "texture": "Texture",
+      "pattern": "Motif",
+      "category": "Catégorie",
+      "material": "Matière",
+      "formality": "Formalité · {label}",
+      "formalityNumber": "Formalité {number}",
+      "fit": "Coupe",
+      "seasons": "Saisons",
+      "accuracyHint": "Nous avons raison à ~90 % — corrige ce qui cloche.",
+      "retake": "Reprendre",
+      "skipPhoto": "Ignorer la photo",
+      "saving": "Enregistrement…",
+      "rotating": "Rotation…",
+      "addToCloset": "Ajouter à la garde-robe"
+    },
+    "onboarding": {
+      "almostThere": "Presque fini",
+      "firstFive": "Photographie tes cinq premières.",
+      "enterCloset": "Entrer dans ta garde-robe",
+      "skipForNow": "Passer pour l’instant"
+    },
+    "viewfinder": {
+      "captureItem": "Photographier une pièce",
+      "cuttingOut": "Détourage et lecture des couleurs…",
+      "tap": "Touche pour photographier une pièce",
+      "chooseSeveral": "Choisir plusieurs photos"
+    }
+  },
+  "vocab": {
+    "occasion": {
+      "everyday": "Quotidien",
+      "work": "Travail",
+      "weekend": "Week-end",
+      "evening": "Soirée"
+    },
+    "material": {
+      "Cotton": "Coton",
+      "Wool": "Laine",
+      "Merino wool": "Laine mérinos",
+      "Cashmere": "Cachemire",
+      "Linen": "Lin",
+      "Silk": "Soie",
+      "Denim": "Jean",
+      "Leather": "Cuir",
+      "Suede": "Daim",
+      "Faux leather": "Similicuir",
+      "Canvas": "Toile",
+      "Corduroy": "Velours côtelé",
+      "Tweed": "Tweed",
+      "Fleece": "Polaire",
+      "Shearling": "Peau lainée",
+      "Down": "Duvet",
+      "Polyester": "Polyester",
+      "Acrylic": "Acrylique",
+      "Nylon": "Nylon",
+      "Viscose": "Viscose",
+      "Modal": "Modal",
+      "Lyocell": "Lyocell",
+      "Stainless steel": "Acier inoxydable",
+      "Gold": "Or",
+      "Silver": "Argent",
+      "Rubber": "Caoutchouc",
+      "Other": "Autre"
+    },
+    "texture": {
+      "Flat": "Lisse",
+      "Ribbed": "Côtelé",
+      "Cable knit": "Torsadé",
+      "Waffle": "Gaufré",
+      "Chunky knit": "Grosse maille",
+      "Fine knit": "Maille fine",
+      "Brushed": "Gratté",
+      "Fleece-back": "Envers molletonné",
+      "Twill": "Sergé",
+      "Herringbone": "Chevrons",
+      "Quilted": "Matelassé",
+      "Pile": "Bouclette",
+      "Open knit": "Maille ajourée",
+      "Terry": "Éponge",
+      "Seersucker": "Seersucker",
+      "Other": "Autre"
+    },
+    "color": {
+      "black": "noir",
+      "charcoal": "anthracite",
+      "grey": "gris",
+      "silver": "argenté",
+      "white": "blanc",
+      "ivory": "ivoire",
+      "cream": "crème",
+      "stone": "pierre",
+      "sand": "sable",
+      "beige": "beige",
+      "taupe": "taupe",
+      "khaki": "kaki",
+      "camel": "camel",
+      "tan": "fauve",
+      "caramel": "caramel",
+      "chocolate": "chocolat",
+      "brown": "marron",
+      "navy": "marine",
+      "indigo": "indigo",
+      "denim": "bleu jean",
+      "blue": "bleu",
+      "sky": "bleu ciel",
+      "teal": "bleu canard",
+      "olive": "olive",
+      "sage": "sauge",
+      "forest": "vert forêt",
+      "green": "vert",
+      "mint": "menthe",
+      "burgundy": "bordeaux",
+      "maroon": "brun rouge",
+      "red": "rouge",
+      "rust": "rouille",
+      "terracotta": "terre cuite",
+      "coral": "corail",
+      "pink": "rose",
+      "purple": "violet",
+      "lavender": "lavande",
+      "plum": "prune",
+      "mustard": "moutarde",
+      "yellow": "jaune",
+      "gold": "doré",
+      "orange": "orange"
+    },
+    "fit": {
+      "Fitted": "Près du corps",
+      "Tailored": "Ajustée",
+      "Regular": "Droite",
+      "Relaxed": "Décontractée",
+      "Oversized": "Ample"
+    },
+    "length": {
+      "Cropped": "Courte",
+      "Natural waist": "Taille naturelle",
+      "Hip": "Hanches",
+      "Knee": "Genou",
+      "Midi": "Midi",
+      "Ankle": "Cheville",
+      "Floor": "Longue"
+    },
+    "bulk": {
+      "Low profile": "Fine",
+      "Regular": "Standard",
+      "Chunky": "Épaisse"
+    },
+    "distressing": {
+      "None": "Aucune",
+      "Faded": "Délavé",
+      "Ripped": "Déchiré"
+    },
+    "branding": {
+      "None": "Aucun",
+      "Small": "Discret",
+      "Large": "Visible"
+    },
+    "category": {
+      "Tops": "Hauts",
+      "Bottoms": "Bas",
+      "One-piece": "Une pièce",
+      "Outerwear": "Manteaux",
+      "Shoes": "Chaussures",
+      "Bags": "Sacs",
+      "Accessories": "Accessoires",
+      "Fragrance": "Parfum"
+    },
+    "season": {
+      "Spring": "Printemps",
+      "Summer": "Été",
+      "Autumn": "Automne",
+      "Winter": "Hiver"
+    },
+    "pattern": {
+      "solid": "uni",
+      "striped": "rayé",
+      "check": "carreaux",
+      "print": "imprimé",
+      "other": "autre"
+    },
+    "formality": {
+      "1": "Très décontracté",
+      "2": "Décontracté",
+      "3": "Décontracté chic",
+      "4": "Tenue de bureau",
+      "5": "Habillé"
+    }
+  },
+  "generate": {
+    "title": "Les looks du jour",
+    "reason": {
+      "work": "Pensé pour ta journée de travail",
+      "everyday": "L’aisance du quotidien",
+      "weekend": "Week-end, en repos",
+      "evening": "De sortie ce soir"
+    },
+    "emptyTitle": "Rien à styliser pour l’instant",
+    "emptyShoes": "Aucune chaussure assez habillée pour {occasion} — ajoute des chaussures plus élégantes ou essaie une autre occasion.",
+    "emptyTops": "Aucun haut adapté à {occasion} — ajoutes-en un ou essaie une autre occasion.",
+    "emptyBottoms": "Aucun bas adapté à {occasion} — ajoutes-en un ou essaie une autre occasion.",
+    "emptyOnePiece": "Aucune robe adaptée à {occasion} — ajoutes-en une ou essaie une autre occasion.",
+    "emptyGeneric": "Ajoute encore quelques pièces pour débloquer des tenues",
+    "limitTitle": "Voilà les looks du jour",
+    "error": "Impossible de joindre le styliste.",
+    "retry": "Réessayer",
+    "wornToday": "Porté aujourd’hui",
+    "seeFullLook": "Voir le look complet",
+    "regenerate": "Régénérer les looks du jour",
+    "upgradeTitle": "Régénère autant que tu veux",
+    "refine": {
+      "button": "Affiner",
+      "close": "Fermer",
+      "title": "Affiner les looks",
+      "description": "Habillé pour {occasion} — ajuste le reste.",
+      "formality": "Formalité",
+      "leanInto": "Tirer vers",
+      "palette": {
+        "neutral": "neutre",
+        "camel": "camel",
+        "navy": "marine",
+        "olive": "olive",
+        "dark": "sombre"
+      },
+      "showLooks": "Voir 3 looks"
+    }
+  },
+  "weather": {
+    "feels": "ressenti {temperature}",
+    "now": "Maintenant",
+    "later": "Plus tard",
+    "locating": "Localisation…",
+    "currentLocation": "Position actuelle",
+    "attribution": "Données météo © OpenWeather",
+    "location": {
+      "close": "Fermer",
+      "title": "Lieu",
+      "question": "Où es-tu ?",
+      "description": "Tes looks sont construits autour de cette prévision.",
+      "cancel": "Annuler",
+      "chooseCity": "Choisir une ville",
+      "useMyLocation": "Utiliser ma position",
+      "searchCity": "Chercher une ville",
+      "searchPlaceholder": "Chercher une ville…"
+    },
+    "advice": {
+      "rainFrom": "Pluie dès {hour}",
+      "downTonight": "Jusqu’à {temperature} ce soir",
+      "coldDay": "Froid toute la journée",
+      "upLater": "Jusqu’à {temperature} plus tard",
+      "upAfternoon": "Jusqu’à {temperature} cet après-midi",
+      "dryEvening": "Sec jusqu’au soir",
+      "takeShell": "prends un imperméable.",
+      "keepCoat": "garde le manteau.",
+      "coatEarns": "le manteau mérite sa place.",
+      "takeLayer": "prends une couche de plus pour l’instant.",
+      "dressedForIt": "tu es bien habillé pour ça.",
+      "carryJacket": "prends une veste.",
+      "noLayer": "pas besoin de couche en plus."
+    },
+    "conditions": {
+      "rain": "Pluie",
+      "clear": "Dégagé",
+      "partlyCloudy": "Partiellement nuageux",
+      "snow": "Neige",
+      "overcast": "Couvert"
+    }
+  },
+  "outfit": {
+    "back": "Retour",
+    "share": "Partager",
+    "inLook": "Dans ce look",
+    "favourite": "Favori",
+    "wearThisToday": "Porter aujourd’hui",
+    "wornToday": "Porté aujourd’hui",
+    "todayLook": "Le look du jour",
+    "tryAnother": "Essayer un autre look",
+    "styling": "Création du look…",
+    "styleAround": "Crée un look autour de n’importe quelle pièce",
+    "wearConfirm": {
+      "dismiss": "Fermer",
+      "label": "Confirmation de port",
+      "today": "Aujourd’hui",
+      "question": "As-tu porté {lookName} aujourd’hui ?",
+      "explanation": "Toi seul peux le dire — nous n’enregistrons jamais un port à ta place.",
+      "no": "Non",
+      "yes": "Oui"
+    }
+  },
+  "share": {
+    "close": "Fermer",
+    "kicker": "Partager",
+    "title": "Partager ce look",
+    "format": "Format",
+    "story": "Story",
+    "post": "Publication",
+    "cardAlt": "Carte de partage de {lookName}",
+    "cardFooter": "fitcheck.space",
+    "showBrands": "Afficher les marques",
+    "brandHint": "Ajoute une marque sur la page d’une pièce pour l’afficher ici.",
+    "shareImage": "Partager l’image",
+    "creating": "Création du lien…",
+    "updateLink": "Mettre à jour le lien",
+    "createLink": "Créer un lien",
+    "privacy": "Toute personne ayant le lien peut voir ce look pendant 30 jours. Ni nom, ni compte.",
+    "expires": "Expire le {date}",
+    "share": "Partager",
+    "copied": "Copié",
+    "copy": "Copier",
+    "stopping": "Arrêt…",
+    "stop": "Arrêter le partage",
+    "off": "Ce lien est désactivé. Les images sont en cours de suppression.",
+    "finishing": "Fin du nettoyage…",
+    "retryCleanup": "Relancer le nettoyage",
+    "photosFailed": "Impossible de charger les photos de ce look. Réessaie.",
+    "openFailed": "Impossible d’ouvrir le partage. Réessaie.",
+    "createFailed": "Impossible de créer le lien. Réessaie.",
+    "copyFailed": "Copie impossible. Appuie longuement sur le lien pour le copier.",
+    "stopFailed": "Impossible d’arrêter le partage. Réessaie.",
+    "cap": "Tu peux avoir jusqu’à {limit} liens partagés. Arrête d’en partager un dans les Réglages pour en partager un autre.",
+    "publishFailed": "Impossible de finaliser le partage. Réessaie.",
+    "changed": "Ce lien a changé. Réessaie.",
+    "cleanupFailed": "Ton lien est désactivé, mais les images n’ont pas toutes été supprimées. Réessaie.",
+    "metadataTitle": "{lookName} — un look sur Fitcheck",
+    "metadataDescription": "Un look composé avec la propre garde-robe de quelqu’un.",
+    "signIn": "Se connecter",
+    "piecesLabel": "Pièces de ce look",
+    "looksLike": "Des looks comme celui-ci, avec les vêtements que tu as déjà.",
+    "openFitcheck": "Ouvrir Fitcheck",
+    "getLooks": "Obtiens tes propres looks — gratuit",
+    "anonymous": "Partagé anonymement depuis la garde-robe de quelqu’un, qui peut arrêter le partage à tout moment. ·",
+    "report": "Signaler ce look",
+    "notFound": "Ce look n’est plus partagé."
+  },
+  "diary": {
+    "title": "Journal de style",
+    "previousMonth": "Mois précédent",
+    "nextMonth": "Mois suivant",
+    "streakDays": "{n, plural, one {jour} other {jours}}",
+    "empty": "Porte un look de la sélection du jour et il apparaîtra ici.",
+    "weekdays": {
+      "mon": "lun",
+      "tue": "mar",
+      "wed": "mer",
+      "thu": "jeu",
+      "fri": "ven",
+      "sat": "sam",
+      "sun": "dim"
+    }
+  },
+  "stats": {
+    "title": "Statistiques de port",
+    "back": "Retour",
+    "closetValue": "Valeur de la garde-robe",
+    "totalWears": "Ports au total",
+    "costPerWear": "Coût par port",
+    "empty": "Porte un look et note-le : cet écran commencera à te dire ce que ta garde-robe te coûte vraiment.",
+    "mostWorn": "Les plus portées",
+    "mostWornPitch": "Vois quelles pièces méritent leur place",
+    "biggestGap": "Ton plus grand manque",
+    "biggestGapPitch": "La pièce qui débloque le plus",
+    "gatheringDust": "Prend la poussière",
+    "gatheringDustPitch": "Ce que tu possèdes sans jamais le porter",
+    "shareMissing": "Sans elle, ta garde-robe ne peut composer aucun look",
+    "shareAdds": "Ajoute {pct} % de tenues en plus",
+    "neverWorn": "Jamais portée",
+    "wornToday": "Portée aujourd’hui",
+    "daysAgo": "{days, plural, one {il y a 1 jour} other {il y a # jours}}",
+    "wornOnce": "Portée une fois",
+    "wornTimes": "Portée {n} fois",
+    "thatPiece": "Cette pièce",
+    "reasonPairs": "Elle s’accorde avec plus de ta garde-robe que tout ce qui te manque.",
+    "reasonCounts": "Tu as {mine} contre {deepest} — c’est ce qui freine le reste.",
+    "slot": {
+      "Tops": "{n, plural, one {# haut} other {# hauts}}",
+      "Bottoms": "{n, plural, one {# bas} other {# bas}}",
+      "Shoes": "{n, plural, one {# paire de chaussures} other {# paires de chaussures}}",
+      "Outerwear": "{n, plural, one {# manteau} other {# manteaux}}",
+      "other": "{n, plural, one {# pièce} other {# pièces}}"
+    },
+    "gapPieces": {
+      "navyKnit": "Un pull marine",
+      "whiteShirt": "Une chemise blanche",
+      "woolTrousers": "Un pantalon en laine gris",
+      "darkDenim": "Un jean brut",
+      "camelCoat": "Un manteau camel",
+      "whiteSneakers": "Des baskets blanches épurées",
+      "brownLoafers": "Des mocassins en cuir marron",
+      "blackShoes": "Des chaussures en cuir noir",
+      "blackDress": "Une robe noire",
+      "navyDress": "Une robe de jour marine"
+    }
+  },
+  "profile": {
+    "you": "Toi",
+    "soon": "Bientôt",
+    "pieces": "Pièces",
+    "outfitsWorn": "Tenues portées",
+    "dayStreak": "Jours d’affilée",
+    "archetype": "Ton archétype",
+    "notSet": "Pas encore défini",
+    "welcomePro": "Bienvenue dans Pro.",
+    "activatingPro": "Activation de Pro… actualise dans un instant.",
+    "privacy": "Politique de confidentialité",
+    "terms": "Conditions d’utilisation",
+    "links": {
+      "styleDna": {
+        "label": "ADN de style",
+        "description": "Ton archétype, à partager"
+      },
+      "savedOutfits": {
+        "label": "Tenues enregistrées",
+        "description": "Les looks que tu as gardés"
+      },
+      "packing": {
+        "label": "Mode valise",
+        "description": "La plus petite valise pour tout le voyage"
+      },
+      "stats": {
+        "label": "Statistiques de port",
+        "description": "Ce que tu portes vraiment"
+      },
+      "settings": {
+        "label": "Réglages",
+        "description": "Préférences et compte"
+      }
+    }
+  },
+  "settings": {
+    "title": "Réglages",
+    "back": "Retour",
+    "preferences": "Préférences",
+    "rainGuard": "Protection pluie",
+    "rainGuardDescription": "Jamais de daim ni de toile quand il pleut",
+    "metricUnits": "Unités métriques",
+    "metricUnitsDescription": "Températures en °C plutôt qu’en °F",
+    "saveFailed": "Enregistrement impossible — vérifie ta connexion.",
+    "location": "Lieu",
+    "notSet": "Non défini",
+    "signOut": "Se déconnecter",
+    "subscription": "Abonnement",
+    "sharedLinks": "Liens partagés",
+    "sharedLinksDescription": "Des liens vers tes looks. Chacun fonctionne 30 jours ou jusqu’à ce que tu l’arrêtes.",
+    "dangerZone": "Zone sensible",
+    "deleteAccount": "Supprimer le compte",
+    "permanent": "Définitif",
+    "privacy": "Politique de confidentialité",
+    "terms": "Conditions d’utilisation",
+    "delete": {
+      "close": "Fermer",
+      "description": "Supprimer ton compte efface immédiatement et définitivement tes photos et vêtements, tes tenues, ton historique, tes voyages et tes préférences. C’est irréversible.",
+      "backup": "Les sauvegardes chiffrées peuvent conserver ces données jusqu’à 30 jours avant d’expirer.",
+      "confirm": "Saisis ton e-mail exactement pour continuer",
+      "deleting": "Suppression…",
+      "cancel": "Annuler",
+      "sessionExpired": "Ta session a expiré. Connecte-toi et réessaie.",
+      "confirmationFailed": "Saisis exactement l’e-mail de ton compte pour continuer.",
+      "failure": "Nous n’avons pas pu supprimer ton compte. Réessaie ou contacte l’assistance."
+    },
+    "links": {
+      "empty": "Aucun lien partagé.",
+      "label": "Liens partagés",
+      "cleanupPending": "Nettoyage en attente",
+      "notPublished": "Non publié",
+      "expired": "Expiré",
+      "expires": "Expire le {date}",
+      "shared": "Partagé le {date}",
+      "stop": "Arrêter le partage",
+      "stopFailed": "Impossible d’arrêter le partage. Réessaie."
+    },
+    "language": "Langue"
+  },
+  "billing": {
+    "pro": "Pro",
+    "proBrand": "Fitcheck Pro",
+    "active": "Actif — tout est débloqué.",
+    "wholeWardrobe": "Fais travailler toute ta garde-robe.",
+    "membership": "Ton abonnement",
+    "goProPrice": "Passer à Pro · {price}",
+    "yourProMembership": "Ton abonnement Pro",
+    "close": "Fermer",
+    "notNow": "Pas maintenant",
+    "opening": "Ouverture…",
+    "manageSubscription": "Gérer l’abonnement",
+    "openFailed": "Impossible d’ouvrir la facturation. Réessaie dans un instant.",
+    "waiverRequired": "Confirme que tu veux que Pro démarre maintenant.",
+    "alreadyPro": "Tu as déjà Pro — gère-le depuis ton profil.",
+    "signedOut": "Reconnecte-toi.",
+    "unavailable": "Pro n’est pas disponible pour le moment.",
+    "checkoutFailed": "Impossible de lancer le paiement. Réessaie dans un instant.",
+    "billingInterval": "Périodicité",
+    "annual": "Annuel",
+    "monthly": "Mensuel",
+    "monthPeriod": "mois",
+    "yearPeriod": "an",
+    "annualHint": "2 mois offerts · {monthlyEquivalent}",
+    "finalPrice": "Prix final et devise affichés au paiement.",
+    "waiver": "Démarrer Pro maintenant. Je comprends que je perds mon droit de rétractation de 14 jours dès qu’il commence.",
+    "openingCheckout": "Ouverture du paiement…",
+    "goPro": "Passer à Pro",
+    "payments": "Paiements traités par Stripe · vendu par Link. Renouvellement automatique — résiliable à tout moment dans l’app.",
+    "terms": "Conditions",
+    "privacy": "Confidentialité",
+    "paymentFailed": "Paiement refusé — mets à jour ta carte",
+    "proUntil": "Pro jusqu’au {date}",
+    "proRenews": "Pro · {plan} — renouvellement le {date}",
+    "proPlan": "Pro · {plan}",
+    "benefits": {
+      "rerolls": {
+        "label": "Régénérations illimitées",
+        "description": "Toute occasion, autant de fois que tu veux"
+      },
+      "styled": {
+        "label": "Un look autour de toute pièce",
+        "description": "Construis un look à partir d’un vêtement"
+      },
+      "closet": {
+        "label": "Une garde-robe illimitée",
+        "description": "Au-delà des 50 pièces gratuites"
+      },
+      "packing": {
+        "label": "Mode valise",
+        "description": "Un voyage en entrée, une capsule en sortie"
+      },
+      "analytics": {
+        "label": "Analyse du coût par port",
+        "description": "Ce que ta garde-robe coûte vraiment"
+      },
+      "gap": {
+        "label": "Analyse des manques",
+        "description": "La pièce qui débloque le plus"
+      },
+      "saved": {
+        "label": "Tenues enregistrées illimitées",
+        "description": "Garde chaque look que tu aimes"
+      }
+    }
+  },
+  "packing": {
+    "mode": "Mode valise",
+    "yourTrips": "Tes voyages",
+    "emptyTrips": "Rien de prévu pour l’instant. Dis à Fitcheck où tu vas et il trouvera le plus petit ensemble de vêtements pour t’habiller chaque jour du voyage.",
+    "tripCounts": "{pieces, plural, one {# pièce} other {# pièces}} · {days, plural, one {# jour} other {# jours}}",
+    "planTrip": "Préparer un voyage",
+    "planAnother": "Préparer un autre voyage",
+    "newTitle": "Où vas-tu ?",
+    "destination": "Destination",
+    "from": "Du",
+    "to": "Au",
+    "occasionMix": "Répartition des occasions",
+    "mixCount": "{assigned} sur {days, plural, one {# jour} other {# jours}}",
+    "fewerDay": "Un jour {occasion} de moins",
+    "moreDay": "Un jour {occasion} de plus",
+    "rewear": "Reporter",
+    "planning": "Préparation…",
+    "planAction": "Préparer le voyage",
+    "proRequired": "Le mode valise fait partie de Pro.",
+    "planFailed": "Impossible de préparer ce voyage",
+    "invalidDateRange": "Cette période ne contient aucun jour",
+    "tripGone": "Ce voyage n’existe plus",
+    "editFailed": "Impossible de modifier la valise",
+    "back": "Retour",
+    "pieces": "Pièces",
+    "days": "Jours",
+    "outfits": "Tenues",
+    "uncovered": "Non couverts",
+    "pieceHeadline": "{word} {n, plural, one {pièce.} other {pièces.}}",
+    "number": {
+      "0": "Zéro",
+      "1": "Une",
+      "2": "Deux",
+      "3": "Trois",
+      "4": "Quatre",
+      "5": "Cinq",
+      "6": "Six",
+      "7": "Sept",
+      "8": "Huit",
+      "9": "Neuf",
+      "10": "Dix",
+      "11": "Onze",
+      "12": "Douze"
+    },
+    "changePiece": "Changer : {name}",
+    "tapPiece": "Touche une pièce pour l’échanger ou la laisser.",
+    "capsuleWhy": "{days} jours · {pieces} pièces",
+    "forecastEstimate": "Une partie de ce voyage dépasse les prévisions, sa météo est donc estimée.",
+    "doneCloset": "Terminé — retour à la garde-robe",
+    "seeDays": "Voir les jours",
+    "dayTitle": "{days, plural, one {# jour} other {# jours}}, une valise.",
+    "rain": "pluie",
+    "wearOrdinal": "Port n° {n}",
+    "pieceSheet": {
+      "close": "Fermer",
+      "noAlternatives": "Rien d’autre dans ta garde-robe ne convient ici.",
+      "back": "Retour",
+      "swap": "Prendre autre chose",
+      "unpin": "Ne plus insister",
+      "pin": "Je l’emporte à coup sûr",
+      "leave": "La laisser",
+      "seePiece": "Voir la pièce",
+      "repacking": "Nouvelle valise…"
+    },
+    "shortfall": {
+      "title": "Ta garde-robe ne peut pas habiller ce voyage.",
+      "missing": "Ce qui manque",
+      "somethingFor": "Quelque chose pour {occasion}",
+      "daysMissing": "{days, plural, one {# jour} other {# jours}} — {dates} — sans rien qui convienne.",
+      "canBuild": "Ce qu’elle peut faire",
+      "capsule": "Une capsule de {days} jours.",
+      "whyName": "{covered} jours sur {total}",
+      "noOccasion": "{days, plural, one {# jour n’a} other {# jours n’ont}} rien qui convienne.",
+      "and": "et",
+      "description": "Tu n’as rien qui aille pour {occasions} — {days, plural, one {# jour} other {# jours}} de ce voyage ne peuvent pas être habillés avec ta garde-robe.",
+      "fallbackWhy": "Prépare les jours que je peux bien habiller et laisse le reste ouvert — mieux vaut emprunter qu’un mauvais substitut.",
+      "buildDays": "Préparer les {days} jours",
+      "addPiece": "Ajouter une pièce"
+    },
+    "rewearLevels": {
+      "1": {
+        "label": "Neuf chaque jour",
+        "hint": "Des vêtements propres chaque jour. Prévois la plus grande valise."
+      },
+      "2": {
+        "label": "Portée deux fois",
+        "hint": "Une répétition par pièce — un juste milieu pour les voyages courts."
+      },
+      "3": {
+        "label": "Portée trois fois",
+        "hint": "Le bon équilibre : une semaine avec neuf pièces, rien de fatigué."
+      },
+      "4": {
+        "label": "Portée quatre fois",
+        "hint": "Un sac plus léger. Les bas et la maille portent l’essentiel des répétitions."
+      },
+      "5": {
+        "label": "Aussi souvent que possible",
+        "hint": "La plus petite valise possible. Deux chemises et un pantalon pour la semaine."
+      }
+    }
+  },
+  "errors": {
+    "geoDenied": "L’accès à la position est désactivé — cherche plutôt une ville.",
+    "geoFailed": "Impossible d’obtenir ta position — cherche plutôt une ville.",
+    "generateNotSignedIn": "Non connecté",
+    "generateFailed": "Échec de la création",
+    "regenerateLimit": "Tu as utilisé tes {limit} régénérations du jour. Avec Pro, c’est illimité.",
+    "eraseFailed": "Impossible d’effacer la photo. Rien n’a changé — réessaie.",
+    "eraseNoCutout": "Cette photo ne peut pas être effacée ici : la pièce n’a pas de détourage pour la remplacer. Écris à legal@fitcheck.space et nous la supprimerons.",
+    "eraseAlready": "Cette photo a déjà été effacée.",
+    "deleteFailed": "Impossible de supprimer la pièce. Rien n’a changé — réessaie.",
+    "deleteNotRemoved": "Retire d’abord cette pièce de ta garde-robe, puis supprime-la depuis Pièces retirées.",
+    "editSaveFailed": "Échec de l’enregistrement",
+    "closetFull": "Une garde-robe gratuite contient {limit} pièces. Pro est illimité — ou archive ce que tu ne portes plus.",
+    "previewFailed": "Échec de l’aperçu",
+    "photoFailed": "Échec de la photo",
+    "cutoutFailed": "Échec du détourage",
+    "taggingFailed": "Échec de la reconnaissance",
+    "capacityFailed": "Impossible de vérifier la place dans la garde-robe",
+    "captureFailed": "Échec de la capture",
+    "rotationFailed": "Échec de la rotation",
+    "saveFailed": "Échec de l’enregistrement",
+    "cutoutCancelled": "Détourage annulé",
+    "cutoutWorkerBusy": "Détourage occupé",
+    "cutoutWorkerResponseFailed": "Le détourage n’a pas répondu"
+  },
+  "language": {
+    "title": "Langue",
+    "close": "Fermer le choix de la langue",
+    "saveFailed": "Impossible de changer la langue. Réessaie."
+  }
+}

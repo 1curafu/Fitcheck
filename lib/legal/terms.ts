@@ -1,6 +1,7 @@
 import type { Locale, ShippedLocale } from "@/lib/i18n/locales";
 import { TERMS_DE } from "./translations/de";
 import { TERMS_RU } from "./translations/ru";
+import { TERMS_FR } from "./translations/fr";
 import { OPERATOR, TERMS_UPDATED, type LegalDocument } from "./types";
 
 /**
@@ -172,4 +173,4 @@ const TERMS_UK: LegalDocument = {
     },
   ],
 };
-export const TERMS: Record<ShippedLocale, LegalDocument> & Partial<Record<Locale, LegalDocument>> = { "en-US": TERMS_EN, "en-GB": TERMS_EN, uk: TERMS_UK, de: TERMS_DE, ru: TERMS_RU };
+export const TERMS: Record<ShippedLocale, LegalDocument> & Partial<Record<Locale, LegalDocument>> = { "en-US": TERMS_EN, "en-GB": TERMS_EN, uk: TERMS_UK, de: TERMS_DE, ru: TERMS_RU, fr: TERMS_FR };
