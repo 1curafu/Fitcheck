@@ -4,6 +4,7 @@ import enUS from "@/messages/en-US.json";
 import enGB from "@/messages/en-GB.json";
 import uk from "@/messages/uk.json";
 import de from "@/messages/de.json";
+import ru from "@/messages/ru.json";
 import type { Locale } from "../locales";
 import { CONTENT_LOCALES } from "./content-locales";
 
@@ -31,7 +32,7 @@ const plurals = (m: string) => {
 };
 
 /** Full catalogues. Each Plan 3 locale task adds its import and entry. */
-const CATALOGUES: Partial<Record<Full, Tree>> = { uk: uk as Tree, de: de as Tree };
+const CATALOGUES: Partial<Record<Full, Tree>> = { uk: uk as Tree, de: de as Tree, ru: ru as Tree };
 /** Brand words that stay English in every language. */
 const ALWAYS_ENGLISH = new Set(["common.brand", "landing.wordmark", "share.cardFooter", "billing.pro", "billing.proBrand", "billing.proPlan"]);
 /** Reviewed keys whose correct translation equals English (for example "Look" in German). Each must still equal English. */
@@ -84,4 +85,11 @@ describe.each(Object.entries(CATALOGUES) as [Full, Tree][])("%s catalogue", (loc
   it("keeps bottom navigation labels short enough for the 440px bar", () => {
     for (const k of ["closet", "stylist", "diary", "profile"]) expect(own.get(`shell.nav.${k}`)!.length, k).toBeLessThanOrEqual(12);
   });
+});
+
+it("Russian counts use the right plural form", async () => {
+  const { createTranslator } = await import("next-intl");
+  const t = createTranslator({ locale: "ru" as never, messages: ru as never });
+  expect([1, 2, 5, 11, 21, 22, 25].map(n => t("stats.slot.other" as never, { n } as never)))
+    .toEqual(["1 вещь", "2 вещи", "5 вещей", "11 вещей", "21 вещь", "22 вещи", "25 вещей"]);
 });

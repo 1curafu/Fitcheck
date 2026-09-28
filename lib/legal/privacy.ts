@@ -1,5 +1,6 @@
 import type { Locale, ShippedLocale } from "@/lib/i18n/locales";
 import { PRIVACY_DE } from "./translations/de";
+import { PRIVACY_RU } from "./translations/ru";
 import { OPERATOR, PRIVACY_UPDATED, type LegalDocument } from "./types";
 
 /**
@@ -232,4 +233,4 @@ const PRIVACY_UK: LegalDocument = {
     },
   ],
 };
-export const PRIVACY: Record<ShippedLocale, LegalDocument> & Partial<Record<Locale, LegalDocument>> = { "en-US": PRIVACY_EN, "en-GB": PRIVACY_EN, uk: PRIVACY_UK, de: PRIVACY_DE };
+export const PRIVACY: Record<ShippedLocale, LegalDocument> & Partial<Record<Locale, LegalDocument>> = { "en-US": PRIVACY_EN, "en-GB": PRIVACY_EN, uk: PRIVACY_UK, de: PRIVACY_DE, ru: PRIVACY_RU };
