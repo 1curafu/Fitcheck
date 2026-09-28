@@ -1,5 +1,5 @@
 import { SHORT_MONTHS, dayMonth } from "@/lib/i18n/format";
-import type { Locale, ShippedLocale } from "@/lib/i18n/locales";
+import type { Locale } from "@/lib/i18n/locales";
 
 /** Pure share helpers used by BOTH the browser card and the server snapshot, so their numbering can never drift. */
 
