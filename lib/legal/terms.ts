@@ -1,5 +1,5 @@
-import type { ShippedLocale } from "@/lib/i18n/locales";
-import { OPERATOR, type LegalDocument } from "./types";
+import type { Locale, ShippedLocale } from "@/lib/i18n/locales";
+import { OPERATOR, TERMS_UPDATED, type LegalDocument } from "./types";
 
 /**
  * ⚠️ A DRAFT for a lawyer to read before subscriptions go live. The
@@ -10,7 +10,7 @@ import { OPERATOR, type LegalDocument } from "./types";
  */
 const TERMS_EN: LegalDocument = {
   title: "Terms of Service",
-  updated: "2026-09-26",
+  updated: TERMS_UPDATED,
   intro:
     "These are the terms for using Fitcheck. They are short because the deal is simple: you bring your wardrobe, we suggest what to wear, and you stay in charge of your own clothes and your own data.",
   sections: [
@@ -98,7 +98,7 @@ const TERMS_EN: LegalDocument = {
 
 const TERMS_UK: LegalDocument = {
   title: "Умови користування",
-  updated: TERMS_EN.updated,
+  updated: TERMS_UPDATED,
   intro: "Якщо цей переклад відрізняється від англійської версії, діє англійська версія. Це умови користування Fitcheck. Вони короткі, бо домовленість проста: ти додаєш гардероб, ми пропонуємо, що вдягнути, а ти керуєш власними речами й даними.",
   sections: [
     {
@@ -170,4 +170,4 @@ const TERMS_UK: LegalDocument = {
     },
   ],
 };
-export const TERMS: Record<ShippedLocale, LegalDocument> = { "en-US": TERMS_EN, "en-GB": TERMS_EN, uk: TERMS_UK };
+export const TERMS: Record<ShippedLocale, LegalDocument> & Partial<Record<Locale, LegalDocument>> = { "en-US": TERMS_EN, "en-GB": TERMS_EN, uk: TERMS_UK };

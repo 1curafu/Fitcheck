@@ -1,4 +1,4 @@
-import type { ShippedLocale } from "@/lib/i18n/locales";
+import type { Locale } from "@/lib/i18n/locales";
 /**
  * What each release changed, in the user's language.
  *
@@ -22,10 +22,12 @@ export type ReleaseNote = {
   headline: string;
   added: string[];
   fixed: string[];
-  i18n?: Partial<Record<Exclude<ShippedLocale, "en-US">, { headline: string; added: string[]; fixed: string[] }>>;
+  i18n?: Partial<Record<Exclude<Locale, "en-US">, LocalizedNote>>;
 };
 
-export const RELEASE_NOTES: ReleaseNote[] = [
+export type LocalizedNote = { headline: string; added: string[]; fixed: string[] };
+
+const BASE_NOTES: ReleaseNote[] = [
   {
     version: "0.4.1",
     date: "2026-09-27",
@@ -342,10 +344,23 @@ export const RELEASE_NOTES: ReleaseNote[] = [
   },
 ];
 
+type MoreLocale = Exclude<Locale, "en-US" | "en-GB" | "uk">;
+/** Plan 3 languages keep their history in lib/release-notes-i18n/<locale>.ts, keyed by version. */
+const MORE_NOTES: Partial<Record<MoreLocale, Record<string, LocalizedNote>>> = {};
+export const MORE_NOTES_FOR_TEST = MORE_NOTES;
+
+export const RELEASE_NOTES: ReleaseNote[] = BASE_NOTES.map(note => ({
+  ...note,
+  i18n: {
+    ...note.i18n,
+    ...Object.fromEntries(Object.entries(MORE_NOTES).flatMap(([locale, map]) => map?.[note.version] ? [[locale, map[note.version]]] : [])),
+  },
+}));
+
 /** The release the app is running. */
 export const CURRENT_RELEASE = RELEASE_NOTES[0];
 
-export function noteFor(note: ReleaseNote, locale: ShippedLocale): ReleaseNote {
+export function noteFor(note: ReleaseNote, locale: Locale): ReleaseNote {
   const translated = locale === "en-US" ? undefined : note.i18n?.[locale];
   return translated ? { ...note, ...translated } : note;
 }

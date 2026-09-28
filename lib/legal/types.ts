@@ -21,3 +21,7 @@ export const OPERATOR = {
   // Owner-approved for publication 2026-09-24: Stripe wants the seller's address shown before payment.
   address: "Rapperswilerstrasse 1, 8733 Eschenbach SG, Switzerland",
 } as const;
+
+/** One date per document; every translation shows the English document's date. */
+export const PRIVACY_UPDATED = "2026-09-28";
+export const TERMS_UPDATED = "2026-09-26";

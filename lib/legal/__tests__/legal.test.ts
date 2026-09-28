@@ -3,7 +3,8 @@ import { PRIVACY as PRIVACY_BY_LOCALE } from "../privacy";
 import { TERMS as TERMS_BY_LOCALE } from "../terms";
 import { OPERATOR } from "../types";
 
-import { SHIPPED_LOCALES } from "@/lib/i18n/locales";
+import { CONTENT_LOCALES } from "@/lib/i18n/__tests__/content-locales";
+import type { Locale } from "@/lib/i18n/locales";
 const PRIVACY = PRIVACY_BY_LOCALE["en-US"];
 const TERMS = TERMS_BY_LOCALE["en-US"];
 
@@ -160,10 +161,17 @@ test("the policy says a removed piece can be deleted for good, and what past loo
   expect(text).toMatch(/past looks keep their other pieces/i);
 });
 
+const PREVAILS: Record<Exclude<Locale, "en-US" | "en-GB">, RegExp> = {
+  uk: /англійська версія/i, ru: /действует английская версия/i, de: /gilt die englische Fassung/i,
+  fr: /la version anglaise prévaut/i, it: /prevale la versione inglese/i, pt: /prevalece a versão inglesa/i,
+  es: /prevalece la versión inglesa/i, nl: /geldt de Engelse versie/i,
+};
 const FACTS = [/Stripe/, /Link/, /Anthropic/, /Supabase/, /Vercel/, /Sentry/, /OpenWeather/, /Backblaze|B2/, /legal@fitcheck\.space/, /\b30\b/, /\b90\b/];
 for (const [name, documents] of [["privacy", PRIVACY_BY_LOCALE], ["terms", TERMS_BY_LOCALE]] as const) {
-  test.each(SHIPPED_LOCALES)("%s " + name + " preserves sections and facts", (locale) => {
-    const en = documents["en-US"], translated = documents[locale];
+  test.each(CONTENT_LOCALES)("%s " + name + " preserves sections, facts and date", (locale) => {
+    const en = documents["en-US"], translated = documents[locale]!;
+    expect(translated, `${locale} ${name} is missing`).toBeDefined();
+    expect(translated.updated).toBe(en.updated);
     expect(translated.sections.map(s => s.id)).toEqual(en.sections.map(s => s.id));
     expect(new Set(en.sections.map(s => s.id)).size).toBe(en.sections.length);
     translated.sections.forEach((s, i) => {
@@ -172,5 +180,10 @@ for (const [name, documents] of [["privacy", PRIVACY_BY_LOCALE], ["terms", TERMS
     });
     for (const fact of FACTS) if (fact.test(JSON.stringify(en))) expect(JSON.stringify(translated)).toMatch(fact);
   });
-  test(name + " says English prevails in Ukrainian", () => expect(documents.uk.intro).toMatch(/англійська версія/i));
+  test.each(CONTENT_LOCALES.filter(l => l !== "en-US" && l !== "en-GB"))(name + " opens with English-prevails in %s", (locale) => {
+    const rule = PREVAILS[locale as keyof typeof PREVAILS];
+    const intro = documents[locale]!.intro;
+    expect(intro).toMatch(rule);
+    expect(intro.search(rule)).toBeLessThan(120);
+  });
 }

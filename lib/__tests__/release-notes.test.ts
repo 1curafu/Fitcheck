@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
-import { CURRENT_RELEASE, RELEASE_NOTES, noteFor } from "../release-notes";
+import { CURRENT_RELEASE, MORE_NOTES_FOR_TEST, RELEASE_NOTES, noteFor } from "../release-notes";
+import { CONTENT_LOCALES } from "@/lib/i18n/__tests__/content-locales";
 
 test("the newest entry IS the shipped version", () => {
   // ⚠️ Shipping a version with no notes is the failure this catches. The card
@@ -40,19 +41,25 @@ test("versions are unique", () => {
   expect(new Set(versions).size).toBe(versions.length);
 });
 
-test.each(["en-GB", "uk"] as const)("latest release has %s text", locale => {
+const LOCALIZED = CONTENT_LOCALES.filter(l => l !== "en-US");
+
+test.each(LOCALIZED)("latest release has %s text", locale => {
   expect(CURRENT_RELEASE.i18n?.[locale]).toBeDefined();
   expect(noteFor(CURRENT_RELEASE, locale)).toMatchObject(CURRENT_RELEASE.i18n![locale]!);
 });
-test("every historical release has complete Ukrainian text with unchanged claims", () => {
- for (const note of RELEASE_NOTES) {
-  expect(note.i18n?.uk?.headline.trim()).toBeTruthy();
-  const translated = noteFor(note, "uk");
-  expect(translated.added).toHaveLength(note.added.length);
-  expect(translated.fixed).toHaveLength(note.fixed.length);
-  expect(translated.version).toBe(note.version);
-  expect(translated.date).toBe(note.date);
- }
+test.each(LOCALIZED.filter(l => l !== "en-GB"))("every historical release has complete %s text with unchanged claims", locale => {
+  for (const note of RELEASE_NOTES) {
+    expect(note.i18n?.[locale]?.headline.trim(), `${note.version} lacks ${locale}`).toBeTruthy();
+    const translated = noteFor(note, locale);
+    expect(translated.added).toHaveLength(note.added.length);
+    expect(translated.fixed).toHaveLength(note.fixed.length);
+    expect(translated.version).toBe(note.version);
+    expect(translated.date).toBe(note.date);
+  }
+});
+test("no per-locale release map names a version that does not exist", () => {
+  const versions = new Set(RELEASE_NOTES.map(n => n.version));
+  for (const [locale, map] of Object.entries(MORE_NOTES_FOR_TEST)) for (const v of Object.keys(map ?? {})) expect(versions.has(v), `${locale} ${v}`).toBe(true);
 });
 test("British release history avoids American-specific terms", () => {
  for (const note of RELEASE_NOTES) {

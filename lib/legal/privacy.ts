@@ -1,5 +1,5 @@
-import type { ShippedLocale } from "@/lib/i18n/locales";
-import { OPERATOR, type LegalDocument } from "./types";
+import type { Locale, ShippedLocale } from "@/lib/i18n/locales";
+import { OPERATOR, PRIVACY_UPDATED, type LegalDocument } from "./types";
 
 /**
  * ⚠️ Every third party named here is one the code sends data to, and the test
@@ -13,7 +13,7 @@ import { OPERATOR, type LegalDocument } from "./types";
  */
 const PRIVACY_EN: LegalDocument = {
   title: "Privacy Policy",
-  updated: "2026-09-28",
+  updated: PRIVACY_UPDATED,
   intro:
     "Fitcheck photographs your wardrobe and suggests outfits from it. That means it holds photos of your clothes and a little about you. This page says exactly what, why, who else touches it, and how to make us delete it.",
   sections: [
@@ -129,7 +129,7 @@ const PRIVACY_EN: LegalDocument = {
 
 const PRIVACY_UK: LegalDocument = {
   title: "Політика конфіденційності",
-  updated: PRIVACY_EN.updated,
+  updated: PRIVACY_UPDATED,
   intro: "Якщо цей переклад відрізняється від англійської версії, діє англійська версія. Fitcheck фотографує твій гардероб і пропонує образи з нього. Тому він зберігає фото твого одягу й трохи інформації про тебе. Тут точно описано, що саме, навіщо, хто ще працює з цими даними та як попросити нас їх видалити.",
   sections: [
     {
@@ -231,4 +231,4 @@ const PRIVACY_UK: LegalDocument = {
     },
   ],
 };
-export const PRIVACY: Record<ShippedLocale, LegalDocument> = { "en-US": PRIVACY_EN, "en-GB": PRIVACY_EN, uk: PRIVACY_UK };
+export const PRIVACY: Record<ShippedLocale, LegalDocument> & Partial<Record<Locale, LegalDocument>> = { "en-US": PRIVACY_EN, "en-GB": PRIVACY_EN, uk: PRIVACY_UK };
