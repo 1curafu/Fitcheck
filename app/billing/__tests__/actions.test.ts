@@ -7,11 +7,14 @@ const h = vi.hoisted(() => ({
     throw new Error(`REDIRECT ${u}`);
   }),
   enabled: vi.fn(() => true),
+  locale: vi.fn(() => "en-US"),
+  origin: vi.fn(() => "https://fitcheck.space"),
   store: {} as Record<string, unknown>,
   gateway: {} as Record<string, unknown>,
 }));
 vi.mock("next/navigation", () => ({ redirect: h.redirect }));
-vi.mock("next/headers", () => ({ headers: async () => new Headers({ origin: "https://fitcheck.space" }) }));
+vi.mock("next/headers", () => ({ headers: async () => new Headers({ origin: h.origin() }) }));
+vi.mock("@/lib/i18n/action-locale", () => ({ getActionLocale: h.locale }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: h.getUser } }) }));
 vi.mock("@/lib/billing/stripe/client", () => ({ billingEnabled: h.enabled, getGateway: () => h.gateway }));
 vi.mock("@/lib/billing/admin", () => ({ createBillingStore: () => h.store }));
@@ -24,6 +27,8 @@ let gateway: ReturnType<typeof fakeGateway>;
 beforeEach(() => {
   vi.clearAllMocks();
   h.enabled.mockReturnValue(true);
+  h.locale.mockResolvedValue("en-US");
+  h.origin.mockReturnValue("https://fitcheck.space");
   h.getUser.mockResolvedValue({ data: { user: { id: "u1", email: "a@b.c" } } });
   const fs = fakeStore([{ userId: "u1", email: "a@b.c", stripeCustomerId: null, tier: "free" }]);
   waivers = fs.waivers;
@@ -88,5 +93,25 @@ it("portal needs a customer", async () => {
 it("portal opens for a customer, returning to the profile", async () => {
   h.store.profileByUserId = async () => ({ userId: "u1", email: "a@b.c", stripeCustomerId: "cus_1", tier: "pro" });
   await expect(openBillingPortal()).rejects.toThrow(/^REDIRECT https:\/\/billing\.stripe\.com/);
-  expect(gateway.createPortalSession).toHaveBeenCalledWith("cus_1", "https://fitcheck.space/profile");
+  expect(gateway.createPortalSession).toHaveBeenCalledWith("cus_1", "https://fitcheck.space/profile", "en");
+});
+
+it("uses server Ukrainian locale and trusted origin for checkout cancellation", async () => {
+ h.locale.mockResolvedValue("uk"); h.origin.mockReturnValue("https://evil.example");
+ await expect(startCheckout({interval:"month",waiverAccepted:true,locale:"de",userId:"other"})).rejects.toThrow(/^REDIRECT https:\/\/checkout\.stripe\.com/);
+ expect(gateway.createCheckoutSession).toHaveBeenCalledWith(expect.objectContaining({locale:"uk",userId:"u1",cancelUrl:"https://fitcheck.space/uk/profile?pro=cancelled",successUrl:"https://fitcheck.space/billing/return?session_id={CHECKOUT_SESSION_ID}"}));
+});
+it("uses server British locale for portal return", async () => {
+ h.locale.mockResolvedValue("en-GB");
+ h.store.profileByUserId=async()=>({userId:"u1",email:"a@b.c",stripeCustomerId:"cus_1",tier:"pro"});
+ await expect(openBillingPortal()).rejects.toThrow(/^REDIRECT https:\/\/billing\.stripe\.com/);
+ expect(gateway.createPortalSession).toHaveBeenCalledWith("cus_1","https://fitcheck.space/en-gb/profile","en-GB");
+});
+it("signed-out actions never resolve locale or create billing sessions", async () => {
+ h.getUser.mockResolvedValue({data:{user:null}});
+ expect(await openBillingPortal()).toEqual({status:"signed-out"});
+ expect(await startCheckout({interval:"month",waiverAccepted:true})).toEqual({status:"signed-out"});
+ expect(h.locale).not.toHaveBeenCalled();
+ expect(gateway.createCheckoutSession).not.toHaveBeenCalled();
+ expect(gateway.createPortalSession).not.toHaveBeenCalled();
 });

@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
-import { setTier } from "./helpers";
+import { admin, testUserId, setTier } from "./helpers";
+import uk from "../messages/uk.json";
 
 test.use({ storageState: "e2e/.auth/state.json" });
 
@@ -31,5 +32,28 @@ test.describe("billing", () => {
     await expect(page.getByRole("button", { name: /manage subscription/i })).toBeVisible();
     await page.goto("/settings");
     await expect(page.getByRole("button", { name: /manage subscription/i })).toBeVisible();
+  });
+
+  test("localized checkout and portal return to the same language", async ({ page }) => {
+    const db = admin(), userId = await testUserId();
+    const before = await db.from("profiles").select("stripe_customer_id").eq("id", userId).single();
+    try {
+      await setTier("free");
+      await page.goto("/uk/profile");
+      await page.getByRole("button", { name: /fitcheck pro/i }).click();
+      const sheet = page.getByRole("dialog");
+      await sheet.getByText(uk.billing.waiver, { exact: true }).click();
+      await sheet.getByRole("button", { name: uk.billing.goPro, exact: true }).click();
+      await expect(page).toHaveURL(/\/uk\/profile\?pro=stub-checkout$/);
+      await expect(page.locator("html")).toHaveAttribute("lang", "uk");
+      await setTier("pro");
+      await page.goto("/en-gb/profile");
+      await page.getByRole("button", { name: /manage subscription/i }).click();
+      await expect(page).toHaveURL(/\/en-gb\/profile\?pro=stub-portal$/);
+      await expect(page.locator("html")).toHaveAttribute("lang", "en-GB");
+    } finally {
+      await db.from("profiles").update({ stripe_customer_id: before.data?.stripe_customer_id ?? null }).eq("id", userId);
+      await page.context().clearCookies({ name: "NEXT_LOCALE" });
+    }
   });
 });
