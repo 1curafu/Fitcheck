@@ -17,11 +17,11 @@ test("lists shipped languages in their own names and marks the current choice", 
   expect(screen.queryByRole("button", { name: "Deutsch" })).not.toBeInTheDocument();
 });
 
-test("saves the choice and preserves the page and query", async () => {
+test.each([["Українська", "uk"], ["English (UK)", "en-GB"]])("saves %s and preserves the page and query", async (name, locale) => {
   render(<LanguageSheet open current="en-US" onClose={mock.close} />);
-  await userEvent.click(screen.getByRole("button", { name: "Українська" }));
-  expect(mock.setLocale).toHaveBeenCalledWith("uk");
-  expect(mock.replace).toHaveBeenCalledWith({ pathname: "/generate", query: { occasion: "work", look: "2" } }, { locale: "uk" });
+  await userEvent.click(screen.getByRole("button", { name }));
+  expect(mock.setLocale).toHaveBeenCalledWith(locale);
+  expect(mock.replace).toHaveBeenCalledWith({ pathname: "/generate", query: { occasion: "work", look: "2" } }, { locale });
   expect(mock.close).toHaveBeenCalled();
 });
 
