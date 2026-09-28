@@ -1,6 +1,9 @@
 import { CARD_SIZES, layoutCard, type CardInput, type CardTarget, type FontSpec } from "./card-layout";
 import { cssFont, encodeWithinBudget, paintCard, type Fonts } from "./draw";
 
+/** Latin accents (German, French, Portuguese) and Cyrillic, so every card language loads its glyph subsets. */
+const FONT_SAMPLE = "Aa Жж ßœçã";
+
 /** next/font renames the faces; the real family lists live in the root CSS variables (app/[locale]/layout.tsx). */
 export async function loadFonts(): Promise<Fonts> {
   const root = getComputedStyle(document.documentElement);
@@ -9,8 +12,8 @@ export async function loadFonts(): Promise<Fonts> {
     sans: ["--font-hanken", "--font-sans-cyrillic"].map(key => root.getPropertyValue(key).trim()).filter(Boolean).join(", ") || "system-ui, sans-serif",
   };
   await Promise.all([
-    document.fonts.load(`400 40px ${fonts.serif}`, "Aa Жж"), document.fonts.load(`italic 400 40px ${fonts.serif}`, "Aa Жж"),
-    document.fonts.load(`400 28px ${fonts.sans}`, "Aa Жж"), document.fonts.load(`500 28px ${fonts.sans}`, "Aa Жж"),
+    document.fonts.load(`400 40px ${fonts.serif}`, FONT_SAMPLE), document.fonts.load(`italic 400 40px ${fonts.serif}`, FONT_SAMPLE),
+    document.fonts.load(`400 28px ${fonts.sans}`, FONT_SAMPLE), document.fonts.load(`500 28px ${fonts.sans}`, FONT_SAMPLE),
   ]);
   return fonts;
 }

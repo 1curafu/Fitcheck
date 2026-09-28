@@ -1,5 +1,5 @@
-import { SHORT_MONTHS } from "@/lib/i18n/format";
-import type { ShippedLocale } from "@/lib/i18n/locales";
+import { SHORT_MONTHS, dayMonth } from "@/lib/i18n/format";
+import type { Locale, ShippedLocale } from "@/lib/i18n/locales";
 
 /** Pure share helpers used by BOTH the browser card and the server snapshot, so their numbering can never drift. */
 
@@ -42,14 +42,14 @@ export function pieceLabel(p: { name: string; brand: string | null }): string {
 }
 
 /** Fixed month names: Intl disagrees between Node ("Sept") and Safari ("Sep"). */
-export function shareKicker(occasion: string, isoDate: string | null, locale: ShippedLocale = "en-GB"): string {
+export function shareKicker(occasion: string, isoDate: string | null, locale: Locale = "en-GB"): string {
   const parts: string[] = [];
   if (occasion) parts.push(occasion.charAt(0).toUpperCase() + occasion.slice(1));
   const m = isoDate?.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (m) {
     const day = Number(m[3]);
     const month = SHORT_MONTHS[locale][Number(m[2]) - 1];
-    parts.push(locale === "en-US" ? `${month} ${day}` : `${day} ${month}`);
+    parts.push(dayMonth(day, month, locale));
   }
   return parts.join(" · ");
 }

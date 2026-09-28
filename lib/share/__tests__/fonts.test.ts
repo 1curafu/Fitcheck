@@ -11,5 +11,5 @@ it("share fonts include Cyrillic faces and load their glyphs", async () => {
   const fonts = await loadFonts();
   expect(fonts.serif).toBe("'Caslon', 'Garamond Cyr'");
   expect(fonts.sans).toBe("'Hanken', 'Inter Cyr'");
-  expect(load.mock.calls.every(call => call[1]?.includes("Ж"))).toBe(true);
+  expect(load.mock.calls.every(call => call[1]?.includes("Ж") && call[1]?.includes("ß") && call[1]?.includes("œ"))).toBe(true);
 });
