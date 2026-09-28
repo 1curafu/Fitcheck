@@ -6,6 +6,7 @@ import uk from "@/messages/uk.json";
 import de from "@/messages/de.json";
 import ru from "@/messages/ru.json";
 import fr from "@/messages/fr.json";
+import it_ from "@/messages/it.json";
 import type { Locale } from "../locales";
 import { CONTENT_LOCALES } from "./content-locales";
 
@@ -33,7 +34,7 @@ const plurals = (m: string) => {
 };
 
 /** Full catalogues. Each Plan 3 locale task adds its import and entry. */
-const CATALOGUES: Partial<Record<Full, Tree>> = { uk: uk as Tree, de: de as Tree, ru: ru as Tree, fr: fr as Tree };
+const CATALOGUES: Partial<Record<Full, Tree>> = { uk: uk as Tree, de: de as Tree, ru: ru as Tree, fr: fr as Tree, it: it_ as Tree };
 /** Brand words that stay English in every language. */
 const ALWAYS_ENGLISH = new Set(["common.brand", "landing.wordmark", "share.cardFooter", "billing.pro", "billing.proBrand", "billing.proPlan"]);
 /** Reviewed keys whose correct translation equals English (for example "Look" in German). Each must still equal English. */
@@ -49,6 +50,9 @@ const SAME_AS_ENGLISH: Partial<Record<Full, string[]>> = {
     "vocab.texture.Seersucker", "vocab.color.beige", "vocab.color.taupe", "vocab.color.camel", "vocab.color.caramel",
     "vocab.color.indigo", "vocab.color.olive", "vocab.color.orange", "vocab.length.Midi", "generate.refine.palette.camel",
     "generate.refine.palette.olive", "share.format", "share.story", "packing.destination"],
+  it: ["shell.nav.stylist", "vocab.material.Tweed", "vocab.material.Nylon", "vocab.material.Modal", "vocab.material.Lyocell",
+    "vocab.texture.Twill", "vocab.texture.Seersucker", "vocab.color.beige", "vocab.color.terracotta", "vocab.length.Midi",
+    "share.post", "billing.privacy"],
 };
 /** Another region's vocabulary a catalogue must not use. */
 const FORBIDDEN: Partial<Record<Full, RegExp>> = {
