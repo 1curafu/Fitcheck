@@ -1,5 +1,6 @@
 "use client";
 
+import { useVocab } from "@/lib/i18n/vocab";
 import { motion } from "motion/react";
 import { useState, type CSSProperties } from "react";
 import type { Look } from "@/lib/generator/types";
@@ -15,6 +16,7 @@ function usePrefersReducedMotion(): boolean {
 }
 
 export function FlatLay({ look }: { look: Look }) {
+  const label = useVocab();
   const reduce = usePrefersReducedMotion();
   const order = staggerOrder(look.pieces.map((p) => p.slot)); // anchor-first indices
 
@@ -43,7 +45,7 @@ export function FlatLay({ look }: { look: Look }) {
             <img
               key={p.itemId}
               src={p.cutoutUrl}
-              alt={p.name ?? p.subcategory ?? p.category}
+              alt={p.name ?? p.subcategory ?? label("category", p.category)}
               className="object-contain"
               style={{ ...base, transform: `rotate(${s.rotationDeg}deg)`, opacity: 1 }}
             />
@@ -56,7 +58,7 @@ export function FlatLay({ look }: { look: Look }) {
           <motion.img
             key={p.itemId}
             src={p.cutoutUrl}
-            alt={p.name ?? p.subcategory ?? p.category}
+            alt={p.name ?? p.subcategory ?? label("category", p.category)}
             className="object-contain"
             style={base}
             initial={{ opacity: 0, y: 10, rotate: s.rotationDeg }}

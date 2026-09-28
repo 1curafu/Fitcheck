@@ -1,3 +1,4 @@
+import { vocabLabel } from "@/lib/i18n/vocab-server";
 import { Suspense } from "react";
 import { Link, redirect } from "@/lib/i18n/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -77,6 +78,7 @@ async function ClosetHeader({ count }: { count?: number }) {
 }
 
 async function ClosetBody() {
+  const tVocab = await getTranslations("vocab");
   const t = await getTranslations("closet");
   const supabase = await createClient();
   const {
@@ -110,7 +112,7 @@ async function ClosetBody() {
   const signed = await signItemImages(rows.map(path));
   const grid = rows.map((i) => ({
     ...i,
-    name: i.name ?? i.subcategory ?? i.category,
+    name: i.name ?? i.subcategory ?? vocabLabel(tVocab, "category", i.category),
     brand: i.brand,
     imageUrl: signed.get(path(i)) ?? "",
   }));

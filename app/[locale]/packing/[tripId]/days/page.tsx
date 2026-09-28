@@ -1,3 +1,4 @@
+import { vocabLabel } from "@/lib/i18n/vocab-server";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -9,7 +10,7 @@ import { loadTrip } from "@/lib/packing/store";
 import { fetchTripForecast } from "@/lib/weather/forecast";
 import { formatRange } from "../page";
 import { redirect } from "@/lib/i18n/navigation";
-import { getLocale } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { intlLocale } from "@/lib/i18n/format";
 
 /**
@@ -48,6 +49,7 @@ export default function DaysPage({ params }: { params: Promise<{ tripId: string 
 }
 
 async function DaysBody({ params }: { params: Promise<{ tripId: string }> }) {
+  const tVocab = await getTranslations("vocab");
   const locale = await getLocale();
   const { tripId } = await params;
   const supabase = await createClient();
@@ -105,7 +107,7 @@ async function DaysBody({ params }: { params: Promise<{ tripId: string }> }) {
       return [
         {
           id: row.id,
-          name: (row.name ?? row.subcategory ?? row.category) as string,
+          name: (row.name ?? row.subcategory ?? vocabLabel(tVocab, "category", row.category)) as string,
           imageUrl: signed.get(path(row)) ?? "",
           wear,
         },

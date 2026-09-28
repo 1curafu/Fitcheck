@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useVocab } from "@/lib/i18n/vocab";
 
 import { useState } from "react";
 import { filterItems, type ClosetItem } from "@/lib/closet/filter";
@@ -19,6 +20,8 @@ type GridItem = ClosetItem & {
 
 export function ClosetGrid({ items, archived = false }: { items: GridItem[]; archived?: boolean }) {
   const t = useTranslations("closet");
+  const label = useVocab();
+  const categoryLabel = (value: string) => value === "All" ? t("filters.All") : label("category", value);
   const [cat, setCat] = useState<(typeof CATS)[number]>("All");
   const shown = filterItems(items, { category: cat, archived });
 
@@ -27,14 +30,14 @@ export function ClosetGrid({ items, archived = false }: { items: GridItem[]; arc
       <ChipRow>
         {CATS.map((c) => (
           <Chip key={c} active={cat === c} onClick={() => setCat(c)}>
-            {t(`filters.${c}`)}
+            {categoryLabel(c)}
           </Chip>
         ))}
       </ChipRow>
 
       {shown.length === 0 ? (
         <p className="py-16 text-center text-sm text-muted-foreground">
-          {t("nothingIn", { category: t(`filters.${cat}`) })}
+          {t("nothingIn", { category: categoryLabel(cat) })}
         </p>
       ) : (
         <div className="columns-2 gap-3">

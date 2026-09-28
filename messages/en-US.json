@@ -394,6 +394,158 @@
       "work": "Work",
       "weekend": "Weekend",
       "evening": "Evening"
+    },
+    "material": {
+      "Cotton": "Cotton",
+      "Wool": "Wool",
+      "Merino wool": "Merino wool",
+      "Cashmere": "Cashmere",
+      "Linen": "Linen",
+      "Silk": "Silk",
+      "Denim": "Denim",
+      "Leather": "Leather",
+      "Suede": "Suede",
+      "Faux leather": "Faux leather",
+      "Canvas": "Canvas",
+      "Corduroy": "Corduroy",
+      "Tweed": "Tweed",
+      "Fleece": "Fleece",
+      "Shearling": "Shearling",
+      "Down": "Down",
+      "Polyester": "Polyester",
+      "Acrylic": "Acrylic",
+      "Nylon": "Nylon",
+      "Viscose": "Viscose",
+      "Modal": "Modal",
+      "Lyocell": "Lyocell",
+      "Stainless steel": "Stainless steel",
+      "Gold": "Gold",
+      "Silver": "Silver",
+      "Rubber": "Rubber",
+      "Other": "Other"
+    },
+    "texture": {
+      "Flat": "Flat",
+      "Ribbed": "Ribbed",
+      "Cable knit": "Cable knit",
+      "Waffle": "Waffle",
+      "Chunky knit": "Chunky knit",
+      "Fine knit": "Fine knit",
+      "Brushed": "Brushed",
+      "Fleece-back": "Fleece-back",
+      "Twill": "Twill",
+      "Herringbone": "Herringbone",
+      "Quilted": "Quilted",
+      "Pile": "Pile",
+      "Open knit": "Open knit",
+      "Terry": "Terry",
+      "Seersucker": "Seersucker",
+      "Other": "Other"
+    },
+    "color": {
+      "black": "black",
+      "charcoal": "charcoal",
+      "grey": "grey",
+      "silver": "silver",
+      "white": "white",
+      "ivory": "ivory",
+      "cream": "cream",
+      "stone": "stone",
+      "sand": "sand",
+      "beige": "beige",
+      "taupe": "taupe",
+      "khaki": "khaki",
+      "camel": "camel",
+      "tan": "tan",
+      "caramel": "caramel",
+      "chocolate": "chocolate",
+      "brown": "brown",
+      "navy": "navy",
+      "indigo": "indigo",
+      "denim": "denim",
+      "blue": "blue",
+      "sky": "sky",
+      "teal": "teal",
+      "olive": "olive",
+      "sage": "sage",
+      "forest": "forest",
+      "green": "green",
+      "mint": "mint",
+      "burgundy": "burgundy",
+      "maroon": "maroon",
+      "red": "red",
+      "rust": "rust",
+      "terracotta": "terracotta",
+      "coral": "coral",
+      "pink": "pink",
+      "purple": "purple",
+      "lavender": "lavender",
+      "plum": "plum",
+      "mustard": "mustard",
+      "yellow": "yellow",
+      "gold": "gold",
+      "orange": "orange"
+    },
+    "fit": {
+      "Fitted": "Fitted",
+      "Tailored": "Tailored",
+      "Regular": "Regular",
+      "Relaxed": "Relaxed",
+      "Oversized": "Oversized"
+    },
+    "length": {
+      "Cropped": "Cropped",
+      "Natural waist": "Natural waist",
+      "Hip": "Hip",
+      "Knee": "Knee",
+      "Midi": "Midi",
+      "Ankle": "Ankle",
+      "Floor": "Floor"
+    },
+    "bulk": {
+      "Low profile": "Low profile",
+      "Regular": "Regular",
+      "Chunky": "Chunky"
+    },
+    "distressing": {
+      "None": "None",
+      "Faded": "Faded",
+      "Ripped": "Ripped"
+    },
+    "branding": {
+      "None": "None",
+      "Small": "Small",
+      "Large": "Large"
+    },
+    "category": {
+      "Tops": "Tops",
+      "Bottoms": "Bottoms",
+      "One-piece": "One-piece",
+      "Outerwear": "Outerwear",
+      "Shoes": "Shoes",
+      "Bags": "Bags",
+      "Accessories": "Accessories",
+      "Fragrance": "Fragrance"
+    },
+    "season": {
+      "Spring": "Spring",
+      "Summer": "Summer",
+      "Autumn": "Autumn",
+      "Winter": "Winter"
+    },
+    "pattern": {
+      "solid": "solid",
+      "striped": "striped",
+      "check": "check",
+      "print": "print",
+      "other": "other"
+    },
+    "formality": {
+      "1": "Very casual",
+      "2": "Casual",
+      "3": "Smart casual",
+      "4": "Business",
+      "5": "Formal"
     }
   },
   "generate": {
@@ -587,11 +739,26 @@
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
     "links": {
-      "styleDna": { "label": "Style DNA", "description": "Your archetype, shareable" },
-      "savedOutfits": { "label": "Saved Outfits", "description": "Looks you kept" },
-      "packing": { "label": "Packing Mode", "description": "The smallest case that dresses the trip" },
-      "stats": { "label": "Wear Stats", "description": "What you actually wear" },
-      "settings": { "label": "Settings", "description": "Preferences and account" }
+      "styleDna": {
+        "label": "Style DNA",
+        "description": "Your archetype, shareable"
+      },
+      "savedOutfits": {
+        "label": "Saved Outfits",
+        "description": "Looks you kept"
+      },
+      "packing": {
+        "label": "Packing Mode",
+        "description": "The smallest case that dresses the trip"
+      },
+      "stats": {
+        "label": "Wear Stats",
+        "description": "What you actually wear"
+      },
+      "settings": {
+        "label": "Settings",
+        "description": "Preferences and account"
+      }
     }
   },
   "settings": {
@@ -671,13 +838,34 @@
     "proRenews": "Pro · {plan} — renews {date}",
     "proPlan": "Pro · {plan}",
     "benefits": {
-      "rerolls": { "label": "Unlimited rerolls", "description": "Any occasion, as often as you like" },
-      "styled": { "label": "Style around any piece", "description": "Build a look from one garment" },
-      "closet": { "label": "An unlimited closet", "description": "Past the free 50 pieces" },
-      "packing": { "label": "Packing mode", "description": "A trip in, a capsule out" },
-      "analytics": { "label": "Cost-per-wear analytics", "description": "What your wardrobe really costs" },
-      "gap": { "label": "Gap analysis", "description": "The one piece that unlocks the most" },
-      "saved": { "label": "Unlimited saved outfits", "description": "Keep every look you love" }
+      "rerolls": {
+        "label": "Unlimited rerolls",
+        "description": "Any occasion, as often as you like"
+      },
+      "styled": {
+        "label": "Style around any piece",
+        "description": "Build a look from one garment"
+      },
+      "closet": {
+        "label": "An unlimited closet",
+        "description": "Past the free 50 pieces"
+      },
+      "packing": {
+        "label": "Packing mode",
+        "description": "A trip in, a capsule out"
+      },
+      "analytics": {
+        "label": "Cost-per-wear analytics",
+        "description": "What your wardrobe really costs"
+      },
+      "gap": {
+        "label": "Gap analysis",
+        "description": "The one piece that unlocks the most"
+      },
+      "saved": {
+        "label": "Unlimited saved outfits",
+        "description": "Keep every look you love"
+      }
     }
   },
   "packing": {
@@ -710,8 +898,19 @@
     "uncovered": "Uncovered",
     "pieceHeadline": "{word} {n, plural, one {piece.} other {pieces.}}",
     "number": {
-      "0": "No", "1": "One", "2": "Two", "3": "Three", "4": "Four", "5": "Five",
-      "6": "Six", "7": "Seven", "8": "Eight", "9": "Nine", "10": "Ten", "11": "Eleven", "12": "Twelve"
+      "0": "No",
+      "1": "One",
+      "2": "Two",
+      "3": "Three",
+      "4": "Four",
+      "5": "Five",
+      "6": "Six",
+      "7": "Seven",
+      "8": "Eight",
+      "9": "Nine",
+      "10": "Ten",
+      "11": "Eleven",
+      "12": "Twelve"
     },
     "changePiece": "Change {name}",
     "tapPiece": "Tap a piece to swap it or leave it behind.",
@@ -749,11 +948,26 @@
       "addPiece": "Add a piece"
     },
     "rewearLevels": {
-      "1": { "label": "Fresh every day", "hint": "Every day gets fresh clothes. Expect the largest suitcase." },
-      "2": { "label": "Worn twice", "hint": "One repeat per piece — a middle path for shorter trips." },
-      "3": { "label": "Worn three times", "hint": "The sweet spot: a week out of nine pieces, nothing worn tired." },
-      "4": { "label": "Worn four times", "hint": "A lighter bag. Bottoms and knitwear carry most of the repeats." },
-      "5": { "label": "As often as it works", "hint": "The smallest possible case. Two shirts and one trouser do the week." }
+      "1": {
+        "label": "Fresh every day",
+        "hint": "Every day gets fresh clothes. Expect the largest suitcase."
+      },
+      "2": {
+        "label": "Worn twice",
+        "hint": "One repeat per piece — a middle path for shorter trips."
+      },
+      "3": {
+        "label": "Worn three times",
+        "hint": "The sweet spot: a week out of nine pieces, nothing worn tired."
+      },
+      "4": {
+        "label": "Worn four times",
+        "hint": "A lighter bag. Bottoms and knitwear carry most of the repeats."
+      },
+      "5": {
+        "label": "As often as it works",
+        "hint": "The smallest possible case. Two shirts and one trouser do the week."
+      }
     }
   },
   "errors": {

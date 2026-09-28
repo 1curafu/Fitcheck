@@ -1,5 +1,6 @@
 "use client";
 import { useTranslations } from "next-intl";
+import { useVocab } from "@/lib/i18n/vocab";
 import { useRouter } from "@/lib/i18n/navigation";
 
 import { useEffect, useState, useTransition } from "react";
@@ -15,7 +16,6 @@ import type { DetailItem } from "./item-detail";
 import {
   CATEGORIES,
   SEASONS,
-  FORMALITY_LABEL,
   MATERIALS,
   TEXTURES,
   PATTERNS,
@@ -57,6 +57,7 @@ export function ItemEditSheet({
   onClose: () => void;
 }) {
   const t = useTranslations("item.edit");
+  const label = useVocab();
   const tError = useTranslations("errors");
   const router = useRouter();
   const [name, setName] = useState(item.name ?? "");
@@ -203,7 +204,7 @@ export function ItemEditSheet({
                   active={category === c}
                   onClick={() => setCategory(c)}
                 >
-                  {c}
+                  {label("category", c)}
                 </Chip>
               ))}
             </div>
@@ -238,7 +239,7 @@ export function ItemEditSheet({
                       setFitSource(next === null ? null : "user");
                     }}
                   >
-                    {f}
+                    {label("fit", f)}
                   </Chip>
                 ))}
               </div>
@@ -259,7 +260,7 @@ export function ItemEditSheet({
                 <option value="">{t("notSet")}</option>
                 {BULK_OPTIONS.map((b) => (
                   <option key={b} value={b}>
-                    {b}
+                    {label("bulk", b)}
                   </option>
                 ))}
               </Select>
@@ -273,14 +274,14 @@ export function ItemEditSheet({
             <Select aria-label={t("material")} value={material} onChange={(e) => setMaterial(e.target.value)}>
               {MATERIALS.map((m) => (
                 <option key={m} value={m}>
-                  {m}
+                  {label("material", m)}
                 </option>
               ))}
             </Select>
           </div>
 
           <div>
-            <Kicker className="mb-2 block">{t("formality", { label: FORMALITY_LABEL[formality] })}</Kicker>
+            <Kicker className="mb-2 block">{t("formality", { label: label("formality", String(formality)) })}</Kicker>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map((n) => (
                 <button
@@ -303,7 +304,7 @@ export function ItemEditSheet({
                   active={seasons.includes(s)}
                   onClick={() => toggleSeason(s)}
                 >
-                  {s}
+                  {label("season", s)}
                 </Chip>
               ))}
             </div>
@@ -350,9 +351,9 @@ export function ItemEditSheet({
                     key={c.name}
                     type="button"
                     onClick={() => setAccentColor(active ? null : c.name)}
-                    aria-label={c.name}
+                    aria-label={label("color", c.name)}
                     aria-pressed={active}
-                    title={c.name}
+                    title={label("color", c.name)}
                     className={`size-7 rounded-[8px] transition-transform ${
                       active
                         ? "scale-105 shadow-[0_0_0_2px_var(--color-brand)]"
@@ -370,7 +371,7 @@ export function ItemEditSheet({
             <Select aria-label={t("texture")} value={texture} onChange={(e) => setTexture(e.target.value)}>
               {TEXTURES.map((t) => (
                 <option key={t} value={t}>
-                  {t}
+                  {label("texture", t)}
                 </option>
               ))}
             </Select>
@@ -381,7 +382,7 @@ export function ItemEditSheet({
             <Select aria-label={t("pattern")} value={pattern} onChange={(e) => setPattern(e.target.value)}>
               {PATTERNS.map((p) => (
                 <option key={p} value={p}>
-                  {p}
+                  {label("pattern", p)}
                 </option>
               ))}
             </Select>
@@ -397,7 +398,7 @@ export function ItemEditSheet({
               <option value="">{t("notSet")}</option>
               {BRANDING_OPTIONS.map((b) => (
                 <option key={b} value={b}>
-                  {b}
+                  {label("branding", b)}
                 </option>
               ))}
             </Select>
@@ -414,7 +415,7 @@ export function ItemEditSheet({
                 <option value="">{t("notSet")}</option>
                 {LENGTH_OPTIONS.map((l) => (
                   <option key={l} value={l}>
-                    {l}
+                    {label("length", l)}
                   </option>
                 ))}
               </Select>
@@ -445,7 +446,7 @@ export function ItemEditSheet({
             >
               {DISTRESSING_OPTIONS.map((d) => (
                 <option key={d} value={d}>
-                  {d}
+                  {label("distressing", d)}
                 </option>
               ))}
             </Select>

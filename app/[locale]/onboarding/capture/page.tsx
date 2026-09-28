@@ -1,6 +1,7 @@
+import { vocabLabel } from "@/lib/i18n/vocab-server";
 import { Suspense } from "react";
 import { redirect } from "@/lib/i18n/navigation";
-import { getLocale } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { displayPath, signItemImages } from "@/lib/storage/signed";
@@ -17,6 +18,7 @@ export default function OnboardingCapturePage() {
 }
 
 async function CaptureBody() {
+  const tVocab = await getTranslations("vocab");
   const supabase = await createClient();
   const {
     data: { user },
@@ -38,7 +40,7 @@ async function CaptureBody() {
   const signed = await signItemImages(rows.map(path));
   const initialImages = rows.map((item) => ({
     src: signed.get(path(item)) ?? null,
-    name: item.name ?? item.subcategory ?? item.category,
+    name: item.name ?? item.subcategory ?? vocabLabel(tVocab, "category", item.category),
   }));
 
   return <OnboardingCapture initialCount={count ?? 0} initialImages={initialImages} />;

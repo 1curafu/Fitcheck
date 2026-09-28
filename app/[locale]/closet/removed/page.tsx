@@ -1,3 +1,4 @@
+import { vocabLabel } from "@/lib/i18n/vocab-server";
 import { Suspense } from "react";
 import { Link, redirect } from "@/lib/i18n/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -35,6 +36,7 @@ export default async function RemovedPiecesPage() {
 }
 
 async function RemovedBody() {
+  const tVocab = await getTranslations("vocab");
   const t = await getTranslations("closet");
   const supabase = await createClient();
   const {
@@ -54,7 +56,7 @@ async function RemovedBody() {
   const signed = await signItemImages(rows.map(path));
   const grid = rows.map((i) => ({
     ...i,
-    name: i.name ?? i.subcategory ?? i.category,
+    name: i.name ?? i.subcategory ?? vocabLabel(tVocab, "category", i.category),
     brand: i.brand,
     imageUrl: signed.get(path(i)) ?? "",
   }));

@@ -1,3 +1,4 @@
+import { vocabLabel } from "@/lib/i18n/vocab-server";
 import { Suspense } from "react";
 import { Link, redirect } from "@/lib/i18n/navigation";
 import { notFound } from "next/navigation";
@@ -41,6 +42,7 @@ export default function TripPage({ params }: { params: Promise<{ tripId: string 
 }
 
 async function TripBody({ params }: { params: Promise<{ tripId: string }> }) {
+  const tVocab = await getTranslations("vocab");
   const t = await getTranslations("packing");
   const locale = await getLocale();
   const { tripId } = await params;
@@ -79,7 +81,7 @@ async function TripBody({ params }: { params: Promise<{ tripId: string }> }) {
     .filter((r) => !inCapsule.has(r.id))
     .map((r) => ({
       id: r.id,
-      name: (r.name ?? r.subcategory ?? r.category) as string,
+      name: (r.name ?? r.subcategory ?? vocabLabel(tVocab, "category", r.category)) as string,
       category: r.category as string,
       imageUrl: signed.get(path(r)) ?? "",
     }));
@@ -90,7 +92,7 @@ async function TripBody({ params }: { params: Promise<{ tripId: string }> }) {
     return [
       {
         id: row.id,
-        name: (row.name ?? row.subcategory ?? row.category) as string,
+        name: (row.name ?? row.subcategory ?? vocabLabel(tVocab, "category", row.category)) as string,
         imageUrl: signed.get(path(row)) ?? "",
         pinned: c.pinned,
         category: row.category as string,

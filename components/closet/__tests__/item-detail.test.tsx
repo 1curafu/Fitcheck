@@ -453,3 +453,4 @@ test("a piece still in the closet is never offered Delete for good", () => {
 // Task 21 replaces this with renderInLocale(<ItemDetail {...detailProps({}, { archived: true })} />, "uk")
 // after the Ukrainian catalogue exists, then verifies the translated action failure in the alert.
 test.todo("a failed delete shows its message in the user's language");
+test.todo("uk edit sheet writes the stored English value");

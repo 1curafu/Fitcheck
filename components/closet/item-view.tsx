@@ -4,7 +4,7 @@ import { useRouter, Link } from "@/lib/i18n/navigation";
 
 import { Archive } from "lucide-react";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
-import { FORMALITY_LABEL } from "@/lib/closet/vocab";
+import { useVocab } from "@/lib/i18n/vocab";
 import type { DetailItem } from "./item-detail";
 
 export type GoesWithCard = { id: string; name: string; imageUrl: string };
@@ -75,23 +75,24 @@ export function ItemView({
   };
 }) {
   const t = useTranslations("item");
+  const label = useVocab();
   const router = useRouter();
-  const title = item.name ?? item.subcategory ?? item.category;
+  const title = item.name ?? item.subcategory ?? label("category", item.category);
   // Plenty of items are named after their own subcategory ("Oxford shirt"), and
   // the design's pairing (`Pale Blue Oxford` / `Oxford shirt · Pale blue`) only
   // reads when the two differ. Repeating it verbatim under the title looks like
   // a rendering bug.
-  const subtitle = [item.subcategory === title ? null : item.subcategory, item.colors[0]]
+  const subtitle = [item.subcategory === title ? null : item.subcategory, item.colors[0] ? label("color", item.colors[0]) : null]
     .filter(Boolean)
     .join(" · ");
 
   const tags: [string, string | null][] = [
-    [t("edit.category"), item.category],
-    [t("edit.colour"), item.colors.join(" · ") || null],
-    [t("edit.material"), item.material],
-    [t("edit.texture"), item.texture],
-    [t("edit.pattern"), item.pattern],
-    [t("edit.seasons"), item.seasons.join(" · ") || null],
+    [t("edit.category"), label("category", item.category)],
+    [t("edit.colour"), item.colors.map((c) => label("color", c)).join(" · ") || null],
+    [t("edit.material"), item.material ? label("material", item.material) : null],
+    [t("edit.texture"), item.texture ? label("texture", item.texture) : null],
+    [t("edit.pattern"), item.pattern ? label("pattern", item.pattern) : null],
+    [t("edit.seasons"), item.seasons.map((s) => label("season", s)).join(" · ") || null],
   ];
 
   return (
@@ -162,7 +163,7 @@ export function ItemView({
             <div className="mb-[10px] flex justify-between">
               <Kicker>{t("formality")}</Kicker>
               <span className="text-xs text-muted-foreground">
-                {FORMALITY_LABEL[item.formality ?? 3]}
+                {label("formality", String(item.formality ?? 3))}
               </span>
             </div>
             <div className="flex gap-[6px]">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useVocab } from "@/lib/i18n/vocab";
 import { useState } from "react";
 import { COLORS, type ColorName } from "@/lib/closet/vocab";
 
@@ -30,6 +31,7 @@ export function ColorPicker({
   max?: number;
 }) {
   const t = useTranslations("closet.colourPicker");
+  const label = useVocab();
   const [open, setOpen] = useState(value.length === 0);
 
   function toggle(name: ColorName) {
@@ -63,7 +65,7 @@ export function ColorPicker({
           ))}
         </span>
         <span className={value.length ? "text-value" : "text-muted-dim"}>
-          {value.length ? value.join(" · ") : t("choose")}
+          {value.length ? value.map((name) => label("color", name)).join(" · ") : t("choose")}
         </span>
         <span aria-hidden className="ml-auto text-muted-dim">
           {open ? "▴" : "▾"}
@@ -79,9 +81,9 @@ export function ColorPicker({
                 key={c.name}
                 type="button"
                 onClick={() => toggle(c.name)}
-                aria-label={c.name}
+                aria-label={label("color", c.name)}
                 aria-pressed={active}
-                title={c.name}
+                title={label("color", c.name)}
                 // `--color-brand`, not `--brand`: Tailwind v4's `@theme` names
                 // the token `--color-*`, and an undefined var would render no
                 // ring at all — leaving the selected state invisible.

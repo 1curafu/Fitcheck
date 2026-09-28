@@ -1,3 +1,4 @@
+import { vocabLabel } from "@/lib/i18n/vocab-server";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -41,6 +42,7 @@ export default function OutfitPage({
 }
 
 async function OutfitBody({ params }: { params: Promise<{ id: string }> }) {
+  const tVocab = await getTranslations("vocab");
   const t = await getTranslations("outfit");
   const { id } = await params;
   const supabase = await createClient();
@@ -87,7 +89,7 @@ async function OutfitBody({ params }: { params: Promise<{ id: string }> }) {
 
   const pieces: DetailPiece[] = rows.map((i, idx) => ({
     id: i.id,
-    name: i.name ?? i.subcategory ?? i.category,
+    name: i.name ?? i.subcategory ?? vocabLabel(tVocab, "category", i.category),
     brand: i.brand,
     category: i.category,
     imageUrl: signed.get(displayPath(i)) ?? "",

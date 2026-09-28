@@ -1,3 +1,4 @@
+import { vocabLabel } from "@/lib/i18n/vocab-server";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -9,7 +10,7 @@ import { originalLocation } from "@/lib/closet/original-path";
 import { ItemDetail, type DetailItem } from "@/components/closet/item-detail";
 import type { GoesWithCard } from "@/components/closet/item-view";
 import { redirect } from "@/lib/i18n/navigation";
-import { getLocale } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 export default function ItemPage({
   params,
@@ -30,6 +31,7 @@ export default function ItemPage({
 }
 
 async function ItemBody({ params }: { params: Promise<{ itemId: string }> }) {
+  const tVocab = await getTranslations("vocab");
   const { itemId } = await params;
   const supabase = await createClient();
   const {
@@ -122,7 +124,7 @@ async function ItemBody({ params }: { params: Promise<{ itemId: string }> }) {
 
   const goesWithCards: GoesWithCard[] = pairs.map((i) => ({
     id: i.id,
-    name: i.name ?? i.subcategory ?? i.category,
+    name: i.name ?? i.subcategory ?? vocabLabel(tVocab, "category", i.category),
     imageUrl: signed.get(pairPath(i)) ?? "",
   }));
 

@@ -27,15 +27,6 @@ export const CATEGORIES = TagSchema.shape.category.options;
 export { WEARABLE_CATEGORIES };
 export const SEASONS = TagSchema.shape.seasons.element.options;
 
-export const FORMALITY_LABEL = [
-  "",
-  "Very casual",
-  "Casual",
-  "Smart casual",
-  "Business",
-  "Formal",
-] as const;
-
 /**
  * Materials and textures are DEFINED in `lib/ai/tagging-schema.ts` and
  * re-exported here, not the other way round: this module derives CATEGORIES and

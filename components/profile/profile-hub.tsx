@@ -116,6 +116,8 @@ export function ProfileHub({
   proNotice?: "welcome" | null;
 }) {
   const t = useTranslations("profile");
+  const tArchetype = useTranslations("onboarding.questions.archetype.options");
+  const archetypeKey = `${archetype}.label` as never;
   return (
     <div className="flex-1 overflow-y-auto px-[22px] pb-[120px] screen-top">
       <div className="flex items-center gap-[14px]">
@@ -148,7 +150,7 @@ export function ProfileHub({
           {t("archetype")}
         </span>
         <div className="mt-[6px] font-serif text-[30px] text-foreground">
-          {archetype ?? t("notSet")}
+          {archetype ? tArchetype.has(archetypeKey) ? tArchetype(archetypeKey) : archetype : t("notSet")}
         </div>
         <div className="mt-[14px] flex gap-[5px]">
           {palette.map((c) => (

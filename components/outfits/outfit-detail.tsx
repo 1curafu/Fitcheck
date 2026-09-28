@@ -1,5 +1,6 @@
 "use client";
 import { useTranslations } from "next-intl";
+import { useVocab } from "@/lib/i18n/vocab";
 import { useRouter, Link } from "@/lib/i18n/navigation";
 
 import { useOptimistic, useTransition, type CSSProperties, useEffect, useState } from "react";
@@ -45,6 +46,7 @@ export function OutfitDetail({
   styledItemId?: string | null;
 }) {
   const t = useTranslations("outfit");
+  const label = useVocab();
   const tOccasion = useTranslations("vocab.occasion");
   const occasionLabel = (["everyday", "work", "weekend", "evening"] as string[]).includes(outfit.occasion)
     ? tOccasion(outfit.occasion as UiOccasion) : outfit.occasion;
@@ -202,7 +204,7 @@ export function OutfitDetail({
                   <div className="mt-[2px] truncate text-[14.5px] text-value">{p.name}</div>
                 </div>
                 <div className="shrink-0 whitespace-nowrap text-[11px] text-muted-dim">
-                  {p.category}
+                  {label("category", p.category)}
                 </div>
               </Link>
             ))}

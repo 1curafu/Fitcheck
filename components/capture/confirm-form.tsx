@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useVocab } from "@/lib/i18n/vocab";
 import { Camera, RotateCw, X } from "lucide-react";
 
 import { Chip } from "@/components/ui-fitcheck/chip";
@@ -13,7 +14,6 @@ import { ColorPicker } from "@/components/closet/color-picker";
 import {
   CATEGORIES,
   SEASONS,
-  FORMALITY_LABEL,
   MATERIALS,
   TEXTURES,
   PATTERNS,
@@ -57,6 +57,7 @@ export function ConfirmForm({
   rejectMode?: "retake" | "skip";
 }) {
   const t = useTranslations("capture.confirm");
+  const label = useVocab();
   const rejectLabel = rejectMode === "retake" ? t("retake") : t("skipPhoto");
   return (
     <div className="flex flex-1 flex-col gap-5">
@@ -128,7 +129,7 @@ export function ConfirmForm({
         >
           {TEXTURES.map((t) => (
             <option key={t} value={t}>
-              {t}
+              {label("texture", t)}
             </option>
           ))}
         </Select>
@@ -143,7 +144,7 @@ export function ConfirmForm({
         >
           {PATTERNS.map((p) => (
             <option key={p} value={p}>
-              {p}
+              {label("pattern", p)}
             </option>
           ))}
         </Select>
@@ -169,7 +170,7 @@ export function ConfirmForm({
                 )
               }
             >
-              {c}
+              {label("category", c)}
             </Chip>
           ))}
         </div>
@@ -187,7 +188,7 @@ export function ConfirmForm({
         >
           {MATERIALS.map((m) => (
             <option key={m} value={m}>
-              {m}
+              {label("material", m)}
             </option>
           ))}
         </Select>
@@ -195,7 +196,7 @@ export function ConfirmForm({
 
       <div>
         <Kicker className="mb-2 block">
-          {t("formality", { label: FORMALITY_LABEL[draft.tags.formality] })}
+          {t("formality", { label: label("formality", String(draft.tags.formality)) })}
         </Kicker>
         <div className="flex gap-2">
           {[1, 2, 3, 4, 5].map((n) => (
@@ -232,7 +233,7 @@ export function ConfirmForm({
                 active={draft.tags.fit === f}
                 onClick={() => onTags({ fit: f, fit_source: "user" })}
               >
-                {f}
+                {label("fit", f)}
               </Chip>
             ))}
           </div>
@@ -249,7 +250,7 @@ export function ConfirmForm({
               active={draft.tags.seasons.includes(s)}
               onClick={() => onToggleSeason(s)}
             >
-              {s}
+              {label("season", s)}
             </Chip>
           ))}
         </div>
