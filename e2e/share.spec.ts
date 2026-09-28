@@ -55,7 +55,7 @@ test("a link survives its look being deleted, and can be stopped from Settings",
   const userId = await testUserId();
   // A throwaway look copied from the seeded one, so deleting it leaves the seed intact.
   const seeded = await seededLookId();
-  const { data: look } = await db.from("outfits").insert({ user_id: userId, look_name: "E2E Share Reroll", occasion: "everyday" }).select("id").single();
+  const { data: look } = await db.from("outfits").insert({ user_id: userId, look_name: "E2E Share Reroll", text_locale: "en-US", occasion: "everyday" }).select("id").single();
   const { data: links } = await db.from("outfit_items").select("item_id, slot").eq("outfit_id", seeded);
   await db.from("outfit_items").insert((links ?? []).map((l) => ({ outfit_id: look!.id, item_id: l.item_id, slot: l.slot })));
   try {
@@ -113,7 +113,7 @@ test("deleting an account removes its public share page and images", async ({ br
       colors: ["white"], pattern: "solid", formality: 3, seasons: ["Spring"], archived: false,
     }))).select("id, category");
     if (items.error || !items.data || items.data.length !== 2) throw new Error(`seed disposable items: ${items.error?.message}`);
-    const outfit = await db.from("outfits").insert({ user_id: userId, look_name: "Disposable Look", occasion: "everyday" }).select("id").single();
+    const outfit = await db.from("outfits").insert({ user_id: userId, look_name: "Disposable Look", text_locale: "en-US", occasion: "everyday" }).select("id").single();
     if (outfit.error || !outfit.data) throw new Error(`seed disposable look: ${outfit.error?.message}`);
     const relations = await db.from("outfit_items").insert(items.data.map((item) => ({
       outfit_id: outfit.data.id, item_id: item.id, slot: item.category,

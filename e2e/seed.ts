@@ -157,6 +157,7 @@ export async function seedTestUser(cfg: { url: string; service: string }): Promi
     .insert({
       user_id: userId,
       look_name: "E2E Seeded Look",
+      text_locale: "en-US",
       occasion: "work",
       ai_reasoning: "Seeded so the wear-derived sections have something to render.",
       // No generated_on / look_index: this is HISTORY, not today's drop. Setting

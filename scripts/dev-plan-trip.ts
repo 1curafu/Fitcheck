@@ -118,6 +118,7 @@ async function main() {
         trip_id: trip.id,
         trip_day: d.day.date,
         occasion: d.day.occasion,
+        text_locale: "en-US",
         look_name: narration.days[i]?.name ?? `Day ${i + 1}`,
         ai_reasoning: narration.days[i]?.why ?? "",
       })),

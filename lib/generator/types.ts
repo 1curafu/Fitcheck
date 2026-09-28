@@ -1,3 +1,5 @@
+import type { OutfitTextSource } from "@/lib/outfits/text";
+import type { ShippedLocale } from "@/lib/i18n/locales";
 // Shared contracts for the Stylist generator. Mirrors the v2 handoff's
 // README §State Management. See docs/superpowers/plans/2026-07-18-stylist-generator.md.
 
@@ -27,6 +29,9 @@ export type LookPiece = {
 };
 
 export type Look = {
+  textSource: OutfitTextSource;
+  textLocale: ShippedLocale;
+  textTranslated: boolean;
   /** The `outfits` row this look was persisted as — the detail screen's address. */
   id: string;
   name: string;
@@ -38,7 +43,7 @@ export type Look = {
 };
 
 /** A look before it has been persisted — it has no row id and cannot be worn yet. */
-export type LookDraft = Omit<Look, "id" | "worn">;
+export type LookDraft = Omit<Look, "id" | "worn" | "textSource" | "textLocale" | "textTranslated">;
 
 export type HourCell ={ hh: string; tempC: number; rain: boolean; isNow: boolean };
 

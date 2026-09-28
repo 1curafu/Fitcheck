@@ -114,7 +114,7 @@ export async function generate(input: {
     // The stored set is read on BOTH paths. On a normal load it IS the answer;
     // on a regenerate it is the recency signal — the pieces the user just
     // rejected, which ranking will sink without ever filtering them out.
-    const stored = await loadDailyLooks(user.id, input.occasion, today);
+    const stored = await loadDailyLooks(user.id, input.occasion, today, locale);
 
     /**
      * Today's looks were composed for wherever the user was when they were
@@ -262,6 +262,7 @@ export async function generate(input: {
     const { combos: described, contested } = stylistInputFor(top, byId);
 
     const { picks } = await rerank({
+      locale,
       contested,
       want: MAX_PICKS - pinnedStored.length,
       combos: described,
@@ -308,8 +309,11 @@ export async function generate(input: {
     // Fire-and-forget would be simpler, but a failed write means the user pays
     // for another AI call on their next tap — worth awaiting. The insert also
     // hands back the row ids, which are the detail screen's address.
-    const ids = await saveDailyLooks(user.id, input.occasion, today, weather, drafts);
-    const fresh: Look[] = drafts.map((d, i) => ({ ...d, id: ids[i] ?? "", worn: false }));
+    const ids = await saveDailyLooks(user.id, input.occasion, today, weather, drafts, locale);
+    const fresh: Look[] = drafts.map((d, i) => ({ ...d, id: ids[i] ?? "", worn: false,
+      textSource: { id: ids[i] ?? "", sourceLocale: locale, name: d.name, why: d.why },
+      textLocale: locale, textTranslated: false,
+    }));
 
     // Recorded only now — after the model answered and the write succeeded. A
     // generation that failed cost the user nothing, so metering it would be

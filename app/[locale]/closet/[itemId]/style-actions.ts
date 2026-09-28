@@ -218,6 +218,7 @@ export async function styleWithItem(
     const { combos, contested } = stylistInputFor(shortlist, byId);
 
     const { picks } = await rerank({
+      locale,
       contested,
       want: STYLED_LOOKS,
       combos,
@@ -271,7 +272,7 @@ export async function styleWithItem(
     // beside the new set.
     if (opts?.regenerate) await clearStyledLooks(user.id, itemId, today);
 
-    const outfitIds = await saveStyledLooks(user.id, itemId, occasion, today, weather, drafts);
+    const outfitIds = await saveStyledLooks(user.id, itemId, occasion, today, weather, drafts, locale);
     if (!outfitIds.length) return { status: "error", message: "item.style.saveFailed" };
 
     // After the model answered AND the write landed. The occasion is known by

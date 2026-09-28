@@ -1,3 +1,4 @@
+import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/locales";
 import { createClient } from "@/lib/supabase/server";
 import type { LookDraft, WeatherPayload } from "@/lib/generator/types";
 
@@ -83,10 +84,11 @@ export async function saveStyledLooks(
   generatedOn: string,
   weather: WeatherPayload,
   looks: LookDraft[],
+  sourceLocale: Locale = DEFAULT_LOCALE,
 ): Promise<string[]> {
   const ids: string[] = [];
   for (const [i, look] of looks.entries()) {
-    const id = await saveOne(userId, itemId, occasion, generatedOn, weather, look, i);
+    const id = await saveOne(userId, itemId, occasion, generatedOn, weather, look, i, sourceLocale);
     if (id) ids.push(id);
   }
   return ids;
@@ -100,6 +102,7 @@ async function saveOne(
   weather: WeatherPayload,
   look: LookDraft,
   styledIndex: number,
+  sourceLocale: Locale,
 ): Promise<string | null> {
   const supabase = await createClient();
 
@@ -111,6 +114,7 @@ async function saveOne(
       generated_on: generatedOn,
       styled_item_id: itemId,
       styled_index: styledIndex,
+      text_locale: sourceLocale,
       look_name: look.name,
       ai_reasoning: look.why,
       weather_snapshot: weather,

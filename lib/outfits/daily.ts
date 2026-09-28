@@ -1,3 +1,4 @@
+import { DEFAULT_LOCALE, type Locale, type ShippedLocale } from "@/lib/i18n/locales";
 import { createClient } from "@/lib/supabase/server";
 import type { LookDraft, WeatherPayload } from "@/lib/generator/types";
 import type { StoredLook } from "./reassemble";
@@ -8,6 +9,7 @@ export async function loadDailyLooks(
   userId: string,
   occasion: string,
   generatedOn: string,
+  locale: ShippedLocale = DEFAULT_LOCALE,
 ): Promise<StoredLook[] | null> {
   const supabase = await createClient();
   const { data } = await supabase
@@ -15,7 +17,7 @@ export async function loadDailyLooks(
     // `wear_logs(worn_on)` is the reverse of wear_logs.outfit_id. A look the
     // user has already worn today stays in the set and is badged, rather than
     // disappearing the moment they tap the button.
-    .select("id, look_name, ai_reasoning, layout, look_index, wear_logs(worn_on)")
+    .select("id, text_locale, look_name, ai_reasoning, layout, look_index, wear_logs(worn_on)")
     .eq("user_id", userId)
     .eq("occasion", occasion)
     .eq("generated_on", generatedOn)
@@ -34,6 +36,9 @@ export async function loadDailyLooks(
     };
     return {
       id: row.id,
+      textSource: { id: row.id, sourceLocale: row.text_locale as Locale, name: row.look_name ?? "", why: row.ai_reasoning },
+      textLocale: locale,
+      textTranslated: false,
       lookName: row.look_name ?? "",
       why: row.ai_reasoning ?? "",
       anchorIndex: layout.anchorIndex ?? 0,
@@ -64,6 +69,7 @@ export async function saveDailyLooks(
   generatedOn: string,
   weather: WeatherPayload,
   looks: LookDraft[],
+  sourceLocale: Locale = DEFAULT_LOCALE,
 ): Promise<string[]> {
   const supabase = await createClient();
 
@@ -97,6 +103,7 @@ export async function saveDailyLooks(
     occasion,
     generated_on: generatedOn,
     look_index: start + i,
+    text_locale: sourceLocale,
     look_name: look.name,
     ai_reasoning: look.why,
     weather_snapshot: weather,

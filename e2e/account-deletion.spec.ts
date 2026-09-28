@@ -96,7 +96,7 @@ async function createDisposableAccount(): Promise<DisposableAccount> {
 
     const outfit = await db
       .from("outfits")
-      .insert({ user_id: userId, look_name: "Disposable deletion look", occasion: "work" })
+      .insert({ user_id: userId, look_name: "Disposable deletion look", text_locale: "en-US", occasion: "work" })
       .select("id")
       .single();
     if (outfit.error || !outfit.data) throw new Error(`seeding disposable outfit: ${outfit.error?.message ?? "no outfit"}`);

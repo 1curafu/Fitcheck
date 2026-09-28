@@ -1,7 +1,12 @@
+import type { OutfitTextSource } from "./text";
+import type { ShippedLocale } from "@/lib/i18n/locales";
 import type { Look, LookPiece, Slot } from "@/lib/generator/types";
 
 export type StoredPiece = { itemId: string; slot: Slot };
 export type StoredLook = {
+  textSource: OutfitTextSource;
+  textLocale: ShippedLocale;
+  textTranslated: boolean;
   id: string;
   lookName: string;
   why: string;
@@ -59,6 +64,9 @@ export function reassembleLooks(
     }
     looks.push({
       id: s.id,
+      textSource: s.textSource,
+      textLocale: s.textLocale,
+      textTranslated: s.textTranslated,
       name: s.lookName,
       why: s.why,
       pieces,
