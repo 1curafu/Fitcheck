@@ -30,7 +30,7 @@ vi.mock("@/app/[locale]/closet/upload/actions", () => ({
     // ⚠️ The real action always returns this key. `vi.mock` is untyped, so an
     // omission here does not fail the build — it just silently hands the hook
     // `undefined` where the contract says `string | null`.
-    thumbPath: null,
+    thumbPath: null, suggestedName: null,
     tags: {
       category: "Tops", subcategory: "Tee", colors: ["black"],
       pattern: "solid", material: "Cotton", formality: 2, seasons: ["Summer"],
@@ -40,6 +40,17 @@ vi.mock("@/app/[locale]/closet/upload/actions", () => ({
   confirmItem: vi.fn(async () => ({ status: "saved" })),
   discardDraft: vi.fn(async () => undefined),
 }));
+
+function readyFor(id: string) {
+    return {
+      status: "ready" as const, itemId: id,
+      imagePath: `u/${id}/original.jpg`, cutoutPath: `u/${id}/cutout.webp`, thumbPath: null, suggestedName: null,
+      tags: { category: "Tops", subcategory: "Tee", colors: ["black"],
+        pattern: "solid", material: "Cotton", formality: 2, seasons: ["Summer"] } as never,
+      rotation: 0 as const,
+    };
+  }
+
 
 beforeAll(() => {
   URL.createObjectURL = vi.fn(() => "blob:mock");
@@ -55,6 +66,34 @@ test("capture moves aim → confirm and builds a draft", async () => {
   });
   expect(result.current.phase).toBe("confirm");
   expect(result.current.draft?.tags.category).toBe("Tops");
+  expect(result.current.draft?.name).toBe("Tee");
+});
+
+test("a localized suggested name remains editable through rotation and a failed save retry", async () => {
+  const { uploadAndTag, confirmItem } = await import("@/app/[locale]/closet/upload/actions");
+  vi.mocked(uploadAndTag).mockResolvedValueOnce({ ...readyFor("localized"), suggestedName: "Блакитна сорочка" });
+  const { result } = renderHook(() => useCapture());
+  await act(async () => { await result.current.capture(new File([], "x.jpg")); });
+  expect(result.current.draft?.name).toBe("Блакитна сорочка");
+  expect(result.current.draft?.tags.subcategory).toBe("Tee");
+  act(() => result.current.updateDraft({ name: "Моя сорочка" }));
+  await act(async () => { await result.current.rotate(); });
+  vi.mocked(confirmItem).mockRejectedValueOnce(new Error("temporary"));
+  await act(async () => { await result.current.save(); });
+  expect(result.current.draft?.name).toBe("Моя сорочка");
+  await act(async () => { await result.current.save(); });
+  expect(vi.mocked(confirmItem).mock.lastCall?.[0]).toMatchObject({ name: "Моя сорочка", tags: { subcategory: "Tee" } });
+});
+
+test("batch review uses each suggestion and retains the legacy subcategory fallback", async () => {
+  const { uploadAndTag } = await import("@/app/[locale]/closet/upload/actions");
+  vi.mocked(uploadAndTag).mockResolvedValueOnce({ ...readyFor("localized-first"), suggestedName: "Перша сорочка" })
+    .mockResolvedValueOnce({ ...readyFor("legacy-second"), suggestedName: null });
+  const { result } = renderHook(() => useCapture());
+  await act(async () => { await result.current.captureMany([new File([], "first.jpg"), new File([], "second.jpg")]); });
+  await waitFor(() => expect(result.current.draft?.name).toBe("Перша сорочка"));
+  await act(async () => { await result.current.save(); });
+  await waitFor(() => expect(result.current.draft?.itemId).toBe("legacy-second"));
   expect(result.current.draft?.name).toBe("Tee");
 });
 
@@ -188,7 +227,7 @@ describe("rotation", () => {
     const { rotateBlob } = await import("@/lib/images/rotate");
     vi.mocked(uploadAndTag).mockResolvedValueOnce({
       status: "ready",
-      itemId: "i", imagePath: "u/i/original.jpg", cutoutPath: "u/i/cutout.png", thumbPath: null,
+      itemId: "i", imagePath: "u/i/original.jpg", cutoutPath: "u/i/cutout.png", thumbPath: null, suggestedName: null,
       tags: { category: "Tops", subcategory: "Tee", colors: ["black"], pattern: "solid", material: "Cotton", formality: 2, seasons: ["Summer"] } as never,
       rotation: 90,
     });
@@ -330,15 +369,6 @@ describe("batch capture", () => {
 });
 
 describe("batch cancellation", () => {
-  function readyFor(id: string) {
-    return {
-      status: "ready" as const, itemId: id,
-      imagePath: `u/${id}/original.jpg`, cutoutPath: `u/${id}/cutout.webp`, thumbPath: null,
-      tags: { category: "Tops", subcategory: "Tee", colors: ["black"],
-        pattern: "solid", material: "Cotton", formality: 2, seasons: ["Summer"] } as never,
-      rotation: 0 as const,
-    };
-  }
 
   test("Finish discards prepared drafts but keeps already saved paths", async () => {
     const { uploadAndTag, discardDraft } = await import("@/app/[locale]/closet/upload/actions");

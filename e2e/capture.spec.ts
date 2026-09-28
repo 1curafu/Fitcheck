@@ -20,7 +20,7 @@ test("a real photo becomes a cutout on the confirm screen, on-device", async ({ 
     if (u.pathname.startsWith("/ort/") || u.pathname.startsWith("/models/")) fetched.push(u.pathname);
   });
 
-  await page.goto("/closet/upload");
+  await page.goto("/uk/closet/upload");
   // ⚠️ A DRAWN shirt, not a photo. `Test assets/` is the owner's wardrobe and is
   // gitignored — the repo is public. This fixture has no copyright, and u2netp
   // segments it at 0.34 coverage, comfortably inside the band asserted below.
@@ -30,6 +30,7 @@ test("a real photo becomes a cutout on the confirm screen, on-device", async ({ 
   // and a 4.6 MB model time to arrive on a cold cache.
   const cutout = page.locator(".surface-stage img").first();
   await expect(cutout).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByPlaceholder("Назва", { exact: true })).toHaveValue("Оксфордська сорочка");
 
   // It is OUR runtime and OUR model, from OUR origin — no CDN, no @imgly.
   expect(fetched.some((p) => p.endsWith("ort-wasm-simd-threaded.wasm"))).toBe(true);

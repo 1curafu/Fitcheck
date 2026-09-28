@@ -7,7 +7,7 @@ const state = vi.hoisted(() => ({
   removals: [] as string[][],
   failSuffix: null as string | null,
   gate: vi.fn<() => Promise<void>>(),
-  tag: vi.fn<() => Promise<{ tags: object; rotation: 0 }>>(),
+  tag: vi.fn<() => Promise<{ tags: object; rotation: 0; suggestedName: string | null }>>(),
   row: null as null | { id: string; user_id: string; image_url: string; cutout_url: string },
   inserted: [] as Record<string, unknown>[],
   insertError: null as null | { code: string; message: string },
@@ -21,6 +21,7 @@ vi.mock("@/lib/billing/entitlements", () => ({
   readUploadAllowance: vi.fn(),
 }));
 vi.mock("@/lib/ai/tag-item", () => ({ tagItem: state.tag }));
+vi.mock("@/lib/i18n/action-locale", () => ({ getActionLocale: async () => "uk" }));
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({
     auth: { getUser: async () => ({ data: { user: { id: "11111111-1111-4111-8111-111111111111" } } }) },
@@ -98,7 +99,12 @@ beforeEach(() => {
   state.itemReads = 0;
   state.raceWinner = null;
   state.gate.mockReset().mockResolvedValue();
-  state.tag.mockReset().mockResolvedValue({ tags: { category: "Tops" }, rotation: 0 });
+  state.tag.mockReset().mockResolvedValue({ tags: { category: "Tops" }, rotation: 0, suggestedName: "Сорочка" });
+});
+
+it("tagging receives server locale and returns the response-only name", async () => {
+  expect(await uploadAndTag(form)).toMatchObject({ status: "ready", suggestedName: "Сорочка" });
+  expect(state.tag).toHaveBeenCalledWith(form.cutoutB64, form.mediaType, "uk");
 });
 
 describe("confirmation", () => {

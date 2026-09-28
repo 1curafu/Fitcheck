@@ -187,7 +187,7 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode, preview: Sa
         baseCutout: prepared.cutout,
         rotation: prepared.upload.rotation,
         cutoutUrl: URL.createObjectURL(shown),
-        name: prepared.upload.tags.subcategory,
+        name: prepared.upload.suggestedName?.trim() || prepared.upload.tags.subcategory,
         brand: "",
         tags: prepared.upload.tags,
       });
@@ -383,7 +383,7 @@ export function useCapture(options?: { onSaved?: (mode: CaptureMode, preview: Sa
         baseCutout: cutout,
         rotation: res.rotation,
         cutoutUrl: URL.createObjectURL(shown),
-        name: res.tags.subcategory,
+        name: res.suggestedName?.trim() || res.tags.subcategory,
         brand: "",
         tags: res.tags,
       });

@@ -222,8 +222,10 @@ export type Rotation = (typeof ROTATIONS)[number];
 export const RotationSchema = z.literal(ROTATIONS);
 
 /** What the model answers: every tag a photo can settle, plus which way is up. */
+export const SuggestedNameSchema = z.string().max(80).trim().min(1);
 export const TaggingResponseSchema = TagSchema.omit({ fit_source: true }).extend({
   rotation: RotationSchema,
+  suggested_name: SuggestedNameSchema,
 });
 
 /**

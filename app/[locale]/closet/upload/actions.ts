@@ -2,6 +2,7 @@
 
 import { revalidateEverywhere } from "@/lib/i18n/revalidate";
 import { createClient } from "@/lib/supabase/server";
+import { getActionLocale } from "@/lib/i18n/action-locale";
 import { tagItem } from "@/lib/ai/tag-item";
 import { TagSchema, type Rotation, type Tags } from "@/lib/ai/tagging-schema";
 import { tagsToItemRow } from "@/lib/ai/parse-tags";
@@ -14,7 +15,7 @@ import { assertCaptureMediaType, assertDraftIdentity, groupOwnedDraftPaths } fro
 
 export type UploadAndTagResult =
   | { status: "ready"; itemId: string; imagePath: string; cutoutPath: string;
-      thumbPath: string | null; tags: Tags; rotation: Rotation }
+      thumbPath: string | null; tags: Tags; rotation: Rotation; suggestedName: string | null }
   | ({ status: "limited" } & UploadLimitMessage);
 
 export type ConfirmItemResult = { status: "saved" } | ({ status: "limited" } & UploadLimitMessage);
@@ -120,8 +121,8 @@ export async function uploadAndTag(form: {
     }
 
     // Tag the full cutout, never its smaller thumbnail.
-    const { tags, rotation } = await tagItem(form.cutoutB64, form.mediaType);
-    return { status: "ready", itemId, imagePath, cutoutPath, thumbPath, tags, rotation };
+    const { tags, rotation, suggestedName } = await tagItem(form.cutoutB64, form.mediaType, await getActionLocale());
+    return { status: "ready", itemId, imagePath, cutoutPath, thumbPath, tags, rotation, suggestedName };
   } catch (error) {
     try { await bucket.remove(attempted); } catch { /* orphan sweep backstop */ }
     throw error;
