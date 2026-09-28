@@ -72,6 +72,7 @@ async function ensureUser(admin: SupabaseClient): Promise<string> {
 
 /** Truncate and re-seed. Returns the user id so specs can address the rows. */
 export async function seedTestUser(cfg: { url: string; service: string }): Promise<string> {
+  if (!['localhost','127.0.0.1'].includes(new URL(cfg.url).hostname)) throw new Error("E2E seeding requires local Supabase");
   const admin = createClient(cfg.url, cfg.service, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
@@ -81,6 +82,9 @@ export async function seedTestUser(cfg: { url: string; service: string }): Promi
   // referenced by outfit_items. Deleting items first would violate the FKs.
   await admin.from("wear_logs").delete().eq("user_id", userId);
   await admin.from("outfits").delete().eq("user_id", userId);
+  // Each run owns a fresh fixture budget; production counters are never targeted.
+  const counter = await admin.from("outfit_translation_days").delete().eq("user_id", userId);
+  if (counter.error) throw new Error("Resetting local translation fixture budget failed");
   await admin.from("items").delete().eq("user_id", userId);
 
   const { error } = await admin.from("items").insert(

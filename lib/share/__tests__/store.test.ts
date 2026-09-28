@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SHARE_LIMITS } from "../snapshot";
 import { listMine, prepare, publish, stateFor, stop } from "../store";
+import uk from "@/messages/uk.json";
 
 vi.mock("server-only", () => ({}));
 const provider = vi.hoisted(() => vi.fn());
@@ -61,6 +62,13 @@ beforeEach(() => {
 });
 
 describe("prepare", () => {
+  it("an unnamed original freezes the same localized title as outfit detail", async () => {
+    (globalThis as {__intl?: {locale: string; messages: object}}).__intl = { locale: "uk", messages: uk };
+    s.outfit!.look_name = null;
+    const prepared = await prepare(client(), owner, { outfitId, showBrands: false, locale: "uk" });
+    expect(prepared).toMatchObject({ text: { name: uk.outfit.todayLook } });
+    expect(s.inserted[0]).toMatchObject({ look_name: uk.outfit.todayLook });
+  });
   function readyCache() {
     return { outfit_id: outfitId, target_locale: "uk", source_locale: "en-US", source_name: "Quiet Camel",
       source_why: "Why.", name: "Тихий ранок", why: "Затишний образ.", status: "ready" };

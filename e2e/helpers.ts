@@ -66,6 +66,18 @@ export async function testUserId(): Promise<string> {
   return found.id;
 }
 
+/** Read through the seeded owner's JWT, so original-preservation checks also exercise RLS. */
+export async function readOwnedOutfit(id: string) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  if (!['127.0.0.1','localhost'].includes(new URL(url).hostname)) throw new Error("Owned look checks require local Supabase");
+  const owner = createClient(url, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {auth:{autoRefreshToken:false,persistSession:false}});
+  if ((await owner.auth.signInWithPassword(TEST_USER)).error) throw new Error("Owned look fixture sign-in failed");
+  const {data,error}=await owner.from("outfits").select("id,look_name,ai_reasoning,text_locale,layout,is_favorite,generated_on,weather_snapshot,styled_item_id,trip_id,outfit_items(item_id,slot)").eq("id",id).single();
+  if (error) throw new Error("Owned look fixture read failed");
+  // Relation rows have no implicit order; compare their content consistently.
+  return { ...data, outfit_items: [...data.outfit_items].sort((a,b) => a.item_id.localeCompare(b.item_id) || a.slot.localeCompare(b.slot)) };
+}
+
 /** Flip the tier so gated surfaces can be photographed from both sides. */
 export async function setTier(tier: "free" | "pro"): Promise<void> {
   const { error } = await admin().from("profiles").update({ tier }).eq("id", await testUserId());

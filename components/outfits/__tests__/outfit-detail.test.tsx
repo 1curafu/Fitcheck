@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { OutfitDetail } from "../outfit-detail";
 // The upgrade sheet imports the billing Server Actions (server-only); a rendering test never calls Stripe.
 vi.mock("@/app/billing/actions", () => ({ startCheckout: vi.fn(), openBillingPortal: vi.fn() }));
+vi.mock("@/app/[locale]/outfits/[id]/share-actions", () => ({ getShareState: vi.fn().mockResolvedValue(null), prepareShare: vi.fn(), publishShare: vi.fn(), stopSharing: vi.fn() }));
 
 const back = vi.fn();
 const push = vi.fn();

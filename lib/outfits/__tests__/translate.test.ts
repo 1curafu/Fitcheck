@@ -55,3 +55,25 @@ test("legacy empty reasoning stays empty while its name can translate",async()=>
  state.create.mockResolvedValue(reply([{id:"a",name:"Тихий ранок",why:""}]));
  expect(await translateOutfitText([{...claim,source:{...claim.source,why:""}}])).toEqual([{id:"a",name:"Тихий ранок",why:""}]);
 });
+
+test("local-only stub can delay and fail a named fixture without calling the provider", async()=>{
+ vi.useFakeTimers();
+ try {
+  vi.stubEnv("FITCHECK_STUB_AI","1");
+  vi.stubEnv("FITCHECK_TRANSLATION_STUB_DELAY_MS","600");
+  vi.stubEnv("FITCHECK_TRANSLATION_STUB_FAIL_NAME","Unavailable fixture");
+  const work=translateOutfitText([{...claim,source:{...claim.source,name:"Unavailable fixture"}}]);
+  const rejected=expect(work).rejects.toThrow("Local translation fixture unavailable");
+  expect(vi.getTimerCount()).toBe(1);
+  await vi.advanceTimersByTimeAsync(600);
+  await rejected;
+  expect(state.create).not.toHaveBeenCalled();
+ } finally {vi.useRealTimers();}
+});
+test("stub controls cannot alter real-provider translation",async()=>{
+ vi.stubEnv("FITCHECK_TRANSLATION_STUB_DELAY_MS","600");
+ vi.stubEnv("FITCHECK_TRANSLATION_STUB_FAIL_NAME","Quiet Morning");
+ state.create.mockResolvedValue(reply([{id:"a",name:"Тихий ранок",why:null}]));
+ expect(await translateOutfitText([claim])).toEqual([{id:"a",name:"Тихий ранок",why:null}]);
+ expect(state.create).toHaveBeenCalledOnce();
+});

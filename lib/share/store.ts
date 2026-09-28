@@ -3,6 +3,7 @@ import { SHARE_CAP, SHARE_IMAGE_FILES, SHARE_LIMITS, clipText, snapshotPieces } 
 import type { MessageKey } from "@/lib/i18n/keys";
 import type { Locale, ShippedLocale } from "@/lib/i18n/locales";
 import { readOutfitTexts } from "@/lib/outfits/text-store";
+import { getTranslations } from "next-intl/server";
 
 export type ShareClient = Awaited<ReturnType<typeof createClient>>;
 type ItemRow = { id: string; name: string | null; subcategory: string | null; category: string; brand: string | null };
@@ -29,7 +30,7 @@ export async function prepare(supabase: ShareClient, userId: string, input: { ou
   const [selected] = await readOutfitTexts(supabase, [{ id: outfit.id, sourceLocale: outfit.text_locale as Locale,
     name: outfit.look_name ?? "", why: outfit.ai_reasoning }], input.locale);
   const text = {
-    name: clipText(selected.name || "Today's look", SHARE_LIMITS.lookName),
+    name: clipText(selected.name || (await getTranslations({ locale: input.locale, namespace: "outfit" }))("todayLook"), SHARE_LIMITS.lookName),
     why: selected.why == null ? null : clipText(selected.why, SHARE_LIMITS.reasoning),
   };
   const snapshot = {

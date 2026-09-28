@@ -1,6 +1,7 @@
 import { act,render,screen,waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import uk from "@/messages/uk.json";
+import en from "@/messages/en-US.json";
 import type { Look,WeatherPayload } from "@/lib/generator/types";
 import type { TranslationResult } from "@/lib/outfits/text";
 const state=vi.hoisted(()=>({generate:vi.fn(),request:vi.fn(),read:vi.fn(),refresh:vi.fn()}));
@@ -29,4 +30,20 @@ test("an old source cannot overwrite a regenerated look",async()=>{
  state.generate.mockResolvedValue({status:"ok",weather:{} as WeatherPayload,looks:[{...look,name:"Changed",textSource:{...source,name:"Changed"}}]});
  await userEvent.click(screen.getByRole("button",{name:"Regenerate"}));await screen.findByRole("heading",{name:"Changed"});
  await act(async()=>pending.resolve(result));expect(screen.getByRole("heading",{name:"Changed"})).toBeInTheDocument();
+});
+test("an old regenerate response cannot replace the set after changing language", async()=>{
+ let finish!:(value:unknown)=>void;
+ const pending=new Promise(resolve=>{finish=resolve;});
+ const view=render(<Stylist/>);
+ await screen.findByRole("heading",{name:source.name});
+ state.generate.mockReturnValueOnce(pending);
+ await userEvent.click(screen.getByRole("button",{name:"Regenerate"}));
+ (globalThis as {__intl?:{locale:string;messages:object}}).__intl={locale:"en-GB",messages:en};
+ const current={...look,id:"current",name:"Current British look",textSource:{...source,id:"current",name:"Current British look"},textLocale:"en-GB" as const};
+ state.generate.mockResolvedValue({status:"ok",weather:{} as WeatherPayload,looks:[current]});
+ view.rerender(<Stylist/>);
+ await screen.findByRole("heading",{name:"Current British look"});
+ await act(async()=>finish({status:"ok",weather:{} as WeatherPayload,looks:[{...look,name:"Stale Ukrainian look",textSource:{...source,name:"Stale Ukrainian look"}}]}));
+ expect(screen.getByRole("heading",{name:"Current British look"})).toBeInTheDocument();
+ expect(screen.queryByRole("heading",{name:"Stale Ukrainian look"})).not.toBeInTheDocument();
 });

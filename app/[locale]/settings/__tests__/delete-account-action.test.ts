@@ -20,6 +20,7 @@ const {
 
 vi.mock("@/lib/supabase/server", () => ({ createClient }));
 vi.mock("@/lib/account-deletion/runtime", () => ({ deleteLiveAccount }));
+vi.mock("@/lib/share/store", () => ({ stop: vi.fn() }));
 vi.mock("@sentry/nextjs", () => ({ captureException, flush }));
 vi.mock("next/navigation", () => ({
   RedirectType: { replace: "replace" },

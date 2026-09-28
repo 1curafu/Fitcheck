@@ -54,6 +54,7 @@ export function Stylist() {
   // Cleared only when the day's set actually changes underneath: a regenerate or
   // an occasion switch.
   const desiredLookRef = useRef<number | null>(null);
+  const generationRequest = useRef(0);
   const urlOccasionRef = useRef<UiOccasion | null>(null);
 
   const writeParams = useCallback((patch: Record<string, string | null>) => {
@@ -260,14 +261,16 @@ export function Stylist() {
   useEffect(() => {
     if (!seeded) return; // wait for the prediction, so generate runs once
     let cancelled = false;
+    const request = ++generationRequest.current;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- the effect IS the fetch; "loading" is its first state
     setStatus("loading");
     generate({ occasion, formality, lean, city: city ?? undefined }).then((res) => {
-      if (cancelled) return;
+      if (cancelled || request !== generationRequest.current) return;
       applyResult(res);
     });
     return () => {
       cancelled = true;
+      generationRequest.current++;
     };
   }, [seeded, occasion, formality, lean, city, nonce, locale, applyResult]);
 
@@ -283,10 +286,11 @@ export function Stylist() {
     desiredLookRef.current = null;
     writeParams({ look: null });
     setStatus("loading");
-    generate({ occasion, formality, lean, city: city ?? undefined, regenerate: true }).then(
-      applyResult,
-    );
-  }, [occasion, formality, lean, city, applyResult, writeParams]);
+    const request = ++generationRequest.current;
+    generate({ occasion, formality, lean, city: city ?? undefined, regenerate: true }).then(res => {
+      if (request === generationRequest.current) applyResult(res);
+    });
+  }, [occasion, formality, lean, city, locale, applyResult, writeParams]);
 
   const displayLooks = looks.map(look => look.textLocale === locale ? look : {
     ...look, name: look.textSource.name, why: look.textSource.why ?? "", textLocale: locale, textTranslated: false,

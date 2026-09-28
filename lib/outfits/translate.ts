@@ -21,6 +21,11 @@ export async function translateOutfitText(claims: TranslationClaim[]): Promise<A
   }
   let raw: unknown;
   if (process.env.FITCHECK_STUB_AI === "1") {
+    // Local browser fixtures only; the real-provider branch ignores both controls.
+    const delay = Number(process.env.FITCHECK_TRANSLATION_STUB_DELAY_MS);
+    if (Number.isFinite(delay) && delay > 0) await new Promise(resolve => setTimeout(resolve, Math.min(delay, 8000)));
+    const unavailable = process.env.FITCHECK_TRANSLATION_STUB_FAIL_NAME;
+    if (unavailable && claims.some(claim => claim.source.name === unavailable)) throw new Error("Local translation fixture unavailable");
     const names = { "en-US": "Quiet Morning", "en-GB": "Quiet Morning UK", uk: "Тихий ранок" };
     const whys = { "en-US": "An outfit for your day.", "en-GB": "A look for your day.", uk: "Образ для вашого дня." };
     raw = { texts: claims.map(c => ({ id: c.source.id, name: names[target], why: c.source.why === null ? null : whys[target] })) };

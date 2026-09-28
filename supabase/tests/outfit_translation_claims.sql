@@ -1,5 +1,5 @@
 begin;
-select plan(44);
+select plan(47);
 insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) values
  ('11111111-1111-4111-8111-111111111111','authenticated','authenticated','claim-a@example.test','x',now(),'{}','{}',now(),now()),
  ('33333333-3333-4333-8333-333333333333','authenticated','authenticated','claim-b@example.test','x',now(),'{}','{}',now(),now());
@@ -16,12 +16,16 @@ select throws_ok($$select public.claim_outfit_text_translations('{}','uk')$$,'22
 select throws_ok($$select public.claim_outfit_text_translations(array[null::uuid],'uk')$$,'22023',null,'null id refused');
 select throws_ok($$select public.claim_outfit_text_translations(array(select ('20000000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid from generate_series(1,7) n),'uk')$$,'22023',null,'seventh raw id refused');
 select throws_ok($$select public.claim_outfit_text_translations(array['20000000-0000-4000-8000-000000000001'::uuid],'ru')$$,'22023',null,'unshipped target refused');
+select is(public.claim_outfit_text_translations(array['44444444-4444-4444-8444-444444444444'::uuid],'en-US'),'[]'::jsonb,'foreign source prose cannot be read through claim');
 select is(public.claim_outfit_text_translations(array['44444444-4444-4444-8444-444444444444'::uuid],'uk'),'[]'::jsonb,'foreign outfit cannot be claimed');
 insert into responses values('source',public.claim_outfit_text_translations(array['20000000-0000-4000-8000-000000000001'::uuid],'en-US'));
 select is((select payload->0->>'status' from responses where label='source'),'source','original language needs no translation');
 insert into responses values('first',public.claim_outfit_text_translations(array['20000000-0000-4000-8000-000000000001'::uuid,'20000000-0000-4000-8000-000000000001'::uuid],'uk'));
 select is((select jsonb_array_length(payload) from responses where label='first'),1,'duplicate ids reserve once');
 select is((select payload->0->>'status' from responses where label='first'),'claimed','first claim obtains a lease');
+reset role;
+select is((select reserved from public.outfit_translation_days where user_id='11111111-1111-4111-8111-111111111111'),1,'claim reserves before provider work');
+set local role authenticated;
 select is((select payload->0->'source'->'why' from responses where label='first'),'null'::jsonb,'nullable original why preserved');
 select is(public.claim_outfit_text_translations(array['20000000-0000-4000-8000-000000000001'::uuid],'uk')->0->>'status','busy','live lease cannot be claimed twice');
 select throws_ok($$select public.finish_outfit_text_translations('uk','[{"outfitId":"bad","leaseToken":"bad","status":"ready","name":"x","why":null}]')$$,'22023',null,'invalid completion uuid rejected');
@@ -52,6 +56,7 @@ set local role authenticated;
 select is(cardinality(public.finish_outfit_text_translations('uk',jsonb_build_array(jsonb_build_object('outfitId','20000000-0000-4000-8000-000000000001','leaseToken',(select payload->0->>'leaseToken' from responses where label='changed'),'status','ready','name','Expired','why',null)))),0,'expired lease cannot complete');
 insert into responses values('expired',public.claim_outfit_text_translations(array['20000000-0000-4000-8000-000000000001'::uuid],'uk'));
 select isnt((select payload->0->>'leaseToken' from responses where label='expired'),(select payload->0->>'leaseToken' from responses where label='changed'),'expired lease gets a new token');
+select is(cardinality(public.finish_outfit_text_translations('uk',jsonb_build_array(jsonb_build_object('outfitId','20000000-0000-4000-8000-000000000001','leaseToken',(select payload->0->>'leaseToken' from responses where label='changed'),'status','ready','name','Old provider','why',null)))),0,'replaced lease token cannot install text');
 select is(cardinality(public.finish_outfit_text_translations('uk',jsonb_build_array(jsonb_build_object('outfitId','20000000-0000-4000-8000-000000000001','leaseToken',(select payload->0->>'leaseToken' from responses where label='expired'),'status','failed')))),0,'failed provider installs no text');
 select is(public.claim_outfit_text_translations(array['20000000-0000-4000-8000-000000000001'::uuid],'uk')->0->>'status','cooldown','failure waits before new paid work');
 reset role;

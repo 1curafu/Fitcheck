@@ -2,6 +2,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 
 const mock = vi.hoisted(() => ({ read: vi.fn(), update: vi.fn(), write: vi.fn(), getUser: vi.fn(), revalidate: vi.fn() }));
 vi.mock("@/lib/account-deletion/runtime", () => ({ deleteLiveAccount: vi.fn() }));
+vi.mock("@/lib/share/store", () => ({ stop: vi.fn() }));
 vi.mock("@/lib/i18n/revalidate", () => ({ revalidateEverywhere: mock.revalidate }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({
   auth: { getUser: mock.getUser },
