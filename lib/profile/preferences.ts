@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SHIPPED_LOCALES } from "@/lib/i18n/locales";
 
 /**
  * Defaults, declared once and referenced by both schemas below.
@@ -27,6 +28,8 @@ export const PREFERENCE_DEFAULTS = {
  * code consults is a switch that lies to the user.
  */
 export const PreferencesSchema = z.object({
+  /** UI language, mirrored in NEXT_LOCALE and auth user_metadata. Absence is meaningful. */
+  locale: z.enum(SHIPPED_LOCALES).optional(),
   rainGuard: z.boolean().default(PREFERENCE_DEFAULTS.rainGuard),
   tempUnit: z.enum(["C", "F"]).default(PREFERENCE_DEFAULTS.tempUnit),
   /**
@@ -49,6 +52,7 @@ export type Preferences = z.infer<typeof PreferencesSchema>;
  * a preference to one and forgetting the other fails the suite.
  */
 const LenientSchema = z.object({
+  locale: PreferencesSchema.shape.locale.catch(undefined),
   rainGuard: PreferencesSchema.shape.rainGuard.catch(PREFERENCE_DEFAULTS.rainGuard),
   tempUnit: PreferencesSchema.shape.tempUnit.catch(PREFERENCE_DEFAULTS.tempUnit),
   wearAskedOn: PreferencesSchema.shape.wearAskedOn.catch(PREFERENCE_DEFAULTS.wearAskedOn),
@@ -58,4 +62,15 @@ const LenientSchema = z.object({
 export function readPreferences(raw: unknown): Preferences {
   const source = raw && typeof raw === "object" ? raw : {};
   return LenientSchema.parse(source);
+}
+
+/** Repair stored fields without inventing a unit choice during an unrelated save. */
+export function mergePreferencesForSave(raw: unknown, patch: unknown): Omit<Preferences, "tempUnit"> & { tempUnit?: "C" | "F" } {
+  const parsed = PreferencesSchema.partial().parse(patch);
+  // Zod applies nested defaults even inside partial(). Only supplied patch keys may override storage.
+  const supplied = Object.fromEntries(Object.entries(parsed).filter(([key]) => Object.hasOwn(patch as object, key)));
+  const next: Omit<Preferences, "tempUnit"> & { tempUnit?: "C" | "F" } = { ...readPreferences(raw), ...supplied };
+  const storedUnit = raw !== null && typeof raw === "object" && Object.hasOwn(raw, "tempUnit");
+  if (!storedUnit && !Object.hasOwn(patch as object, "tempUnit")) delete next.tempUnit;
+  return next;
 }

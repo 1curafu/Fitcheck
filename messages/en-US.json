@@ -802,7 +802,8 @@
       "shared": "Shared {date}",
       "stop": "Stop sharing",
       "stopFailed": "Couldn't stop sharing. Try again."
-    }
+    },
+    "language": "Language"
   },
   "billing": {
     "pro": "Pro",
@@ -994,5 +995,10 @@
     "cutoutCancelled": "Cutout cancelled",
     "cutoutWorkerBusy": "Cutout worker busy",
     "cutoutWorkerResponseFailed": "Cutout worker response failed"
+  },
+  "language": {
+    "title": "Language",
+    "close": "Close language choices",
+    "saveFailed": "Couldn’t change the language. Try again."
   }
 }

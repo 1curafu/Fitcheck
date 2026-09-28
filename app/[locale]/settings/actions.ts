@@ -10,7 +10,7 @@ import { revalidateEverywhere } from "@/lib/i18n/revalidate";
 import { deleteLiveAccount } from "@/lib/account-deletion/runtime";
 import { DeletionFailure } from "@/lib/account-deletion/types";
 import { createClient } from "@/lib/supabase/server";
-import { PreferencesSchema, readPreferences } from "@/lib/profile/preferences";
+import { PreferencesSchema, mergePreferencesForSave } from "@/lib/profile/preferences";
 import { fetchForecast } from "@/lib/weather/forecast";
 import { locationColumns, invalidatesDrop, resolveLocation } from "@/lib/weather/location";
 import { localDateFor } from "@/lib/outfits/local-date";
@@ -90,7 +90,7 @@ export async function deleteAccount(
  * repaired on every later read.
  */
 export async function updatePreferences(patch: unknown): Promise<void> {
-  const data = PreferencesSchema.partial().parse(patch);
+  PreferencesSchema.partial().parse(patch);
 
   const supabase = await createClient();
   const {
@@ -98,13 +98,14 @@ export async function updatePreferences(patch: unknown): Promise<void> {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not signed in");
 
-  const { data: row } = await supabase
+  const { data: row, error: readError } = await supabase
     .from("profiles")
     .select("preferences")
     .eq("id", user.id)
     .single();
 
-  const next = { ...readPreferences(row?.preferences), ...data };
+  if (readError) throw readError;
+  const next = mergePreferencesForSave(row?.preferences, patch);
 
   const { error } = await supabase.from("profiles").update({ preferences: next }).eq("id", user.id);
   if (error) throw new Error(error.message);

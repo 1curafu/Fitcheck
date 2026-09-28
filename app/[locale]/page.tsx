@@ -8,6 +8,7 @@ import { OAuthButtons } from "@/components/auth/oauth-buttons";
 import { EmailSignIn } from "@/components/auth/email-sign-in";
 import { BrandMark } from "@/components/brand/mark";
 import { AccountDeletedNotice } from "@/components/auth/account-deleted-notice";
+import { LanguageButton } from "@/components/i18n/language-button";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("landing");
@@ -81,6 +82,7 @@ async function WelcomeBody({
           {" "}{t("and")}{" "}
           <Link href="/privacy" className="text-muted-foreground underline underline-offset-2">{t("privacy")}</Link>.
         </p>
+        <div className="flex justify-center"><LanguageButton /></div>
       </div>
     </main>
   );

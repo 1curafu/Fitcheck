@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { Link } from "@/lib/i18n/navigation";
 import type { Preferences } from "@/lib/profile/preferences";
 import { useLocationPicker } from "@/lib/weather/use-location-picker";
+import { LanguageButton } from "@/components/i18n/language-button";
 import { LocationSheet } from "@/components/weather/location-sheet";
 import { DeleteAccountSheet } from "./delete-account-sheet";
 import { SharedLinks } from "./shared-links";
@@ -231,6 +232,9 @@ export function SettingsView({
             </div>
           </div>
         </div>
+
+        <Kicker>{t("language")}</Kicker>
+        <div className={`${CARD} px-4 py-1`}><LanguageButton /></div>
 
         <Kicker>{t("preferences")}</Kicker>
         <div className={`${CARD} overflow-hidden`}>

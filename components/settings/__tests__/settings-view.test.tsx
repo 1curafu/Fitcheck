@@ -12,7 +12,7 @@ import { vi } from "vitest";
 // tests failed with an empty document and an error that named none of this.
 vi.mock("@/app/billing/actions", () => ({ startCheckout: vi.fn(), openBillingPortal: vi.fn() }));
 // SharedLinks (Shared links section) calls useRouter().refresh() after Stop sharing.
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }), usePathname: () => "/settings", useSearchParams: () => new URLSearchParams() }));
 vi.mock("@/lib/weather/geocode", async (orig) => ({
   ...(await orig<typeof import("@/lib/weather/geocode")>()),
   searchCities: vi
@@ -112,8 +112,9 @@ test("a failed save reverts the switch rather than lying about it", async () => 
   expect(sw).toHaveAttribute("aria-checked", "true");
 });
 
-test("the obsolete English/Deutsch control is removed before the language switcher lands", () => {
+test("the shipped-language picker replaces the obsolete English/Deutsch control", () => {
   renderSettings();
+  expect(screen.getByRole("button", { name: "English (US)" })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: /deutsch/i })).not.toBeInTheDocument();
   expect(screen.getByRole("switch", { name: /rain guard/i })).toBeInTheDocument();
 });

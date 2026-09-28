@@ -12,6 +12,7 @@ import { formatRange } from "../page";
 import { redirect } from "@/lib/i18n/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { intlLocale } from "@/lib/i18n/format";
+import { readPreferences } from "@/lib/profile/preferences";
 
 /**
  * Only the back control — see the note in the capsule route's shell.
@@ -88,7 +89,7 @@ async function DaysBody({ params }: { params: Promise<{ tripId: string }> }) {
 
   const { data: prefs } = await supabase
     .from("profiles")
-    .select("temp_unit")
+    .select("preferences")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -136,7 +137,7 @@ async function DaysBody({ params }: { params: Promise<{ tripId: string }> }) {
       destination={trip.destinationLabel}
       dateRange={formatRange(trip.startDate, trip.endDate, locale)}
       days={days}
-      unit={(prefs?.temp_unit as "C" | "F") ?? "C"}
+      unit={readPreferences(prefs?.preferences).tempUnit}
       backHref={`/packing/${tripId}`}
     />
   );
