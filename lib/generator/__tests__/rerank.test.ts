@@ -8,6 +8,7 @@ import {
   RERANK_VARIETY_RULE,
 } from "../rerank";
 import { echoedAccents, withAccent } from "../styling/echo";
+import { LOCALES } from "@/lib/i18n/locales";
 import {
   describeCombos,
   RerankSchema,
@@ -15,6 +16,26 @@ import {
   stubbedRerank,
   NAME_MAX,
 } from "../rerank";
+
+test("rerank prose follows the requested language while candidate vocabulary stays English", () => {
+  const prompt = buildRerankPrompt({
+    combos: [[{ category: "Tops", subcategory: "Oxford shirt", colors: ["blue"] }]],
+    aesthetic: [], occasion: "everyday", weatherLabel: "Clear", tempC: 20, want: 1, locale: "uk",
+  });
+  expect(prompt).toContain("Write the name and why in Ukrainian");
+  expect(prompt).toContain("Oxford shirt");
+  expect(prompt).toContain("combo_index");
+});
+
+test("locale-aware stubs preserve selected combination indexes", () => {
+  const original = stubbedRerank(3, 3);
+  for (const locale of LOCALES) {
+    const result = stubbedRerank(3, 3, locale);
+    expect(result.picks.map(p => p.combo_index)).toEqual(original.picks.map(p => p.combo_index));
+  }
+  expect(stubbedRerank(3, 3, "uk").picks[0].name).toBe("Тестовий образ 1");
+  expect(stubbedRerank(3, 3, "en-GB").picks[0].name).toBe("Test Outfit 1");
+});
 
 test("describes each combo as one indexed line with subcategory + colours", () => {
   const t = describeCombos([
