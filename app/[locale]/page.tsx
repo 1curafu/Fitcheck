@@ -1,3 +1,4 @@
+import { alternatesFor } from "@/lib/i18n/alternates";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Link, redirect } from "@/lib/i18n/navigation";
@@ -15,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { absolute: t("metadata.title") },
     description: t("metadata.description"),
-    alternates: { canonical: "/" },
+    alternates: alternatesFor("/", await getLocale()),
   };
 }
 

@@ -1,3 +1,4 @@
+import { alternatesFor } from "@/lib/i18n/alternates";
 import type { Metadata } from "next";
 import { getTranslations, getLocale } from "next-intl/server";
 import { LegalDocumentView } from "@/components/legal/legal-document";
@@ -8,7 +9,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: t("title"),
     description: t("description"),
-    alternates: { canonical: "/terms" },
+    alternates: alternatesFor("/terms", await getLocale()),
   };
 }
 

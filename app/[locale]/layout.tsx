@@ -31,7 +31,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: { default: "Fitcheck", template: "%s — Fitcheck" },
     description,
     applicationName: "Fitcheck",
-    openGraph: { type: "website", siteName: "Fitcheck", title: "Fitcheck", description, locale: "en_GB" },
+    openGraph: { type: "website", siteName: "Fitcheck", title: "Fitcheck", description, locale: (await getLocale()).replace("-", "_") },
     twitter: { card: "summary_large_image", title: "Fitcheck", description },
     // Google Search Console: paste the token from "HTML tag" verification into Vercel env.
     verification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION

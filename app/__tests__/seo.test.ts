@@ -47,3 +47,23 @@ test("the session-refresh proxy skips the crawler files", () => {
   expect(matcher.test("/manifest.webmanifest")).toBe(false);
   expect(matcher.test("/closet")).toBe(true);
 });
+
+test("sitemap lists every public page in every locale with its alternates", () => {
+  const entries = sitemap();
+  expect(entries).toHaveLength(9);
+  expect(entries.map(e => e.url)).toEqual(expect.arrayContaining([
+    `${SITE_URL}/`, `${SITE_URL}/en-gb`, `${SITE_URL}/uk`, `${SITE_URL}/uk/privacy`, `${SITE_URL}/en-gb/terms`,
+  ]));
+  expect(entries[0].alternates?.languages).toMatchObject({ "en-US": `${SITE_URL}/`, uk: `${SITE_URL}/uk` });
+});
+test("private routes are disallowed in every locale, shares remain crawlable", () => {
+  const r = robots(); const rule = Array.isArray(r.rules) ? r.rules[0] : r.rules;
+  expect(rule.disallow).toEqual(expect.arrayContaining(["/closet/", "/uk/closet/", "/en-gb/settings/"]));
+  expect(rule.disallow).not.toEqual(expect.arrayContaining(["/l/", "/uk/l/"]));
+});
+test("public alternates use canonical locale URLs and an English x-default", async () => {
+  const { alternatesFor } = await import("@/lib/i18n/alternates");
+  expect(alternatesFor("/privacy", "uk")).toEqual({ canonical: `${SITE_URL}/uk/privacy`, languages: {
+    "en-US": `${SITE_URL}/privacy`, "en-GB": `${SITE_URL}/en-gb/privacy`, uk: `${SITE_URL}/uk/privacy`, "x-default": `${SITE_URL}/privacy`,
+  } });
+});
