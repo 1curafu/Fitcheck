@@ -71,9 +71,8 @@ export function StylistView(props: {
     <main className="relative flex flex-1 flex-col overflow-hidden screen-top px-[22px]">
       {/* The legible "why" — a quiet kicker above the title that makes the smart
           default read as intentional. Uses the documented label step. */}
-      {props.reason && (
-        <p className="mb-1 text-[11px] uppercase tracking-[0.22em] text-muted-dim">{props.reason}</p>
-      )}
+      {/* Keep the tap targets below this async prediction in place while it loads. */}
+      <p className="mb-1 min-h-[1lh] text-[11px] uppercase tracking-[0.22em] text-muted-dim">{props.reason}</p>
       <div className="mb-[10px] flex items-center justify-between gap-3">
         <h1 className="font-serif text-[24px] text-foreground">{t("title")}</h1>
         <RefineButton onRefine={props.onOpenRefine} />

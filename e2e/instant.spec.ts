@@ -109,6 +109,35 @@ test("a sheet does not survive leaving the screen", async ({ page }) => {
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
+test("the Refine target stays in place when the predicted occasion arrives", async ({ page }) => {
+  let releasePrediction!: () => void;
+  const predictionGate = new Promise<void>((resolve) => { releasePrediction = resolve; });
+  let held = false;
+  await page.route("**/generate*", async (route) => {
+    if (!held && route.request().method() === "POST") {
+      held = true;
+      await predictionGate;
+    }
+    await route.continue();
+  });
+  try {
+    await page.goto("/generate");
+    const refine = page.getByRole("button", { name: /refine/i }).first();
+    await expect(refine).toBeVisible();
+    await expect.poll(() => held).toBe(true);
+    const before = await refine.boundingBox();
+    expect(before).not.toBeNull();
+    releasePrediction();
+    await expect(page.getByRole("tab", { name: /Test Look 1/i })).toBeVisible();
+    const after = await refine.boundingBox();
+    expect(after?.y).toBe(before!.y);
+    await refine.click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+  } finally {
+    releasePrediction();
+  }
+});
+
 /**
  * ⚠️ Re-verifies PR #21's fix, which Cache Components could plausibly have
  * broken: the look index and occasion live in the URL because opening a look
