@@ -27,3 +27,23 @@ export function selectOutfitText(source: OutfitTextSource, target: ShippedLocale
   return { id: source.id, locale: target, name: valid ? cache.name! : source.name,
     why: valid ? cache.why : source.why, translated: !!valid, source };
 }
+
+export function validatedUniqueIds(raw: unknown): string[] {
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!Array.isArray(raw) || raw.length < 1 || raw.length > 6 || raw.some(id => typeof id !== "string" || !uuid.test(id))) {
+    throw new Error("Invalid outfit IDs");
+  }
+  return [...new Set(raw as string[])];
+}
+
+export function sameOutfitTextSource(a: OutfitTextSource, b: OutfitTextSource): boolean {
+  return a.id === b.id && a.sourceLocale === b.sourceLocale && a.name === b.name && a.why === b.why;
+}
+
+export function applyOutfitTexts(looks: import("@/lib/generator/types").Look[], result: TranslationResult, activeLocale: ShippedLocale): import("@/lib/generator/types").Look[] {
+  if (result.locale !== activeLocale) return looks;
+  return looks.map(look => {
+    const text = result.texts.find(row => row.id === look.id && row.locale === activeLocale && sameOutfitTextSource(row.source,look.textSource));
+    return text ? { ...look, name: text.name, why: text.why ?? "", textLocale: activeLocale, textTranslated: text.translated } : look;
+  });
+}

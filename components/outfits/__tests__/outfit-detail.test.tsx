@@ -1,3 +1,4 @@
+import uk from "@/messages/uk.json";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { OutfitDetail } from "../outfit-detail";
@@ -16,6 +17,11 @@ vi.mock("@/app/[locale]/outfits/[id]/actions", () => ({
   // confirmation asks about. Resolved, not undefined: the component calls
   // `.catch()` on it.
   noteOutfitViewed: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@/app/[locale]/outfits/text-actions", () => ({
+  requestOutfitTexts: vi.fn().mockResolvedValue({locale: "uk", texts: [], busyIds: []}),
+  refreshOutfitTexts: vi.fn().mockResolvedValue({locale: "uk", texts: [], busyIds: []}),
 }));
 
 const slot = { xPct: 10, yPct: 20, wPct: 30, hPct: 40, rotationDeg: -3, z: 2 };
@@ -168,6 +174,7 @@ test("wear and favourite are still there beside it", () => {
 });
 
 test("cached translated prose renders without altering garment names or wear state", () => {
+ (globalThis as {__intl?: {locale: string; messages: object}}).__intl = {locale: "uk", messages: uk};
  render(<OutfitDetail outfit={{...outfit, lookName: "Тихий стандарт", reasoning: "Спокійний контраст.", textLocale: "uk", textTranslated: true}} pieces={pieces} worn={true} favorite={true} />);
  expect(screen.getByRole("heading", {name: "Тихий стандарт"})).toBeInTheDocument();
  expect(screen.getByText(/Спокійний контраст/)).toBeInTheDocument();

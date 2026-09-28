@@ -1,9 +1,9 @@
 "use client";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useVocab } from "@/lib/i18n/vocab";
 import { useRouter, Link } from "@/lib/i18n/navigation";
 
-import { useOptimistic, useTransition, type CSSProperties, useEffect, useState } from "react";
+import { useOptimistic, useTransition, type CSSProperties, useEffect, useState, useCallback } from "react";
 
 import { Bookmark, Share } from "lucide-react";
 import { toggleWear, toggleFavorite, noteOutfitViewed } from "@/app/[locale]/outfits/[id]/actions";
@@ -12,6 +12,8 @@ import { ShareSheet } from "./share-sheet";
 import { WeatherAttribution } from "@/components/weather/attribution";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { wearLabel } from "@/lib/outfits/wear";
+import { LookTextRequest } from "@/components/i18n/look-text-request";
+import { sameOutfitTextSource, type OutfitText, type TranslationResult } from "@/lib/outfits/text";
 import type { OutfitTextSource } from "@/lib/outfits/text";
 import type { ShippedLocale } from "@/lib/i18n/locales";
 import type { Slot, UiOccasion } from "@/lib/generator/types";
@@ -26,7 +28,7 @@ export type DetailPiece = {
 };
 
 export function OutfitDetail({
-  outfit,
+  outfit: initialOutfit,
   pieces,
   worn,
   favorite,
@@ -51,6 +53,17 @@ export function OutfitDetail({
   styledItemId?: string | null;
 }) {
   const t = useTranslations("outfit");
+  const locale = useLocale();
+  const [translation, setTranslation] = useState<OutfitText | null>(null);
+  const onTextReady = useCallback((result: TranslationResult) => {
+    if (result.locale !== locale) return;
+    const text = result.texts.find(row => row.locale === locale && row.id === initialOutfit.id && sameOutfitTextSource(row.source, initialOutfit.textSource));
+    if (text) setTranslation(text);
+  }, [locale, initialOutfit.id, initialOutfit.textSource]);
+  const valid = translation?.locale === locale && sameOutfitTextSource(translation.source, initialOutfit.textSource);
+  const base = initialOutfit.textLocale === locale ? initialOutfit : { ...initialOutfit,
+    lookName: initialOutfit.textSource.name, reasoning: initialOutfit.textSource.why, textLocale: locale, textTranslated: false };
+  const outfit = valid ? { ...base, lookName: translation.name, reasoning: translation.why, textTranslated: translation.translated } : base;
   const label = useVocab();
   const tOccasion = useTranslations("vocab.occasion");
   const occasionLabel = (["everyday", "work", "weekend", "evening"] as string[]).includes(outfit.occasion)
@@ -84,6 +97,7 @@ export function OutfitDetail({
     // `relative`: the floating Back/⋯ controls are positioned against THIS screen, so they move down with it when
     // the shell's in-flow cookie notice is showing, instead of staying pinned under the notice at the shell's top.
     <div className="relative flex min-h-dvh flex-1 flex-col">
+      <LookTextRequest sources={outfit.textTranslated ? [] : [outfit.textSource]} locale={locale} onReady={onTextReady} />
       {/* This screen opens with a full-bleed flat-lay, so it deliberately does
           NOT use `.screen-top` — the stage runs to the top edge and only this
           overlay control is inset. `top-[58px]` was a hard-coded status-bar

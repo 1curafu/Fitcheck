@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StylistView, type StylistStatus } from "./stylist-view";
 import {
@@ -14,6 +14,8 @@ import { searchCities, type City } from "@/lib/weather/geocode";
 import { getCurrentPosition, permissionState, GeoError } from "@/lib/weather/geolocate";
 import type { LocationSource } from "@/lib/weather/location";
 import type { GenerateResult, Look, UiOccasion, WeatherPayload } from "@/lib/generator/types";
+import { LookTextRequest } from "@/components/i18n/look-text-request";
+import { applyOutfitTexts, type TranslationResult } from "@/lib/outfits/text";
 import type { MessageKey } from "@/lib/i18n/keys";
 
 type Chosen = { lat: number; lon: number; label: string; source: LocationSource };
@@ -22,6 +24,7 @@ const OCCASIONS: UiOccasion[] = ["everyday", "work", "weekend", "evening"];
 
 export function Stylist() {
   const t = useTranslations();
+  const locale = useLocale();
 
   /**
    * Which occasion and which of the day's looks you were on lives in the URL,
@@ -266,7 +269,7 @@ export function Stylist() {
     return () => {
       cancelled = true;
     };
-  }, [seeded, occasion, formality, lean, city, nonce, applyResult]);
+  }, [seeded, occasion, formality, lean, city, nonce, locale, applyResult]);
 
   /**
    * The only path that spends an AI call on a day already answered.
@@ -285,11 +288,20 @@ export function Stylist() {
     );
   }, [occasion, formality, lean, city, applyResult, writeParams]);
 
+  const displayLooks = looks.map(look => look.textLocale === locale ? look : {
+    ...look, name: look.textSource.name, why: look.textSource.why ?? "", textLocale: locale, textTranslated: false,
+  });
+  const onTextReady = useCallback((result: TranslationResult) => {
+    setLooks(current => applyOutfitTexts(current, result, locale));
+  }, [locale]);
+
   return (
+    <>
+    <LookTextRequest sources={displayLooks.filter(look => !look.textTranslated).map(look => look.textSource)} locale={locale} onReady={onTextReady} />
     <StylistView
       status={status}
       weather={weather}
-      looks={looks}
+      looks={displayLooks}
       selectedLook={selectedLook}
       occasion={occasion}
       cities={cities}
@@ -339,5 +351,6 @@ export function Stylist() {
       onRetry={() => setNonce((n) => n + 1)}
       onRegenerate={regenerate}
     />
+    </>
   );
 }
