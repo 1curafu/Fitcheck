@@ -98,7 +98,7 @@ begin
        jsonb_typeof(v_result->'name') is distinct from 'string' or
        btrim(v_result->>'name')='' or char_length(v_result->>'name')>40 or
        not(v_result ? 'why') or jsonb_typeof(v_result->'why') not in ('string','null') or
-       char_length(v_result->>'why')>1000 or (jsonb_typeof(v_result->'why')='string' and btrim(v_result->>'why')='')) then
+       char_length(v_result->>'why')>1000) then
       raise exception 'Invalid translation output' using errcode='22023';
     end if;
   end loop;

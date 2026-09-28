@@ -1,5 +1,5 @@
 begin;
-select plan(43);
+select plan(44);
 insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) values
  ('11111111-1111-4111-8111-111111111111','authenticated','authenticated','claim-a@example.test','x',now(),'{}','{}',now(),now()),
  ('33333333-3333-4333-8333-333333333333','authenticated','authenticated','claim-b@example.test','x',now(),'{}','{}',now(),now());
@@ -74,6 +74,11 @@ delete from public.outfits where id='20000000-0000-4000-8000-000000000002';
 set local role authenticated;
 select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
 select is(cardinality(public.finish_outfit_text_translations('uk',jsonb_build_array(jsonb_build_object('outfitId','20000000-0000-4000-8000-000000000002','leaseToken',(select payload->0->>'leaseToken' from responses where label='delete'),'status','ready','name','Deleted','why',null)))),0,'deleted look cannot install text');
+reset role;
+update public.outfits set ai_reasoning='' where id='20000000-0000-4000-8000-000000000005';
+set local role authenticated;
+insert into responses values('empty-why',public.claim_outfit_text_translations(array['20000000-0000-4000-8000-000000000005'::uuid],'uk'));
+select is(cardinality(public.finish_outfit_text_translations('uk',jsonb_build_array(jsonb_build_object('outfitId','20000000-0000-4000-8000-000000000005','leaseToken',(select payload->0->>'leaseToken' from responses where label='empty-why'),'status','ready','name','Empty explanation','why','')))),1,'legacy empty explanation remains empty');
 reset role;
 update public.outfits set look_name=repeat('x',121) where id='20000000-0000-4000-8000-000000000003';
 set local role authenticated;
