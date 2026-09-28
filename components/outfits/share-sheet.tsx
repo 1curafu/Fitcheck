@@ -16,6 +16,7 @@ import { formatShortDate } from "@/lib/i18n/format";
 
 type ShareOutfit = { id: string; lookName: string; occasion: string; reasoning: string | null; lookDate: string | null };
 type ShareLink = { token: string; readyAt: string | null; purgingAt?: string };
+type ShareText = { name: string; why: string | null };
 
 /**
  * Starts a clipboard write INSIDE the tap, with the text still pending. Safari allows a clipboard write only during a
@@ -59,7 +60,7 @@ export function ShareSheet({ outfit, pieces, onClose }: { outfit: ShareOutfit; p
   const router = useRouter();
   const [target, setTarget] = useState<"story" | "post">("story");
   const [showBrands, setShowBrands] = useState(false);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{ url: string; key: string } | null>(null);
   const [busy, setBusy] = useState<null | "link" | "stop">(null);
   const [message, setMessage] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
@@ -80,10 +81,14 @@ export function ShareSheet({ outfit, pieces, onClose }: { outfit: ShareOutfit; p
   }, [copied]);
   // Labels come from the SAME rules as the server snapshot (trimmed brands, blank → none), so the card and the link
   // page list can never disagree (Review Focus 1).
-  const card = (brands: boolean): CardInput => {
+  const displayText = { name: outfit.lookName, why: outfit.reasoning };
+  const renderKey = (target: CardTarget, brands: boolean, text: ShareText = displayText) =>
+    JSON.stringify([target, brands, locale, text.name, text.why, outfit.occasion, outfit.lookDate]);
+  const readyPreview = preview?.key === renderKey(target, showBrands) ? preview.url : null;
+  const card = (brands: boolean, text: ShareText): CardInput => {
     const labels = snapshotPieces(ordered.map((p) => ({ id: p.id, name: p.name, brand: p.brand, category: p.category })), brands);
     return {
-      title: outfit.lookName, why: outfit.reasoning,
+      title: text.name, why: text.why,
       kicker: shareKicker((["everyday", "work", "weekend", "evening"] as string[]).includes(outfit.occasion)
         ? tOccasion(outfit.occasion as UiOccasion) : outfit.occasion, outfit.lookDate, locale),
       footer: t("cardFooter"),
@@ -99,12 +104,12 @@ export function ShareSheet({ outfit, pieces, onClose }: { outfit: ShareOutfit; p
       .catch((e) => { assets.current = null; throw e; }); // a retry must not reuse a rejected load
     return assets.current;
   };
-  const draw = async (t: CardTarget, brands: boolean) => {
-    const key = `${t}:${brands}`;
+  const draw = async (t: CardTarget, brands: boolean, text: ShareText = displayText) => {
+    const key = renderKey(t, brands, text);
     const cached = blobs.current.get(key);
     if (cached) return cached;
     const { fonts, images } = await loadAssets();
-    const blob = await renderCard(t, card(brands), images, fonts);
+    const blob = await renderCard(t, card(brands, text), images, fonts);
     blobs.current.set(key, blob);
     return blob;
   };
@@ -121,12 +126,12 @@ export function ShareSheet({ outfit, pieces, onClose }: { outfit: ShareOutfit; p
     draw(target, showBrands).then((blob) => {
       if (previewGen.current !== myGen) return;
       url = URL.createObjectURL(blob);
-      setPreview(url);
+      setPreview({ url, key: renderKey(target, showBrands) });
       setFailed(false);
     }).catch(() => { if (previewGen.current === myGen) { setFailed(true); setMessage(t("photosFailed")); } });
     return () => { if (url) URL.revokeObjectURL(url); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [target, showBrands]);
+  }, [target, showBrands, locale, outfit.lookName, outfit.reasoning, outfit.occasion, outfit.lookDate]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !busy) onClose(); };
@@ -139,7 +144,7 @@ export function ShareSheet({ outfit, pieces, onClose }: { outfit: ShareOutfit; p
 
   // No await before navigator.share: iOS allows it only close to the tap (spec §0 A6). The blob is the cached preview.
   function shareImage() {
-    const blob = blobs.current.get(`${target}:${showBrands}`);
+    const blob = blobs.current.get(renderKey(target, showBrands));
     if (!blob) return;
     const file = new File([blob], fileName, { type: "image/jpeg" });
     if (navigator.canShare?.({ files: [file] })) {
@@ -167,7 +172,7 @@ export function ShareSheet({ outfit, pieces, onClose }: { outfit: ShareOutfit; p
       const bucket = createClient().storage.from("shares");
       const targets: CardTarget[] = ["story", "post", "preview"];
       for (const [i, name] of SHARE_IMAGE_FILES.entries()) {
-        const { error } = await bucket.upload(`${prepared.token}/${name}`, await draw(targets[i], showBrands),
+        const { error } = await bucket.upload(`${prepared.token}/${name}`, await draw(targets[i], showBrands, prepared.text),
           { contentType: "image/jpeg", upsert: true, cacheControl: "60" });
         if (error) throw error;
       }
@@ -238,9 +243,9 @@ export function ShareSheet({ outfit, pieces, onClose }: { outfit: ShareOutfit; p
         </div>
 
         <div className="mt-4 grid place-items-center">
-          {preview ? (
+          {readyPreview ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={preview} alt={t("cardAlt", { lookName: outfit.lookName })} className="max-h-[44dvh] rounded-[14px] shadow-[inset_0_0_0_1px_var(--hairline-7)]" />
+            <img src={readyPreview} alt={t("cardAlt", { lookName: outfit.lookName })} className="max-h-[44dvh] rounded-[14px] shadow-[inset_0_0_0_1px_var(--hairline-7)]" />
           ) : (
             <div className="h-[44dvh] w-full animate-pulse rounded-[14px] bg-surface-3" />
           )}
@@ -260,7 +265,7 @@ export function ShareSheet({ outfit, pieces, onClose }: { outfit: ShareOutfit; p
 
         {message && <p role="status" className="mt-2 text-[13px] text-foreground">{message}</p>}
 
-        <button type="button" disabled={locked || failed || !preview} onClick={shareImage}
+        <button type="button" disabled={locked || failed || !readyPreview} onClick={shareImage}
           className="mt-4 min-h-[48px] w-full rounded-[12px] bg-foreground px-4 text-[15px] font-semibold text-canvas disabled:opacity-60">
           {t("shareImage")}
         </button>

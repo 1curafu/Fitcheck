@@ -3,6 +3,7 @@ import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { admin, disposableSessionCookies, testUserId } from "./helpers";
+import uk from "../messages/uk.json";
 
 test.use({ storageState: "e2e/.auth/state.json" });
 const BOT = { "user-agent": "facebookexternalhit/1.1" };
@@ -43,6 +44,38 @@ test("create a link, open it signed out, then stop sharing", async ({ page, brow
     await visitor.goto(url);
     await expect(visitor.getByText("This look is no longer shared.")).toBeVisible();
     expect((await request.get(url, { headers: BOT })).status()).toBe(404);
+  } finally {
+    await stranger.close();
+    await cleanupShares();
+  }
+});
+
+test("a Ukrainian share freezes its text while an English visitor sees English controls", async ({ page, browser }) => {
+  await noNativeShare(page);
+  const stranger = await browser.newContext({ locale: "en-US", storageState: { cookies: [], origins: [] } });
+  try {
+    const outfitId = await seededLookId();
+    await page.goto(`/uk/outfits/${outfitId}`);
+    await expect(page.getByRole("heading", { name: "Тихий ранок", exact: true })).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("button", { name: uk.outfit.share, exact: true }).click();
+    const sheet = page.getByRole("dialog", { name: uk.share.title, exact: true });
+    await sheet.getByRole("button", { name: uk.share.createLink, exact: true }).click();
+    const url = (await sheet.getByTestId("share-url").textContent({ timeout: 30_000 }))!.trim();
+    const token = new URL(url).pathname.split("/").at(-1)!;
+    const db = admin();
+    const snapshot = await db.from("look_shares").select("look_name,reasoning").eq("token", token).single();
+    const cache = await db.from("outfit_text_translations").select("name,why").eq("outfit_id", outfitId).eq("target_locale", "uk").single();
+    expect(snapshot.error).toBeNull();
+    expect(cache.error).toBeNull();
+    expect(snapshot.data).toEqual({ look_name: cache.data!.name, reasoning: cache.data!.why });
+    const visitor = await stranger.newPage();
+    await visitor.goto(url);
+    await expect(visitor.locator("html")).toHaveAttribute("lang", "en-US");
+    await expect(visitor.getByRole("img", { name: /Тихий ранок/ })).toBeVisible();
+    await expect(visitor.getByRole("link", { name: /get your own looks/i })).toBeVisible();
+    await visitor.goto(`/uk${new URL(url).pathname}`);
+    await expect(visitor.getByRole("img", { name: /Тихий ранок/ })).toBeVisible();
+    expect((await db.from("look_shares").select("look_name,reasoning").eq("token", token).single()).data).toEqual(snapshot.data);
   } finally {
     await stranger.close();
     await cleanupShares();

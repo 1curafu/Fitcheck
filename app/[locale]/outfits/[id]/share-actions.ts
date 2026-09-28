@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isShareToken, isUuid } from "@/lib/share/snapshot";
 import { prepare, publish, stateFor, stop } from "@/lib/share/store";
+import { getActionLocale } from "@/lib/i18n/action-locale";
 
 async function authed() {
   const supabase = await createClient();
@@ -14,7 +15,7 @@ async function authed() {
 export async function prepareShare(input: { outfitId: string; showBrands: boolean }) {
   const { supabase, user } = await authed();
   if (!isUuid(input?.outfitId)) throw new Error("Not found");
-  return prepare(supabase, user.id, { outfitId: input.outfitId, showBrands: input.showBrands === true });
+  return prepare(supabase, user.id, { outfitId: input.outfitId, showBrands: input.showBrands === true, locale: await getActionLocale() });
 }
 
 export async function publishShare(token: string) {

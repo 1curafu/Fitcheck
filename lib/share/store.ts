@@ -1,6 +1,8 @@
 import type { createClient } from "@/lib/supabase/server";
 import { SHARE_CAP, SHARE_IMAGE_FILES, SHARE_LIMITS, clipText, snapshotPieces } from "./snapshot";
 import type { MessageKey } from "@/lib/i18n/keys";
+import type { Locale, ShippedLocale } from "@/lib/i18n/locales";
+import { readOutfitTexts } from "@/lib/outfits/text-store";
 
 export type ShareClient = Awaited<ReturnType<typeof createClient>>;
 type ItemRow = { id: string; name: string | null; subcategory: string | null; category: string; brand: string | null };
@@ -9,10 +11,10 @@ type ItemRow = { id: string; name: string | null; subcategory: string | null; ca
  * Builds or refreshes the frozen public snapshot of one look. Every value comes from the database through the
  * caller's RLS; the TOKEN is minted by the database (spec §0 A4). A refresh clears ready_at until publish (A7).
  */
-export async function prepare(supabase: ShareClient, userId: string, input: { outfitId: string; showBrands: boolean }):
-  Promise<{ status: "ok"; token: string } | { status: "limited"; message: "share.cap"; values: { limit: number } }> {
+export async function prepare(supabase: ShareClient, userId: string, input: { outfitId: string; showBrands: boolean; locale: ShippedLocale }):
+  Promise<{ status: "ok"; token: string; text: { name: string; why: string | null } } | { status: "limited"; message: "share.cap"; values: { limit: number } }> {
   const { data: outfit, error } = await supabase
-    .from("outfits").select("id, look_name, occasion, ai_reasoning").eq("id", input.outfitId).maybeSingle();
+    .from("outfits").select("id, look_name, occasion, ai_reasoning, text_locale").eq("id", input.outfitId).maybeSingle();
   if (error) throw error;
   if (!outfit) throw new Error("Not found");
 
@@ -24,9 +26,15 @@ export async function prepare(supabase: ShareClient, userId: string, input: { ou
     .filter((i): i is ItemRow => Boolean(i));
   if (rows.length === 0) throw new Error("Not found");
 
+  const [selected] = await readOutfitTexts(supabase, [{ id: outfit.id, sourceLocale: outfit.text_locale as Locale,
+    name: outfit.look_name ?? "", why: outfit.ai_reasoning }], input.locale);
+  const text = {
+    name: clipText(selected.name || "Today's look", SHARE_LIMITS.lookName),
+    why: selected.why == null ? null : clipText(selected.why, SHARE_LIMITS.reasoning),
+  };
   const snapshot = {
-    look_name: clipText(outfit.look_name ?? "Today's look", SHARE_LIMITS.lookName),
-    reasoning: outfit.ai_reasoning == null ? null : clipText(outfit.ai_reasoning, SHARE_LIMITS.reasoning),
+    look_name: text.name,
+    reasoning: text.why,
     occasion: outfit.occasion == null ? null : clipText(outfit.occasion, SHARE_LIMITS.occasion),
     pieces: snapshotPieces(rows.map((r) => ({ id: r.id, name: r.name ?? r.subcategory ?? r.category, brand: r.brand, category: r.category })), input.showBrands),
     show_brands: input.showBrands,
@@ -41,7 +49,7 @@ export async function prepare(supabase: ShareClient, userId: string, input: { ou
       .select("token").maybeSingle();
     if (updateError) throw updateError;
     if (!refreshed) throw new Error("Share changed. Try again.");
-    return { status: "ok", token: existing.token };
+    return { status: "ok", token: existing.token, text };
   }
 
   const { count, error: countError } = await supabase.from("look_shares").select("id", { count: "exact", head: true });
@@ -52,7 +60,7 @@ export async function prepare(supabase: ShareClient, userId: string, input: { ou
   const { data: created, error: insertError } = await supabase
     .from("look_shares").insert({ ...snapshot, user_id: userId, outfit_id: outfit.id }).select("token").single();
   if (insertError) throw insertError;
-  return { status: "ok", token: (created as { token: string }).token };
+  return { status: "ok", token: (created as { token: string }).token, text };
 }
 
 async function mustOwn(supabase: ShareClient, token: string) {

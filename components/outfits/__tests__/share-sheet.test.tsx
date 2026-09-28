@@ -79,7 +79,7 @@ test("the card numbers pieces in reading order, and brands follow the snapshot r
 });
 
 test("Create link prepares, uploads the three images with a short cache, publishes, then offers Share and Copy", async () => {
-  actions.prepareShare.mockResolvedValue({ status: "ok", token: TOKEN });
+  actions.prepareShare.mockResolvedValue({ status: "ok", token: TOKEN, text: { name: outfit.lookName, why: outfit.reasoning } });
   actions.publishShare.mockResolvedValue({ status: "published" });
   const sheet = await open();
   await userEvent.click(within(sheet).getByRole("button", { name: /create link/i }));
@@ -90,6 +90,28 @@ test("Create link prepares, uploads the three images with a short cache, publish
   expect(await within(sheet).findByTestId("share-url")).toHaveTextContent(`/l/${TOKEN}`);
   expect(within(sheet).getByRole("button", { name: /^copy$/i })).toBeInTheDocument();
   expect(within(sheet).getByText(/anyone with the link can see this look/i)).toBeInTheDocument();
+});
+
+test("all three uploaded cards use authoritative prepared text when the preview was older", async () => {
+  const text = { name: "Тихий ранок", why: "Затишний образ." };
+  actions.prepareShare.mockResolvedValue({ status: "ok", token: TOKEN, text });
+  actions.publishShare.mockResolvedValue({ status: "published" });
+  const sheet = await open();
+  expect(r.renderCard.mock.calls.at(-1)![1].title).toBe(outfit.lookName);
+  r.renderCard.mockClear();
+  await userEvent.click(within(sheet).getByRole("button", { name: /create link/i }));
+  await within(sheet).findByTestId("share-url");
+  expect(r.renderCard.mock.calls.map(call => [call[0], call[1].title, call[1].why])).toEqual([
+    ["story", text.name, text.why], ["post", text.name, text.why], ["preview", text.name, text.why],
+  ]);
+});
+
+test("a text update redraws the preview and device export without using an older cached card", async () => {
+  const view = render(<ShareSheet outfit={outfit} pieces={pieces} onClose={() => {}} />);
+  await waitFor(() => expect(r.renderCard).toHaveBeenCalledOnce());
+  view.rerender(<ShareSheet outfit={{ ...outfit, lookName: "New words", reasoning: null }} pieces={pieces} onClose={() => {}} />);
+  await waitFor(() => expect(r.renderCard).toHaveBeenCalledTimes(2));
+  expect(r.renderCard.mock.calls.at(-1)![1]).toMatchObject({ title: "New words", why: null });
 });
 
 test("the cap shows its message and uploads nothing", async () => {
@@ -186,7 +208,7 @@ test("Create link starts the clipboard write inside the tap and fills it with th
   const sheet = await open();
   fireEvent.click(within(sheet).getByRole("button", { name: /create link/i }));
   expect(write).toHaveBeenCalledTimes(1); // synchronously, before the server has answered
-  finishPrepare({ status: "ok", token: TOKEN });
+  finishPrepare({ status: "ok", token: TOKEN, text: { name: outfit.lookName, why: outfit.reasoning } });
   expect(await within(sheet).findByRole("button", { name: /^copied$/i })).toBeInTheDocument();
   expect(await (await written!).text()).toContain(`/l/${TOKEN}`);
   vi.unstubAllGlobals();
@@ -196,7 +218,7 @@ test("without ClipboardItem, Create link copies the link once it exists", async 
   vi.stubGlobal("ClipboardItem", undefined);
   const writeText = vi.fn(async () => {});
   Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
-  actions.prepareShare.mockResolvedValue({ status: "ok", token: TOKEN });
+  actions.prepareShare.mockResolvedValue({ status: "ok", token: TOKEN, text: { name: outfit.lookName, why: outfit.reasoning } });
   actions.publishShare.mockResolvedValue({ status: "published" });
   const sheet = await open();
   fireEvent.click(within(sheet).getByRole("button", { name: /create link/i }));
