@@ -5,12 +5,12 @@ import { cssFont, encodeWithinBudget, paintCard, type Fonts } from "./draw";
 export async function loadFonts(): Promise<Fonts> {
   const root = getComputedStyle(document.documentElement);
   const fonts = {
-    serif: root.getPropertyValue("--font-libre-caslon").trim() || "Georgia, serif",
-    sans: root.getPropertyValue("--font-hanken").trim() || "system-ui, sans-serif",
+    serif: ["--font-libre-caslon", "--font-serif-cyrillic"].map(key => root.getPropertyValue(key).trim()).filter(Boolean).join(", ") || "Georgia, serif",
+    sans: ["--font-hanken", "--font-sans-cyrillic"].map(key => root.getPropertyValue(key).trim()).filter(Boolean).join(", ") || "system-ui, sans-serif",
   };
   await Promise.all([
-    document.fonts.load(`400 40px ${fonts.serif}`), document.fonts.load(`italic 400 40px ${fonts.serif}`),
-    document.fonts.load(`400 28px ${fonts.sans}`), document.fonts.load(`500 28px ${fonts.sans}`),
+    document.fonts.load(`400 40px ${fonts.serif}`, "Aa Жж"), document.fonts.load(`italic 400 40px ${fonts.serif}`, "Aa Жж"),
+    document.fonts.load(`400 28px ${fonts.sans}`, "Aa Жж"), document.fonts.load(`500 28px ${fonts.sans}`, "Aa Жж"),
   ]);
   return fonts;
 }

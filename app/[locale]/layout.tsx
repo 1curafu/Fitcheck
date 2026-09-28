@@ -3,7 +3,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 import { SHIPPED_LOCALES } from "@/lib/i18n/locales";
 import { SITE_URL } from "@/lib/site";
-import { Libre_Caslon_Text, Hanken_Grotesk } from "next/font/google";
+import { Libre_Caslon_Text, Hanken_Grotesk, EB_Garamond, Inter } from "next/font/google";
 import "../globals.css";
 import { MobileShell } from "@/components/shell/mobile-shell";
 import { SiteAnalytics } from "@/components/shell/analytics";
@@ -22,6 +22,12 @@ const sans = Hanken_Grotesk({
   variable: "--font-hanken",
   display: "swap",
 });
+
+/** Cyrillic faces fill gaps in Caslon/Hanken; no preload keeps downloads demand-driven. */
+const serifCyrillic = EB_Garamond({ subsets: ["cyrillic"], weight: ["400", "700"], style: ["normal", "italic"],
+  variable: "--font-serif-cyrillic", display: "swap", preload: false });
+const sansCyrillic = Inter({ subsets: ["cyrillic"], weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-sans-cyrillic", display: "swap", preload: false });
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("landing");
@@ -61,7 +67,7 @@ export function generateStaticParams() {
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const locale = await getLocale();
   return (
-    <html lang={locale} className={`${serif.variable} ${sans.variable} h-full`}>
+    <html lang={locale} className={`${serif.variable} ${sans.variable} ${serifCyrillic.variable} ${sansCyrillic.variable} h-full`}>
       <body className="flex min-h-full flex-col">
         <NextIntlClientProvider>
           <MobileShell>{children}</MobileShell>

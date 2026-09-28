@@ -5,8 +5,8 @@
 
 /* ── Fitcheck brand tokens (names that don't collide with shadcn semantics) ── */
 @theme {
-  --font-serif: var(--font-libre-caslon), serif;
-  --font-sans: var(--font-hanken), system-ui, sans-serif;
+  --font-serif: var(--font-libre-caslon), var(--font-serif-cyrillic), serif;
+  --font-sans: var(--font-hanken), var(--font-sans-cyrillic), system-ui, sans-serif;
 
   /* canvas → elevated surfaces (warm near-black ramp) */
   --color-canvas: #0e0e10;
