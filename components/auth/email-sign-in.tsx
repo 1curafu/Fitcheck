@@ -1,12 +1,17 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { createClient } from "@/lib/supabase/client";
+
+const subscribeToReady = () => () => {};
+const clientReady = () => true;
+const serverReady = () => false;
 
 export function EmailSignIn() {
   const t = useTranslations("auth");
   const locale = useLocale();
+  const ready = useSyncExternalStore(subscribeToReady, clientReady, serverReady);
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -22,6 +27,7 @@ export function EmailSignIn() {
         options: {
           emailRedirectTo: `${location.origin}/auth/callback?next=/onboarding&locale=${encodeURIComponent(locale)}`,
           shouldCreateUser: true,
+          data: { locale },
         },
       });
       if (error) setError(t("failed"));
@@ -55,6 +61,7 @@ export function EmailSignIn() {
       <input
         type="email"
         required
+        disabled={!ready}
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder={t("emailPlaceholder")}
@@ -63,7 +70,7 @@ export function EmailSignIn() {
       />
       <button
         type="submit"
-        disabled={loading}
+        disabled={!ready || loading}
         className="rounded-[12px] bg-foreground py-[18px] font-semibold tracking-[0.01em] text-canvas disabled:opacity-50"
       >
         {loading ? t("sending") : t("emailLink")}
