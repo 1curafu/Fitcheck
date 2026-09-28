@@ -17,6 +17,9 @@ for (const thrown of [false, true]) {
     expect(await screen.findByText(uk.auth.failed)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: uk.auth.emailLink })).toBeEnabled();
     expect(screen.queryByText("provider internals")).not.toBeInTheDocument();
+    expect(otp).toHaveBeenCalledWith(expect.objectContaining({ options: expect.objectContaining({
+      emailRedirectTo: expect.stringContaining("&locale=uk"),
+    }) }));
   });
   test(`OAuth errors are translated (throw=${thrown})`, async () => {
     oauth.mockReset();
@@ -26,5 +29,8 @@ for (const thrown of [false, true]) {
     await userEvent.click(screen.getByRole("button", { name: uk.auth.google }));
     expect(await screen.findByText(uk.auth.failed)).toBeInTheDocument();
     expect(screen.queryByText("provider internals")).not.toBeInTheDocument();
+    expect(oauth).toHaveBeenCalledWith(expect.objectContaining({ options: expect.objectContaining({
+      redirectTo: expect.stringContaining("&locale=uk"),
+    }) }));
   });
 }

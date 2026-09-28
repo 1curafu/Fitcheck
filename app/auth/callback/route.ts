@@ -9,7 +9,7 @@ import { readPreferences } from "@/lib/profile/preferences";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const browsing = request.cookies.get("NEXT_LOCALE")?.value;
+  const browsing = request.cookies.get("NEXT_LOCALE")?.value ?? searchParams.get("locale") ?? undefined;
   const browsingLocale = isShippedLocale(browsing) ? browsing : DEFAULT_LOCALE;
   const failed = () => NextResponse.redirect(new URL(localizedPath(browsingLocale, "/?error=auth"), origin));
 
@@ -56,17 +56,22 @@ export async function GET(request: NextRequest) {
         if (pending) response.cookies.delete(PENDING_LOCALE_COOKIE);
       } else {
         Sentry.captureMessage("sign-in locale preference not saved", "warning");
-        response.cookies.set(PENDING_LOCALE_COOKIE, `${user.id}:${locale}`, {
-          path: "/", maxAge: 60 * 60 * 24 * 30, sameSite: "lax", httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-        });
+        // A failed read leaves the saved language unknown. Only an explicit existing choice may override it later.
+        if (!readFailed || pending) {
+          response.cookies.set(PENDING_LOCALE_COOKIE, `${user.id}:${locale}`, {
+            path: "/", maxAge: 60 * 60 * 24 * 30, sameSite: "lax", httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+          });
+        }
       }
     }
 
-    try {
-      const { error: metadataError } = await supabase.auth.updateUser({ data: { locale } });
-      if (metadataError) throw metadataError;
-    } catch { Sentry.captureMessage("sign-in locale auth metadata not saved", "warning"); }
+    if (!readFailed || pending) {
+      try {
+        const { error: metadataError } = await supabase.auth.updateUser({ data: { locale } });
+        if (metadataError) throw metadataError;
+      } catch { Sentry.captureMessage("sign-in locale auth metadata not saved", "warning"); }
+    }
     return response;
   }
 

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 const { startCheckout } = vi.hoisted(() => ({ startCheckout: vi.fn() }));
 vi.mock("@/app/billing/actions", () => ({ startCheckout, openBillingPortal: vi.fn() }));
 import { UpgradeSheet } from "../upgrade-sheet";
+import uk from "@/messages/uk.json";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -29,6 +30,14 @@ it("offers both plans as rows with their prices, annual selected by default", ()
   expect(screen.getByText("CHF 50 / year")).toBeInTheDocument();
   expect(screen.getByText("CHF 5 / month")).toBeInTheDocument();
   expect(screen.getByText(/2 months free · CHF 4\.17 \/ month/)).toBeInTheDocument();
+});
+
+it("translates price intervals and the annual monthly equivalent into Ukrainian", () => {
+  (globalThis as { __intl?: { locale: string; messages: object } }).__intl = { locale: "uk", messages: uk };
+  open("Europe/Zurich");
+  expect(screen.getByText("CHF 50 / рік")).toBeInTheDocument();
+  expect(screen.getByText("CHF 5 / місяць")).toBeInTheDocument();
+  expect(screen.getByText(/CHF 4\.17 \/ місяць/)).toBeInTheDocument();
 });
 
 it("the sheet scrolls when it is taller than the screen", () => {

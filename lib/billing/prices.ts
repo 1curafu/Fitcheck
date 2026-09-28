@@ -1,3 +1,5 @@
+import enUS from "@/messages/en-US.json";
+
 export type Interval = "month" | "year";
 export type DisplayCurrency = "CHF" | "EUR" | "USD";
 
@@ -41,14 +43,15 @@ const FORMAT_TEXT: Record<DisplayCurrency, (amount: string) => string> = {
   USD: (a) => `$${a}`,
 };
 
-export function displayPrice(interval: Interval, tz: string | undefined): { label: string; converted: boolean } {
+export function displayPrice(interval: Interval, tz: string | undefined,
+  intervalLabel: string = enUS.billing[interval === "month" ? "monthPeriod" : "yearPeriod"]): { label: string; converted: boolean } {
   const { currency, converted } = currencyForTimeZone(tz);
-  return { label: `${FORMAT_TEXT[currency](String(DISPLAY_AMOUNTS[interval][currency]))} / ${interval}`, converted };
+  return { label: `${FORMAT_TEXT[currency](String(DISPLAY_AMOUNTS[interval][currency]))} / ${intervalLabel}`, converted };
 }
 
 /** The annual plan's per-month cost, as a hint under it ("CHF 4.17 / month"). Display only. */
-export function monthlyEquivalent(tz: string | undefined): string {
+export function monthlyEquivalent(tz: string | undefined, monthLabel: string = enUS.billing.monthPeriod): string {
   const { currency } = currencyForTimeZone(tz);
   const perMonth = (DISPLAY_AMOUNTS.year[currency] / 12).toFixed(2);
-  return `${FORMAT_TEXT[currency](perMonth)} / month`;
+  return `${FORMAT_TEXT[currency](perMonth)} / ${monthLabel}`;
 }

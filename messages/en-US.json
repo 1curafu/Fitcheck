@@ -578,6 +578,7 @@
       "description": "Dressing for {occasion} — nudge the rest.",
       "formality": "Formality",
       "leanInto": "Lean into",
+      "palette": { "neutral": "neutral", "camel": "camel", "navy": "navy", "olive": "olive", "dark": "dark" },
       "showLooks": "Show 3 looks"
     }
   },
@@ -840,6 +841,8 @@
     "billingInterval": "Billing interval",
     "annual": "Annual",
     "monthly": "Monthly",
+    "monthPeriod": "month",
+    "yearPeriod": "year",
     "annualHint": "2 months free · {monthlyEquivalent}",
     "finalPrice": "Final price and currency shown at checkout.",
     "waiver": "Start Pro now. I understand I lose my 14-day right of withdrawal once it starts.",

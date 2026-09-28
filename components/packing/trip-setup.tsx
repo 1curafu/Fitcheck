@@ -25,6 +25,7 @@ export type TripSetupProps = {
 
 export function TripSetup({ destinationLabel, lat, lon, timezone }: TripSetupProps) {
   const t = useTranslations("packing");
+  const locationT = useTranslations("weather");
   const tOccasion = useTranslations("vocab.occasion");
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -127,7 +128,7 @@ export function TripSetup({ destinationLabel, lat, lon, timezone }: TripSetupPro
             className="flex min-h-[56px] w-full items-center gap-[13px] border-b border-[var(--hairline-3)] p-4 text-left"
           >
             <span className="flex-1 text-sm text-muted-foreground">{t("destination")}</span>
-            <span className="text-base text-value">{destination.label}</span>
+            <span className="text-base text-value">{destination.label === "Current location" ? locationT("currentLocation") : destination.label}</span>
             <span aria-hidden="true" className="text-[18px] text-muted-dim">
               ›
             </span>

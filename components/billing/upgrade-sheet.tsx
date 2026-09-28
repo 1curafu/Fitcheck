@@ -179,8 +179,8 @@ const PURCHASE_MESSAGES: Record<StartCheckoutResult["status"], "waiverRequired" 
  * The price in the buyer's currency — display only; Stripe Checkout charges the real local currency.
  * Pass the zone from `useClientTimeZone()`: undefined on the server renders the neutral CHF label (review I1).
  */
-export function proPriceLabel(interval: Interval, timeZone: string | undefined) {
-  return displayPrice(interval, timeZone);
+export function proPriceLabel(interval: Interval, timeZone: string | undefined, intervalLabel: string) {
+  return displayPrice(interval, timeZone, intervalLabel);
 }
 
 /**
@@ -199,13 +199,13 @@ function ProPurchase({ timeZone }: { timeZone?: string }) {
   if (process.env.NEXT_PUBLIC_BILLING_ENABLED !== "1") {
     return (
       <div className="mt-5 grid min-h-[52px] w-full place-items-center rounded-[14px] bg-foreground text-[15.5px] font-semibold text-canvas">
-        {t("goProPrice", { price: displayPrice("month", tz).label })}
+        {t("goProPrice", { price: displayPrice("month", tz, t("monthPeriod")).label })}
       </div>
     );
   }
 
   const PLANS: Array<{ id: Interval; name: string; hint: string | null }> = [
-    { id: "year", name: t("annual"), hint: t("annualHint", { monthlyEquivalent: monthlyEquivalent(tz) }) },
+    { id: "year", name: t("annual"), hint: t("annualHint", { monthlyEquivalent: monthlyEquivalent(tz, t("monthPeriod")) }) },
     { id: "month", name: t("monthly"), hint: null },
   ];
 
@@ -248,7 +248,7 @@ function ProPurchase({ timeZone }: { timeZone?: string }) {
                 <span className="block text-[14.5px] text-foreground">{p.name}</span>
                 {p.hint && <span className="block text-[12px] text-muted-dim">{p.hint}</span>}
               </span>
-              <span className="text-[14px] text-value">{displayPrice(p.id, tz).label}</span>
+              <span className="text-[14px] text-value">{displayPrice(p.id, tz, t(p.id === "month" ? "monthPeriod" : "yearPeriod")).label}</span>
             </label>
           );
         })}

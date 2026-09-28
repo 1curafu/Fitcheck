@@ -1,11 +1,12 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 export function OAuthButtons() {
   const t = useTranslations("auth");
+  const locale = useLocale();
   const [error, setError] = useState<string | null>(null);
 
   async function signIn(provider: "google") {
@@ -14,7 +15,7 @@ export function OAuthButtons() {
       const supabase = createClient();
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
-        options: { redirectTo: `${location.origin}/auth/callback?next=/onboarding` },
+        options: { redirectTo: `${location.origin}/auth/callback?next=/onboarding&locale=${encodeURIComponent(locale)}` },
       });
       if (error) setError(t("failed"));
     } catch {

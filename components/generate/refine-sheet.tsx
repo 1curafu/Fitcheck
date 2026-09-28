@@ -17,7 +17,7 @@ const PALETTE = [
   { id: "navy", hex: "#2C3A4C" },
   { id: "olive", hex: "#6E6F52" },
   { id: "dark", hex: "#2B2A2E" },
-];
+] as const;
 
 export function RefineSheet({
   open,
@@ -83,7 +83,7 @@ export function RefineSheet({
               <button
                 key={c.id}
                 type="button"
-                aria-label={c.id}
+                aria-label={t(`palette.${c.id}`)}
                 aria-pressed={on}
                 onClick={() => setColors((cur) => (on ? cur.filter((x) => x !== c.id) : [...cur, c.id]))}
                 style={{ background: c.hex }}

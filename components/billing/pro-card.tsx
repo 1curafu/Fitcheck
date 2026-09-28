@@ -39,7 +39,7 @@ export function ProCard({ tier, subscription }: { tier: Tier; subscription?: Sub
           {isPro ? t("active") : t("wholeWardrobe")}
         </span>
         <span className="mt-[13px] inline-block rounded-full bg-canvas px-[17px] py-[9px] text-[13px] font-semibold text-foreground">
-          {isPro ? t("membership") : t("goProPrice", { price: proPriceLabel("month", timeZone).label })}
+          {isPro ? t("membership") : t("goProPrice", { price: proPriceLabel("month", timeZone, t("monthPeriod")).label })}
         </span>
       </button>
 

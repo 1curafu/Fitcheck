@@ -13,6 +13,8 @@ test.describe("signed out", () => {
       const res = await page.goto("/");
       expect(new URL(page.url()).pathname).toBe("/");
       expect(res?.status()).toBe(200);
+      await expect(page.locator('meta[property="og:image"]')).toHaveAttribute("content", "https://fitcheck.space/opengraph-image");
+      await expect(page.locator('meta[name="twitter:image"]')).toHaveAttribute("content", "https://fitcheck.space/opengraph-image");
     } finally { await ctx.close(); }
   });
 
@@ -23,6 +25,7 @@ test.describe("signed out", () => {
       await page.goto("/");
       await expect(page).toHaveURL(/\/uk$/);
       await expect(page.locator("html")).toHaveAttribute("lang", "uk");
+      await expect(page.locator('meta[property="og:image"]')).toHaveAttribute("content", "https://fitcheck.space/opengraph-image");
       await page.getByRole("button", { name: "Українська", exact: true }).click();
       await page.getByRole("dialog").getByRole("button", { name: "English (UK)", exact: true }).click();
       await expect(page).toHaveURL(/\/en-gb$/);

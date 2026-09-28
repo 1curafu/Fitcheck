@@ -40,6 +40,12 @@ it("the saved account language wins over an ordinary browsing cookie", async () 
   expect(mock.update).not.toHaveBeenCalled();
 });
 
+it("keeps the initiating page language for a first sign-in without a locale cookie", async () => {
+  const response = await GET(new NextRequest("https://fitcheck.space/auth/callback?code=c&next=/onboarding&locale=uk"));
+  expect(response.headers.get("location")).toBe("https://fitcheck.space/uk/onboarding");
+  expect(mock.update).toHaveBeenCalledWith({ preferences: expect.objectContaining({ locale: "uk" }) });
+});
+
 it("retries and clears a marker for this account only after a successful save", async () => {
   mock.read.mockResolvedValue({ data: { preferences: { locale: "en-GB", tempUnit: "F" } }, error: null });
   const response = await GET(request("NEXT_LOCALE=en-GB; FITCHECK_PENDING_LOCALE=user:uk"));
@@ -56,13 +62,32 @@ it.each(["other:uk", "user:de", "malformed"])("ignores a foreign or invalid mark
   expect(response.cookies.get("FITCHECK_PENDING_LOCALE")).toBeUndefined();
 });
 
-it.each(["read", "write"] as const)("profile %s failure still redirects and preserves a retry marker", async (stage) => {
-  mock[stage].mockResolvedValue({ data: null, error: new Error("private provider details") });
+it("a failed profile read cannot promote browsing language over the saved account language", async () => {
+  mock.read.mockResolvedValueOnce({ data: null, error: new Error("unavailable") });
+  const first = await GET(request());
+  expect(first.cookies.get("FITCHECK_PENDING_LOCALE")).toBeUndefined();
+  expect(mock.update).not.toHaveBeenCalled();
+  expect(mock.updateUser).not.toHaveBeenCalled();
+  mock.read.mockResolvedValueOnce({ data: { preferences: { locale: "en-GB" } }, error: null });
+  const second = await GET(request(`NEXT_LOCALE=${first.cookies.get("NEXT_LOCALE")?.value}`));
+  expect(second.headers.get("location")).toBe("https://fitcheck.space/en-gb/onboarding");
+  expect(mock.update).not.toHaveBeenCalled();
+});
+
+it("a profile read failure retains an explicit same-account pending choice", async () => {
+  mock.read.mockResolvedValue({ data: null, error: new Error("unavailable") });
+  const response = await GET(request("NEXT_LOCALE=en-GB; FITCHECK_PENDING_LOCALE=user:uk"));
+  expect(response.headers.get("location")).toBe("https://fitcheck.space/uk/onboarding");
+  expect(response.cookies.get("FITCHECK_PENDING_LOCALE")?.value).toBe("user:uk");
+  expect(mock.update).not.toHaveBeenCalled();
+});
+
+it("profile write failure still redirects and preserves a retry marker", async () => {
+  mock.write.mockResolvedValue({ data: null, error: new Error("private provider details") });
   const response = await GET(request());
   expect(response.headers.get("location")).toBe("https://fitcheck.space/uk/onboarding");
   expect(response.cookies.get("FITCHECK_PENDING_LOCALE")?.value).toBe("user:uk");
   expect(mock.captureMessage).toHaveBeenCalledWith("sign-in locale preference not saved", "warning");
-  if (stage === "read") expect(mock.update).not.toHaveBeenCalled();
 });
 
 it("a failed retry retains the pending choice over an older saved locale", async () => {

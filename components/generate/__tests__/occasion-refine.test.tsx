@@ -2,6 +2,15 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { OccasionRow } from "../occasion-row";
 import { RefineSheet } from "../refine-sheet";
+import { renderInLocale } from "@/lib/i18n/__tests__/render";
+
+test("Ukrainian palette labels retain English generation identifiers", async () => {
+  const onApply = vi.fn();
+  await renderInLocale(<RefineSheet open occasionLabel="Щодня" onApply={onApply} onClose={() => {}} />, "uk");
+  await userEvent.click(screen.getByRole("button", { name: "Темно-сині" }));
+  await userEvent.click(screen.getByRole("button", { name: "Показати 3 образи" }));
+  expect(onApply).toHaveBeenCalledWith({ formality: 3, lean: ["navy"] });
+});
 
 test("occasion chips use the SELECT variant (rust-tint), not the filter/cream variant (D4)", () => {
   render(<OccasionRow occasion="everyday" onOccasion={() => {}} />);
