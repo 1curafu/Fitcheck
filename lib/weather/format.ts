@@ -1,4 +1,5 @@
 import type { Preferences } from "@/lib/profile/preferences";
+import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/locales";
 
 export type TempUnit = Preferences["tempUnit"];
 
@@ -21,7 +22,7 @@ export function toFahrenheit(tempC: number): number {
  * unit is established once on the Settings screen rather than repeated beside
  * every number.
  */
-export function formatTemp(tempC: number, unit: TempUnit = "C"): string {
+export function formatTemp(tempC: number, unit: TempUnit = "C", locale: Locale = DEFAULT_LOCALE): string {
   const value = unit === "F" ? toFahrenheit(tempC) : Math.round(tempC);
-  return `${value}°`;
+  return new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(value === 0 ? 0 : value) + "°";
 }

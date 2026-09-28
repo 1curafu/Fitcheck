@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { WeatherPayload } from "@/lib/generator/types";
@@ -29,6 +29,7 @@ export function WeatherStrip({
   geoError?: string | null;
 }) {
   const t = useTranslations("weather");
+  const locale = useLocale();
   const [menuOpen, setMenuOpen] = useState(false);
   const [showHourly, setShowHourly] = useState(false);
   // laterSentence === lead + adviceClause; render the clause in rust (README §2).
@@ -37,7 +38,7 @@ export function WeatherStrip({
   return (
     <div className="relative">
       <div className="flex items-baseline gap-2 text-sm">
-        <span className="font-serif text-[21px] text-foreground">{formatTemp(weather.tempC, weather.tempUnit)}</span>
+        <span className="font-serif text-[21px] text-foreground">{formatTemp(weather.tempC, weather.tempUnit, locale)}</span>
         <span className="max-w-[9rem] truncate text-[12.5px] text-muted-foreground">{weather.condition}</span>
         <span className="text-faint">·</span>
         <button
@@ -55,7 +56,7 @@ export function WeatherStrip({
             <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        <span className="text-[11px] text-muted-dim">{t("feels", { temperature: formatTemp(weather.feelsLikeC, weather.tempUnit) })}</span>
+        <span className="text-[11px] text-muted-dim">{t("feels", { temperature: formatTemp(weather.feelsLikeC, weather.tempUnit, locale) })}</span>
       </div>
 
       {(locating || geoError) && (
@@ -128,7 +129,7 @@ export function WeatherStrip({
                   <path d="M7 18a4.5 4.5 0 0 1-.5-8.97 5.5 5.5 0 0 1 10.6-.5A4 4 0 0 1 17 18z" />
                 </svg>
               </div>
-              <div className="text-[11.5px] text-foreground">{formatTemp(h.tempC, weather.tempUnit)}</div>
+              <div className="text-[11.5px] text-foreground">{formatTemp(h.tempC, weather.tempUnit, locale)}</div>
             </div>
           ))}
         </div>

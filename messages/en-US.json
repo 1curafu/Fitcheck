@@ -614,6 +614,13 @@
       "dressedForIt": "you're dressed for it.",
       "carryJacket": "carry a jacket.",
       "noLayer": "no extra layer."
+    },
+    "conditions": {
+      "rain": "Rain",
+      "clear": "Clear",
+      "partlyCloudy": "Partly cloudy",
+      "snow": "Snow",
+      "overcast": "Overcast"
     }
   },
   "outfit": {

@@ -105,6 +105,7 @@ export type Forecast = {
   tempC: number;
   feelsLikeC: number;
   condition: string;
+  conditionId: number;
   timezone: string;
   hourly: HourCell[];
   restOfDay: HourCell[];

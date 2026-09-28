@@ -87,7 +87,7 @@ export function DayList({
               </div>
               <div className="flex-1" />
               <div className="text-[13px] tabular-nums text-muted-foreground">
-                {formatTemp(d.tempC, unit)}
+                {formatTemp(d.tempC, unit, locale)}
                 {d.rain ? ` · ${t("rain")}` : ""}
               </div>
             </header>

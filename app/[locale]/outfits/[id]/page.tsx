@@ -7,6 +7,7 @@ import { todayFor } from "@/lib/outfits/today";
 import { isWornToday } from "@/lib/outfits/wear";
 import { readPreferences } from "@/lib/profile/preferences";
 import { formatTemp } from "@/lib/weather/format";
+import { conditionKey } from "@/lib/weather/condition";
 import { layoutForLook } from "@/lib/generator/layout";
 import {
   OutfitDetail,
@@ -46,6 +47,7 @@ export default function OutfitPage({
 async function OutfitBody({ params }: { params: Promise<{ id: string }> }) {
   const tVocab = await getTranslations("vocab");
   const t = await getTranslations("outfit");
+  const tWeather = await getTranslations("weather");
   const locale = await getLocale();
   const { id } = await params;
   const supabase = await createClient();
@@ -117,6 +119,7 @@ async function OutfitBody({ params }: { params: Promise<{ id: string }> }) {
   const weather = outfit.weather_snapshot as {
     tempC?: number;
     condition?: string;
+    conditionId?: number;
   } | null;
   // The snapshot stores Celsius, as everything does; the unit is applied here.
   const prefs = readPreferences(profile?.preferences);
@@ -129,7 +132,7 @@ async function OutfitBody({ params }: { params: Promise<{ id: string }> }) {
         lookName: text.name || t("todayLook"),
         occasion: outfit.occasion ?? "",
         weatherLabel: weather
-          ? `${formatTemp(weather.tempC ?? 0, prefs.tempUnit)} ${weather.condition ?? ""}`.trim()
+          ? `${formatTemp(weather.tempC ?? 0, prefs.tempUnit, locale)} ${tWeather(`conditions.${conditionKey(weather.conditionId ?? weather.condition)}`)}`
           : "",
         reasoning: text.why,
         // The share card's kicker date: the daily drop's local date, else the row's created day. Never weather (A3).

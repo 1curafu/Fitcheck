@@ -614,6 +614,13 @@
       "dressedForIt": "твій одяг підходить.",
       "carryJacket": "візьми куртку із собою.",
       "noLayer": "додатковий шар не потрібен."
+    },
+    "conditions": {
+      "rain": "Дощ",
+      "clear": "Ясно",
+      "partlyCloudy": "Мінлива хмарність",
+      "snow": "Сніг",
+      "overcast": "Хмарно"
     }
   },
   "outfit": {

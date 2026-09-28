@@ -21,6 +21,12 @@ import dailyFixture from "./fixtures/onecall-1day.json";
 const bundle = { current: currentFixture, hourly: hourlyFixture, daily: dailyFixture };
 const NOW = currentFixture.data[0].dt; // 07:41 local
 
+test("live forecast retains the numeric condition alongside stable English domain labels", () => {
+  const forecast = mapOneCall(bundle, NOW);
+  expect(forecast.conditionId).toBe(currentFixture.data[0].weather[0].id);
+  expect(["Rain", "Clear", "Partly cloudy", "Snow", "Overcast"]).toContain(forecast.condition);
+});
+
 describe("localParts — unix dt + timezone_offset → local wall clock", () => {
   /**
    * ⚠️ The single sharpest edge in this swap. Open-Meteo returned LOCAL ISO

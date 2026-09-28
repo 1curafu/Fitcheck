@@ -1,6 +1,7 @@
 import type { HourCell } from "@/lib/generator/types";
 import { OUTERWEAR_C } from "@/lib/generator/rules";
 import { formatTemp, type TempUnit } from "./format";
+import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/locales";
 
 /**
  * How far the day must move before it is worth mentioning. One number for both
@@ -51,6 +52,7 @@ export function laterAdvice(
   hourly: HourCell[],
   unit: TempUnit = "C",
   dayHighC?: number,
+  locale: Locale = DEFAULT_LOCALE,
 ): AdviceCopy {
   const say = (leadKey: AdviceCopy["leadKey"], clauseKey: AdviceCopy["clauseKey"], leadValues: Record<string, string> = {}) =>
     ({ leadKey, clauseKey, leadValues });
@@ -68,7 +70,7 @@ export function laterAdvice(
   // The look carries a coat, so every clause below is about the cold itself.
   const lookHasCoat = dayHighC != null && dayHighC < OUTERWEAR_C;
   if (lookHasCoat) {
-    if (drop >= SWING_C) return say("downTonight", "keepCoat", { temperature: formatTemp(last, unit) });
+    if (drop >= SWING_C) return say("downTonight", "keepCoat", { temperature: formatTemp(last, unit, locale) });
     return say("coldDay", "coatEarns");
   }
 
@@ -76,15 +78,15 @@ export function laterAdvice(
   // for. This is the instruction half of "dress for the peak" — without it a
   // linen shirt at 6°C reads as the stylist getting it wrong.
   if (rise >= SWING_C && now < OUTERWEAR_C) {
-    return say("upLater", "takeLayer", { temperature: formatTemp(dayHighC!, unit) });
+    return say("upLater", "takeLayer", { temperature: formatTemp(dayHighC!, unit, locale) });
   }
 
   // Already warm and climbing: the look is right and the user is in it.
   if (rise >= SWING_C) {
-    return say("upAfternoon", "dressedForIt", { temperature: formatTemp(dayHighC!, unit) });
+    return say("upAfternoon", "dressedForIt", { temperature: formatTemp(dayHighC!, unit, locale) });
   }
 
-  if (drop >= SWING_C) return say("downTonight", "carryJacket", { temperature: formatTemp(last, unit) });
+  if (drop >= SWING_C) return say("downTonight", "carryJacket", { temperature: formatTemp(last, unit, locale) });
 
   return say("dryEvening", "noLayer");
 }

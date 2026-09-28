@@ -51,6 +51,8 @@ export type WeatherPayload = {
   tempC: number;
   feelsLikeC: number;
   condition: string;
+  /** Numeric provider condition in new snapshots; older saved looks may lack it. */
+  conditionId?: number;
   cityLabel: string;
   timezone: string; // IANA zone at the location, e.g. "Europe/Berlin" — from timezone=auto
   // Where this location came from. "city" = a deliberate user choice; the client

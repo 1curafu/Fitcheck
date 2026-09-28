@@ -9,6 +9,7 @@ import { fetchForecast } from "@/lib/weather/forecast";
 import { laterAdvice } from "@/lib/weather/advice";
 import { planningTempFor, rainAheadFor } from "@/lib/weather/planning";
 import { readPreferences } from "@/lib/profile/preferences";
+import { conditionKey } from "@/lib/weather/condition";
 import { personalBand, applyFormalityOverride, planningTemp } from "@/lib/generator/rules";
 import { buildCandidates, missingCategory, type CandidateItem } from "@/lib/generator/candidates";
 import { rankTopN } from "@/lib/generator/rank";
@@ -86,15 +87,16 @@ export async function generate(input: {
     const now = new Date();
     const f = await fetchForecast(loc.lat, loc.lon);
     const prefs = readPreferences(profile?.preferences);
-    const advice = laterAdvice(f.hourly, prefs.tempUnit, f.highC);
     const locale = await getActionLocale();
+    const advice = laterAdvice(f.hourly, prefs.tempUnit, f.highC, locale);
     const tAdvice = await getTranslations({ locale, namespace: "weather.advice" });
     const tWeather = await getTranslations({ locale, namespace: "weather" });
     const adviceClause = tAdvice(advice.clauseKey);
     const weather: WeatherPayload = {
       tempC: f.tempC,
       feelsLikeC: f.feelsLikeC,
-      condition: f.condition,
+      condition: tWeather(`conditions.${conditionKey(f.conditionId)}`),
+      conditionId: f.conditionId,
       cityLabel: loc.label,
       timezone: f.timezone,
       locationOrigin: loc.origin,
