@@ -1,5 +1,10 @@
 import robots from "../robots";
 import sitemap from "../sitemap";
+import manifest from "../manifest";
+
+test("one installed app keeps its stable root launch and English manifest",()=>{
+ expect(manifest()).toMatchObject({name:"Fitcheck",short_name:"Fitcheck",start_url:"/",lang:"en-US",display:"standalone"});
+});
 import { PRIVATE_PREFIXES, PUBLIC_PATHS, SITE_URL, UNLISTED_PREFIXES } from "@/lib/site";
 import { readdirSync } from "node:fs";
 import { config as proxyConfig } from "../../proxy";

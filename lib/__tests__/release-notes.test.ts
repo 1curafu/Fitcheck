@@ -44,4 +44,19 @@ test.each(["en-GB", "uk"] as const)("latest release has %s text", locale => {
   expect(CURRENT_RELEASE.i18n?.[locale]).toBeDefined();
   expect(noteFor(CURRENT_RELEASE, locale)).toMatchObject(CURRENT_RELEASE.i18n![locale]!);
 });
-test("older releases fall back to English", () => expect(noteFor(RELEASE_NOTES[1], "uk")).toEqual(RELEASE_NOTES[1]));
+test("every historical release has complete Ukrainian text with unchanged claims", () => {
+ for (const note of RELEASE_NOTES) {
+  expect(note.i18n?.uk?.headline.trim()).toBeTruthy();
+  const translated = noteFor(note, "uk");
+  expect(translated.added).toHaveLength(note.added.length);
+  expect(translated.fixed).toHaveLength(note.fixed.length);
+  expect(translated.version).toBe(note.version);
+  expect(translated.date).toBe(note.date);
+ }
+});
+test("British release history avoids American-specific terms", () => {
+ for (const note of RELEASE_NOTES) {
+  const translated=noteFor(note,"en-GB");
+  expect([translated.headline,...translated.added,...translated.fixed].join(" ")).not.toMatch(/\b(closet|sneakers|color|favorite)\b/i);
+ }
+});

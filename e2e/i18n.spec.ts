@@ -2,6 +2,7 @@ import { test, expect, devices } from "@playwright/test";
 import { admin, testUserId } from "./helpers";
 import { noNativeShare, seededLookId, cleanupShares, createLink } from "./share-helpers";
 import uk from "../messages/uk.json";
+import { CURRENT_RELEASE } from "../lib/release-notes";
 
 test.describe("signed out", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
@@ -39,6 +40,13 @@ test.describe("signed out", () => {
     expect(res?.status()).toBe(404);
     await expect(page.getByText(uk.notFound.title)).toBeVisible();
   });
+
+  test("installed root launch follows the saved Ukrainian cookie",async({page})=>{
+    await page.context().addCookies([{name:"NEXT_LOCALE",value:"uk",url:process.env.E2E_BASE_URL??"http://127.0.0.1:3000",sameSite:"Lax"}]);
+    await page.goto("/");
+    await expect(page).toHaveURL(/\/uk$/);
+    await expect(page.locator("html")).toHaveAttribute("lang","uk");
+  });
 });
 
 test.describe("signed in", () => {
@@ -64,6 +72,16 @@ test.describe("signed in", () => {
       // Supabase merges metadata; null clears the locale if it was absent before the test.
       await db.auth.admin.updateUserById(id, { user_metadata: { ...user.data.user?.user_metadata, locale: user.data.user?.user_metadata.locale ?? null } });
       await page.context().clearCookies({ name: "NEXT_LOCALE" });
+    }
+  });
+
+  test("acknowledged release stays acknowledged across languages",async({page})=>{
+    await page.addInitScript(version=>localStorage.setItem("fitcheck:last-seen-release",version),CURRENT_RELEASE.version);
+    for (const locale of ["uk","en-gb"]) {
+      await page.goto(`/${locale}/closet`);
+      await expect(page.getByRole("heading",{level:1})).toBeVisible();
+      await expect(page.getByText(CURRENT_RELEASE.i18n?.[locale==="uk"?"uk":"en-GB"]?.headline??CURRENT_RELEASE.headline,{exact:true})).toHaveCount(0);
+      expect(await page.evaluate(()=>localStorage.getItem("fitcheck:last-seen-release"))).toBe(CURRENT_RELEASE.version);
     }
   });
 
