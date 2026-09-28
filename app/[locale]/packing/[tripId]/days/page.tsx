@@ -13,6 +13,8 @@ import { redirect } from "@/lib/i18n/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { intlLocale } from "@/lib/i18n/format";
 import { readPreferences } from "@/lib/profile/preferences";
+import { readOutfitTexts } from "@/lib/outfits/text-store";
+import type { Locale } from "@/lib/i18n/locales";
 
 /**
  * Only the back control — see the note in the capsule route's shell.
@@ -64,11 +66,13 @@ async function DaysBody({ params }: { params: Promise<{ tripId: string }> }) {
 
   const { data: looks } = await supabase
     .from("outfits")
-    .select("id, trip_day, occasion, look_name, ai_reasoning, outfit_items(item_id)")
+    .select("id, trip_day, occasion, look_name, ai_reasoning, text_locale, outfit_items(item_id)")
     .eq("trip_id", tripId)
     .order("trip_day");
 
   const rows = looks ?? [];
+  const texts = await readOutfitTexts(supabase, rows.map(row => ({ id: row.id, sourceLocale: row.text_locale as Locale,
+    name: row.look_name ?? "", why: row.ai_reasoning })), locale);
   const itemIds = [...new Set(rows.flatMap((l) => (l.outfit_items ?? []).map((oi) => oi.item_id)))];
 
   const { data: items } = await supabase
@@ -97,7 +101,7 @@ async function DaysBody({ params }: { params: Promise<{ tripId: string }> }) {
   // card — "2nd wear" is only true relative to everything worn before it.
   const seen = new Map<string, number>();
 
-  const days: DayCard[] = rows.map((l) => {
+  const days: DayCard[] = rows.map((l, index) => {
     const date = l.trip_day as string;
     const w = forecast.byDate[date];
     const pieces = (l.outfit_items ?? []).flatMap((oi) => {
@@ -126,8 +130,7 @@ async function DaysBody({ params }: { params: Promise<{ tripId: string }> }) {
       occasion: l.occasion as string,
       tempC: w?.tempC ?? 15,
       rain: w?.rain ?? false,
-      name: (l.look_name as string) ?? "",
-      why: (l.ai_reasoning as string) ?? "",
+      text: texts[index],
       pieces,
     };
   });

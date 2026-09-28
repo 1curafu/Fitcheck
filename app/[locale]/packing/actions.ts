@@ -2,6 +2,8 @@
 
 import { revalidateEverywhere } from "@/lib/i18n/revalidate";
 import { createClient } from "@/lib/supabase/server";
+import { getActionLocale } from "@/lib/i18n/action-locale";
+import type { Locale } from "@/lib/i18n/locales";
 import { currentEntitlements, recordGeneration } from "@/lib/billing/entitlements";
 import { fetchTripForecast } from "@/lib/weather/forecast";
 import { solveCapsule, QUALITY_FLOOR, type CapsuleItem } from "@/lib/packing/capsule";
@@ -76,6 +78,7 @@ export async function planTrip(input: PlanTripInput): Promise<{ tripId: string }
 
   const tripId = await solveAndPersist({
     userId: user.id,
+    locale: await getActionLocale(),
     input,
     items,
     days,
@@ -99,6 +102,7 @@ export async function planTrip(input: PlanTripInput): Promise<{ tripId: string }
 
 type SolveArgs = {
   userId: string;
+  locale: Locale;
   input: PlanTripInput;
   items: CandidateItem[];
   days: ReturnType<typeof expandDays>;
@@ -149,6 +153,7 @@ async function solveAndPersist(args: SolveArgs): Promise<string> {
     });
 
   const narration = await narrateTrip({
+    locale: args.locale,
     days: scheduled.map((d) => ({
       occasion: d.day.occasion,
       tempC: args.forecast.byDate[d.day.date]?.tempC ?? 15,
@@ -182,7 +187,7 @@ async function solveAndPersist(args: SolveArgs): Promise<string> {
     ));
 
   if (args.tripId) await replaceCapsule(tripId, capsule);
-  await saveTripLooks(args.userId, tripId, scheduled, narration.days);
+  await saveTripLooks(args.userId, tripId, scheduled, narration.days, args.locale);
 
   return tripId;
 }
@@ -238,6 +243,7 @@ export async function editCapsule(
 
   await solveAndPersist({
     userId: user.id,
+    locale: await getActionLocale(),
     tripId,
     input: {
       destinationLabel: trip.destinationLabel,

@@ -43,6 +43,11 @@ test("legacy caller defaults provenance to English", async () => {
   expect(db.inserted[0].text_locale).toBe("en-US");
 });
 
+test("a missing trip narration preserves localized provenance with its day fallback", async () => {
+  await saveTripLooks("owner", "trip", [{ day: { date: "2026-09-28", occasion: "everyday" }, itemIds: [], wearIndex: {} }] as ScheduledDay[], [], "uk");
+  expect(db.inserted[0]).toMatchObject({ look_name: "День 1", ai_reasoning: "", text_locale: "uk" });
+});
+
 test("read projection preserves nullable original reasoning and requested display locale", async () => {
   db.rows = [{ id: "outfit", look_name: "Quiet Morning", ai_reasoning: null, text_locale: "en-US", layout: {}, wear_logs: [] }];
   const looks = await loadDailyLooks("owner", "everyday", "2026-09-28", "uk");

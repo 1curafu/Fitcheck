@@ -12,7 +12,8 @@ import { expandDays } from "@/lib/packing/plan";
 import { fetchTripForecast } from "@/lib/weather/forecast";
 import { getLocale, getTranslations } from "next-intl/server";
 import { formatDateRange, intlLocale } from "@/lib/i18n/format";
-import type { ShippedLocale } from "@/lib/i18n/locales";
+import type { Locale, ShippedLocale } from "@/lib/i18n/locales";
+import { readOutfitTexts } from "@/lib/outfits/text-store";
 
 /**
  * The shell, and the `<Suspense>` fallback.
@@ -59,9 +60,13 @@ async function TripBody({ params }: { params: Promise<{ tripId: string }> }) {
 
   const { data: looks } = await supabase
     .from("outfits")
-    .select("id, trip_day, occasion, look_name, ai_reasoning")
+    .select("id, trip_day, occasion, look_name, ai_reasoning, text_locale")
     .eq("trip_id", tripId)
     .order("trip_day");
+
+  const first = looks?.[0];
+  const [firstText] = await readOutfitTexts(supabase, first ? [{ id: first.id, sourceLocale: first.text_locale as Locale,
+    name: first.look_name ?? "", why: first.ai_reasoning }] : [], locale);
 
   // The WHOLE closet, not just the capsule: a swap has to offer real
   // alternatives, and they are cutouts the sheet renders at thumbnail size.
@@ -123,9 +128,10 @@ async function TripBody({ params }: { params: Promise<{ tripId: string }> }) {
         totalDays={days.length}
         pieceCount={pieces.length}
         why={
-          (looks ?? [])[0]?.ai_reasoning ??
+          firstText?.why ??
           t("shortfall.fallbackWhy")
         }
+        lookText={firstText ?? null}
         onBuildPartial={
           covered > 0 ? (
             <Link
@@ -155,7 +161,8 @@ async function TripBody({ params }: { params: Promise<{ tripId: string }> }) {
       pieces={pieces}
       dayCount={days.length}
       outfitCount={covered}
-      why={(looks ?? [])[0]?.ai_reasoning ?? ""}
+      why={firstText?.why ?? ""}
+      lookText={firstText ?? null}
       /**
        * ⚠️ Was hard-coded `false`, so a trip past the forecast window silently
        * rendered a capsule built on the nearest real day's weather, PRESENTED

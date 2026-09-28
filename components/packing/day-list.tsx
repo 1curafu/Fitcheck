@@ -1,6 +1,7 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { useCallback, useState } from "react";
 import { Link } from "@/lib/i18n/navigation";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { PackingBack } from "./back-link";
@@ -8,6 +9,8 @@ import { WhyQuote } from "@/components/generate/why-quote";
 import { formatTemp, type TempUnit } from "@/lib/weather/format";
 import { WeatherAttribution } from "@/components/weather/attribution";
 import type { UiOccasion } from "@/lib/generator/types";
+import { LookTextRequest } from "@/components/i18n/look-text-request";
+import { displayOutfitText, type OutfitText, type TranslationResult } from "@/lib/outfits/text";
 
 export type DayCard = {
   /** The stored outfit, so the card can open the look it describes. */
@@ -17,8 +20,7 @@ export type DayCard = {
   occasion: string;
   tempC: number;
   rain: boolean;
-  name: string;
-  why: string;
+  text: OutfitText;
   pieces: { id: string; name: string; imageUrl: string; wear: number }[];
 };
 
@@ -43,9 +45,14 @@ export function DayList({
   backHref: string;
 }) {
   const t = useTranslations("packing");
+  const locale = useLocale();
+  const [result, setResult] = useState<TranslationResult | null>(null);
+  const onReady = useCallback((next: TranslationResult) => { if (next.locale === locale) setResult(next); }, [locale]);
+  const displayed = days.map(day => ({ ...day, text: displayOutfitText(day.text, locale, result) }));
   const tOccasion = useTranslations("vocab.occasion");
   return (
     <div className="flex min-h-dvh flex-1 flex-col">
+      <LookTextRequest sources={displayed.filter(day => !day.text.translated).map(day => day.text.source)} locale={locale} onReady={onReady} />
       <div className="screen-top px-[22px]">
         <div className="mb-[10px] flex items-center gap-3">
           <PackingBack href={backHref} />
@@ -65,7 +72,7 @@ export function DayList({
             cannot be opened is a dead end — and `/outfits/[id]` already carries
             the flat-lay, the wear button and the favourite, so this needs no
             new screen. */}
-        {days.map((d) => (
+        {displayed.map((d) => (
           <Link
             key={d.date}
             href={`/outfits/${d.outfitId}`}
@@ -105,7 +112,7 @@ export function DayList({
               {d.pieces.map((p) => `${p.name} · ${t("wearOrdinal", { n: p.wear })}`).join("  ·  ")}
             </p>
 
-            <WhyQuote name={d.name} why={d.why} />
+            <WhyQuote name={d.text.name} why={d.text.why ?? ""} />
           </Link>
         ))}
         {/* ⚠️ REQUIRED by ODbL — every card above shows a temperature. ONCE at

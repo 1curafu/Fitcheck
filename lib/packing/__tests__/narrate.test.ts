@@ -1,4 +1,6 @@
-import { finalise, narrateTrip, type NarrateArgs } from "../narrate";
+import { buildTripNarrationPrompt, fallbackTripLookName, finalise, narrateTrip, type NarrateArgs } from "../narrate";
+import { LOCALES } from "@/lib/i18n/locales";
+import { outputLanguage } from "@/lib/ai/output-locale";
 
 const args: NarrateArgs = {
   days: [
@@ -10,6 +12,29 @@ const args: NarrateArgs = {
   destination: "Lisbon",
   beyondHorizon: false,
 };
+
+test.each(LOCALES)("%s changes the output instruction without changing the fixed schedule", locale => {
+  const prompt = buildTripNarrationPrompt({ ...args, locale });
+  expect(prompt).toContain(`Write capsule_why and every day name/why in ${outputLanguage(locale)}`);
+  expect(prompt).toContain("Day 1 (work, 22°C)");
+  expect(prompt).toContain("Day 2 (evening, 19°C, rain)");
+  expect(prompt).toContain("exactly 2 entries in the SAME ORDER");
+});
+test("missing Ukrainian narration uses a localized day name and retains day count", () => {
+  expect(fallbackTripLookName(0, "uk")).toBe("День 1");
+  const result = finalise({ capsule_why: "", days: [] }, 2, "uk");
+  expect(result.days).toEqual([{ name: "День 1", why: "" }, { name: "День 2", why: "" }]);
+});
+test("Ukrainian stub localizes prose without changing destination or count", async () => {
+  vi.stubEnv("FITCHECK_STUB_AI", "1");
+  try {
+    const result = await narrateTrip({ ...args, locale: "uk" });
+    expect(result.days[0]).toMatchObject({ name: "День 1", why: expect.stringMatching(/Обрано/) });
+    expect(result.days).toHaveLength(2);
+    expect(result.capsule_why).toContain("Lisbon");
+    expect(result.capsule_why).toContain("капсула");
+  } finally { vi.unstubAllEnvs(); }
+});
 
 /**
  * ⚠️ The days come from the SOLVE, not from the model. A model that returns

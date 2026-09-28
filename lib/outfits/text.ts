@@ -40,6 +40,14 @@ export function sameOutfitTextSource(a: OutfitTextSource, b: OutfitTextSource): 
   return a.id === b.id && a.sourceLocale === b.sourceLocale && a.name === b.name && a.why === b.why;
 }
 
+/** A replacement row or locale switch invalidates an older display result. */
+export function displayOutfitText(text: OutfitText, locale: ShippedLocale, result?: TranslationResult | null): OutfitText {
+  const base = text.locale === locale ? text : selectOutfitText(text.source, locale);
+  if (result?.locale !== locale) return base;
+  return result.texts.find(candidate => candidate.translated && candidate.locale === locale && candidate.id === text.id &&
+    sameOutfitTextSource(candidate.source, text.source)) ?? base;
+}
+
 export function applyOutfitTexts(looks: import("@/lib/generator/types").Look[], result: TranslationResult, activeLocale: ShippedLocale): import("@/lib/generator/types").Look[] {
   if (result.locale !== activeLocale) return looks;
   return looks.map(look => {

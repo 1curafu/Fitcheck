@@ -6,7 +6,8 @@ import { Link } from "@/lib/i18n/navigation";
 import { Shirt } from "lucide-react";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { PackingBack } from "./back-link";
-import { WhyQuote } from "@/components/generate/why-quote";
+import { LookWhy } from "./look-why";
+import type { OutfitText } from "@/lib/outfits/text";
 import { PieceSheet, type SheetPiece, type Alternative } from "./piece-sheet";
 
 export type CapsulePiece = { id: string; name: string; imageUrl: string; pinned: boolean; category: string };
@@ -38,6 +39,7 @@ export function CapsuleView({
   dayCount,
   outfitCount,
   why,
+  lookText,
   tripId,
   beyondHorizon,
   alternatives,
@@ -48,6 +50,7 @@ export function CapsuleView({
   dayCount: number;
   outfitCount: number;
   why: string;
+  lookText: OutfitText | null;
   tripId: string;
   beyondHorizon: boolean;
   /** The rest of the closet, so a piece can be swapped for a real alternative. */
@@ -137,7 +140,7 @@ export function CapsuleView({
           sits UNDER "See the days". The stage above is `flex-1`, so it gives up
           the space rather than the sentence doing so. */}
       <div className="shrink-0 px-[22px] pb-[112px]">
-        <WhyQuote name={t("capsuleWhy", { days: dayCount, pieces: pieces.length })} why={why} />
+        <LookWhy name={t("capsuleWhy", { days: dayCount, pieces: pieces.length })} text={lookText} fallbackWhy={why} />
         {beyondHorizon && (
           // ⚠️ Said out loud rather than hidden. Part of this trip is past the
           // forecast, so the weather behind it is a stand-in — a capsule built

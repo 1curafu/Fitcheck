@@ -1,6 +1,7 @@
 import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/locales";
 import { createClient } from "@/lib/supabase/server";
 import type { ScheduledDay } from "./schedule";
+import { fallbackTripLookName } from "./narrate";
 
 export type CapsuleEntry = { itemId: string; pinned: boolean };
 
@@ -158,7 +159,7 @@ export async function saveTripLooks(
         trip_day: d.day.date,
         occasion: d.day.occasion,
         text_locale: sourceLocale,
-        look_name: looks[i]?.name ?? "Look",
+        look_name: looks[i]?.name ?? fallbackTripLookName(i, sourceLocale),
         ai_reasoning: looks[i]?.why ?? "",
       })),
     )

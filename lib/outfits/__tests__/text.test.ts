@@ -32,3 +32,18 @@ test("raw batch limit applies before deduplication",()=>{
  expect(validatedUniqueIds([uuid,uuid])).toEqual([uuid]);
  expect(()=>validatedUniqueIds(Array(7).fill(uuid))).toThrow();expect(()=>validatedUniqueIds(["../look"])).toThrow();expect(()=>validatedUniqueIds([])).toThrow();
 });
+test("display selection rejects a late trip translation after rows or source change", async () => {
+  const { displayOutfitText } = await import("../text");
+  const source = { id: "trip-look", sourceLocale: "en-US" as const, name: "Day 1", why: null };
+  const original = { id: source.id, locale: "en-US" as const, name: source.name, why: null, translated: false, source };
+  const translated = { ...original, locale: "uk" as const, name: "День 1", translated: true };
+  const result = { locale: "uk" as const, texts: [translated], busyIds: [] };
+  expect(displayOutfitText(original, "uk", result).name).toBe("День 1");
+  expect(displayOutfitText(original, "en-GB", result).name).toBe("Day 1");
+  const replacement = { ...original, id: "new-trip-look", source: { ...source, id: "new-trip-look" } };
+  expect(displayOutfitText(replacement, "uk", result).translated).toBe(false);
+  const changed = { ...original, name: "Updated", source: { ...source, name: "Updated" } };
+  expect(displayOutfitText(changed, "uk", result).name).toBe("Updated");
+  const nullableChanged = { ...original, why: "", source: { ...source, why: "" } };
+  expect(displayOutfitText(nullableChanged, "uk", result).translated).toBe(false);
+});

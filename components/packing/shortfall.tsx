@@ -3,7 +3,8 @@
 import { useTranslations } from "next-intl";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { PackingBack } from "./back-link";
-import { WhyQuote } from "@/components/generate/why-quote";
+import { LookWhy } from "./look-why";
+import type { OutfitText } from "@/lib/outfits/text";
 import type { UiOccasion } from "@/lib/generator/types";
 
 export type Gap = { occasion: string; days: string[] };
@@ -27,6 +28,7 @@ export function Shortfall({
   totalDays,
   pieceCount,
   why,
+  lookText,
   onBuildPartial,
 }: {
   destination: string;
@@ -36,6 +38,7 @@ export function Shortfall({
   totalDays: number;
   pieceCount: number;
   why: string;
+  lookText: OutfitText | null;
   onBuildPartial: React.ReactNode;
 }) {
   const t = useTranslations("packing");
@@ -107,7 +110,7 @@ export function Shortfall({
           </div>
         </div>
 
-        <WhyQuote name={t("shortfall.whyName", { covered: coveredDays, total: totalDays })} why={why} />
+        <LookWhy name={t("shortfall.whyName", { covered: coveredDays, total: totalDays })} text={lookText} fallbackWhy={why} />
       </div>
 
       <div className="sticky bottom-0 z-30 flex gap-3 bg-gradient-to-t from-canvas from-60% to-transparent px-[22px] pb-[calc(env(safe-area-inset-bottom)+14px)] pt-[14px]">
