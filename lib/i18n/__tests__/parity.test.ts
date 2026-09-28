@@ -1,10 +1,13 @@
 import { parse, TYPE, type MessageFormatElement } from "@formatjs/icu-messageformat-parser";
-import { expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import enUS from "@/messages/en-US.json";
 import enGB from "@/messages/en-GB.json";
 import uk from "@/messages/uk.json";
+import type { Locale } from "../locales";
+import { CONTENT_LOCALES } from "./content-locales";
 
 type Tree = { [k: string]: string | Tree };
+type Full = Exclude<Locale, "en-US" | "en-GB">;
 const leaves = (t: Tree, p = ""): [string, string][] =>
   Object.entries(t).flatMap(([k, v]) => (typeof v === "string" ? [[`${p}${k}`, v]] : leaves(v, `${p}${k}.`)));
 const args = (m: string) => {
@@ -26,25 +29,51 @@ const plurals = (m: string) => {
   return found;
 };
 
+/** Full catalogues. Each Plan 3 locale task adds its import and entry. */
+const CATALOGUES: Partial<Record<Full, Tree>> = { uk: uk as Tree };
+/** Brand words that stay English in every language. */
+const ALWAYS_ENGLISH = new Set(["common.brand", "landing.wordmark", "share.cardFooter", "billing.pro", "billing.proBrand", "billing.proPlan"]);
+/** Reviewed keys whose correct translation equals English (for example "Look" in German). Each must still equal English. */
+const SAME_AS_ENGLISH: Partial<Record<Full, string[]>> = {};
+/** Another region's vocabulary a catalogue must not use. */
+const FORBIDDEN: Partial<Record<Full, RegExp>> = {
+  pt: /(^|[^\p{L}])(celular|tela|usuári\p{L}*|compartilh\p{L}*|arquivo)(?!\p{L})/iu,
+};
+/** CLDR "many" in these languages covers only compact/exponent numbers, which Fitcheck never formats. */
+const COMPACT_ONLY_MANY = new Set<Locale>(["fr", "it", "pt", "es"]);
+const requiredPlurals = (l: Locale) => new Intl.PluralRules(l).resolvedOptions().pluralCategories
+  .filter(c => !(c === "many" && COMPACT_ONLY_MANY.has(l))).slice().sort();
+
 const us = new Map(leaves(enUS as Tree));
 
-it("Ukrainian has exactly the en-US keys", () => {
-  expect([...new Map(leaves(uk as Tree)).keys()].sort()).toEqual([...us.keys()].sort());
+it("every content locale other than the English variants has a full catalogue", () => {
+  for (const l of CONTENT_LOCALES) if (l !== "en-US" && l !== "en-GB") expect(CATALOGUES[l as Full], l).toBeDefined();
 });
-it("British English overrides only keys that exist", () => {
-  for (const [k] of leaves(enGB as Tree)) expect(us.has(k), k).toBe(true);
-});
-it.each([["uk", uk], ["en-GB", enGB]] as const)("%s keeps every placeholder", (_, messages) => {
-  for (const [k, v] of leaves(messages as Tree)) expect(args(v), k).toEqual(args(us.get(k)!));
-});
-it("every Ukrainian plural has one, few, many and other", () => {
-  const needed = new Intl.PluralRules("uk").resolvedOptions().pluralCategories.slice().sort();
-  for (const [k, v] of leaves(uk as Tree)) for (const opts of plurals(v)) {
-    for (const c of needed) expect(opts, `${k} lacks ${c}`).toContain(c);
+it("British English overrides only keys that exist, with the same placeholders", () => {
+  for (const [k, v] of leaves(enGB as Tree)) {
+    expect(us.has(k), k).toBe(true);
+    expect(args(v), k).toEqual(args(us.get(k)!));
   }
 });
-it("no Ukrainian string is left in English", () => {
-  const brands = new Set(["common.brand", "landing.wordmark", "share.cardFooter", "billing.pro", "billing.proBrand", "billing.proPlan"]);
-  const same = leaves(uk as Tree).filter(([k, v]) => v === us.get(k) && /\p{L}{4,}/u.test(v) && !brands.has(k));
-  expect(same).toEqual([]);
+
+describe.each(Object.entries(CATALOGUES) as [Full, Tree][])("%s catalogue", (locale, messages) => {
+  const entries = leaves(messages);
+  const own = new Map(entries);
+  it("has exactly the en-US keys", () => expect([...own.keys()].sort()).toEqual([...us.keys()].sort()));
+  it("keeps every placeholder", () => { for (const [k, v] of entries) expect(args(v), k).toEqual(args(us.get(k)!)); });
+  it("covers every plural category the language needs", () => {
+    for (const [k, v] of entries) for (const opts of plurals(v)) for (const c of requiredPlurals(locale)) expect(opts, `${k} lacks ${c}`).toContain(c);
+  });
+  it("leaves nothing in English except brands and reviewed loanwords", () => {
+    const allowed = new Set([...ALWAYS_ENGLISH, ...(SAME_AS_ENGLISH[locale] ?? [])]);
+    expect(entries.filter(([k, v]) => v === us.get(k) && /\p{L}{4,}/u.test(v) && !allowed.has(k)).map(([k]) => k)).toEqual([]);
+    for (const k of SAME_AS_ENGLISH[locale] ?? []) expect(own.get(k), `${k} is no longer English; drop it from the allowlist`).toBe(us.get(k));
+  });
+  it("avoids another region's vocabulary", () => {
+    const rule = FORBIDDEN[locale];
+    if (rule) expect(entries.filter(([, v]) => rule.test(v)).map(([k]) => k)).toEqual([]);
+  });
+  it("keeps bottom navigation labels short enough for the 440px bar", () => {
+    for (const k of ["closet", "stylist", "diary", "profile"]) expect(own.get(`shell.nav.${k}`)!.length, k).toBeLessThanOrEqual(12);
+  });
 });
