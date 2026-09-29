@@ -51,7 +51,7 @@ async function SignInBody({
   return (
     // gap-8 keeps the tagline off the sign-in buttons when the welcome block fills the screen.
     <main className="screen-top flex flex-1 flex-col justify-between gap-8 px-7 pb-10">
-      <div className="flex justify-end"><LanguageButton /></div>
+      <div className="flex justify-end"><LanguageButton align="end" /></div>
       <div className="flex flex-1 flex-col items-center justify-center text-center">
         {account === "deleted" && <AccountDeletedNotice />}
         {/* ⚠️ Deliberately ABOVE the kicker and deliberately small. The
