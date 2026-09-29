@@ -67,8 +67,8 @@
       "label": "Der Fitcheck-Stylist-Bildschirm mit einem Beispiel aus drei Looks",
       "example": "Beispiel",
       "city": "Zürich",
-      "later": "Bis 15 Uhr werden es bis zu {temperature},",
-      "advice": "also reicht ein Strickteil."
+      "later": "Bis 15 Uhr steigt es auf {temperature},",
+      "advice": "also reicht Strick."
     },
     "looks": {
       "quietNavy": {
@@ -103,10 +103,10 @@
       "steps": {
         "add": {
           "title": "Kleidung hinzufügen",
-          "body": "Fotografiere jedes Teil. Der Hintergrund wird auf deinem Handy entfernt, und Fitcheck schlägt Tags vor, die du prüfst oder korrigierst."
+          "body": "Fotografiere jedes Teil. Der Hintergrund wird auf deinem Handy entfernt, und Fitcheck schlägt Eigenschaften wie Farbe und Material vor, die du prüfst oder korrigierst."
         },
         "looks": {
-          "title": "Die heutigen Looks holen",
+          "title": "Deine Looks für heute",
           "body": "Wähle Arbeit, Alltag, Wochenende oder Abend. Fitcheck stellt drei Outfits aus deinem Schrank für die heutige Vorhersage zusammen."
         },
         "wear": {
@@ -121,8 +121,8 @@
       "kicker": "Ein Beispiel",
       "title": "Neun Teile im Schrank. Ein Look für den Tag.",
       "body": "Fitcheck prüft Wetter und Anlass, vergleicht Farben, Stoffe und Formalität über alles, was du besitzt, und wählt aus, was zusammenpasst.",
-      "tags": "Tags",
-      "tagsLabel": "Tags für {piece}",
+      "tags": "Eigenschaften",
+      "tagsLabel": "Eigenschaften: {piece}",
       "subcategory": "Rundhalspullover",
       "upTo": "bis zu {temperature}",
       "caption": "Beispielergebnis. Deine Looks entstehen aus deinem eigenen Schrank, und der Satz wird für dein Outfit am jeweiligen Tag geschrieben."
@@ -132,14 +132,14 @@
       "title": "Ein Stylist, der deinen Kleiderschrank schon kennt.",
       "daily": {
         "title": "Drei Looks jeden Tag",
-        "body": "Jeden Morgen ein frisches Set für jeden Anlass. Zwischen den Anlässen zu wechseln kostet nichts und geht nie aus."
+        "body": "Jeden Morgen ein frisches Set für jeden Anlass. Zwischen den Anlässen zu wechseln kostet nichts und ist unbegrenzt möglich."
       },
       "weather": {
         "title": "Passend zur Vorhersage",
         "body": "Die Looks sind auf die wärmste Zeit deines Tages an deinem Ort abgestimmt, damit Strick und Jacke dann auftauchen, wenn du sie brauchst."
       },
       "occasion": {
-        "title": "Richtig für dein Ziel",
+        "title": "Passend zum Anlass",
         "body": "Arbeit, Alltag, Wochenende oder Abend, im Rahmen der Dresscodes, die du zu Beginn festlegst."
       },
       "wardrobe": {
@@ -163,16 +163,16 @@
       "freeDaily": "Drei Looks täglich für jeden Anlass",
       "freeRerolls": "{count, plural, one {Einmal} other {# Mal}} pro Tag neu erstellen",
       "freeCloset": "Bis zu {count} Teile im Kleiderschrank",
-      "freeDiary": "Tragetagebuch und Teilen",
+      "freeDiary": "Tagebuch und Teilen von Looks",
       "pro": "Pro",
       "perMonth": "pro Monat oder {yearly} pro Jahr",
       "everythingFree": "Alles aus Kostenlos",
-      "proNote": "Steuern inklusive. Upgrade jederzeit in der App, und Kündigung jederzeit ebenfalls dort."
+      "proNote": "Steuern inklusive. Du kannst jederzeit in der App auf Pro wechseln und dort auch jederzeit kündigen."
     },
     "trust": {
       "kicker": "Deine Fotos",
       "title": "Dein Kleiderschrank bleibt privat.",
-      "body": "So läuft es mit einem Foto, nachdem du es gemacht hast.",
+      "body": "Das passiert mit einem Foto, nachdem du es aufgenommen hast.",
       "device": {
         "title": "Der Freisteller entsteht auf deinem Handy",
         "body": "Die Hintergrundentfernung läuft auf deinem Gerät, bevor irgendetwas hochgeladen wird."
@@ -183,7 +183,7 @@
       },
       "ai": {
         "title": "Die KI sieht jedes Foto einmal",
-        "body": "Ein Freisteller wird einmal gesendet, um Tags vorzuschlagen. Outfits werden danach aus diesen Tags als Text gewählt, nie aus deinen Fotos."
+        "body": "Ein Freisteller wird einmal gesendet, um Eigenschaften vorzuschlagen. Outfits werden danach aus diesen Eigenschaften als Text gewählt, nie aus deinen Fotos."
       },
       "cookies": {
         "title": "Keine Tracking-Cookies, echtes Löschen",
@@ -193,7 +193,7 @@
     "final": {
       "kicker": "Kostenlos starten",
       "title": "Zieh dich aus deinem eigenen Schrank an.",
-      "line": "Ein paar Fotos und eine Minute Tagging, und das Outfit für morgen wartet schon.",
+      "line": "Ein paar Fotos und eine Minute zum Prüfen, und das Outfit für morgen wartet schon.",
       "note": "Anmelden mit Google oder E-Mail"
     },
     "footer": {
