@@ -1,5 +1,5 @@
 begin;
-select plan(47);
+select plan(49);
 insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) values
  ('11111111-1111-4111-8111-111111111111','authenticated','authenticated','claim-a@example.test','x',now(),'{}','{}',now(),now()),
  ('33333333-3333-4333-8333-333333333333','authenticated','authenticated','claim-b@example.test','x',now(),'{}','{}',now(),now());
@@ -15,7 +15,7 @@ select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111'
 select throws_ok($$select public.claim_outfit_text_translations('{}','uk')$$,'22023',null,'empty batch refused');
 select throws_ok($$select public.claim_outfit_text_translations(array[null::uuid],'uk')$$,'22023',null,'null id refused');
 select throws_ok($$select public.claim_outfit_text_translations(array(select ('20000000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid from generate_series(1,7) n),'uk')$$,'22023',null,'seventh raw id refused');
-select throws_ok($$select public.claim_outfit_text_translations(array['20000000-0000-4000-8000-000000000001'::uuid],'ru')$$,'22023',null,'unshipped target refused');
+select throws_ok($$select public.claim_outfit_text_translations(array['20000000-0000-4000-8000-000000000001'::uuid],'xx')$$,'22023',null,'unknown target refused');
 select is(public.claim_outfit_text_translations(array['44444444-4444-4444-8444-444444444444'::uuid],'en-US'),'[]'::jsonb,'foreign source prose cannot be read through claim');
 select is(public.claim_outfit_text_translations(array['44444444-4444-4444-8444-444444444444'::uuid],'uk'),'[]'::jsonb,'foreign outfit cannot be claimed');
 insert into responses values('source',public.claim_outfit_text_translations(array['20000000-0000-4000-8000-000000000001'::uuid],'en-US'));
@@ -31,7 +31,7 @@ select is(public.claim_outfit_text_translations(array['20000000-0000-4000-8000-0
 select throws_ok($$select public.finish_outfit_text_translations('uk','[{"outfitId":"bad","leaseToken":"bad","status":"ready","name":"x","why":null}]')$$,'22023',null,'invalid completion uuid rejected');
 select throws_ok($$select public.finish_outfit_text_translations('uk',jsonb_build_array(jsonb_build_object('outfitId','20000000-0000-4000-8000-000000000001','leaseToken',(select payload->0->>'leaseToken' from responses where label='first'),'status','ready','name',repeat('x',41),'why',null)))$$,'22023',null,'oversized output rejected');
 select throws_ok($$select public.finish_outfit_text_translations('uk','{}')$$,'22023',null,'object completion is not an array');
-select throws_ok($$select public.finish_outfit_text_translations('ru','[]')$$,'22023',null,'unshipped completion target refused');
+select throws_ok($$select public.finish_outfit_text_translations('pt-BR','[]')$$,'22023',null,'regional code is not a completion target');
 select throws_ok($$select public.finish_outfit_text_translations('uk',jsonb_build_array(jsonb_build_object('outfitId','20000000-0000-4000-8000-000000000001','leaseToken',(select payload->0->>'leaseToken' from responses where label='first'),'status','ready','name','x','why','Invented reasoning')))$$,'22023',null,'null source reasoning cannot become invented prose');
 select throws_ok($$select public.finish_outfit_text_translations('uk',jsonb_build_array(jsonb_build_object('outfitId','20000000-0000-4000-8000-000000000001','leaseToken',(select payload->0->>'leaseToken' from responses where label='first'),'status','failed'),jsonb_build_object('outfitId','20000000-0000-4000-8000-000000000001','leaseToken',(select payload->0->>'leaseToken' from responses where label='first'),'status','failed')))$$,'22023',null,'duplicate completion IDs rejected before writes');
 select is(cardinality(public.finish_outfit_text_translations('uk',jsonb_build_array(jsonb_build_object('outfitId','20000000-0000-4000-8000-000000000001','leaseToken',(select payload->0->>'leaseToken' from responses where label='first'),'status','ready','name','Тихий ранок','why',null)))),1,'owned completion accepted');
@@ -98,6 +98,10 @@ reset role;
 select is((select completed from public.outfit_translation_days where user_id='11111111-1111-4111-8111-111111111111' and day=(now() at time zone 'UTC')::date-1),1,'completion charged to original claim day');
 select is((select look_name from public.outfits where id='20000000-0000-4000-8000-000000000004'),'Quiet Morning','original name unchanged');
 select is((select count(*)::int from public.generation_events where user_id='11111111-1111-4111-8111-111111111111'),0,'translations never spend outfit rerolls');
+set local role authenticated;
+select is(jsonb_array_length(public.claim_outfit_text_translations(array['20000000-0000-4000-8000-000000000008'::uuid],'de')),1,'German target can be claimed');
+reset role;
+select ok(pg_get_functiondef('public.finish_outfit_text_translations(text,jsonb)'::regprocedure) like '%''nl''%','Dutch completions are accepted');
 delete from public.profiles where id='11111111-1111-4111-8111-111111111111';
 set local role authenticated;
 select throws_ok($$select public.claim_outfit_text_translations(array['20000000-0000-4000-8000-000000000004'::uuid],'uk')$$,'42501',null,'stale JWT without live profile refused');
