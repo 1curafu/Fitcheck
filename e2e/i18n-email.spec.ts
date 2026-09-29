@@ -30,7 +30,7 @@ for (const scenario of cases) test(`local sign-in email: ${scenario.name}`, asyn
    const saved = await db.from("profiles").update({preferences:scenario.saved?{locale:scenario.saved}:{}}).eq("id",userId);
    if (saved.error) throw new Error("Local email fixture preference failed");
   }
-  await page.goto(`/${scenario.request}`);
+  await page.goto(`/${scenario.request}/sign-in`);
   const copy = scenario.request === "uk" ? uk.auth : scenario.request === "ru" ? ru.auth : enUS.auth;
   await page.getByPlaceholder(copy.emailPlaceholder).fill(address);
   const delivery = page.waitForResponse(r => new URL(r.url()).pathname === "/auth/v1/otp" && r.request().method() === "POST");

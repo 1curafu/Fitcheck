@@ -165,7 +165,7 @@ test("deleting an account removes its public share page and images", async ({ br
     await page.getByRole("button", { name: "Delete account" }).click();
     await page.getByLabel("Type your email exactly to continue").fill(email);
     await page.getByRole("dialog", { name: "Delete account" }).getByRole("button", { name: "Delete account" }).click();
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/sign-in$/);
     expect((await request.get(url, { headers: BOT })).status()).toBe(404);
     const remaining = await db.storage.from("shares").list(token);
     expect(remaining.error).toBeNull();
