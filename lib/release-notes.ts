@@ -36,6 +36,25 @@ export type LocalizedNote = { headline: string; added: string[]; fixed: string[]
 
 const BASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.5.0",
+    date: "2026-09-29",
+    headline: "Fitcheck now speaks ten languages.",
+    added: ["Use Fitcheck in English, Ukrainian, Russian, German, French and more", "Pick your language from a small menu on the welcome page or in Settings", "Your looks, weather and piece details appear in your language", "Past looks show in your language; the original is always kept"],
+    fixed: ["The welcome text no longer crowds the sign-in buttons", "Long occasion names stay on one line"],
+    i18n: {
+      "en-GB": {
+        headline: "Fitcheck now speaks ten languages.",
+        added: ["Use Fitcheck in English, Ukrainian, Russian, German, French and more", "Pick your language from a small menu on the welcome page or in Settings", "Your looks, weather and piece details appear in your language", "Past looks show in your language; the original is always kept"],
+        fixed: ["The welcome text no longer crowds the sign-in buttons", "Long occasion names stay on one line"],
+      },
+      uk: {
+        headline: "Fitcheck тепер розмовляє десятьма мовами.",
+        added: ["Користуйся Fitcheck англійською, українською, німецькою, французькою та іншими", "Обирай мову в невеликому меню на вітальній сторінці або в налаштуваннях", "Образи, погода й деталі речей тепер твоєю мовою", "Минулі образи показуються твоєю мовою; оригінал завжди зберігається"],
+        fixed: ["Вітальний текст більше не налазить на кнопки входу", "Довгі назви приводів тепер уміщаються в один рядок"],
+      },
+    },
+  },
+  {
     version: "0.4.1",
     date: "2026-09-27",
     headline: "Sharing a look is smoother, and removed pieces can go for good.",

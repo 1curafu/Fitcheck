@@ -2,6 +2,11 @@ import type { LocalizedNote } from "@/lib/release-notes";
 
 /** Keyed by version; one entry for every RELEASE_NOTES version, same line counts. */
 export const NL_NOTES: Record<string, LocalizedNote> = {
+  "0.5.0": {
+    headline: "Fitcheck spreekt nu tien talen.",
+    added: ["Gebruik Fitcheck in het Nederlands, Engels, Duits, Frans en meer", "Kies je taal in een klein menu op de welkomstpagina of in Instellingen", "Je looks, het weer en details van je stukken verschijnen in je taal", "Eerdere looks verschijnen in je taal; het origineel blijft bewaard"],
+    fixed: ["De welkomsttekst drukt niet meer tegen de inlogknoppen", "Lange namen van gelegenheden blijven op één regel"],
+  },
   "0.4.1": {
     headline: "Een look delen gaat soepeler, en verwijderde stukken kunnen voorgoed weg.",
     added: ["Link maken kopieert de link nu voor je", "Verwijder een verwijderd stuk definitief via de pagina ervan"],
