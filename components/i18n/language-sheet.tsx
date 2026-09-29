@@ -37,7 +37,7 @@ export function LanguageSheet({ open, current, onClose }: { open: boolean; curre
       <button type="button" aria-label={t("close")} disabled={pending} onClick={onClose}
         className="fixed inset-0 z-[60] bg-[rgba(6,6,8,0.5)] backdrop-blur-[1.5px]" />
       <div role="dialog" aria-modal="true" aria-labelledby={titleId} style={{ maxWidth: 440 }}
-        className="fixed inset-x-0 bottom-0 z-[70] mx-auto rounded-t-[22px] border-t border-[rgba(237,230,216,0.12)] bg-surface-2 px-[22px] pb-[calc(env(safe-area-inset-bottom)+20px)] pt-3.5">
+        className="fixed inset-x-0 bottom-0 z-[70] mx-auto max-h-[85dvh] overflow-y-auto overscroll-contain rounded-t-[22px] border-t border-[rgba(237,230,216,0.12)] bg-surface-2 px-[22px] pb-[calc(env(safe-area-inset-bottom)+20px)] pt-3.5">
         <div className="mx-auto mb-4 h-1 w-[34px] rounded-full bg-faint" />
         <h2 id={titleId} className="mb-4 font-serif text-[24px]/[1.15] text-foreground">{t("title")}</h2>
         <div className="flex flex-col">

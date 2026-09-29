@@ -62,6 +62,20 @@ test.describe("seven more languages, signed in", () => {
     }
   });
 
+  test("the ten-language sheet fits a small iPhone and every language is reachable", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 548 });
+    await page.goto("/settings");
+    await page.getByRole("button", { name: "English (US)", exact: true }).click();
+    const sheet = page.getByRole("dialog");
+    await expect(sheet.getByRole("heading")).toBeInViewport();
+    const box = await sheet.boundingBox();
+    expect(box!.y).toBeGreaterThanOrEqual(0);
+    const last = sheet.getByRole("button", { name: "Nederlands", exact: true });
+    await last.scrollIntoViewIfNeeded();
+    await expect(last).toBeInViewport();
+    await page.keyboard.press("Escape");
+  });
+
   test("a historical English look is shown in German and its original stays saved", async ({ page }) => {
     const db = admin(), userId = await testUserId(), id = randomUUID();
     const items = await db.from("items").select("id").eq("user_id", userId).limit(3);
