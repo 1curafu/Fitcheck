@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "next-intl";
 
 import { useState } from "react";
 import type { SubscriptionSummary } from "@/lib/billing/status-line";
@@ -21,6 +22,7 @@ import { proPriceLabel, UpgradeSheet } from "./upgrade-sheet";
  * place whether the user arrives here or from a gate.
  */
 export function ProCard({ tier, subscription }: { tier: Tier; subscription?: SubscriptionSummary | null }) {
+  const t = useTranslations("billing");
   const [open, setOpen] = useState(false);
   const isPro = tier === "pro";
   const timeZone = useClientTimeZone();
@@ -32,12 +34,12 @@ export function ProCard({ tier, subscription }: { tier: Tier; subscription?: Sub
         onClick={() => setOpen(true)}
         className="mt-[13px] block w-full rounded-[16px] p-5 text-left [background:linear-gradient(120deg,#b86a47,#9a5236)]"
       >
-        <span className="block font-serif text-[21px] italic text-[#1a0f09]">Fitcheck Pro</span>
+        <span className="block font-serif text-[21px] italic text-[#1a0f09]">{t("proBrand")}</span>
         <span className="mt-[5px] block max-w-[84%] text-[13px]/[1.4] text-[rgba(26,15,9,0.82)]">
-          {isPro ? "Active — everything unlocked." : "Get the whole wardrobe working."}
+          {isPro ? t("active") : t("wholeWardrobe")}
         </span>
         <span className="mt-[13px] inline-block rounded-full bg-canvas px-[17px] py-[9px] text-[13px] font-semibold text-foreground">
-          {isPro ? "Your membership" : `Go Pro · ${proPriceLabel("month", timeZone).label}`}
+          {isPro ? t("membership") : t("goProPrice", { price: proPriceLabel("month", timeZone, t("monthPeriod")).label })}
         </span>
       </button>
 
@@ -56,7 +58,7 @@ export function ProCard({ tier, subscription }: { tier: Tier; subscription?: Sub
       <UpgradeSheet
         open={open}
         isPro={isPro}
-        title={isPro ? "Your Pro membership" : "Get the whole wardrobe working"}
+        title={isPro ? t("yourProMembership") : t("wholeWardrobe")}
         onClose={() => setOpen(false)}
       />
     </>

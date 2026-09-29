@@ -8,7 +8,7 @@
  */
 export class PackingLockedError extends Error {
   constructor() {
-    super("Packing mode is a Pro feature");
+    super("packing.proRequired");
     this.name = "PackingLockedError";
   }
 }

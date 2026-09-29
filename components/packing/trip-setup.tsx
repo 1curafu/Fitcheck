@@ -1,14 +1,16 @@
 "use client";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/lib/i18n/navigation";
 
 import { useEffect, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { PackingBack } from "./back-link";
-import { REWEAR_LABELS, REWEAR_HINTS } from "@/lib/packing/rewear";
+import { REWEAR_LEVELS } from "@/lib/packing/rewear";
 import { useLocationPicker } from "@/lib/weather/use-location-picker";
 import { LocationSheet } from "@/components/weather/location-sheet";
 import type { City } from "@/lib/weather/geocode";
-import { planTrip } from "@/app/packing/actions";
+import { planTrip } from "@/app/[locale]/packing/actions";
 import { PackingLockedError } from "@/lib/packing/errors";
 
 /** The product's four occasions. A fifth is never invented here. */
@@ -22,6 +24,9 @@ export type TripSetupProps = {
 };
 
 export function TripSetup({ destinationLabel, lat, lon, timezone }: TripSetupProps) {
+  const t = useTranslations("packing");
+  const locationT = useTranslations("weather");
+  const tOccasion = useTranslations("vocab.occasion");
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -93,9 +98,9 @@ export function TripSetup({ destinationLabel, lat, lon, timezone }: TripSetupPro
         router.push(`/packing/${tripId}`);
       } catch (e) {
         setError(
-          e instanceof PackingLockedError || (e as Error)?.message?.includes("Pro feature")
-            ? "Packing mode is part of Pro."
-            : (e as Error)?.message ?? "Could not plan that trip",
+          e instanceof PackingLockedError || (e as Error)?.message?.includes("packing.proRequired")
+            ? t("proRequired")
+            : (e as Error)?.message === "packing.invalidDateRange" ? t("invalidDateRange") : t("planFailed"),
         );
       }
     });
@@ -108,9 +113,9 @@ export function TripSetup({ destinationLabel, lat, lon, timezone }: TripSetupPro
             shows a back control the body then drops makes it VANISH — the
             Profile mistake. */}
         <PackingBack href="/packing" />
-        <Kicker className="mt-[10px] block">Packing mode</Kicker>
+        <Kicker className="mt-[10px] block">{t("mode")}</Kicker>
         <h1 className="mt-[13px] font-serif text-3xl/[1.12] tracking-[-0.01em] text-foreground-strong">
-          Where are you going?
+          {t("newTitle")}
         </h1>
 
         {/* The location picker is SHARED with Settings and the Stylist's weather
@@ -122,14 +127,14 @@ export function TripSetup({ destinationLabel, lat, lon, timezone }: TripSetupPro
             onClick={() => setPickerOpen(true)}
             className="flex min-h-[56px] w-full items-center gap-[13px] border-b border-[var(--hairline-3)] p-4 text-left"
           >
-            <span className="flex-1 text-sm text-muted-foreground">Destination</span>
-            <span className="text-base text-value">{destination.label}</span>
+            <span className="flex-1 text-sm text-muted-foreground">{t("destination")}</span>
+            <span className="text-base text-value">{destination.label === "Current location" ? locationT("currentLocation") : destination.label}</span>
             <span aria-hidden="true" className="text-[18px] text-muted-dim">
               ›
             </span>
           </button>
           <label className="flex min-h-[56px] items-center gap-[13px] p-4">
-            <span className="flex-1 text-sm text-muted-foreground">From</span>
+            <span className="flex-1 text-sm text-muted-foreground">{t("from")}</span>
             <input
               type="date"
               value={startDate}
@@ -138,7 +143,7 @@ export function TripSetup({ destinationLabel, lat, lon, timezone }: TripSetupPro
             />
           </label>
           <label className="flex min-h-[56px] items-center gap-[13px] border-t border-[var(--hairline-3)] p-4">
-            <span className="flex-1 text-sm text-muted-foreground">To</span>
+            <span className="flex-1 text-sm text-muted-foreground">{t("to")}</span>
             <input
               type="date"
               value={endDate}
@@ -150,9 +155,9 @@ export function TripSetup({ destinationLabel, lat, lon, timezone }: TripSetupPro
         </div>
 
         <div className="mb-3 mt-[26px] flex items-baseline justify-between">
-          <Kicker>Occasion mix</Kicker>
+          <Kicker>{t("occasionMix")}</Kicker>
           <span className={`text-[13px] ${assigned === dayCount ? "text-brand-high" : "text-muted-foreground"}`}>
-            {assigned} of {dayCount} day{dayCount === 1 ? "" : "s"}
+            {t("mixCount", { assigned, days: dayCount })}
           </span>
         </div>
         <div className="overflow-hidden rounded-[14px] bg-surface-1 shadow-[inset_0_0_0_1px_var(--hairline-3)]">
@@ -163,10 +168,10 @@ export function TripSetup({ destinationLabel, lat, lon, timezone }: TripSetupPro
                 i < OCCASIONS.length - 1 ? "border-b border-[var(--hairline-3)]" : ""
               }`}
             >
-              <div className="flex-1 text-base capitalize text-foreground">{o}</div>
+              <div className="flex-1 text-base text-foreground">{tOccasion(o)}</div>
               <button
                 type="button"
-                aria-label={`One fewer ${o} day`}
+                aria-label={t("fewerDay", { occasion: tOccasion(o) })}
                 onClick={() => bump(o, -1)}
                 className="grid size-11 place-items-center rounded-[11px] text-[19px] text-muted-foreground disabled:text-faint"
                 disabled={(mix[o] ?? 0) === 0}
@@ -178,7 +183,7 @@ export function TripSetup({ destinationLabel, lat, lon, timezone }: TripSetupPro
               </span>
               <button
                 type="button"
-                aria-label={`One more ${o} day`}
+                aria-label={t("moreDay", { occasion: tOccasion(o) })}
                 onClick={() => bump(o, 1)}
                 className="grid size-11 place-items-center rounded-[11px] text-[19px] text-muted-foreground disabled:text-faint"
                 disabled={assigned >= dayCount}
@@ -195,15 +200,15 @@ export function TripSetup({ destinationLabel, lat, lon, timezone }: TripSetupPro
             ambiguity the design comp left open. */}
         <div className="mt-[26px]">
           <div className="mb-[11px] flex items-baseline justify-between">
-            <Kicker>Re-wear</Kicker>
-            <span className="text-[15px] text-value">{REWEAR_LABELS[level - 1]}</span>
+            <Kicker>{t("rewear")}</Kicker>
+            <span className="text-[15px] text-value">{t(`rewearLevels.${REWEAR_LEVELS[level - 1] ?? "3"}.label`)}</span>
           </div>
           <div className="flex gap-[6px]">
             {[1, 2, 3, 4, 5].map((n) => (
               <button
                 key={n}
                 type="button"
-                aria-label={REWEAR_LABELS[n - 1]}
+                aria-label={t(`rewearLevels.${REWEAR_LEVELS[n - 1]}.label`)}
                 aria-pressed={n <= level}
                 onClick={() => setLevel(n)}
                 className="flex h-11 flex-1 items-center"
@@ -215,7 +220,7 @@ export function TripSetup({ destinationLabel, lat, lon, timezone }: TripSetupPro
             ))}
           </div>
           <p className="mt-[13px] text-sm leading-[1.5] text-muted-foreground text-pretty">
-            {REWEAR_HINTS[level - 1]}
+            {t(`rewearLevels.${REWEAR_LEVELS[level - 1] ?? "3"}.hint`)}
           </p>
         </div>
 
@@ -240,7 +245,7 @@ export function TripSetup({ destinationLabel, lat, lon, timezone }: TripSetupPro
           disabled={pending || dayCount === 0}
           className="flex-1 rounded-[12px] bg-foreground py-[17px] text-center font-semibold text-canvas disabled:opacity-60"
         >
-          {pending ? "Planning…" : "Plan the trip"}
+          {pending ? t("planning") : t("planAction")}
         </button>
       </div>
     </div>

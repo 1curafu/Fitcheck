@@ -1,16 +1,19 @@
 "use client";
 
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/lib/i18n/navigation";
 
 import { useState, useTransition } from "react";
 import { QUESTIONS } from "@/lib/onboarding/questions";
-import { saveStyleProfile } from "@/app/onboarding/actions";
+import { saveStyleProfile } from "@/app/[locale]/onboarding/actions";
 import { Chip } from "@/components/ui-fitcheck/chip";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 
 type Answers = Record<string, string[]>;
 
 export function Quiz() {
+  const t = useTranslations("onboarding");
+  const common = useTranslations("common");
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Answers>({});
   const [pending, startTransition] = useTransition();
@@ -22,6 +25,14 @@ export function Quiz() {
   const isLast = step === total - 1;
   const progress = Math.round(((step + 1) / total) * 100);
   const canNext = q.optional ? true : selected.length > 0;
+  const questionKey = (field: "kicker" | "title" | "sub" | "cta") =>
+    `questions.${q.id}.${field}` as never;
+  const optionLabel = (value: string) =>
+    t(`questions.${q.id}.options.${value}.label` as never);
+  const optionDescription = (value: string) => {
+    const key = `questions.${q.id}.options.${value}.desc` as never;
+    return t.has(key) ? t(key) : null;
+  };
 
   function toggle(value: string) {
     setAnswers((prev) => {
@@ -53,8 +64,8 @@ export function Quiz() {
           occasions: answers.occasions ?? [],
           nogos: answers.nogos ?? [],
         });
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong");
+      } catch {
+        setError(t("saveFailed"));
       }
     });
   }
@@ -67,7 +78,7 @@ export function Quiz() {
           onClick={() => setStep((s) => Math.max(0, s - 1))}
           disabled={step === 0}
           className="text-2xl leading-none text-muted-foreground disabled:opacity-30"
-          aria-label="Back"
+          aria-label={common("back")}
         >
           ‹
         </button>
@@ -82,11 +93,11 @@ export function Quiz() {
         </span>
       </div>
 
-      <Kicker className="mb-[10px] block">{q.kicker}</Kicker>
+      <Kicker className="mb-[10px] block">{t(questionKey("kicker"))}</Kicker>
       <h1 className="mb-1 font-serif text-3xl/[1.12] text-foreground">
-        {q.title}
+        {t(questionKey("title"))}
       </h1>
-      <p className="mb-6 text-sm text-muted-foreground">{q.sub}</p>
+      <p className="mb-6 text-sm text-muted-foreground">{t(questionKey("sub"))}</p>
 
       {q.kind === "grid" && (
         <div className="grid grid-cols-2 gap-3">
@@ -101,11 +112,11 @@ export function Quiz() {
                 }`}
               >
                 <p className="font-serif text-[19px] text-foreground-strong">
-                  {opt.label}
+                  {optionLabel(opt.value)}
                 </p>
-                {opt.desc && (
+                {optionDescription(opt.value) && (
                   <p className="mt-1 max-w-[100px] text-[11px] leading-snug text-muted-foreground">
-                    {opt.desc}
+                    {optionDescription(opt.value)}
                   </p>
                 )}
                 {on && (
@@ -139,11 +150,11 @@ export function Quiz() {
                 )}
                 <span className="flex-1">
                   <span className="block font-medium text-foreground">
-                    {opt.label}
+                    {optionLabel(opt.value)}
                   </span>
-                  {opt.desc && (
+                  {optionDescription(opt.value) && (
                     <span className="mt-[1px] block text-[12.5px] text-muted-foreground">
-                      {opt.desc}
+                      {optionDescription(opt.value)}
                     </span>
                   )}
                 </span>
@@ -169,7 +180,7 @@ export function Quiz() {
               active={selected.includes(opt.value)}
               onClick={() => toggle(opt.value)}
             >
-              {opt.label}
+              {optionLabel(opt.value)}
             </Chip>
           ))}
         </div>
@@ -184,7 +195,7 @@ export function Quiz() {
           canNext ? "bg-foreground text-canvas" : "bg-foreground/10 text-muted-dim"
         }`}
       >
-        {pending ? "Saving…" : q.cta}
+        {pending ? t("saving") : t(questionKey("cta"))}
       </button>
       {/* On the FIRST step only: this is the moment an account becomes real,
           and the Terms say continuing is agreement — so the agreement has to be
@@ -192,10 +203,10 @@ export function Quiz() {
           already left. */}
       {step === 0 && (
         <p className="mt-3 text-center text-[11px] text-muted-dim">
-          By continuing you confirm you are 16 or older and agree to the{" "}
-          <Link href="/terms" className="text-muted-foreground underline underline-offset-2">Terms</Link>
-          {" "}and{" "}
-          <Link href="/privacy" className="text-muted-foreground underline underline-offset-2">Privacy Policy</Link>.
+          {t("agreementLead")}{" "}
+          <Link href="/terms" className="text-muted-foreground underline underline-offset-2">{t("terms")}</Link>
+          {" "}{t("and")}{" "}
+          <Link href="/privacy" className="text-muted-foreground underline underline-offset-2">{t("privacy")}</Link>.
         </p>
       )}
     </main>

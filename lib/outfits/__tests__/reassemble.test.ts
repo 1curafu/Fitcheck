@@ -6,6 +6,9 @@ const stored: StoredLook[] = [
     id: "o1",
     lookName: "The Off-Duty Camel",
     why: "the camel knit warms the grey trousers",
+    textSource: { id: "o1", sourceLocale: "en-US", name: "The Off-Duty Camel", why: "the camel knit warms the grey trousers" },
+    textLocale: "uk",
+    textTranslated: false,
     anchorIndex: 1,
     worn: false,
     pieces: [
@@ -30,6 +33,9 @@ test("rebuilds a stored look, reading item details LIVE from the closet", () => 
   expect(looks[0].name).toBe("The Off-Duty Camel");
   expect(looks[0].pieces[0].brand).toBe("Uniqlo");
   expect(looks[0].pieces[0].cutoutUrl).toBe("https://signed/t1");
+  expect(looks[0].textSource).toEqual(stored[0].textSource);
+  expect(looks[0].textLocale).toBe("uk");
+  expect(looks[0].textTranslated).toBe(false);
 });
 test("preserves the stored geometry and anchor exactly, so the flat-lay re-renders identically", () => {
   const looks = reassembleLooks(stored, items, signed, pathFor)!;

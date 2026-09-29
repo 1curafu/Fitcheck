@@ -1,14 +1,10 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Chip } from "@/components/ui-fitcheck/chip";
 import type { UiOccasion } from "@/lib/generator/types";
 
-const OCCASIONS: { key: UiOccasion; label: string }[] = [
-  { key: "everyday", label: "Everyday" },
-  { key: "work", label: "Work" },
-  { key: "weekend", label: "Weekend" },
-  { key: "evening", label: "Evening" },
-];
+const OCCASIONS: UiOccasion[] = ["everyday", "work", "weekend", "evening"];
 
 /**
  * One-from-four selector. All four occasions must be visible without scrolling:
@@ -24,17 +20,19 @@ export function OccasionRow({
   occasion: UiOccasion;
   onOccasion: (o: UiOccasion) => void;
 }) {
+  const t = useTranslations("vocab.occasion");
   return (
     <div className="flex gap-2">
       {OCCASIONS.map((o) => (
         <Chip
-          key={o.key}
+          key={o}
           variant="select"
-          active={occasion === o.key}
-          onClick={() => onOccasion(o.key)}
-          className="flex-1 px-0 text-[13px]"
+          active={occasion === o}
+          onClick={() => onOccasion(o)}
+          // Width follows the label, so "Fim de semana" takes more room than "Noite" and stays on one line.
+          className="flex-auto px-2 text-[13px]"
         >
-          {o.label}
+          {t(o)}
         </Chip>
       ))}
     </div>
@@ -43,6 +41,7 @@ export function OccasionRow({
 
 /** The Refine trigger, now a header action rather than a chip in the row. */
 export function RefineButton({ onRefine }: { onRefine: () => void }) {
+  const t = useTranslations("generate.refine");
   return (
     <button
       type="button"
@@ -52,7 +51,7 @@ export function RefineButton({ onRefine }: { onRefine: () => void }) {
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
         <path d="M4 6h16M7 12h10M10 18h4" strokeLinecap="round" />
       </svg>
-      Refine
+      {t("button")}
     </button>
   );
 }

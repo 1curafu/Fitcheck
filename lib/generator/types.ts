@@ -1,7 +1,10 @@
+import type { OutfitTextSource } from "@/lib/outfits/text";
+import type { ShippedLocale } from "@/lib/i18n/locales";
 // Shared contracts for the Stylist generator. Mirrors the v2 handoff's
 // README §State Management. See docs/superpowers/plans/2026-07-18-stylist-generator.md.
 
 import type { TempUnit } from "@/lib/weather/format";
+import type { MessageKey } from "@/lib/i18n/keys";
 
 export type UiOccasion = "everyday" | "work" | "weekend" | "evening";
 
@@ -26,6 +29,9 @@ export type LookPiece = {
 };
 
 export type Look = {
+  textSource: OutfitTextSource;
+  textLocale: ShippedLocale;
+  textTranslated: boolean;
   /** The `outfits` row this look was persisted as — the detail screen's address. */
   id: string;
   name: string;
@@ -37,7 +43,7 @@ export type Look = {
 };
 
 /** A look before it has been persisted — it has no row id and cannot be worn yet. */
-export type LookDraft = Omit<Look, "id" | "worn">;
+export type LookDraft = Omit<Look, "id" | "worn" | "textSource" | "textLocale" | "textTranslated">;
 
 export type HourCell ={ hh: string; tempC: number; rain: boolean; isNow: boolean };
 
@@ -45,6 +51,8 @@ export type WeatherPayload = {
   tempC: number;
   feelsLikeC: number;
   condition: string;
+  /** Numeric provider condition in new snapshots; older saved looks may lack it. */
+  conditionId?: number;
   cityLabel: string;
   timezone: string; // IANA zone at the location, e.g. "Europe/Berlin" — from timezone=auto
   // Where this location came from. "city" = a deliberate user choice; the client
@@ -70,5 +78,5 @@ export type GenerateResult =
   // Hitting the meter is a STATE, not a failure. It carries `weather` so the
   // screen keeps its strip, and the reason verbatim so it can say what ran out
   // and what Pro gives — never "something went wrong" for a working app.
-  | { status: "limited"; weather: WeatherPayload; message: string }
-  | { status: "error"; message: string };
+  | { status: "limited"; weather: WeatherPayload; message: "errors.regenerateLimit"; values: { limit: number } }
+  | { status: "error"; message: MessageKey };

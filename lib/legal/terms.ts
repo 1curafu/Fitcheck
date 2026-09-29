@@ -1,4 +1,12 @@
-import { OPERATOR, type LegalDocument } from "./types";
+import type { Locale, ShippedLocale } from "@/lib/i18n/locales";
+import { TERMS_DE } from "./translations/de";
+import { TERMS_RU } from "./translations/ru";
+import { TERMS_FR } from "./translations/fr";
+import { TERMS_IT } from "./translations/it";
+import { TERMS_PT } from "./translations/pt";
+import { TERMS_ES } from "./translations/es";
+import { TERMS_NL } from "./translations/nl";
+import { OPERATOR, TERMS_UPDATED, type LegalDocument } from "./types";
 
 /**
  * ⚠️ A DRAFT for a lawyer to read before subscriptions go live. The
@@ -7,25 +15,28 @@ import { OPERATOR, type LegalDocument } from "./types";
  * professional eyes. It is written to be accurate about what the app does and
  * fair to the person reading it; that is the part this file can promise.
  */
-export const TERMS: LegalDocument = {
+const TERMS_EN: LegalDocument = {
   title: "Terms of Service",
-  updated: "2026-09-26",
+  updated: TERMS_UPDATED,
   intro:
     "These are the terms for using Fitcheck. They are short because the deal is simple: you bring your wardrobe, we suggest what to wear, and you stay in charge of your own clothes and your own data.",
   sections: [
     {
+      id: "who-you-are-dealing-with",
       heading: "Who you are dealing with",
       paragraphs: [
         `Fitcheck is operated by ${OPERATOR.name}, ${OPERATOR.address}. Questions, notices and complaints go to ${OPERATOR.email}.`,
       ],
     },
     {
+      id: "your-account",
       heading: "Your account",
       paragraphs: [
         "You need to be at least 16 to use Fitcheck. Keep your sign-in email under your control; anything done from your account is yours to answer for. One account per person.",
       ],
     },
     {
+      id: "your-clothes-your-photos",
       heading: "Your clothes, your photos",
       paragraphs: [
         "Everything you upload stays yours. You give us permission to store it, cut the background out of it, describe it with tags, send it to the AI that does the describing, and show it back to you in outfits — and for nothing else. That permission ends when you delete the item or your account.",
@@ -34,6 +45,7 @@ export const TERMS: LegalDocument = {
       ],
     },
     {
+      id: "what-the-suggestions-are",
       heading: "What the suggestions are",
       paragraphs: [
         "Fitcheck's looks are suggestions made by software from the tags on your clothes and the weather. They are usually good and sometimes wrong. They are not a promise that an outfit suits an occasion, a dress code, or you. Look in the mirror before you leave the house.",
@@ -41,6 +53,7 @@ export const TERMS: LegalDocument = {
       ],
     },
     {
+      id: "free-and-paid",
       heading: "Free and paid",
       paragraphs: [
         "The free plan is meant to be genuinely useful and stays free. The paid plan, Fitcheck Pro, adds features and lifts limits; what it includes and what it costs are shown before you buy, and the price includes any VAT that applies.",
@@ -52,18 +65,21 @@ export const TERMS: LegalDocument = {
       ],
     },
     {
+      id: "fair-use",
       heading: "Fair use",
       paragraphs: [
         "Do not try to break into other people's accounts, overload the service, copy it, or use it to build a competing one. Do not upload anything unlawful. We can suspend or close an account that does these things, and will tell you why.",
       ],
     },
     {
+      id: "ending-things",
       heading: "Ending things",
       paragraphs: [
         `You can delete your account whenever you like in Settings. A successful deletion removes your live data immediately, while encrypted backups expire within 30 days; ${OPERATOR.email} remains available if you need help. We can end the service or your access to it with 30 days' notice, and immediately if you break these terms.`,
       ],
     },
     {
+      id: "what-we-are-and-are-not-responsible-for",
       heading: "What we are and are not responsible for",
       paragraphs: [
         "We work to keep Fitcheck available, accurate and secure, but we provide it as it is. To the extent the law allows, we are not liable for losses that come from relying on an outfit suggestion, from the service being unavailable, or from anything outside our control. Nothing here limits liability for intent, gross negligence, or anything the law does not allow us to limit.",
@@ -71,12 +87,14 @@ export const TERMS: LegalDocument = {
       ],
     },
     {
+      id: "law-and-disputes",
       heading: "Law and disputes",
       paragraphs: [
         "Swiss law applies, and disputes go to the courts at the operator's seat in Switzerland. If you are a consumer in the EU, you keep the protections of your home country's law and may bring a claim in your home courts.",
       ],
     },
     {
+      id: "changes",
       heading: "Changes",
       paragraphs: [
         "If we change these terms in a way that matters, the date at the top moves and the app tells you on your next visit. Continuing to use Fitcheck after that means you accept the change. If you are a paying Pro subscriber and a change is materially worse for you, we will ask you to actively confirm it before it applies, and you can cancel instead at no cost. If you do not accept a change, delete your account and we will not hold you to it.",
@@ -84,3 +102,79 @@ export const TERMS: LegalDocument = {
     },
   ],
 };
+
+const TERMS_UK: LegalDocument = {
+  title: "Умови користування",
+  updated: TERMS_UPDATED,
+  intro: "Якщо цей переклад відрізняється від англійської версії, діє англійська версія. Це умови користування Fitcheck. Вони короткі, бо домовленість проста: ти додаєш гардероб, ми пропонуємо, що вдягнути, а ти керуєш власними речами й даними.",
+  sections: [
+    {
+      id: "who-you-are-dealing-with",
+      heading: "З ким ти маєш справу",
+      paragraphs: [`Fitcheck веде ${OPERATOR.name}, ${OPERATOR.address}. Питання, повідомлення та скарги надсилай на ${OPERATOR.email}.`],
+    },
+    {
+      id: "your-account",
+      heading: "Твій акаунт",
+      paragraphs: ["Для користування Fitcheck тобі має бути щонайменше 16 років. Контролюй доступ до пошти для входу; ти відповідаєш за дії зі свого акаунта. Один акаунт на людину."],
+    },
+    {
+      id: "your-clothes-your-photos",
+      heading: "Твої речі, твої фото",
+      paragraphs: [
+        "Усе завантажене залишається твоїм. Ти дозволяєш нам зберігати його, прибирати фон, описувати тегами, надсилати ШІ для опису й показувати тобі в образах — лише для цього. Дозвіл закінчується після видалення речі чи акаунта.",
+        "Завантажуй лише фото, які маєш право використовувати. Це місце для твого гардероба, не для чужих фото чи інших людей.",
+        "Ти відповідаєш за те, чим ділишся. На поширений образ можна поскаржитися з його сторінки; Fitcheck може прибрати образ, що порушує ці умови.",
+      ],
+    },
+    {
+      id: "what-the-suggestions-are",
+      heading: "Що означають пропозиції",
+      paragraphs: [
+        "Образи Fitcheck — пропозиції програми на основі тегів речей і погоди. Зазвичай вони вдалі, інколи помилкові. Це не обіцянка відповідності образу нагоді, дрескоду чи тобі. Подивись у дзеркало, перш ніж вийти з дому.",
+        "Теги, які ШІ пише для речі, — перша чернетка. Будь-який із них можна виправити, і від цього застосунок працює краще.",
+      ],
+    },
+    {
+      id: "free-and-paid",
+      heading: "Безкоштовне й платне",
+      paragraphs: [
+        "Безкоштовний план задуманий корисним і залишається безкоштовним. Платний Fitcheck Pro додає можливості й знімає обмеження; його склад і ціну показуємо до покупки, а ціна включає належний ПДВ.",
+        "Fitcheck Pro продається через Link, сервіс Stripe для офіційного продавця (merchant of record): Link є продавцем підписки, приймає оплату, нараховує ПДВ і надсилає квитанції та рахунки. Pro коштує CHF 5 на місяць або CHF 50 на рік; застосунок показує еквівалент у євро чи доларах, де це доречно, а інші валюти конвертуються при оплаті. Усі ціни включають ПДВ.",
+        "Pro поновлюється автоматично до скасування. Скасувати можна будь-коли в застосунку (Профіль → Керувати підпискою); Pro діє до кінця вже оплаченого періоду й не поновлюється. Перехід між місячною та річною оплатою діє одразу; невикористана частина поточного періоду зараховується в оплату нового. При невдалій оплаті поновлення спроби повторюються приблизно два тижні, а Pro продовжує працювати; якщо оплата так і не пройде, Pro закінчується. Одна підписка на акаунт.",
+        "Видалення акаунта в налаштуваннях одразу скасовує підписку — до видалення будь-яких даних — і вона не поновлюється. Повернення коштів регулюють правила Link і закон; якщо щось пішло не так, звернися до нас за адресою вище.",
+        "Якщо ти споживач у ЄС, зазвичай маєш 14 днів на відмову від покупки. Оскільки Pro починає працювати відразу після підписки, при оплаті ми просимо явно підтвердити бажання негайного початку й втрату цього права після нього. Без підтвердження твоє 14-денне право не змінюється. Підтвердження — позначка на екрані переходу на Pro; ми записуємо, коли ти її поставив.",
+        "Ми можемо змінити ціну Pro, попередивши електронною поштою щонайменше за 30 днів. Якщо нова ціна не підходить, скасуй підписку до набуття нею чинності.",
+      ],
+    },
+    {
+      id: "fair-use",
+      heading: "Добросовісне користування",
+      paragraphs: ["Не намагайся проникнути в чужі акаунти, перевантажити сервіс, копіювати його чи створювати на його основі конкурента. Не завантажуй незаконний вміст. Ми можемо призупинити чи закрити акаунт, який це робить, і пояснимо причину."],
+    },
+    {
+      id: "ending-things",
+      heading: "Завершення користування",
+      paragraphs: [`Видалити акаунт можна будь-коли в налаштуваннях. Успішне видалення одразу прибирає поточні дані, а зашифровані резервні копії зникають протягом 30 днів; ${OPERATOR.email} залишається доступною для допомоги. Ми можемо припинити сервіс чи твій доступ із попередженням за 30 днів, а при порушенні цих умов — одразу.`],
+    },
+    {
+      id: "what-we-are-and-are-not-responsible-for",
+      heading: "За що ми відповідаємо",
+      paragraphs: [
+        "Ми працюємо над доступністю, точністю й безпекою Fitcheck, але надаємо його як є. Наскільки дозволяє закон, ми не відповідаємо за збитки від покладання на запропонований образ, недоступності сервісу чи обставин поза нашим контролем. Ніщо тут не обмежує відповідальність за умисел, грубу недбалість чи те, що закон не дозволяє обмежувати.",
+        "Якщо ти споживач, ці умови не забирають невідчужуваних прав, які дає закон твоєї країни.",
+      ],
+    },
+    {
+      id: "law-and-disputes",
+      heading: "Право й спори",
+      paragraphs: ["Застосовується швейцарське право; спори розглядають суди за місцем оператора у Швейцарії. Споживачі з ЄС зберігають захист законів своєї країни й можуть звертатися до своїх місцевих судів."],
+    },
+    {
+      id: "changes",
+      heading: "Зміни",
+      paragraphs: ["Якщо ми суттєво змінюємо умови, оновлюємо дату вгорі й повідомляємо під час наступного візиту. Подальше користування Fitcheck означає прийняття зміни. Якщо ти платний підписник Pro й зміна суттєво погіршує твоє становище, попросимо активно підтвердити її до набуття чинності; натомість можна скасувати підписку без витрат. Якщо не приймаєш зміну, видали акаунт, і ми не вимагатимемо її дотримання."],
+    },
+  ],
+};
+export const TERMS: Record<ShippedLocale, LegalDocument> & Partial<Record<Locale, LegalDocument>> = { "en-US": TERMS_EN, "en-GB": TERMS_EN, uk: TERMS_UK, de: TERMS_DE, ru: TERMS_RU, fr: TERMS_FR, it: TERMS_IT, pt: TERMS_PT, es: TERMS_ES, nl: TERMS_NL };

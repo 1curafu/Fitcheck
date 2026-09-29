@@ -2,7 +2,6 @@ import { readFileSync } from "node:fs";
 import {
   CATEGORIES,
   SEASONS,
-  FORMALITY_LABEL,
   MATERIALS,
   TEXTURES,
   PATTERNS,
@@ -11,16 +10,16 @@ import {
   colorHex,
 } from "../vocab";
 import { TagSchema } from "@/lib/ai/tagging-schema";
+import enUS from "@/messages/en-US.json";
 
 test("categories and seasons are derived from TagSchema, so they can never drift", () => {
   expect(CATEGORIES).toEqual(TagSchema.shape.category.options);
   expect(SEASONS).toEqual(TagSchema.shape.seasons.element.options);
 });
 
-test("formality labels cover 1..5 with a blank zero slot", () => {
-  expect(FORMALITY_LABEL).toHaveLength(6);
-  expect(FORMALITY_LABEL[0]).toBe("");
-  expect(FORMALITY_LABEL[3]).toBe("Smart casual");
+test("formality messages cover the stored levels 1..5", () => {
+  expect(Object.keys(enUS.vocab.formality)).toEqual(["1", "2", "3", "4", "5"]);
+  expect(enUS.vocab.formality["3"]).toBe("Smart casual");
 });
 
 test("patterns match what the tagger emits", () => {

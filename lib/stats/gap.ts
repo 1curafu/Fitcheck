@@ -20,22 +20,22 @@ import type { UiOccasion } from "@/lib/generator/types";
  * neutral: the claim is "this unlocks N outfits", and a wilder candidate would
  * inflate N while being something the user would never buy.
  */
-export type GapCandidate = { label: string; category: string; colors: string[]; formality: number };
+export type GapCandidate = { label: keyof typeof import("@/messages/en-US.json").stats.gapPieces; category: string; colors: string[]; formality: number };
 
 export const GAP_CANDIDATES: GapCandidate[] = [
   // Staples that suit any wardrobe.
-  { label: "A navy knit", category: "Tops", colors: ["navy"], formality: 3 },
-  { label: "A white shirt", category: "Tops", colors: ["white"], formality: 4 },
-  { label: "Grey wool trousers", category: "Bottoms", colors: ["grey"], formality: 4 },
-  { label: "Dark denim", category: "Bottoms", colors: ["denim"], formality: 2 },
-  { label: "A camel overcoat", category: "Outerwear", colors: ["camel"], formality: 4 },
-  { label: "Clean white sneakers", category: "Shoes", colors: ["white"], formality: 2 },
-  { label: "Brown leather loafers", category: "Shoes", colors: ["brown"], formality: 4 },
-  { label: "Black leather shoes", category: "Shoes", colors: ["black"], formality: 5 },
+  { label: "navyKnit", category: "Tops", colors: ["navy"], formality: 3 },
+  { label: "whiteShirt", category: "Tops", colors: ["white"], formality: 4 },
+  { label: "woolTrousers", category: "Bottoms", colors: ["grey"], formality: 4 },
+  { label: "darkDenim", category: "Bottoms", colors: ["denim"], formality: 2 },
+  { label: "camelCoat", category: "Outerwear", colors: ["camel"], formality: 4 },
+  { label: "whiteSneakers", category: "Shoes", colors: ["white"], formality: 2 },
+  { label: "brownLoafers", category: "Shoes", colors: ["brown"], formality: 4 },
+  { label: "blackShoes", category: "Shoes", colors: ["black"], formality: 5 },
   // Suggested only to a wardrobe that already shows it wears them — see
   // `candidatesFor`.
-  { label: "A black dress", category: "One-piece", colors: ["black"], formality: 4 },
-  { label: "A navy day dress", category: "One-piece", colors: ["navy"], formality: 3 },
+  { label: "blackDress", category: "One-piece", colors: ["black"], formality: 4 },
+  { label: "navyDress", category: "One-piece", colors: ["navy"], formality: 3 },
 ];
 
 /**

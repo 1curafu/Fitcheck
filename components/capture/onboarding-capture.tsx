@@ -1,7 +1,9 @@
 "use client";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/lib/i18n/navigation";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+
 import { useCapture } from "./use-capture";
 import { Viewfinder } from "./viewfinder";
 import { ConfirmForm } from "./confirm-form";
@@ -13,6 +15,7 @@ export function OnboardingCapture({ initialCount = 0, initialImages = [] }: {
   initialCount?: number;
   initialImages?: SavedSlotImage[];
 }) {
+  const t = useTranslations("capture");
   const router = useRouter();
   const [progress, setProgress] = useState({ count: initialCount, images: initialImages });
   const localUrlsRef = useRef(new Set<string>());
@@ -74,14 +77,14 @@ export function OnboardingCapture({ initialCount = 0, initialImages = [] }: {
 
   return (
     <main className="screen-top flex flex-1 flex-col px-6 pb-7">
-      <Kicker className="mb-[10px] block">Almost there</Kicker>
+      <Kicker className="mb-[10px] block">{t("onboarding.almostThere")}</Kicker>
       <h1 className="mb-[6px] font-serif text-3xl/[1.12] text-foreground">
-        Capture your first five.
+        {t("onboarding.firstFive")}
       </h1>
       {!cap.batch && (
         <>
           <p className="mb-6 text-sm text-muted-foreground">
-            Snap each piece on a flat surface that contrasts with it — dark clothes on a pale floor. We cut it out and learn its colour, fabric and formality.
+            {t("instructions")}
           </p>
           <Viewfinder busy={cap.phase === "removing"} onFile={cap.capture} onMany={cap.captureMany} />
         </>
@@ -92,12 +95,12 @@ export function OnboardingCapture({ initialCount = 0, initialImages = [] }: {
         <ConfirmForm draft={cap.draft} saving={cap.saving} rotating={cap.rotating} error={cap.error}
           onDraft={cap.updateDraft} onTags={cap.updateTags}
           onToggleSeason={cap.toggleSeason} onSave={cap.save}
-          onRetake={cap.skip} rejectLabel="Skip photo" onRotate={cap.rotate} />
+          onRetake={cap.skip} rejectMode="skip" onRotate={cap.rotate} />
       )}
       {cap.batch && !cap.batch.stopped && cap.phase !== "confirm" &&
         cap.batch.currentStage !== "failed" && (
           <div className="surface-stage relative flex aspect-[1.3] items-center justify-center rounded-[18px]">
-            <p className="text-sm text-muted-foreground" aria-live="polite">Preparing this photo…</p>
+            <p className="text-sm text-muted-foreground" aria-live="polite">{t("preparingPhoto")}</p>
           </div>
         )}
       {!cap.batch && cap.error && <p className="mt-4 text-sm text-brand">{cap.error}</p>}
@@ -109,7 +112,7 @@ export function OnboardingCapture({ initialCount = 0, initialImages = [] }: {
             hasItems ? "bg-brand text-canvas" : "bg-foreground/10 text-muted-dim"
           }`}
         >
-          {hasItems ? "Enter your closet" : "Skip for now"}
+          {hasItems ? t("onboarding.enterCloset") : t("onboarding.skipForNow")}
         </button>
       )}
     </main>

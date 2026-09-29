@@ -1,14 +1,17 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
-import Link from "next/link";
+import { Link } from "@/lib/i18n/navigation";
 import { Shirt } from "lucide-react";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { PackingBack } from "./back-link";
-import { WhyQuote } from "@/components/generate/why-quote";
+import { LookWhy } from "./look-why";
+import type { OutfitText } from "@/lib/outfits/text";
 import { PieceSheet, type SheetPiece, type Alternative } from "./piece-sheet";
 
 export type CapsulePiece = { id: string; name: string; imageUrl: string; pinned: boolean; category: string };
+const NUMBER_KEYS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"] as const;
 
 /** A stat tile — the item-detail pattern, lifted rather than re-derived. */
 function Tile({ value, label }: { value: string; label: string }) {
@@ -36,6 +39,7 @@ export function CapsuleView({
   dayCount,
   outfitCount,
   why,
+  lookText,
   tripId,
   beyondHorizon,
   alternatives,
@@ -46,11 +50,15 @@ export function CapsuleView({
   dayCount: number;
   outfitCount: number;
   why: string;
+  lookText: OutfitText | null;
   tripId: string;
   beyondHorizon: boolean;
   /** The rest of the closet, so a piece can be swapped for a real alternative. */
   alternatives: Alternative[];
 }) {
+  const t = useTranslations("packing");
+  const numberKey = NUMBER_KEYS[pieces.length];
+  const word = numberKey ? t(`number.${numberKey}`) : String(pieces.length);
   // Tapping a piece asks what to do with it. Navigating straight to the item
   // would be the wrong default here: on this screen the question is "does this
   // go in the case", not "tell me about this shirt" — and the sheet offers that
@@ -65,13 +73,13 @@ export function CapsuleView({
         </div>
         <Kicker className="block">{`${destination} · ${dateRange}`}</Kicker>
         <h1 className="mt-[16px] font-serif text-[40px]/[1.05] tracking-[-0.02em] text-foreground-strong">
-          {countWord(pieces.length)}
+          {t("pieceHeadline", { word, n: pieces.length })}
         </h1>
 
         <div className="mt-4 flex gap-2">
-          <Tile value={String(pieces.length)} label="Pieces" />
-          <Tile value={String(dayCount)} label="Days" />
-          <Tile value={String(outfitCount)} label="Outfits" />
+          <Tile value={String(pieces.length)} label={t("pieces")} />
+          <Tile value={String(dayCount)} label={t("days")} />
+          <Tile value={String(outfitCount)} label={t("outfits")} />
         </div>
       </div>
 
@@ -92,7 +100,7 @@ export function CapsuleView({
               key={p.id}
               type="button"
               onClick={() => setSelected({ id: p.id, name: p.name, pinned: p.pinned, category: p.category })}
-              aria-label={`Change ${p.name}`}
+              aria-label={t("changePiece", { name: p.name })}
               className="relative grid place-items-center"
             >
               {/* A pinned piece is marked: the user insisted on it, and a
@@ -123,7 +131,7 @@ export function CapsuleView({
             most wanted to do — change what is in the case — was invisible. A
             capsule you cannot see how to edit is a capsule you have to accept. */}
         <p className="mt-[6px] shrink-0 text-[12px] text-muted-foreground">
-          Tap a piece to swap it or leave it behind.
+          {t("tapPiece")}
         </p>
       </div>
 
@@ -132,13 +140,13 @@ export function CapsuleView({
           sits UNDER "See the days". The stage above is `flex-1`, so it gives up
           the space rather than the sentence doing so. */}
       <div className="shrink-0 px-[22px] pb-[112px]">
-        <WhyQuote name={`${dayCount} days · ${pieces.length} pieces`} why={why} />
+        <LookWhy name={t("capsuleWhy", { days: dayCount, pieces: pieces.length })} text={lookText} fallbackWhy={why} />
         {beyondHorizon && (
           // ⚠️ Said out loud rather than hidden. Part of this trip is past the
           // forecast, so the weather behind it is a stand-in — a capsule built
           // on invented weather is worse than one that admits it.
           <p className="mt-[10px] text-[13px] leading-[1.45] text-muted-foreground">
-            Part of this trip is beyond the forecast, so its weather is an estimate.
+            {t("forecastEstimate")}
           </p>
         )}
       </div>
@@ -152,7 +160,7 @@ export function CapsuleView({
       <div className="sticky bottom-0 z-30 flex gap-3 bg-gradient-to-t from-canvas from-60% to-transparent px-[22px] pb-[calc(env(safe-area-inset-bottom)+14px)] pt-[14px]">
         <Link
           href="/closet"
-          aria-label="Done — back to the closet"
+          aria-label={t("doneCloset")}
           className="grid h-[54px] w-14 shrink-0 place-items-center rounded-[14px] bg-surface-2 text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-6)]"
         >
           <Shirt size={19} />
@@ -161,7 +169,7 @@ export function CapsuleView({
           href={`/packing/${tripId}/days`}
           className="flex-1 rounded-[12px] bg-foreground py-[17px] text-center font-semibold text-canvas"
         >
-          See the days
+          {t("seeDays")}
         </Link>
       </div>
 
@@ -173,28 +181,4 @@ export function CapsuleView({
       />
     </div>
   );
-}
-
-/**
- * The count as a sentence, because the headline is a serif display line and
- * "7 pieces." reads like a label where "Seven pieces." reads like a claim.
- */
-const WORDS = [
-  "No",
-  "One",
-  "Two",
-  "Three",
-  "Four",
-  "Five",
-  "Six",
-  "Seven",
-  "Eight",
-  "Nine",
-  "Ten",
-  "Eleven",
-  "Twelve",
-];
-export function countWord(n: number): string {
-  const word = WORDS[n] ?? String(n);
-  return `${word} piece${n === 1 ? "" : "s"}.`;
 }

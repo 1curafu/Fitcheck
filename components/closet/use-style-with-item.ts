@@ -1,8 +1,10 @@
 "use client";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/lib/i18n/navigation";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { styleWithItem } from "@/app/closet/[itemId]/style-actions";
+
+import { styleWithItem } from "@/app/[locale]/closet/[itemId]/style-actions";
 
 /**
  * Style a look around one piece, and land on it.
@@ -19,6 +21,7 @@ import { styleWithItem } from "@/app/closet/[itemId]/style-actions";
  * buy, you add a piece.
  */
 export function useStyleWithItem(itemId: string) {
+  const t = useTranslations();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
@@ -30,10 +33,8 @@ export function useStyleWithItem(itemId: string) {
       setUpgrade(null);
       const res = await styleWithItem(itemId, { regenerate });
       if (res.status === "ok") router.push(`/outfits/${res.outfitIds[0]}`);
-      // The reason is rendered verbatim, never re-worded here: it used to
-      // promise "back tomorrow" for a Pro capability, which never arrives.
-      else if (res.status === "limited") setUpgrade(res.message);
-      else setMessage(res.message);
+      else if (res.status === "limited") setUpgrade(t(res.message));
+      else setMessage(t(res.message));
     });
   }
 

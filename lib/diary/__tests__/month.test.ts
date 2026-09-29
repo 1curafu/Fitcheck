@@ -1,5 +1,11 @@
 import { buildMonth } from "../month";
 
+it("pads September 2026 for each locale's week start", () => {
+  const lead = (weekStart: 0 | 1) => buildMonth(2026, 9, "2026-09-27", [], weekStart).findIndex((cell) => cell.inMonth);
+  expect(lead(1)).toBe(1);
+  expect(lead(0)).toBe(2);
+});
+
 test("a month starts on Monday and pads the leading days", () => {
   // 1 July 2026 is a Wednesday, so two blanks precede it.
   const cells = buildMonth(2026, 7, "2026-07-24", []);

@@ -1,4 +1,5 @@
 import { entitlementsFor, checkGeneration, checkCloset, FREE, PRO } from "../tiers";
+import enUS from "@/messages/en-US.json";
 
 describe("entitlementsFor", () => {
   test("free rerolls three times a day; pro is unlimited", () => {
@@ -58,8 +59,10 @@ describe("checkCloset", () => {
   test("a full closet names archiving as the way to make room", () => {
     const r = checkCloset(FREE, 50);
     expect(r.allowed).toBe(false);
-    expect(r.reason).toMatch(/archive/i);
-    expect(r.reason).toMatch(/pro/i);
+    expect(r.reason).toBe("errors.closetFull");
+    expect(r.values).toEqual({ limit: 50 });
+    expect(enUS.errors.closetFull).toMatch(/archive/i);
+    expect(enUS.errors.closetFull).toMatch(/pro/i);
   });
 
   // 50 is chosen to sit clear of the range where combo coverage thins (PR #15
@@ -127,7 +130,9 @@ describe("checkGeneration — rerolls", () => {
     const r = checkGeneration(FREE, { kind: "regenerate", regeneratesUsed: 3 });
     expect(r.allowed).toBe(false);
     expect(typeof r.reason).toBe("string");
-    expect(r.reason).toMatch(/pro/i);
+    expect(r.reason).toBe("errors.regenerateLimit");
+    expect(r.values).toEqual({ limit: 3 });
+    expect(enUS.errors.regenerateLimit).toMatch(/pro/i);
   });
 });
 
@@ -137,7 +142,8 @@ describe("checkGeneration — styled looks", () => {
   test("free cannot build a look around a piece, and is told why", () => {
     const r = checkGeneration(FREE, { kind: "styled", regeneratesUsed: 0 });
     expect(r.allowed).toBe(false);
-    expect(r.reason).toMatch(/pro/i);
+    expect(r.reason).toBe("item.style.proReason");
+    expect(enUS.item.style.proReason).toMatch(/pro/i);
   });
 
   test("pro can, without limit", () => {

@@ -2,6 +2,15 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { OccasionRow } from "../occasion-row";
 import { RefineSheet } from "../refine-sheet";
+import { renderInLocale } from "@/lib/i18n/__tests__/render";
+
+test("Ukrainian palette labels retain English generation identifiers", async () => {
+  const onApply = vi.fn();
+  await renderInLocale(<RefineSheet open occasionLabel="Щодня" onApply={onApply} onClose={() => {}} />, "uk");
+  await userEvent.click(screen.getByRole("button", { name: "Темно-сині" }));
+  await userEvent.click(screen.getByRole("button", { name: "Показати 3 образи" }));
+  expect(onApply).toHaveBeenCalledWith({ formality: 3, lean: ["navy"] });
+});
 
 test("occasion chips use the SELECT variant (rust-tint), not the filter/cream variant (D4)", () => {
   render(<OccasionRow occasion="everyday" onOccasion={() => {}} />);
@@ -26,7 +35,8 @@ test("all four occasions are present and the row does NOT scroll", () => {
   // Measured on a 390px iPhone, the old scrolling row put "Evening" 100%
   // off-screen — a quarter of the feature was undiscoverable. jsdom can't
   // measure layout, so guard the structure: no horizontal-scroll container,
-  // and every chip flexes to share the width.
+  // and every chip flexes to share the width, sized by its label so long
+  // translations ("Fim de semana") stay on one line.
   const { container } = render(<OccasionRow occasion="everyday" onOccasion={() => {}} />);
   for (const label of ["Everyday", "Work", "Weekend", "Evening"]) {
     expect(screen.getByRole("button", { name: label })).toBeInTheDocument();
@@ -34,7 +44,7 @@ test("all four occasions are present and the row does NOT scroll", () => {
   const row = container.firstElementChild as HTMLElement;
   expect(row.className).not.toMatch(/overflow-x-auto/);
   expect(row.className).not.toMatch(/mask-image/);
-  expect(screen.getByRole("button", { name: "Evening" }).className).toMatch(/flex-1/);
+  expect(screen.getByRole("button", { name: "Evening" }).className).toMatch(/flex-auto/);
 });
 
 test("Refine is no longer inside the occasion row (it's a header action, not a 5th occasion)", () => {

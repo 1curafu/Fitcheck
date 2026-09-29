@@ -1,9 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { useState, useSyncExternalStore } from "react";
 import { createClient } from "@/lib/supabase/client";
 
+const subscribeToReady = () => () => {};
+const clientReady = () => true;
+const serverReady = () => false;
+
 export function EmailSignIn() {
+  const t = useTranslations("auth");
+  const locale = useLocale();
+  const ready = useSyncExternalStore(subscribeToReady, clientReady, serverReady);
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -12,25 +20,31 @@ export function EmailSignIn() {
   async function sendLink() {
     setLoading(true);
     setError(null);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${location.origin}/auth/callback?next=/onboarding`,
-        shouldCreateUser: true,
-      },
-    });
-    setLoading(false);
-    if (error) setError(error.message);
-    else setSent(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${location.origin}/auth/callback?next=/onboarding&locale=${encodeURIComponent(locale)}`,
+          shouldCreateUser: true,
+          data: { locale },
+        },
+      });
+      if (error) setError(t("failed"));
+      else setSent(true);
+    } catch {
+      setError(t("failed"));
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (sent) {
     return (
       <div className="text-center">
-        <p className="font-serif text-2xl text-foreground">Check your inbox</p>
+        <p className="font-serif text-2xl text-foreground">{t("checkInbox")}</p>
         <p className="mt-2 text-sm text-muted-foreground">
-          We sent a sign-in link to {email}.
+          {t("sentBody", { email })}
         </p>
       </div>
     );
@@ -47,18 +61,19 @@ export function EmailSignIn() {
       <input
         type="email"
         required
+        disabled={!ready}
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        placeholder="you@email.com"
+        placeholder={t("emailPlaceholder")}
         autoComplete="email"
         className="rounded-[12px] border border-[--input] bg-surface-1 px-4 py-[16px] text-foreground outline-none placeholder:text-muted-dim focus:border-brand"
       />
       <button
         type="submit"
-        disabled={loading}
+        disabled={!ready || loading}
         className="rounded-[12px] bg-foreground py-[18px] font-semibold tracking-[0.01em] text-canvas disabled:opacity-50"
       >
-        {loading ? "Sending…" : "Email me a sign-in link"}
+        {loading ? t("sending") : t("emailLink")}
       </button>
       {error && <p className="text-sm text-brand">{error}</p>}
     </form>

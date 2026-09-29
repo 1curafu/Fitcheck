@@ -50,8 +50,8 @@ export function styledLookName(item: {
   name: string | null;
   subcategory: string | null;
   category: string;
-}): string {
-  return `Around the ${item.name ?? item.subcategory ?? item.category}`;
+}): { message: "item.style.around"; values: { name: string } } {
+  return { message: "item.style.around", values: { name: item.name ?? item.subcategory ?? item.category } };
 }
 
 /**

@@ -1,5 +1,58 @@
 import "@testing-library/jest-dom/vitest";
-import { vi } from "vitest";
+import { afterEach, vi } from "vitest";
+import enUS from "./messages/en-US.json";
+
+vi.mock("next-intl", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("next-intl")>();
+  const ctx = globalThis as { __intl?: { locale: string; messages: object } };
+  const current = () => ctx.__intl ?? { locale: "en-US", messages: enUS };
+  return {
+    ...actual,
+    useLocale: () => current().locale,
+    useTranslations: (namespace?: string) =>
+      actual.createTranslator({ ...current(), namespace } as never),
+  };
+});
+
+vi.mock("next-intl/server", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("next-intl/server")>();
+  const { createTranslator } = await import("next-intl");
+  const ctx = globalThis as { __intl?: { locale: string; messages: object } };
+  const current = () => ctx.__intl ?? { locale: "en-US", messages: enUS };
+  return {
+    ...actual,
+    getLocale: async () => current().locale,
+    getTranslations: async (ns?: string | { namespace?: string }) =>
+      createTranslator({
+        ...current(),
+        namespace: typeof ns === "string" ? ns : ns?.namespace,
+      } as never),
+  };
+});
+
+afterEach(() => {
+  delete (globalThis as { __intl?: unknown }).__intl;
+});
+
+// Existing action tests run outside a Next request; the real header reader has its own tests.
+vi.mock("@/lib/i18n/action-locale", () => ({
+  getActionLocale: async () => (globalThis as { __intl?: { locale: string } }).__intl?.locale ?? "en-US",
+}));
+
+// Existing feature tests mock Next's router locally. Delegate the locale-aware
+// facade to those mocks so the tests keep exercising each feature's behavior.
+vi.mock("@/lib/i18n/navigation", async () => {
+  const navigation = await import("next/navigation");
+  const link = await import("next/link");
+  return {
+    Link: link.default,
+    useRouter: () => navigation.useRouter(),
+    usePathname: () => navigation.usePathname(),
+    redirect: (args: { href: string } | string, type?: Parameters<typeof navigation.redirect>[1]) =>
+      navigation.redirect(typeof args === "string" ? args : args.href, type),
+    getPathname: ({ href }: { href: string }) => href,
+  };
+});
 
 // jsdom has no matchMedia; motion's useReducedMotion() needs it. Default: no preference.
 // Tests that exercise the reduced-motion path override this before render.

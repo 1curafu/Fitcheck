@@ -32,4 +32,6 @@ test("the upload limit is its own type, distinguishable from the generation one"
   expect(upload).toBeInstanceOf(Error);
   expect(upload).not.toBeInstanceOf(QuotaExceededError);
   expect(new UploadLimitError().message.length).toBeGreaterThan(0);
+  expect(upload.messageKey).toBe("errors.closetFull");
+  expect(upload.values).toEqual({ limit: 50 });
 });

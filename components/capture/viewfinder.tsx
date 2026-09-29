@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useRef } from "react";
 
 export function Viewfinder({
@@ -11,6 +12,7 @@ export function Viewfinder({
   onFile: (file: File) => void;
   onMany?: (files: File[]) => void;
 }) {
+  const t = useTranslations("capture.viewfinder");
   const fileRef = useRef<HTMLInputElement>(null);
   const manyRef = useRef<HTMLInputElement>(null);
 
@@ -31,7 +33,7 @@ export function Viewfinder({
       <button
         onClick={() => fileRef.current?.click()}
         disabled={busy}
-        aria-label="Capture an item"
+        aria-label={t("captureItem")}
         className="relative aspect-[1.15] overflow-hidden rounded-[18px] bg-[radial-gradient(120%_120%_at_50%_30%,#1b1a1d_0%,#121113_100%)] shadow-[inset_0_0_0_1px_rgba(237,230,216,0.07)]"
       >
         <span className="absolute left-[18px] top-[18px] size-[26px] rounded-tl-[6px] border-l-2 border-t-2 border-foreground/40" />
@@ -42,14 +44,14 @@ export function Viewfinder({
           {busy ? (
             <>
               <span className="size-9 animate-spin rounded-full border-2 border-foreground/15 border-t-brand" />
-              <span className="text-[13px]">Cutting out &amp; reading colours…</span>
+              <span className="text-[13px]">{t("cuttingOut")}</span>
             </>
           ) : (
             <>
               <span className="grid size-14 place-items-center rounded-full border border-foreground/20">
                 <span className="size-8 rounded-full bg-brand" />
               </span>
-              <span className="text-[13px]">Tap to capture an item</span>
+              <span className="text-[13px]">{t("tap")}</span>
             </>
           )}
         </span>
@@ -61,7 +63,7 @@ export function Viewfinder({
             type="file"
             accept="image/*"
             multiple
-            aria-label="Choose several photos"
+            aria-label={t("chooseSeveral")}
             className="hidden"
             onChange={(event) => {
               const files = Array.from(event.currentTarget.files ?? []);
@@ -75,7 +77,7 @@ export function Viewfinder({
             onClick={() => manyRef.current?.click()}
             className="mt-4 min-h-11 w-full rounded-[12px] border border-[--input] bg-surface-1 px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-surface-2 disabled:opacity-60"
           >
-            Choose several photos
+            {t("chooseSeveral")}
           </button>
         </>
       )}

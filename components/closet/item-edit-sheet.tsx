@@ -1,8 +1,11 @@
 "use client";
+import { useTranslations } from "next-intl";
+import { useVocab } from "@/lib/i18n/vocab";
+import { useRouter } from "@/lib/i18n/navigation";
 
 import { useEffect, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { updateItem } from "@/app/closet/[itemId]/actions";
+
+import { updateItem } from "@/app/[locale]/closet/[itemId]/actions";
 import { Chip } from "@/components/ui-fitcheck/chip";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { Select } from "@/components/ui-fitcheck/select";
@@ -13,7 +16,6 @@ import type { DetailItem } from "./item-detail";
 import {
   CATEGORIES,
   SEASONS,
-  FORMALITY_LABEL,
   MATERIALS,
   TEXTURES,
   PATTERNS,
@@ -54,6 +56,9 @@ export function ItemEditSheet({
   brandSuggestions: string[];
   onClose: () => void;
 }) {
+  const t = useTranslations("item.edit");
+  const label = useVocab();
+  const tError = useTranslations("errors");
   const router = useRouter();
   const [name, setName] = useState(item.name ?? "");
   const [brand, setBrand] = useState(item.brand ?? "");
@@ -138,8 +143,8 @@ export function ItemEditSheet({
         // are server-rendered, so they need a re-fetch, not a client update.
         onClose();
         router.refresh();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Save failed");
+      } catch {
+        setError(tError("editSaveFailed"));
       }
     });
   }
@@ -148,7 +153,7 @@ export function ItemEditSheet({
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
       <button
         type="button"
-        aria-label="Close"
+        aria-label={t("close")}
         onClick={onClose}
         className="absolute inset-0 bg-[rgba(8,8,10,0.6)] backdrop-blur-[2px]"
       />
@@ -156,31 +161,31 @@ export function ItemEditSheet({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Edit piece"
+        aria-label={t("title")}
         className="relative mx-auto flex max-h-[88dvh] w-full max-w-[440px] flex-col overflow-y-auto rounded-t-[22px] bg-canvas px-6 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-5 shadow-[inset_0_0_0_1px_var(--hairline-6)]"
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-serif text-xl text-foreground">Edit piece</h2>
+          <h2 className="font-serif text-xl text-foreground">{t("title")}</h2>
           <button type="button" onClick={onClose} className="text-sm text-muted-foreground">
-            Cancel
+            {t("cancel")}
           </button>
         </div>
 
         <div className="flex flex-col gap-5">
           <input
-            aria-label="Name"
+            aria-label={t("name")}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Name"
+            placeholder={t("name")}
             className="rounded-[12px] border border-[--input] bg-surface-1 px-4 py-3 font-serif text-lg text-foreground outline-none focus:border-brand"
           />
 
           <input
             list="brand-suggestions"
-            aria-label="Brand"
+            aria-label={t("brand")}
             value={brand}
             onChange={(e) => setBrand(e.target.value)}
-            placeholder="Brand (optional)"
+            placeholder={t("brandOptional")}
             className="-mt-2 rounded-[12px] border border-[--input] bg-surface-1 px-4 py-3 text-sm text-foreground outline-none focus:border-brand"
           />
           <datalist id="brand-suggestions">
@@ -190,7 +195,7 @@ export function ItemEditSheet({
           </datalist>
 
           <div>
-            <Kicker className="mb-2 block">Category</Kicker>
+            <Kicker className="mb-2 block">{t("category")}</Kicker>
             <div className="flex flex-wrap gap-2">
               {PICKABLE.map((c) => (
                 <Chip
@@ -199,7 +204,7 @@ export function ItemEditSheet({
                   active={category === c}
                   onClick={() => setCategory(c)}
                 >
-                  {c}
+                  {label("category", c)}
                 </Chip>
               ))}
             </div>
@@ -207,7 +212,7 @@ export function ItemEditSheet({
 
           {WEARABLE_CATEGORIES.has(category) && (
             <div>
-              <Kicker className="mb-2 block">Fit</Kicker>
+              <Kicker className="mb-2 block">{t("fit")}</Kicker>
               {/* Same chip treatment as the confirm screen, but with ONE
                   deliberate divergence: these chips toggle off. `fit` is nullable
                   and is treated as the USER's answer, not the model's — a later
@@ -222,7 +227,7 @@ export function ItemEditSheet({
                   in lockstep: setting a fit records "user", and clearing it back
                   to null must clear fitSource too — a stale "user" left on a null
                   fit would say someone vouched for an absent value. */}
-              <div role="group" aria-label="Fit" className="flex flex-wrap gap-2">
+              <div role="group" aria-label={t("fit")} className="flex flex-wrap gap-2">
                 {FIT_OPTIONS.map((f) => (
                   <Chip
                     key={f}
@@ -234,7 +239,7 @@ export function ItemEditSheet({
                       setFitSource(next === null ? null : "user");
                     }}
                   >
-                    {f}
+                    {label("fit", f)}
                   </Chip>
                 ))}
               </div>
@@ -243,19 +248,19 @@ export function ItemEditSheet({
 
           {category === "Shoes" && (
             <div>
-              <Kicker className="mb-2 block">Sole</Kicker>
+              <Kicker className="mb-2 block">{t("sole")}</Kicker>
               {/* ⚠️ Only rendered for Shoes — an always-visible control invites a
                   value that would make `proportion` reason about a sole on a
                   knit. */}
               <Select
-                aria-label="Sole"
+                aria-label={t("sole")}
                 value={bulk ?? ""}
                 onChange={(e) => setBulk((e.target.value || null) as Tags["bulk"])}
               >
-                <option value="">Not set</option>
+                <option value="">{t("notSet")}</option>
                 {BULK_OPTIONS.map((b) => (
                   <option key={b} value={b}>
-                    {b}
+                    {label("bulk", b)}
                   </option>
                 ))}
               </Select>
@@ -263,34 +268,34 @@ export function ItemEditSheet({
           )}
 
           <div>
-            <Kicker className="mb-2 block">Material</Kicker>
+            <Kicker className="mb-2 block">{t("material")}</Kicker>
             {/* A select, not free text and not chips: `material` is a constrained
                 enum, and 27 chips ran to eight rows on a phone. */}
-            <Select aria-label="Material" value={material} onChange={(e) => setMaterial(e.target.value)}>
+            <Select aria-label={t("material")} value={material} onChange={(e) => setMaterial(e.target.value)}>
               {MATERIALS.map((m) => (
                 <option key={m} value={m}>
-                  {m}
+                  {label("material", m)}
                 </option>
               ))}
             </Select>
           </div>
 
           <div>
-            <Kicker className="mb-2 block">Formality · {FORMALITY_LABEL[formality]}</Kicker>
+            <Kicker className="mb-2 block">{t("formality", { label: label("formality", String(formality)) })}</Kicker>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map((n) => (
                 <button
                   key={n}
                   onClick={() => setFormality(n)}
                   className={`h-2 flex-1 rounded-full ${n <= formality ? "bg-brand" : "bg-foreground/10"}`}
-                  aria-label={`Formality ${n}`}
+                  aria-label={t("formalityNumber", { number: n })}
                 />
               ))}
             </div>
           </div>
 
           <div>
-            <Kicker className="mb-2 block">Seasons</Kicker>
+            <Kicker className="mb-2 block">{t("seasons")}</Kicker>
             <div className="flex flex-wrap gap-2">
               {SEASONS.map((s) => (
                 <Chip
@@ -299,16 +304,16 @@ export function ItemEditSheet({
                   active={seasons.includes(s)}
                   onClick={() => toggleSeason(s)}
                 >
-                  {s}
+                  {label("season", s)}
                 </Chip>
               ))}
             </div>
           </div>
 
           <div>
-            <Kicker className="mb-2 block">Subcategory</Kicker>
+            <Kicker className="mb-2 block">{t("subcategory")}</Kicker>
             <input
-              aria-label="Subcategory"
+              aria-label={t("subcategory")}
               value={subcategory}
               onChange={(e) => setSubcategory(e.target.value)}
               className="w-full rounded-[12px] border border-[--input] bg-surface-1 px-4 py-3 text-sm text-foreground outline-none focus:border-brand"
@@ -316,17 +321,17 @@ export function ItemEditSheet({
           </div>
 
           <div>
-            <Kicker className="mb-2 block">Colour</Kicker>
+            <Kicker className="mb-2 block">{t("colour")}</Kicker>
             <ColorPicker value={colors} onChange={setColors} />
           </div>
 
           <div>
-            <Kicker className="mb-2 block">Accent colour</Kicker>
+            <Kicker className="mb-2 block">{t("accentColour")}</Kicker>
             {/* A SMALL contrast colour — a logo, a sole, contrast stitching —
                 kept separate from `colors` so a two-tone sneaker does not spend
                 the outfit's 3-colour ceiling. Single-select, unlike the
                 multi-select palette above. */}
-            <div role="group" aria-label="Accent colour" className="flex flex-wrap gap-2">
+            <div role="group" aria-label={t("accentColour")} className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => setAccentColor(null)}
@@ -337,7 +342,7 @@ export function ItemEditSheet({
                     : "border border-[--input] bg-surface-1 text-muted-foreground"
                 }`}
               >
-                None
+                {t("none")}
               </button>
               {COLORS.map((c) => {
                 const active = accentColor === c.name;
@@ -346,9 +351,9 @@ export function ItemEditSheet({
                     key={c.name}
                     type="button"
                     onClick={() => setAccentColor(active ? null : c.name)}
-                    aria-label={c.name}
+                    aria-label={label("color", c.name)}
                     aria-pressed={active}
-                    title={c.name}
+                    title={label("color", c.name)}
                     className={`size-7 rounded-[8px] transition-transform ${
                       active
                         ? "scale-105 shadow-[0_0_0_2px_var(--color-brand)]"
@@ -362,38 +367,38 @@ export function ItemEditSheet({
           </div>
 
           <div>
-            <Kicker className="mb-2 block">Texture</Kicker>
-            <Select aria-label="Texture" value={texture} onChange={(e) => setTexture(e.target.value)}>
+            <Kicker className="mb-2 block">{t("texture")}</Kicker>
+            <Select aria-label={t("texture")} value={texture} onChange={(e) => setTexture(e.target.value)}>
               {TEXTURES.map((t) => (
                 <option key={t} value={t}>
-                  {t}
+                  {label("texture", t)}
                 </option>
               ))}
             </Select>
           </div>
 
           <div>
-            <Kicker className="mb-2 block">Pattern</Kicker>
-            <Select aria-label="Pattern" value={pattern} onChange={(e) => setPattern(e.target.value)}>
+            <Kicker className="mb-2 block">{t("pattern")}</Kicker>
+            <Select aria-label={t("pattern")} value={pattern} onChange={(e) => setPattern(e.target.value)}>
               {PATTERNS.map((p) => (
                 <option key={p} value={p}>
-                  {p}
+                  {label("pattern", p)}
                 </option>
               ))}
             </Select>
           </div>
 
           <div>
-            <Kicker className="mb-2 block">Branding</Kicker>
+            <Kicker className="mb-2 block">{t("branding")}</Kicker>
             <Select
-              aria-label="Branding"
+              aria-label={t("branding")}
               value={branding ?? ""}
               onChange={(e) => setBranding((e.target.value || null) as Tags["branding"])}
             >
-              <option value="">Not set</option>
+              <option value="">{t("notSet")}</option>
               {BRANDING_OPTIONS.map((b) => (
                 <option key={b} value={b}>
-                  {b}
+                  {label("branding", b)}
                 </option>
               ))}
             </Select>
@@ -401,16 +406,16 @@ export function ItemEditSheet({
 
           {WEARABLE_CATEGORIES.has(category) && (
             <div>
-              <Kicker className="mb-2 block">Length</Kicker>
+              <Kicker className="mb-2 block">{t("length")}</Kicker>
               <Select
-                aria-label="Length"
+                aria-label={t("length")}
                 value={length ?? ""}
                 onChange={(e) => setLength((e.target.value || null) as Tags["length"])}
               >
-                <option value="">Not set</option>
+                <option value="">{t("notSet")}</option>
                 {LENGTH_OPTIONS.map((l) => (
                   <option key={l} value={l}>
-                    {l}
+                    {label("length", l)}
                   </option>
                 ))}
               </Select>
@@ -418,7 +423,7 @@ export function ItemEditSheet({
           )}
 
           <div>
-            <Kicker className="mb-2 block">Wear</Kicker>
+            <Kicker className="mb-2 block">{t("wear")}</Kicker>
             {/* User-facing label for `distressing`. AI-inferred at capture (rips
                 and heavy fading are plainly visible in a cutout), so unlike Fit
                 it never interrupts capture with a question — this is its only
@@ -435,26 +440,26 @@ export function ItemEditSheet({
                 for Wear it never is — the tagger always resolves to
                 None/Faded/Ripped. */}
             <Select
-              aria-label="Wear"
+              aria-label={t("wear")}
               value={distressing ?? ""}
               onChange={(e) => setDistressing(e.target.value as Tags["distressing"])}
             >
               {DISTRESSING_OPTIONS.map((d) => (
                 <option key={d} value={d}>
-                  {d}
+                  {label("distressing", d)}
                 </option>
               ))}
             </Select>
           </div>
 
           <div>
-            <Kicker className="mb-2 block">Price paid</Kicker>
+            <Kicker className="mb-2 block">{t("pricePaid")}</Kicker>
             <input
-              aria-label="Price paid"
+              aria-label={t("pricePaid")}
               inputMode="decimal"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              placeholder="Optional — enables cost per wear"
+              placeholder={t("priceHint")}
               className="w-full rounded-[12px] border border-[--input] bg-surface-1 px-4 py-3 text-sm text-foreground outline-none focus:border-brand"
             />
           </div>
@@ -466,7 +471,7 @@ export function ItemEditSheet({
             disabled={pending}
             className="mt-1 rounded-[12px] bg-foreground py-[17px] text-center font-semibold text-canvas disabled:opacity-60"
           >
-            {pending ? "Saving…" : "Save"}
+            {pending ? t("saving") : t("save")}
           </button>
         </div>
       </div>

@@ -20,7 +20,7 @@ vi.mock("@/lib/images/thumb", () => ({
 vi.mock("@/lib/images/worker-client", () => ({
   createSegmenter: vi.fn(() => ({ run: vi.fn(async () => new Blob(["png"])), dispose: vi.fn() })),
 }));
-vi.mock("@/app/closet/upload/actions", () => ({
+vi.mock("@/app/[locale]/closet/upload/actions", () => ({
   getUploadCapacity: vi.fn(async () => ({ allowed: true, remaining: null })),
   uploadAndTag: vi.fn(async () => ({
     status: "ready",
@@ -30,7 +30,7 @@ vi.mock("@/app/closet/upload/actions", () => ({
     // ⚠️ The real action always returns this key. `vi.mock` is untyped, so an
     // omission here does not fail the build — it just silently hands the hook
     // `undefined` where the contract says `string | null`.
-    thumbPath: null,
+    thumbPath: null, suggestedName: null,
     tags: {
       category: "Tops", subcategory: "Tee", colors: ["black"],
       pattern: "solid", material: "Cotton", formality: 2, seasons: ["Summer"],
@@ -40,6 +40,17 @@ vi.mock("@/app/closet/upload/actions", () => ({
   confirmItem: vi.fn(async () => ({ status: "saved" })),
   discardDraft: vi.fn(async () => undefined),
 }));
+
+function readyFor(id: string) {
+    return {
+      status: "ready" as const, itemId: id,
+      imagePath: `u/${id}/original.jpg`, cutoutPath: `u/${id}/cutout.webp`, thumbPath: null, suggestedName: null,
+      tags: { category: "Tops", subcategory: "Tee", colors: ["black"],
+        pattern: "solid", material: "Cotton", formality: 2, seasons: ["Summer"] } as never,
+      rotation: 0 as const,
+    };
+  }
+
 
 beforeAll(() => {
   URL.createObjectURL = vi.fn(() => "blob:mock");
@@ -58,14 +69,44 @@ test("capture moves aim → confirm and builds a draft", async () => {
   expect(result.current.draft?.name).toBe("Tee");
 });
 
+test("a localized suggested name remains editable through rotation and a failed save retry", async () => {
+  const { uploadAndTag, confirmItem } = await import("@/app/[locale]/closet/upload/actions");
+  vi.mocked(uploadAndTag).mockResolvedValueOnce({ ...readyFor("localized"), suggestedName: "Блакитна сорочка" });
+  const { result } = renderHook(() => useCapture());
+  await act(async () => { await result.current.capture(new File([], "x.jpg")); });
+  expect(result.current.draft?.name).toBe("Блакитна сорочка");
+  expect(result.current.draft?.tags.subcategory).toBe("Tee");
+  act(() => result.current.updateDraft({ name: "Моя сорочка" }));
+  await act(async () => { await result.current.rotate(); });
+  vi.mocked(confirmItem).mockRejectedValueOnce(new Error("temporary"));
+  await act(async () => { await result.current.save(); });
+  expect(result.current.draft?.name).toBe("Моя сорочка");
+  await act(async () => { await result.current.save(); });
+  expect(vi.mocked(confirmItem).mock.lastCall?.[0]).toMatchObject({ name: "Моя сорочка", tags: { subcategory: "Tee" } });
+});
+
+test("batch review uses each suggestion and retains the legacy subcategory fallback", async () => {
+  const { uploadAndTag } = await import("@/app/[locale]/closet/upload/actions");
+  vi.mocked(uploadAndTag).mockResolvedValueOnce({ ...readyFor("localized-first"), suggestedName: "Перша сорочка" })
+    .mockResolvedValueOnce({ ...readyFor("legacy-second"), suggestedName: null });
+  const { result } = renderHook(() => useCapture());
+  await act(async () => { await result.current.captureMany([new File([], "first.jpg"), new File([], "second.jpg")]); });
+  await waitFor(() => expect(result.current.draft?.name).toBe("Перша сорочка"));
+  await act(async () => { await result.current.save(); });
+  await waitFor(() => expect(result.current.draft?.itemId).toBe("legacy-second"));
+  expect(result.current.draft?.name).toBe("Tee");
+});
+
 test("a server upload limit leaves capture available and explains the limit", async () => {
-  const { uploadAndTag } = await import("@/app/closet/upload/actions");
-  vi.mocked(uploadAndTag).mockResolvedValueOnce({ status: "limited", message: "closet full" });
+  const { uploadAndTag } = await import("@/app/[locale]/closet/upload/actions");
+  vi.mocked(uploadAndTag).mockResolvedValueOnce({
+    status: "limited", message: "errors.closetFull", values: { limit: 50 },
+  });
   const { result } = renderHook(() => useCapture());
   await act(async () => { await result.current.capture(new File([], "x.jpg")); });
   expect(result.current.phase).toBe("aim");
   expect(result.current.draft).toBeNull();
-  expect(result.current.error).toBe("closet full");
+  expect(result.current.error).toBe("A free closet holds 50 pieces. Pro is unlimited — or archive something you no longer wear.");
 });
 
 test("successful save calls onSaved and resets to aim", async () => {
@@ -83,7 +124,7 @@ test("successful save calls onSaved and resets to aim", async () => {
 });
 
 test("confirmation uses the upload id", async () => {
-  const { confirmItem } = await import("@/app/closet/upload/actions");
+  const { confirmItem } = await import("@/app/[locale]/closet/upload/actions");
   const { result } = renderHook(() => useCapture());
   await act(async () => { await result.current.capture(new File([], "x.jpg")); });
   await act(async () => { await result.current.save(); });
@@ -91,8 +132,10 @@ test("confirmation uses the upload id", async () => {
 });
 
 test("confirmation limit keeps the editable draft", async () => {
-  const { confirmItem } = await import("@/app/closet/upload/actions");
-  vi.mocked(confirmItem).mockResolvedValueOnce({ status: "limited", message: "closet full" });
+  const { confirmItem } = await import("@/app/[locale]/closet/upload/actions");
+  vi.mocked(confirmItem).mockResolvedValueOnce({
+    status: "limited", message: "errors.closetFull", values: { limit: 50 },
+  });
   const onSaved = vi.fn();
   const { result } = renderHook(() => useCapture({ onSaved }));
   await act(async () => { await result.current.capture(new File([], "x.jpg")); });
@@ -100,12 +143,12 @@ test("confirmation limit keeps the editable draft", async () => {
   await act(async () => { await result.current.save(); });
   expect(result.current.phase).toBe("confirm");
   expect(result.current.draft?.name).toBe("My knit");
-  expect(result.current.error).toBe("closet full");
+  expect(result.current.error).toBe("A free closet holds 50 pieces. Pro is unlimited — or archive something you no longer wear.");
   expect(onSaved).not.toHaveBeenCalled();
 });
 
 test("failed save sets error, stays on confirm, skips onSaved", async () => {
-  const { confirmItem } = await import("@/app/closet/upload/actions");
+  const { confirmItem } = await import("@/app/[locale]/closet/upload/actions");
   (confirmItem as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("nope"));
   const onSaved = vi.fn();
   const { result } = renderHook(() => useCapture({ onSaved }));
@@ -116,7 +159,7 @@ test("failed save sets error, stays on confirm, skips onSaved", async () => {
     await result.current.save();
   });
   expect(onSaved).not.toHaveBeenCalled();
-  expect(result.current.error).toBe("nope");
+  expect(result.current.error).toBe("Save failed");
   expect(result.current.phase).toBe("confirm");
 });
 
@@ -142,7 +185,7 @@ describe("discard", () => {
   });
 
   test("deletes the blobs the abandoned capture already uploaded", async () => {
-    const { discardDraft } = await import("@/app/closet/upload/actions");
+    const { discardDraft } = await import("@/app/[locale]/closet/upload/actions");
     const { result } = renderHook(() => useCapture());
     await act(async () => {
       await result.current.capture(new File([], "x.jpg"));
@@ -163,7 +206,7 @@ describe("discard", () => {
    * fails here, so failing quietly is correct — refusing to navigate is not.
    */
   test("still returns to the viewfinder when the cleanup fails", async () => {
-    const { discardDraft } = await import("@/app/closet/upload/actions");
+    const { discardDraft } = await import("@/app/[locale]/closet/upload/actions");
     vi.mocked(discardDraft).mockRejectedValueOnce(new Error("offline"));
 
     const { result } = renderHook(() => useCapture());
@@ -180,11 +223,11 @@ describe("discard", () => {
 
 describe("rotation", () => {
   test("the model's rotation is applied to the preview before the user sees it", async () => {
-    const { uploadAndTag } = await import("@/app/closet/upload/actions");
+    const { uploadAndTag } = await import("@/app/[locale]/closet/upload/actions");
     const { rotateBlob } = await import("@/lib/images/rotate");
     vi.mocked(uploadAndTag).mockResolvedValueOnce({
       status: "ready",
-      itemId: "i", imagePath: "u/i/original.jpg", cutoutPath: "u/i/cutout.png", thumbPath: null,
+      itemId: "i", imagePath: "u/i/original.jpg", cutoutPath: "u/i/cutout.png", thumbPath: null, suggestedName: null,
       tags: { category: "Tops", subcategory: "Tee", colors: ["black"], pattern: "solid", material: "Cotton", formality: 2, seasons: ["Summer"] } as never,
       rotation: 90,
     });
@@ -211,7 +254,7 @@ describe("rotation", () => {
 
   test("an in-flight rotation blocks another turn and saving until the preview settles", async () => {
     const { rotateBlob } = await import("@/lib/images/rotate");
-    const { confirmItem } = await import("@/app/closet/upload/actions");
+    const { confirmItem } = await import("@/app/[locale]/closet/upload/actions");
     const { result } = renderHook(() => useCapture());
     await act(async () => { await result.current.capture(new File([], "x.jpg")); });
     const gate = Promise.withResolvers<Blob>();
@@ -228,7 +271,7 @@ describe("rotation", () => {
   });
 
   test("save sends the rotated cutout and thumb only when turned", async () => {
-    const { confirmItem } = await import("@/app/closet/upload/actions");
+    const { confirmItem } = await import("@/app/[locale]/closet/upload/actions");
     const onSaved = vi.fn();
     const { result } = renderHook(() => useCapture({ onSaved }));
     await act(async () => {
@@ -257,7 +300,7 @@ describe("rotation", () => {
 
 describe("batch capture", () => {
   test("a rapid double Save confirms one item only once", async () => {
-    const { confirmItem } = await import("@/app/closet/upload/actions");
+    const { confirmItem } = await import("@/app/[locale]/closet/upload/actions");
     const gate = Promise.withResolvers<{ status: "saved" }>();
     vi.mocked(confirmItem).mockClear().mockImplementationOnce(() => gate.promise);
     const onSaved = vi.fn();
@@ -274,7 +317,7 @@ describe("batch capture", () => {
   });
 
   test("preflights before processing and keeps two future photos ready during review", async () => {
-    const { getUploadCapacity, uploadAndTag } = await import("@/app/closet/upload/actions");
+    const { getUploadCapacity, uploadAndTag } = await import("@/app/[locale]/closet/upload/actions");
     const { processImage } = await import("@/lib/images/process");
     vi.mocked(getUploadCapacity).mockClear();
     vi.mocked(processImage).mockClear();
@@ -299,7 +342,7 @@ describe("batch capture", () => {
   });
 
   test("reserves the last free slot for a failed photo until Skip", async () => {
-    const { getUploadCapacity } = await import("@/app/closet/upload/actions");
+    const { getUploadCapacity } = await import("@/app/[locale]/closet/upload/actions");
     const { processImage } = await import("@/lib/images/process");
     vi.mocked(getUploadCapacity).mockResolvedValueOnce({ allowed: true, remaining: 1 });
     vi.mocked(processImage).mockClear().mockRejectedValueOnce(new Error("worker failed"));
@@ -315,7 +358,7 @@ describe("batch capture", () => {
   });
 
   test("does not replace an active batch with a second picker selection", async () => {
-    const { getUploadCapacity } = await import("@/app/closet/upload/actions");
+    const { getUploadCapacity } = await import("@/app/[locale]/closet/upload/actions");
     vi.mocked(getUploadCapacity).mockClear();
     const { result } = renderHook(() => useCapture());
     await act(async () => { await result.current.captureMany([new File([], "first.jpg")]); });
@@ -326,18 +369,9 @@ describe("batch capture", () => {
 });
 
 describe("batch cancellation", () => {
-  function readyFor(id: string) {
-    return {
-      status: "ready" as const, itemId: id,
-      imagePath: `u/${id}/original.jpg`, cutoutPath: `u/${id}/cutout.webp`, thumbPath: null,
-      tags: { category: "Tops", subcategory: "Tee", colors: ["black"],
-        pattern: "solid", material: "Cotton", formality: 2, seasons: ["Summer"] } as never,
-      rotation: 0 as const,
-    };
-  }
 
   test("Finish discards prepared drafts but keeps already saved paths", async () => {
-    const { uploadAndTag, discardDraft } = await import("@/app/closet/upload/actions");
+    const { uploadAndTag, discardDraft } = await import("@/app/[locale]/closet/upload/actions");
     vi.mocked(uploadAndTag).mockResolvedValueOnce(readyFor("first"))
       .mockResolvedValueOnce(readyFor("second"));
     vi.mocked(discardDraft).mockClear();
@@ -357,7 +391,7 @@ describe("batch cancellation", () => {
   });
 
   test("a tag result arriving after Finish is cleaned and never shown", async () => {
-    const { uploadAndTag, discardDraft } = await import("@/app/closet/upload/actions");
+    const { uploadAndTag, discardDraft } = await import("@/app/[locale]/closet/upload/actions");
     const gate = Promise.withResolvers<ReturnType<typeof readyFor>>();
     vi.mocked(uploadAndTag).mockImplementationOnce(() => gate.promise);
     vi.mocked(discardDraft).mockClear();
@@ -373,7 +407,7 @@ describe("batch cancellation", () => {
   });
 
   test("Skip clears the foreground and only discards that photo", async () => {
-    const { uploadAndTag, discardDraft } = await import("@/app/closet/upload/actions");
+    const { uploadAndTag, discardDraft } = await import("@/app/[locale]/closet/upload/actions");
     vi.mocked(uploadAndTag).mockResolvedValueOnce(readyFor("first"))
       .mockResolvedValueOnce(readyFor("second"));
     vi.mocked(discardDraft).mockClear();
@@ -391,7 +425,7 @@ describe("batch cancellation", () => {
   });
 
   test("a rotation finishing after Skip cannot alter the next photo", async () => {
-    const { uploadAndTag, confirmItem } = await import("@/app/closet/upload/actions");
+    const { uploadAndTag, confirmItem } = await import("@/app/[locale]/closet/upload/actions");
     const { rotateBlob } = await import("@/lib/images/rotate");
     vi.mocked(uploadAndTag).mockResolvedValueOnce(readyFor("first"))
       .mockResolvedValueOnce(readyFor("second"));
@@ -420,7 +454,7 @@ describe("batch cancellation", () => {
   });
 
   test("route departure during confirmation keeps saved images and suppresses stale UI", async () => {
-    const { confirmItem, discardDraft } = await import("@/app/closet/upload/actions");
+    const { confirmItem, discardDraft } = await import("@/app/[locale]/closet/upload/actions");
     const gate = Promise.withResolvers<{ status: "saved" }>();
     vi.mocked(confirmItem).mockImplementationOnce(() => gate.promise);
     vi.mocked(discardDraft).mockClear();
@@ -440,7 +474,7 @@ describe("batch cancellation", () => {
   });
 
   test("an uncertain save rejection leaves its images for the orphan sweep", async () => {
-    const { confirmItem, discardDraft } = await import("@/app/closet/upload/actions");
+    const { confirmItem, discardDraft } = await import("@/app/[locale]/closet/upload/actions");
     const gate = Promise.withResolvers<{ status: "saved" }>();
     vi.mocked(confirmItem).mockImplementationOnce(() => gate.promise);
     vi.mocked(discardDraft).mockClear();
@@ -473,7 +507,7 @@ describe("batch cancellation", () => {
   });
 
   test("a failed capacity read after route departure cannot show an old error", async () => {
-    const { getUploadCapacity } = await import("@/app/closet/upload/actions");
+    const { getUploadCapacity } = await import("@/app/[locale]/closet/upload/actions");
     const gate = Promise.withResolvers<{ allowed: true; remaining: null }>();
     vi.mocked(getUploadCapacity).mockImplementationOnce(() => gate.promise);
     const { result, rerender } = renderHook(() => useCapture());
@@ -488,7 +522,7 @@ describe("batch cancellation", () => {
   });
 
   test("an old capacity read cannot block a new batch after returning to capture", async () => {
-    const { getUploadCapacity } = await import("@/app/closet/upload/actions");
+    const { getUploadCapacity } = await import("@/app/[locale]/closet/upload/actions");
     const oldPreflight = Promise.withResolvers<{ allowed: true; remaining: null }>();
     vi.mocked(getUploadCapacity).mockClear().mockImplementationOnce(() => oldPreflight.promise);
     const { result, rerender } = renderHook(() => useCapture());
@@ -508,7 +542,7 @@ describe("batch cancellation", () => {
   });
 
   test("an old preflight cannot release a newer preflight lock", async () => {
-    const { getUploadCapacity } = await import("@/app/closet/upload/actions");
+    const { getUploadCapacity } = await import("@/app/[locale]/closet/upload/actions");
     const first = Promise.withResolvers<{ allowed: true; remaining: null }>();
     const second = Promise.withResolvers<{ allowed: true; remaining: null }>();
     vi.mocked(getUploadCapacity).mockClear()
@@ -531,7 +565,7 @@ describe("batch cancellation", () => {
   });
 
   test("a save finishing after departure releases controls for the next photo", async () => {
-    const { confirmItem, uploadAndTag } = await import("@/app/closet/upload/actions");
+    const { confirmItem, uploadAndTag } = await import("@/app/[locale]/closet/upload/actions");
     const oldSave = Promise.withResolvers<{ status: "saved" }>();
     vi.mocked(confirmItem).mockImplementationOnce(() => oldSave.promise);
     vi.mocked(uploadAndTag).mockResolvedValueOnce(readyFor("first"))
@@ -556,7 +590,7 @@ describe("batch cancellation", () => {
   });
 
   test("returning before an old save settles allows a new save without unlocking it early", async () => {
-    const { confirmItem, uploadAndTag } = await import("@/app/closet/upload/actions");
+    const { confirmItem, uploadAndTag } = await import("@/app/[locale]/closet/upload/actions");
     const oldSave = Promise.withResolvers<{ status: "saved" }>();
     const newSave = Promise.withResolvers<{ status: "saved" }>();
     vi.mocked(confirmItem).mockClear()
@@ -589,7 +623,7 @@ describe("batch cancellation", () => {
 
   test("a single-photo preview completing after departure is discarded", async () => {
     const { rotateBlob } = await import("@/lib/images/rotate");
-    const { discardDraft } = await import("@/app/closet/upload/actions");
+    const { discardDraft } = await import("@/app/[locale]/closet/upload/actions");
     const gate = Promise.withResolvers<Blob>();
     vi.mocked(rotateBlob).mockClear().mockImplementationOnce(() => gate.promise);
     vi.mocked(discardDraft).mockClear();

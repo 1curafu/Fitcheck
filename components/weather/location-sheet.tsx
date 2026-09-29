@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { LocationPicker } from "./location-picker";
 import type { City } from "@/lib/weather/geocode";
@@ -45,20 +46,21 @@ export function LocationSheet({
   geoError?: string | null;
   onClose: () => void;
 }) {
+  const t = useTranslations("weather");
   if (!open) return null;
 
   return (
     <>
       <button
         type="button"
-        aria-label="Close"
+        aria-label={t("location.close")}
         onClick={onClose}
         className="fixed inset-0 z-[60] bg-[rgba(6,6,8,0.5)] backdrop-blur-[1.5px]"
       />
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Location"
+        aria-label={t("location.title")}
         // maxWidth inline: the shell caps at 440, and a sheet wider than it
         // would hang off the app on a desktop viewport.
         style={{ maxWidth: 440 }}
@@ -70,15 +72,15 @@ export function LocationSheet({
             because it is making an argument; this one is a control, and at that
             size the header ate two thirds of the sheet before the user reached
             anything tappable. */}
-        <Kicker className="block">Location</Kicker>
-        <h2 className="mt-1.5 font-serif text-[20px]/[1.2] text-foreground">Where are you?</h2>
+        <Kicker className="block">{t("location.title")}</Kicker>
+        <h2 className="mt-1.5 font-serif text-[20px]/[1.2] text-foreground">{t("location.question")}</h2>
         <p className="mt-1 text-[12.5px] text-muted-foreground">
-          Your looks are built around this forecast.
+          {t("location.description")}
         </p>
 
         {(locating || geoError) && (
           <p role="status" className="mt-3 text-[12.5px] text-brand-high">
-            {locating ? "Locating…" : geoError}
+            {locating ? t("locating") : geoError}
           </p>
         )}
 
@@ -103,7 +105,7 @@ export function LocationSheet({
           onClick={onClose}
           className="mt-3 min-h-[44px] w-full text-[14px] text-muted-foreground"
         >
-          Cancel
+          {t("location.cancel")}
         </button>
       </div>
     </>

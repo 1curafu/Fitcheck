@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "next-intl";
 
 import { UpgradeSheet } from "@/components/billing/upgrade-sheet";
 import { useStyleWithItem } from "@/components/closet/use-style-with-item";
@@ -16,6 +17,7 @@ import { useStyleWithItem } from "@/components/closet/use-style-with-item";
  * "style an outfit with this" path, where there is a specific piece to keep.
  */
 export function TryAnotherLook({ itemId }: { itemId: string }) {
+  const t = useTranslations("outfit");
   const { run, pending, message, upgrade, dismissUpgrade } = useStyleWithItem(itemId);
 
   return (
@@ -26,7 +28,7 @@ export function TryAnotherLook({ itemId }: { itemId: string }) {
         onClick={() => run(true)}
         className="min-h-[40px] rounded-full px-5 text-[13px] text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-4)] disabled:opacity-60"
       >
-        {pending ? "Styling…" : "Try another look"}
+        {pending ? t("styling") : t("tryAnother")}
       </button>
       {message && (
         <p role="status" className="mt-2 text-center text-xs text-muted-foreground">
@@ -35,7 +37,7 @@ export function TryAnotherLook({ itemId }: { itemId: string }) {
       )}
       <UpgradeSheet
         open={Boolean(upgrade)}
-        title="Style a look around any piece"
+        title={t("styleAround")}
         body={upgrade ?? ""}
         onClose={dismissUpgrade}
       />

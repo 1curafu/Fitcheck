@@ -1,0 +1,151 @@
+import { vocabLabel } from "@/lib/i18n/vocab-server";
+import { Suspense } from "react";
+import { Link, redirect } from "@/lib/i18n/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
+
+import { Camera } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { signItemImages, displayPath } from "@/lib/storage/signed";
+import { Kicker } from "@/components/ui-fitcheck/kicker";
+import { MobileNav } from "@/components/shell/mobile-nav";
+import { ClosetGrid } from "@/components/closet/closet-grid";
+import { WhatsNew } from "@/components/shell/whats-new";
+import { CURRENT_RELEASE } from "@/lib/release-notes";
+
+/**
+ * The Closet, split into a prerendered SHELL and a streamed body.
+ *
+ * Everything outside `<Suspense>` is the shell: it is prerendered at build
+ * time, prefetched when a link to this route comes into view, and therefore
+ * cached on the ROUTE key — so it may contain nothing that belongs to any
+ * particular user. Here that is the header, the capture button and the nav.
+ *
+ * ⚠️ Reading the session (`supabase.auth.getUser()` → `cookies()`) is what
+ * blocks a shell, so it moved inside `<ClosetBody>`. Next enforces the
+ * important half of this at build time: `cookies()` inside a `use cache` scope
+ * is a hard error, so the session can never be baked into a cached fragment.
+ * `e2e/shell-privacy.spec.ts` guards the rest.
+ */
+export default async function ClosetPage() {
+  const t = await getTranslations("closet");
+  return (
+    <div className="flex min-h-dvh flex-1 flex-col">
+      <main className="screen-top flex flex-1 flex-col gap-5 pb-8">
+        {/* The release note lives in the BODY (see ClosetBody), not the shell:
+            whether it is owed depends on the account's age, which is a session
+            read. Mounted on this screen rather than in `MobileShell` for the
+            reason the wear confirmation is: in the shell it would appear
+            mid-capture and mid-edit, where an interruption costs most. */}
+        <Suspense fallback={<ClosetHeader />}>
+          <ClosetBody />
+        </Suspense>
+      </main>
+      {/* Design :192-194 — capture is the closet's primary action, so it gets
+          the most prominent element on the screen: a 60px rust circle floating
+          clear of the tab pill. It used to be the LEAST prominent thing here, a
+          small cream `+` in the header. The camera glyph also says *how* a piece
+          gets added. This is the screen's one rust element (DESIGN.md, the One
+          Rust Rule) — which is why the nav's active tab is cream, not rust. */}
+      <Link
+        href="/closet/upload"
+        aria-label={t("addPiece")}
+        className="fixed bottom-[108px] right-[22px] z-[85] grid size-[60px] place-items-center rounded-full bg-brand text-[#1a0f09] shadow-[0_12px_28px_rgba(184,106,71,0.35),inset_0_1px_0_rgba(255,255,255,0.18)]"
+      >
+        <Camera size={26} strokeWidth={1.8} />
+      </Link>
+      <MobileNav />
+    </div>
+  );
+}
+
+/**
+ * The shell's header, and the fallback while the real one streams.
+ *
+ * `count` is omitted rather than shown as 0: a prefetched shell that says
+ * "0 Pieces" and then corrects itself to "22 Pieces" reads as a bug. The
+ * kicker holds its space so the title does not jump when the count arrives.
+ */
+async function ClosetHeader({ count }: { count?: number }) {
+  const t = await getTranslations("closet");
+  return (
+    <header className="flex items-end justify-between px-6">
+      <div>
+        <Kicker>{count == null ? " " : t("pieces", { count })}</Kicker>
+        <h1 className="font-serif text-3xl text-foreground">{t("title")}</h1>
+      </div>
+    </header>
+  );
+}
+
+async function ClosetBody() {
+  const tVocab = await getTranslations("vocab");
+  const t = await getTranslations("closet");
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return redirect({ href: "/", locale: await getLocale() });
+
+  const { data: items } = await supabase
+    .from("items")
+    .select("*")
+    .eq("archived", false)
+    .order("created_at", { ascending: false });
+  const { count: removedCount } = await supabase
+    .from("items")
+    .select("id", { count: "exact", head: true })
+    .eq("archived", true);
+
+  const rows = items ?? [];
+
+  /**
+   * ⚠️ **`"thumb"` on both lines, or the lookup silently misses.** The map is
+   * keyed by the signed path; signing one size and asking for another returns
+   * undefined and renders an empty card.
+   *
+   * The grid is `columns-2`, so a card's image box is ~125x160 CSS px — it was
+   * being served the full 1280px cutout, 493.5 kB for seven items. The hero on
+   * item detail keeps the cutout; this is a 45-160px cell.
+   */
+  const path = (i: (typeof rows)[number]) => displayPath(i, "thumb");
+
+  const signed = await signItemImages(rows.map(path));
+  const grid = rows.map((i) => ({
+    ...i,
+    name: i.name ?? i.subcategory ?? vocabLabel(tVocab, "category", i.category),
+    brand: i.brand,
+    imageUrl: signed.get(path(i)) ?? "",
+  }));
+
+  // Storage cannot tell a returning user from a new one (a home-screen app and
+  // Safari keep separate storage); the account's creation date can.
+  const returning = new Date(user.created_at) < new Date(CURRENT_RELEASE.date);
+
+  return (
+    <>
+      <WhatsNew returning={returning} />
+      <ClosetHeader count={grid.length} />
+      {grid.length === 0 ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 px-8 text-center">
+          <p className="text-sm text-muted-foreground">{t("empty")}</p>
+          <Link
+            href="/closet/upload"
+            className="rounded-[12px] bg-foreground px-6 py-3 text-sm font-semibold text-canvas"
+          >
+            {t("addFirst")}
+          </Link>
+        </div>
+      ) : (
+        <ClosetGrid items={grid} />
+      )}
+      {(removedCount ?? 0) > 0 && (
+        <Link
+          href="/closet/removed"
+          className="mx-6 mt-6 grid min-h-[44px] place-items-center text-[13px] text-muted-foreground underline underline-offset-4"
+        >
+          {t("removedCount", { count: removedCount ?? 0 })}
+        </Link>
+      )}
+    </>
+  );
+}

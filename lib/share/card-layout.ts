@@ -5,7 +5,7 @@ export type Rect = { x: number; y: number; w: number; h: number };
 export type FontSpec = { family: "serif" | "sans"; size: number; italic?: boolean; weight?: number; caps?: boolean };
 export type Measure = (text: string, font: FontSpec) => number;
 export type CardPiece = { n: number; label: string; slot: Slot };
-export type CardInput = { title: string; why: string | null; kicker: string; pieces: CardPiece[] };
+export type CardInput = { title: string; why: string | null; kicker: string; footer?: string; pieces: CardPiece[] };
 export type TextBlock = { x: number; y: number; font: FontSpec; lineHeight: number; lines: string[]; firstLineIndent: number };
 export type PlacedPiece = { n: number; rect: Rect; rotationDeg: number; z: number; numeral: { x: number; y: number } | null };
 export type ListEntry = { n: number; num: string; label: string; x: number; labelX: number; y: number };
@@ -162,7 +162,7 @@ function stacked(target: "story" | "post", input: CardInput, measure: Measure): 
     title, why, stage,
     pieces: placePieces(stage, input.pieces, true),
     list: { font: listFont, entries },
-    footer: { font: sans(f.footerFont, 400, true), x: f.w - m, y: f.footerY, text: "fitcheck.space", align: "right" },
+    footer: { font: sans(f.footerFont, 400, true), x: f.w - m, y: f.footerY, text: input.footer ?? "fitcheck.space", align: "right" },
   };
 }
 
@@ -182,7 +182,7 @@ function preview(input: CardInput, measure: Measure): CardLayout {
     why, stage,
     pieces: placePieces(stage, input.pieces, false),
     list: null,
-    footer: { font: sans(20, 400, true), x: 1160, y: 590, text: "fitcheck.space", align: "right" },
+    footer: { font: sans(20, 400, true), x: 1160, y: 590, text: input.footer ?? "fitcheck.space", align: "right" },
   };
 }
 

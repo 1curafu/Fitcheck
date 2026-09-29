@@ -1,4 +1,5 @@
 import type { UiOccasion } from "@/lib/generator/types";
+import type { MessageKey } from "@/lib/i18n/keys";
 
 /**
  * The predicted occasion for the user's morning.
@@ -21,7 +22,7 @@ export function predictOccasion(now: Date, timeZone: string, occasions: string[]
   return priority.find((o) => dressesFor.has(o)) ?? "everyday";
 }
 
-/** Day-of-week in the user's zone. `Intl` `weekday: "short"` is locale-stable in en-US. */
+/** Day-of-week in the user's zone. This Intl call computes a weekday key, not display copy. */
 function isWeekend(now: Date, timeZone: string): boolean {
   let day: string;
   try {
@@ -32,14 +33,14 @@ function isWeekend(now: Date, timeZone: string): boolean {
   return day === "Sat" || day === "Sun";
 }
 
-const REASONS: Record<UiOccasion, string> = {
-  work: "Styled for your work day",
-  everyday: "Everyday ease",
-  weekend: "Weekend, off-duty",
-  evening: "Out tonight",
-};
+const REASONS = {
+  work: "generate.reason.work",
+  everyday: "generate.reason.everyday",
+  weekend: "generate.reason.weekend",
+  evening: "generate.reason.evening",
+} as const satisfies Record<UiOccasion, MessageKey>;
 
 /** The legible "why" shown above the looks — makes the smart default feel intentional. */
-export function defaultReason(occasion: UiOccasion): string {
+export function defaultReason(occasion: UiOccasion): MessageKey {
   return REASONS[occasion];
 }

@@ -1,0 +1,9 @@
+{
+  "onboarding": {
+    "questions": {
+      "archetype": {
+        "sub": "Pick the one you gravitate towards."
+      }
+    }
+  }
+}

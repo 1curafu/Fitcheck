@@ -5,8 +5,8 @@
 
 /* ── Fitcheck brand tokens (names that don't collide with shadcn semantics) ── */
 @theme {
-  --font-serif: var(--font-libre-caslon), serif;
-  --font-sans: var(--font-hanken), system-ui, sans-serif;
+  --font-serif: var(--font-libre-caslon), var(--font-serif-cyrillic), serif;
+  --font-sans: var(--font-hanken), var(--font-sans-cyrillic), system-ui, sans-serif;
 
   /* canvas → elevated surfaces (warm near-black ramp) */
   --color-canvas: #0e0e10;
@@ -140,7 +140,7 @@
 @layer components {
   /* Where a screen's content starts.
    *
-   * `app/layout.tsx` sets viewportFit:"cover" + a black-translucent status bar,
+   * `app/[locale]/layout.tsx` sets viewportFit:"cover" + a black-translucent status bar,
    * so in the INSTALLED PWA the web view runs edge to edge and content would sit
    * underneath the clock. In a Safari tab the viewport already clears it and the
    * inset is 0. Every screen used to hard-code its own allowance for this —

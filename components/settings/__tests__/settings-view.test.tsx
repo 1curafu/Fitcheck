@@ -11,8 +11,9 @@ import { vi } from "vitest";
 // `regionLabel` that export became undefined and the component threw — three
 // tests failed with an empty document and an error that named none of this.
 vi.mock("@/app/billing/actions", () => ({ startCheckout: vi.fn(), openBillingPortal: vi.fn() }));
+vi.mock("@/lib/i18n/actions", () => ({ setLocale: vi.fn() }));
 // SharedLinks (Shared links section) calls useRouter().refresh() after Stop sharing.
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }), usePathname: () => "/settings", useSearchParams: () => new URLSearchParams() }));
 vi.mock("@/lib/weather/geocode", async (orig) => ({
   ...(await orig<typeof import("@/lib/weather/geocode")>()),
   searchCities: vi
@@ -21,7 +22,7 @@ vi.mock("@/lib/weather/geocode", async (orig) => ({
 }));
 import { SettingsView } from "../settings-view";
 import type { Preferences } from "@/lib/profile/preferences";
-import type { deleteAccount } from "@/app/settings/actions";
+import type { deleteAccount } from "@/app/[locale]/settings/actions";
 
 const props: {
   name: string;
@@ -112,10 +113,11 @@ test("a failed save reverts the switch rather than lying about it", async () => 
   expect(sw).toHaveAttribute("aria-checked", "true");
 });
 
-test("deferred controls are visible but disabled, and say so", () => {
+test("the shipped-language picker replaces the obsolete English/Deutsch control", () => {
   renderSettings();
-  expect(screen.getByRole("button", { name: /deutsch/i })).toBeDisabled();
-  expect(screen.getByText(/soon/i)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "English (US)" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /deutsch/i })).not.toBeInTheDocument();
+  expect(screen.getByRole("switch", { name: /rain guard/i })).toBeInTheDocument();
 });
 
 test("no toggle is rendered for a preference nothing reads", () => {

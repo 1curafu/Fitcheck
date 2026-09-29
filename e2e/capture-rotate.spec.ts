@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { admin, testUserId } from "./helpers";
+import { admin, testUserId, setCaptureFiles } from "./helpers";
 
 test.use({ storageState: "e2e/.auth/state.json" });
 
@@ -20,7 +20,7 @@ async function shownSize(page: Page) {
 test("Rotate turns the preview a quarter turn and the saved cutout is stored turned", async ({ page }) => {
   test.setTimeout(180_000);
   await page.goto("/closet/upload");
-  await page.locator('input[type="file"]:not([multiple])').setInputFiles("e2e/fixtures/garment.jpg");
+  await setCaptureFiles(page, 'input[type="file"]:not([multiple])', "e2e/fixtures/garment.jpg");
   const before = await shownSize(page);
   await page.getByRole("button", { name: "Rotate" }).click();
   await expect.poll(async () => (await shownSize(page)).w).toBe(before.h);

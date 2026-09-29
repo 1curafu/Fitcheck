@@ -1,6 +1,24 @@
-import { laterAdvice } from "../advice";
+import { createTranslator } from "next-intl";
+import enUS from "@/messages/en-US.json";
+import { laterAdvice as adviceKeys } from "../advice";
+
+const t = createTranslator({ locale: "en-US", messages: enUS, namespace: "weather.advice" });
+const laterAdvice = (...args: Parameters<typeof adviceKeys>) => {
+  const copy = adviceKeys(...args);
+  const adviceClause = t(copy.clauseKey);
+  return { ...copy, adviceClause, sentence: `${t(copy.leadKey, copy.leadValues)} — ${adviceClause}` };
+};
 const H = (o: { hh: string; tempC: number; rain: boolean }[]) =>
   o.map((c, i) => ({ ...c, isNow: i === 0 }));
+
+test("advice carries message keys and parameters for locale rendering", () => {
+  const copy = adviceKeys(H([{ hh: "21:00", tempC: 12, rain: true }]));
+  expect(copy).toMatchObject({
+    leadKey: "rainFrom",
+    leadValues: { hour: "21:00" },
+    clauseKey: "takeShell",
+  });
+});
 
 test("rain later → names the hour; the clause advises a shell (and survives into the sentence)", () => {
   const a = laterAdvice(

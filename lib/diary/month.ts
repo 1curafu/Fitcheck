@@ -1,4 +1,6 @@
 import type { Slot } from "@/lib/generator/types";
+import { intlLocale } from "@/lib/i18n/format";
+import type { ShippedLocale } from "@/lib/i18n/locales";
 
 /** One cutout of a logged look, positioned by the flat-lay geometry. */
 export type DiaryPiece = { imageUrl: string; slot: Slot };
@@ -21,11 +23,6 @@ export type Cell = {
   log?: DayLog;
 };
 
-/** Monday-first, matching the design's weekday header. */
-function mondayIndex(jsDay: number): number {
-  return (jsDay + 6) % 7;
-}
-
 function iso(year: number, month: number, day: number): string {
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
@@ -42,11 +39,11 @@ function iso(year: number, month: number, day: number): string {
  * `Date.UTC` is used purely as calendar arithmetic — these are date keys, not
  * instants, so no timezone conversion is happening or wanted.
  */
-export function buildMonth(year: number, month: number, today: string, logs: DayLog[]): Cell[] {
+export function buildMonth(year: number, month: number, today: string, logs: DayLog[], weekStart: 0 | 1 = 1): Cell[] {
   const byDate = new Map(logs.map((l) => [l.worn_on, l]));
   const first = new Date(Date.UTC(year, month - 1, 1));
   const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
-  const lead = mondayIndex(first.getUTCDay());
+  const lead = (first.getUTCDay() - weekStart + 7) % 7;
 
   const cells: Cell[] = [];
   for (let i = 0; i < lead; i++) {
@@ -69,7 +66,7 @@ export function buildMonth(year: number, month: number, today: string, logs: Day
 }
 
 /** `2026-07` → `July 2026`, for the header kicker. */
-export function monthLabel(year: number, month: number): string {
-  return new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" })
+export function monthLabel(year: number, month: number, locale: ShippedLocale = "en-GB"): string {
+  return new Intl.DateTimeFormat(intlLocale(locale), { month: "long", year: "numeric", timeZone: "UTC" })
     .format(new Date(Date.UTC(year, month - 1, 1)));
 }

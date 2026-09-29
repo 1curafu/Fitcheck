@@ -206,7 +206,7 @@ otp_expiry = 3600
 # HTML must be pasted into Supabase Dashboard → Authentication → Email Templates
 # → Magic Link, or production keeps sending the CLI default.
 [auth.email.template.magic_link]
-subject = "Your Fitcheck sign-in link"
+subject = "Fitcheck"
 content_path = "./supabase/templates/magic-link.html"
 
 # Uncomment to customize email template

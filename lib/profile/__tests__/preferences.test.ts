@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { PREFERENCE_DEFAULTS, PreferencesSchema, readPreferences } from "../preferences";
+import { PREFERENCE_DEFAULTS, PreferencesSchema, readPreferences, mergePreferencesForSave } from "../preferences";
 
 describe("readPreferences", () => {
   test("an empty profile gets safe defaults", () => {
@@ -58,11 +58,26 @@ describe("readPreferences", () => {
     // reading their fallbacks from PREFERENCE_DEFAULTS. Adding a preference to
     // one and forgetting the other is the drift this pins.
     expect(Object.keys(PREFERENCE_DEFAULTS).sort()).toEqual(
-      Object.keys(PreferencesSchema.shape).sort(),
+      Object.keys(PreferencesSchema.shape).filter((key) => key !== "locale").sort(),
     );
     // And the lenient path must actually return all of them.
     expect(Object.keys(readPreferences({})).sort()).toEqual(
       Object.keys(PREFERENCE_DEFAULTS).sort(),
     );
   });
+});
+
+test("locale is optional, strict on writes and lenient on reads", () => {
+  expect(PreferencesSchema.parse({ locale: "uk" }).locale).toBe("uk");
+  expect(() => PreferencesSchema.parse({ locale: "pl" })).toThrow();
+  expect(readPreferences({ locale: "uk" }).locale).toBe("uk");
+  expect(readPreferences({ locale: "zz" }).locale).toBeUndefined();
+});
+
+test("unrelated saves preserve the distinction between absent and stored units", () => {
+  expect(mergePreferencesForSave({}, { rainGuard: false })).not.toHaveProperty("tempUnit");
+  expect(mergePreferencesForSave({ tempUnit: "C" }, { rainGuard: false })).toHaveProperty("tempUnit", "C");
+  expect(mergePreferencesForSave({ tempUnit: "F", rainGuard: false }, { locale: "uk" })).toMatchObject({ tempUnit: "F", rainGuard: false });
+  expect(mergePreferencesForSave({}, { tempUnit: "F" })).toHaveProperty("tempUnit", "F");
+  expect(mergePreferencesForSave({ futureThing: true }, {})).not.toHaveProperty("futureThing");
 });

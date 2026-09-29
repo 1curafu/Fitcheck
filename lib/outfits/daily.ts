@@ -1,5 +1,7 @@
+import { DEFAULT_LOCALE, type Locale, type ShippedLocale } from "@/lib/i18n/locales";
 import { createClient } from "@/lib/supabase/server";
 import type { LookDraft, WeatherPayload } from "@/lib/generator/types";
+import { readOutfitTexts } from "./text-store";
 import type { StoredLook } from "./reassemble";
 import { freshIndexStart, isWornToday } from "./wear";
 
@@ -8,6 +10,7 @@ export async function loadDailyLooks(
   userId: string,
   occasion: string,
   generatedOn: string,
+  locale: ShippedLocale = DEFAULT_LOCALE,
 ): Promise<StoredLook[] | null> {
   const supabase = await createClient();
   const { data } = await supabase
@@ -15,7 +18,7 @@ export async function loadDailyLooks(
     // `wear_logs(worn_on)` is the reverse of wear_logs.outfit_id. A look the
     // user has already worn today stays in the set and is badged, rather than
     // disappearing the moment they tap the button.
-    .select("id, look_name, ai_reasoning, layout, look_index, wear_logs(worn_on)")
+    .select("id, text_locale, look_name, ai_reasoning, layout, look_index, wear_logs(worn_on)")
     .eq("user_id", userId)
     .eq("occasion", occasion)
     .eq("generated_on", generatedOn)
@@ -27,15 +30,21 @@ export async function loadDailyLooks(
 
   if (!data || data.length === 0) return null;
 
-  return data.map((row) => {
+  const sources = data.map(row => ({ id: row.id, sourceLocale: row.text_locale as Locale, name: row.look_name ?? "", why: row.ai_reasoning as string | null }));
+  const texts = await readOutfitTexts(supabase, sources, locale);
+  return data.map((row, index) => {
+    const text = texts[index];
     const layout = (row.layout ?? {}) as {
       anchorIndex?: number;
       pieces?: StoredLook["pieces"];
     };
     return {
       id: row.id,
-      lookName: row.look_name ?? "",
-      why: row.ai_reasoning ?? "",
+      textSource: sources[index],
+      textLocale: locale,
+      textTranslated: text.translated,
+      lookName: text.name,
+      why: text.why ?? "",
       anchorIndex: layout.anchorIndex ?? 0,
       pieces: layout.pieces ?? [],
       worn: isWornToday(row.wear_logs ?? [], generatedOn),
@@ -64,6 +73,7 @@ export async function saveDailyLooks(
   generatedOn: string,
   weather: WeatherPayload,
   looks: LookDraft[],
+  sourceLocale: Locale = DEFAULT_LOCALE,
 ): Promise<string[]> {
   const supabase = await createClient();
 
@@ -97,6 +107,7 @@ export async function saveDailyLooks(
     occasion,
     generated_on: generatedOn,
     look_index: start + i,
+    text_locale: sourceLocale,
     look_name: look.name,
     ai_reasoning: look.why,
     weather_snapshot: weather,

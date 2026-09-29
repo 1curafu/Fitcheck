@@ -1,9 +1,16 @@
-import Link from "next/link";
+"use client";
+
+import { useLocale, useTranslations } from "next-intl";
+import { useCallback, useState } from "react";
+import { Link } from "@/lib/i18n/navigation";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { PackingBack } from "./back-link";
 import { WhyQuote } from "@/components/generate/why-quote";
 import { formatTemp, type TempUnit } from "@/lib/weather/format";
 import { WeatherAttribution } from "@/components/weather/attribution";
+import type { UiOccasion } from "@/lib/generator/types";
+import { LookTextRequest } from "@/components/i18n/look-text-request";
+import { displayOutfitText, type OutfitText, type TranslationResult } from "@/lib/outfits/text";
 
 export type DayCard = {
   /** The stored outfit, so the card can open the look it describes. */
@@ -13,16 +20,9 @@ export type DayCard = {
   occasion: string;
   tempC: number;
   rain: boolean;
-  name: string;
-  why: string;
+  text: OutfitText;
   pieces: { id: string; name: string; imageUrl: string; wear: number }[];
 };
-
-/** "1st wear" / "2nd wear" — the ordinal is what makes a small capsule believable. */
-export function wearLabel(n: number): string {
-  const suffix = n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th";
-  return `${n}${suffix} wear`;
-}
 
 /**
  * A day of the trip.
@@ -44,15 +44,22 @@ export function DayList({
   unit: TempUnit;
   backHref: string;
 }) {
+  const t = useTranslations("packing");
+  const locale = useLocale();
+  const [result, setResult] = useState<TranslationResult | null>(null);
+  const onReady = useCallback((next: TranslationResult) => { if (next.locale === locale) setResult(next); }, [locale]);
+  const displayed = days.map(day => ({ ...day, text: displayOutfitText(day.text, locale, result) }));
+  const tOccasion = useTranslations("vocab.occasion");
   return (
     <div className="flex min-h-dvh flex-1 flex-col">
+      <LookTextRequest sources={displayed.filter(day => !day.text.translated).map(day => day.text.source)} locale={locale} onReady={onReady} />
       <div className="screen-top px-[22px]">
         <div className="mb-[10px] flex items-center gap-3">
           <PackingBack href={backHref} />
         </div>
         <Kicker className="block">{`${destination} · ${dateRange}`}</Kicker>
         <h1 className="mt-[14px] font-serif text-3xl/[1.12] tracking-[-0.01em] text-foreground-strong">
-          {days.length} days, one case.
+          {t("dayTitle", { days: days.length })}
         </h1>
       </div>
 
@@ -65,7 +72,7 @@ export function DayList({
             cannot be opened is a dead end — and `/outfits/[id]` already carries
             the flat-lay, the wear button and the favourite, so this needs no
             new screen. */}
-        {days.map((d) => (
+        {displayed.map((d) => (
           <Link
             key={d.date}
             href={`/outfits/${d.outfitId}`}
@@ -75,12 +82,13 @@ export function DayList({
               <div className="font-serif text-[17px] text-foreground">{d.label}</div>
               <span className="size-[3px] rounded-full bg-muted-dim" aria-hidden="true" />
               <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-brand-high">
-                {d.occasion}
+                {(["everyday", "work", "weekend", "evening"] as string[]).includes(d.occasion)
+                  ? tOccasion(d.occasion as UiOccasion) : d.occasion}
               </div>
               <div className="flex-1" />
               <div className="text-[13px] tabular-nums text-muted-foreground">
-                {formatTemp(d.tempC, unit)}
-                {d.rain ? " · rain" : ""}
+                {formatTemp(d.tempC, unit, locale)}
+                {d.rain ? ` · ${t("rain")}` : ""}
               </div>
             </header>
 
@@ -101,10 +109,10 @@ export function DayList({
             </div>
 
             <p className="mt-[9px] text-[10px] uppercase leading-[1.6] tracking-[0.13em] text-muted-foreground">
-              {d.pieces.map((p) => `${p.name} · ${wearLabel(p.wear)}`).join("  ·  ")}
+              {d.pieces.map((p) => `${p.name} · ${t("wearOrdinal", { n: p.wear })}`).join("  ·  ")}
             </p>
 
-            <WhyQuote name={d.name} why={d.why} />
+            <WhyQuote name={d.text.name} why={d.text.why ?? ""} />
           </Link>
         ))}
         {/* ⚠️ REQUIRED by ODbL — every card above shows a temperature. ONCE at

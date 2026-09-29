@@ -17,6 +17,8 @@ export default defineConfig({
      * green and the suite is actually red. It was nearly committed that way.
      */
     exclude: ["**/node_modules/**", "**/dist/**", "e2e/**"],
+    // next-intl is ESM-only and imports `next/server` without an extension; inlining lets Vite resolve it.
+    server: { deps: { inline: ["next-intl"] } },
   },
   resolve: {
     alias: { "@": fileURLToPath(new URL("./", import.meta.url)) },

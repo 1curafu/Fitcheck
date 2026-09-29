@@ -134,7 +134,7 @@ test("offers a way out when the cutout is wrong", async () => {
 
 test("batch review labels rejection Skip photo and blocks both actions while saving", () => {
   render(
-    <ConfirmForm draft={draft} saving error={null} rejectLabel="Skip photo"
+    <ConfirmForm draft={draft} saving error={null} rejectMode="skip"
       onDraft={() => {}} onTags={() => {}} onToggleSeason={() => {}}
       onSave={() => {}} onRetake={() => {}} onRotate={() => {}} />,
   );

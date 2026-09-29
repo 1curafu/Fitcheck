@@ -1,8 +1,9 @@
 "use client";
+import { useTranslations } from "next-intl";
 
 import { useActionState, useState } from "react";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
-import type { deleteAccount } from "@/app/settings/actions";
+import type { deleteAccount } from "@/app/[locale]/settings/actions";
 
 type DeleteAccountSheetProps = {
   open: boolean;
@@ -28,6 +29,8 @@ function DeleteAccountForm({
   action,
   onClose,
 }: Omit<DeleteAccountSheetProps, "open">) {
+  const t = useTranslations("settings");
+  const tRoot = useTranslations();
   const [state, formAction, isPending] = useActionState(action, { status: "idle" });
   const [confirmation, setConfirmation] = useState("");
   const canDelete = confirmation === email && !isPending;
@@ -42,7 +45,7 @@ function DeleteAccountForm({
     <>
       <button
         type="button"
-        aria-label="Close"
+        aria-label={t("delete.close")}
         disabled={isPending}
         onClick={close}
         className="fixed inset-0 z-[60] bg-[rgba(6,6,8,0.5)] backdrop-blur-[1.5px] disabled:cursor-not-allowed"
@@ -50,29 +53,28 @@ function DeleteAccountForm({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Delete account"
+        aria-label={t("deleteAccount")}
         style={{ maxWidth: 440 }}
         className="fixed inset-x-0 bottom-0 z-[70] mx-auto rounded-t-[22px] border-t border-[rgba(237,230,216,0.12)] bg-surface-2 px-[22px] pb-[calc(env(safe-area-inset-bottom)+20px)] pt-3.5"
       >
         <div className="mx-auto mb-4 h-1 w-[34px] rounded-full bg-faint" />
 
         <Kicker className="block">
-          Danger zone
+          {t("dangerZone")}
         </Kicker>
         <h2 className="mt-1.5 font-serif text-[24px]/[1.15] text-foreground">
-          Delete account
+          {t("deleteAccount")}
         </h2>
         <p className="mt-2 text-[13px]/[1.5] text-muted-foreground">
-          Deleting your account immediately and permanently removes your photos and clothes,
-          outfits, wear history, trips, and preferences. It cannot be undone.
+          {t("delete.description")}
         </p>
         <p className="mt-2 text-[13px]/[1.5] text-muted-foreground">
-          Encrypted backups may retain this data for up to 30 days before expiry.
+          {t("delete.backup")}
         </p>
 
         <form action={formAction} className="mt-4">
           <label htmlFor="delete-account-confirmation" className="text-[13px] text-foreground">
-            Type your email exactly to continue
+            {t("delete.confirm")}
           </label>
           <p className="mt-1 text-[12px] text-muted-foreground">{email}</p>
           <input
@@ -88,7 +90,7 @@ function DeleteAccountForm({
 
           {state.status === "error" && (
             <p role="status" className="mt-2 text-[12.5px] text-brand-high">
-              {state.message}
+              {tRoot(state.message)}
             </p>
           )}
 
@@ -97,7 +99,7 @@ function DeleteAccountForm({
             disabled={!canDelete}
             className="mt-4 min-h-[44px] w-full rounded-[12px] bg-brand-deep px-4 py-3 text-[14px] font-semibold text-foreground disabled:cursor-not-allowed disabled:bg-foreground/10 disabled:text-muted-dim"
           >
-            {isPending ? "Deleting…" : "Delete account"}
+            {isPending ? t("delete.deleting") : t("deleteAccount")}
           </button>
         </form>
 
@@ -107,7 +109,7 @@ function DeleteAccountForm({
           onClick={close}
           className="mt-3 min-h-[44px] w-full text-[14px] text-muted-foreground disabled:cursor-not-allowed disabled:text-muted-dim"
         >
-          Cancel
+          {t("delete.cancel")}
         </button>
       </div>
     </>

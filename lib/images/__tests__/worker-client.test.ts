@@ -58,6 +58,7 @@ test("worker failure rejects this photo and makes Retry use the direct path", as
   const first = segmenter.run(source, target);
   FakeWorker.made[0].onerror?.({ message: "worker failed" } as ErrorEvent);
   await expect(first).rejects.toThrow("worker failed");
+  await expect(first).rejects.toMatchObject({ messageKey: "errors.cutoutFailed" });
   expect(FakeWorker.made[0].terminated).toBe(true);
   await expect(segmenter.run(source, target)).resolves.toBeInstanceOf(Blob);
   expect(direct).toHaveBeenCalledOnce();

@@ -1,11 +1,9 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { searchCities, type City } from "./geocode";
 import { getCurrentPosition, permissionState, GeoError } from "./geolocate";
-
-const DENIED_COPY = "Location access is off — search for a city instead.";
-const FAILED_COPY = "Couldn't get your location — search for a city instead.";
 
 /** A place the user deliberately chose, on either screen. */
 export type PickedLocation = { lat: number; lon: number; label: string; source: "geo" | "city" };
@@ -24,11 +22,12 @@ export type PickedLocation = { lat: number; lon: number; label: string; source: 
  * `location_source` server-side) rather than re-deriving it here.
  */
 export function useLocationPicker(opts?: { onPick?: (p: PickedLocation) => void }) {
+  const t = useTranslations("errors");
   const onPick = opts?.onPick;
 
   const [cities, setCities] = useState<City[]>([]);
   const [locating, setLocating] = useState(false);
-  const [geoError, setGeoError] = useState<string | null>(null);
+  const [geoErrorKey, setGeoError] = useState<"geoDenied" | "geoFailed" | null>(null);
   // Optimistic: the row shows until we learn the browser has no geolocation at
   // all, at which point it disappears and city search is the only path. A
   // DENIED permission is not the same thing — that is recoverable in system
@@ -103,10 +102,10 @@ export function useLocationPicker(opts?: { onPick?: (p: PickedLocation) => void 
         onPick?.({ ...c, label: "Current location", source: "geo" }),
       )
       .catch((e) =>
-        setGeoError(e instanceof GeoError && e.kind === "denied" ? DENIED_COPY : FAILED_COPY),
+        setGeoError(e instanceof GeoError && e.kind === "denied" ? "geoDenied" : "geoFailed"),
       )
       .finally(() => setLocating(false));
   }, [onPick]);
 
-  return { cities, search, useMyLocation, locating, geoError, geoSupported };
+  return { cities, search, useMyLocation, locating, geoError: geoErrorKey ? t(geoErrorKey) : null, geoSupported };
 }

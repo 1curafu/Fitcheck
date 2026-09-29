@@ -21,7 +21,14 @@ trap 'kill "${DEV_PID:-}" 2>/dev/null || true; rm -f "$LOG" "$WALK_LOG"' EXIT
 
 set -a; source .env.local; set +a
 
-npm run dev -- --hostname 127.0.0.1 >"$LOG" 2>&1 &
+if curl -sS -o /dev/null --max-time 2 http://127.0.0.1:3000/ 2>/dev/null; then
+  echo "port 3000 already serves another process; stop it before running insights"
+  exit 1
+fi
+
+# An explicit 127.0.0.1 bind makes Next treat next-intl's localhost rewrite
+# as an external redirect during development. The default bind serves both.
+FITCHECK_STUB_AI=1 FITCHECK_STUB_STRIPE=1 npm run dev >"$LOG" 2>&1 &
 DEV_PID=$!
 
 echo "waiting for the dev server…"

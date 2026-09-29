@@ -7,8 +7,8 @@
  */
 
 /** The button states itself: an instruction before, a fact after. */
-export function wearLabel(worn: boolean): string {
-  return worn ? "Worn today" : "Wear this today";
+export function wearLabel(worn: boolean): "wornToday" | "wearThisToday" {
+  return worn ? "wornToday" : "wearThisToday";
 }
 
 /**

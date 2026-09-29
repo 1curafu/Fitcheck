@@ -7,7 +7,7 @@ vi.mock("@/app/billing/actions", () => ({ startCheckout: vi.fn(), openBillingPor
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 const styleWithItem = vi.fn();
-vi.mock("@/app/closet/[itemId]/style-actions", () => ({
+vi.mock("@/app/[locale]/closet/[itemId]/style-actions", () => ({
   styleWithItem: (...args: unknown[]) => styleWithItem(...args),
 }));
 beforeEach(() => { push.mockClear(); styleWithItem.mockReset(); });
@@ -35,14 +35,14 @@ test("the control says what it does — an icon alone would not", () => {
 });
 
 test("a limited result opens the upgrade sheet, verbatim", async () => {
-  styleWithItem.mockResolvedValue({ status: "limited", message: "Pro feature." });
+  styleWithItem.mockResolvedValue({ status: "limited", message: "item.style.proReason" });
   render(<TryAnotherLook itemId="i1" />);
   await userEvent.click(screen.getByRole("button", { name: /try another look/i }));
   expect(await screen.findByRole("dialog")).toHaveTextContent(/pro feature/i);
 });
 
 test("a thin closet is a quiet line, not a sheet", async () => {
-  styleWithItem.mockResolvedValue({ status: "empty", message: "Not enough other pieces." });
+  styleWithItem.mockResolvedValue({ status: "empty", message: "item.style.thinCloset" });
   render(<TryAnotherLook itemId="i1" />);
   await userEvent.click(screen.getByRole("button", { name: /try another look/i }));
   expect(await screen.findByRole("status")).toHaveTextContent(/not enough/i);

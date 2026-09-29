@@ -15,8 +15,8 @@ test("lists links with their expiry, marks expired ones, and stops a link", asyn
   ]} />);
   const list = screen.getByRole("list", { name: /shared links/i });
   expect(within(list).getByText("Quiet Camel")).toBeInTheDocument();
-  expect(within(list).getByText(/expires 26 oct/i)).toBeInTheDocument();
-  expect(within(list).getByText(/expired/i)).toBeInTheDocument();
+  expect(within(list).getByText("Quiet Camel").closest("li")).toHaveTextContent(/expires oct 26/i);
+  expect(within(list).getByText("Old Look").closest("li")).toHaveTextContent(/expired/i);
   await userEvent.click(within(list).getAllByRole("button", { name: /stop sharing/i })[0]);
   expect(stop).toHaveBeenCalledWith("AAAAAAAAAAAAAAAAAAAAAA");
 });
@@ -32,5 +32,5 @@ test("a claimed link is labeled as stopping rather than still live", () => {
     purgingAt: "2026-10-01T10:00:00.000Z", createdAt: "2026-09-26T09:00:00.000Z",
   }]} />);
   expect(screen.getByText(/cleanup pending/i)).toBeInTheDocument();
-  expect(screen.queryByText(/expires 26 oct/i)).not.toBeInTheDocument();
+  expect(screen.queryByText(/expires oct 26/i)).not.toBeInTheDocument();
 });

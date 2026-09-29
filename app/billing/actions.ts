@@ -1,11 +1,15 @@
 "use server";
+import { redirect } from "@/lib/i18n/navigation";
 
 import * as Sentry from "@sentry/nextjs";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+
 import { z } from "zod";
 import { createBillingStore } from "@/lib/billing/admin";
 import { LOOKUP_KEYS } from "@/lib/billing/prices";
+import { DEFAULT_LOCALE, localizedPath } from "@/lib/i18n/locales";
+import { getActionLocale } from "@/lib/i18n/action-locale";
+import { stripePortalLocale } from "@/lib/billing/stripe/locale";
 import { billingEnabled, getGateway } from "@/lib/billing/stripe/client";
 import { ensureCustomer } from "@/lib/billing/stripe/customer";
 import { trustedOrigin } from "@/lib/billing/urls";
@@ -42,22 +46,24 @@ export async function startCheckout(input: unknown): Promise<StartCheckoutResult
     if (profile.tier === "pro") return { status: "already-pro" };
 
     const now = new Date();
-    await store.recordWaiver(user.id, now, TERMS.updated);
+    await store.recordWaiver(user.id, now, TERMS["en-US"].updated);
     const customerId = await ensureCustomer({ store, gateway }, { ...profile, email: user.email ?? profile.email });
     const origin = trustedOrigin((await headers()).get("origin"));
+    const locale = await getActionLocale();
     ({ url } = await gateway.createCheckoutSession({
       customerId,
       userId: user.id,
       priceId: await gateway.priceIdForLookupKey(LOOKUP_KEYS[parsed.data.interval]),
       waiverAt: now.toISOString(),
+      locale,
       successUrl: `${origin}/billing/return?session_id={CHECKOUT_SESSION_ID}`,
-      cancelUrl: `${origin}/profile?pro=cancelled`,
+      cancelUrl: `${origin}${localizedPath(locale, "/profile?pro=cancelled")}`,
     }));
   } catch {
     Sentry.captureException(new Error("Billing checkout failed"));
     return { status: "error" };
   }
-  redirect(url);
+  return redirect({ href: url, locale: DEFAULT_LOCALE });
 }
 
 export type OpenBillingPortalResult = { status: "signed-out" | "no-subscription" | "unavailable" | "error" };
@@ -79,10 +85,11 @@ export async function openBillingPortal(): Promise<OpenBillingPortalResult> {
     if (!profile?.stripeCustomerId) return { status: "no-subscription" };
     await ensureCustomer({ store, gateway }, { ...profile, email: user.email ?? profile.email });
     const origin = trustedOrigin((await headers()).get("origin"));
-    ({ url } = await gateway.createPortalSession(profile.stripeCustomerId, `${origin}/profile`));
+    const locale = await getActionLocale();
+    ({ url } = await gateway.createPortalSession(profile.stripeCustomerId, `${origin}${localizedPath(locale, "/profile")}`, stripePortalLocale(locale)));
   } catch {
     Sentry.captureException(new Error("Billing portal failed"));
     return { status: "error" };
   }
-  redirect(url);
+  return redirect({ href: url, locale: DEFAULT_LOCALE });
 }

@@ -11,6 +11,8 @@
  * "something went wrong".
  */
 
+import { FREE } from "./tiers";
+
 export class QuotaExceededError extends Error {
   constructor(message = "Daily generation limit reached") {
     super(message);
@@ -19,8 +21,13 @@ export class QuotaExceededError extends Error {
 }
 
 export class UploadLimitError extends Error {
-  constructor(message = "Daily upload limit reached") {
+  readonly messageKey = "errors.closetFull" as const;
+  readonly values: { limit: number };
+
+  constructor(message = "Daily upload limit reached", limit = FREE.closetItems) {
     super(message);
     this.name = "UploadLimitError";
+    if (limit === null) throw new Error("Free closet limit is missing");
+    this.values = { limit };
   }
 }

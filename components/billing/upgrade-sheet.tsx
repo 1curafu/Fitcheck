@@ -1,4 +1,6 @@
 "use client";
+import { useTranslations } from "next-intl";
+import { Link } from "@/lib/i18n/navigation";
 
 import {
   RotateCcw,
@@ -29,14 +31,14 @@ import { cn } from "@/lib/utils";
  * seven times over. The kicker is this sheet's single rust element.
  */
 export const PRO_BENEFITS = [
-  { icon: RotateCcw, label: "Unlimited rerolls", desc: "Any occasion, as often as you like" },
-  { icon: Sparkles, label: "Style around any piece", desc: "Build a look from one garment" },
-  { icon: Shirt, label: "An unlimited closet", desc: "Past the free 50 pieces" },
-  { icon: Luggage, label: "Packing mode", desc: "A trip in, a capsule out" },
-  { icon: ChartColumn, label: "Cost-per-wear analytics", desc: "What your wardrobe really costs" },
-  { icon: Compass, label: "Gap analysis", desc: "The one piece that unlocks the most" },
-  { icon: Bookmark, label: "Unlimited saved outfits", desc: "Keep every look you love" },
-];
+  { icon: RotateCcw, key: "rerolls" },
+  { icon: Sparkles, key: "styled" },
+  { icon: Shirt, key: "closet" },
+  { icon: Luggage, key: "packing" },
+  { icon: ChartColumn, key: "analytics" },
+  { icon: Compass, key: "gap" },
+  { icon: Bookmark, key: "saved" },
+] as const;
 
 /**
  * The one place a Pro gate explains itself.
@@ -72,13 +74,14 @@ export function UpgradeSheet({
   /** Display currency only; defaults to the device's time zone. Checkout decides the real currency. */
   timeZone?: string;
 }) {
+  const t = useTranslations("billing");
   if (!open) return null;
 
   return (
     <>
       <button
         type="button"
-        aria-label="Close"
+        aria-label={t("close")}
         onClick={onClose}
         // Above the bottom nav, which is also z-50 (`mobile-nav.tsx`). At equal
         // z-index DOM order decides, and the nav renders after the page content
@@ -99,7 +102,7 @@ export function UpgradeSheet({
 
         {/* The screen's single rust spend — the One Rust Rule. */}
         <Kicker variant="brand" className="block">
-          Pro
+          {t("pro")}
         </Kicker>
 
         <h2 className="mt-2 font-serif text-[24px]/[1.15] text-foreground">{title}</h2>
@@ -115,9 +118,9 @@ export function UpgradeSheet({
             failure that put the diary's day number in the middle of its cell.
             Inline styles land whatever the CSS pipeline does. */}
         <ul className="mt-4 overflow-hidden rounded-[14px] bg-surface-1 shadow-[inset_0_0_0_1px_var(--hairline-2)]">
-          {PRO_BENEFITS.map(({ icon: Icon, label, desc }, i) => (
+          {PRO_BENEFITS.map(({ icon: Icon, key }, i) => (
             <li
-              key={label}
+              key={key}
               className="flex items-center"
               style={{
                 gap: 13,
@@ -134,13 +137,13 @@ export function UpgradeSheet({
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-value" style={{ fontSize: 14, lineHeight: 1.25 }}>
-                  {label}
+                  {t(`benefits.${key}.label`)}
                 </span>
                 <span
                   className="block text-muted-dim"
                   style={{ fontSize: 12, lineHeight: 1.3, marginTop: 1 }}
                 >
-                  {desc}
+                  {t(`benefits.${key}.description`)}
                 </span>
               </span>
             </li>
@@ -157,27 +160,27 @@ export function UpgradeSheet({
           onClick={onClose}
           className="mt-3 min-h-[44px] w-full text-[14px] text-muted-foreground"
         >
-          {isPro ? "Close" : "Not now"}
+          {isPro ? t("close") : t("notNow")}
         </button>
       </div>
     </>
   );
 }
 
-const PURCHASE_MESSAGES: Record<StartCheckoutResult["status"], string> = {
-  "waiver-required": "Please confirm you want Pro to start now.",
-  "already-pro": "You're already Pro — manage it from your profile.",
-  "signed-out": "Please sign in again.",
-  unavailable: "Pro isn't available right now.",
-  error: "Couldn't start checkout. Try again in a moment.",
+const PURCHASE_MESSAGES: Record<StartCheckoutResult["status"], "waiverRequired" | "alreadyPro" | "signedOut" | "unavailable" | "checkoutFailed"> = {
+  "waiver-required": "waiverRequired",
+  "already-pro": "alreadyPro",
+  "signed-out": "signedOut",
+  unavailable: "unavailable",
+  error: "checkoutFailed",
 };
 
 /**
  * The price in the buyer's currency — display only; Stripe Checkout charges the real local currency.
  * Pass the zone from `useClientTimeZone()`: undefined on the server renders the neutral CHF label (review I1).
  */
-export function proPriceLabel(interval: Interval, timeZone: string | undefined) {
-  return displayPrice(interval, timeZone);
+export function proPriceLabel(interval: Interval, timeZone: string | undefined, intervalLabel: string) {
+  return displayPrice(interval, timeZone, intervalLabel);
 }
 
 /**
@@ -185,6 +188,7 @@ export function proPriceLabel(interval: Interval, timeZone: string | undefined) 
  * it stays the inert price pill — a button that takes money it cannot take is worse than none.
  */
 function ProPurchase({ timeZone }: { timeZone?: string }) {
+  const t = useTranslations("billing");
   const deviceZone = useClientTimeZone();
   const tz = timeZone ?? deviceZone;
   const [plan, setPlan] = useState<Interval>("year");
@@ -195,14 +199,14 @@ function ProPurchase({ timeZone }: { timeZone?: string }) {
   if (process.env.NEXT_PUBLIC_BILLING_ENABLED !== "1") {
     return (
       <div className="mt-5 grid min-h-[52px] w-full place-items-center rounded-[14px] bg-foreground text-[15.5px] font-semibold text-canvas">
-        Go Pro · {displayPrice("month", tz).label}
+        {t("goProPrice", { price: displayPrice("month", tz, t("monthPeriod")).label })}
       </div>
     );
   }
 
   const PLANS: Array<{ id: Interval; name: string; hint: string | null }> = [
-    { id: "year", name: "Annual", hint: `2 months free · ${monthlyEquivalent(tz)}` },
-    { id: "month", name: "Monthly", hint: null },
+    { id: "year", name: t("annual"), hint: t("annualHint", { monthlyEquivalent: monthlyEquivalent(tz, t("monthPeriod")) }) },
+    { id: "month", name: t("monthly"), hint: null },
   ];
 
   return (
@@ -210,7 +214,7 @@ function ProPurchase({ timeZone }: { timeZone?: string }) {
       {/* Plan rows in the same hairline surface as the benefits list — a menu, not a toggle (owner, 2026-09-24).
           Real radio inputs, so the group is keyboard- and screen-reader-native. */}
       <fieldset className="overflow-hidden rounded-[14px] bg-surface-1 shadow-[inset_0_0_0_1px_var(--hairline-2)]">
-        <legend className="sr-only">Billing interval</legend>
+        <legend className="sr-only">{t("billingInterval")}</legend>
         {PLANS.map((p, i) => {
           const selected = plan === p.id;
           return (
@@ -244,14 +248,14 @@ function ProPurchase({ timeZone }: { timeZone?: string }) {
                 <span className="block text-[14.5px] text-foreground">{p.name}</span>
                 {p.hint && <span className="block text-[12px] text-muted-dim">{p.hint}</span>}
               </span>
-              <span className="text-[14px] text-value">{displayPrice(p.id, tz).label}</span>
+              <span className="text-[14px] text-value">{displayPrice(p.id, tz, t(p.id === "month" ? "monthPeriod" : "yearPeriod")).label}</span>
             </label>
           );
         })}
       </fieldset>
       {/* The label above is a guess from the phone's time zone; Checkout prices by the buyer's location and the
           country they enter there (Link, as seller, decides tax from its own evidence). */}
-      <p className="mt-2 text-center text-[12px] text-muted-dim">Final price and currency shown at checkout.</p>
+      <p className="mt-2 text-center text-[12px] text-muted-dim">{t("finalPrice")}</p>
 
       {/* EU withdrawal waiver (spec §8): distinct, unticked by default, required server-side too. A drawn box in the
           app's cream, not the platform's blue default. */}
@@ -271,7 +275,7 @@ function ProPurchase({ timeZone }: { timeZone?: string }) {
         >
           {waiver && <Check size={14} strokeWidth={2.4} />}
         </span>
-        <span>Start Pro now. I understand I lose my 14-day right of withdrawal once it starts.</span>
+        <span>{t("waiver")}</span>
       </label>
 
       <button
@@ -284,16 +288,16 @@ function ProPurchase({ timeZone }: { timeZone?: string }) {
             // (network drop, timeout) must end here too, not on the global error page (review M6).
             try {
               const result = await startCheckout({ interval: plan, waiverAccepted: waiver });
-              if (result) setError(PURCHASE_MESSAGES[result.status] ?? PURCHASE_MESSAGES.error);
+              if (result) setError(t(PURCHASE_MESSAGES[result.status] ?? PURCHASE_MESSAGES.error));
             } catch (e) {
               unstable_rethrow(e); // let a Next redirect through
-              setError(PURCHASE_MESSAGES.error);
+              setError(t(PURCHASE_MESSAGES.error));
             }
           })
         }
         className="mt-4 grid min-h-[52px] w-full place-items-center rounded-[14px] bg-foreground text-[15.5px] font-semibold text-canvas disabled:opacity-40"
       >
-        {pending ? "Opening checkout…" : "Go Pro"}
+        {pending ? t("openingCheckout") : t("goPro")}
       </button>
       {error && (
         <p role="alert" className="mt-2 text-center text-[13px] text-muted-foreground">
@@ -302,14 +306,14 @@ function ProPurchase({ timeZone }: { timeZone?: string }) {
       )}
 
       <p className="mt-3 text-center text-[11.5px]/[1.45] text-muted-dim">
-        Payments processed by Stripe · sold through Link. Renews automatically — cancel any time in the app.{" "}
-        <a href="/terms" className="underline underline-offset-2">
-          Terms
-        </a>
+        {t("payments")}{" "}
+        <Link href="/terms" className="underline underline-offset-2">
+          {t("terms")}
+        </Link>
         {" · "}
-        <a href="/privacy" className="underline underline-offset-2">
-          Privacy
-        </a>
+        <Link href="/privacy" className="underline underline-offset-2">
+          {t("privacy")}
+        </Link>
       </p>
     </div>
   );

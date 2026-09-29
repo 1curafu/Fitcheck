@@ -4,7 +4,7 @@ import { beforeEach, expect, test, vi } from "vitest";
 import type { CardInput } from "@/lib/share/card-layout";
 
 const actions = vi.hoisted(() => ({ prepareShare: vi.fn(), publishShare: vi.fn(), stopSharing: vi.fn(), getShareState: vi.fn() }));
-vi.mock("@/app/outfits/[id]/share-actions", () => actions);
+vi.mock("@/app/[locale]/outfits/[id]/share-actions", () => actions);
 const upload = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ storage: { from: () => ({ upload }) } }) }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
@@ -79,7 +79,7 @@ test("the card numbers pieces in reading order, and brands follow the snapshot r
 });
 
 test("Create link prepares, uploads the three images with a short cache, publishes, then offers Share and Copy", async () => {
-  actions.prepareShare.mockResolvedValue({ status: "ok", token: TOKEN });
+  actions.prepareShare.mockResolvedValue({ status: "ok", token: TOKEN, text: { name: outfit.lookName, why: outfit.reasoning } });
   actions.publishShare.mockResolvedValue({ status: "published" });
   const sheet = await open();
   await userEvent.click(within(sheet).getByRole("button", { name: /create link/i }));
@@ -92,8 +92,30 @@ test("Create link prepares, uploads the three images with a short cache, publish
   expect(within(sheet).getByText(/anyone with the link can see this look/i)).toBeInTheDocument();
 });
 
+test("all three uploaded cards use authoritative prepared text when the preview was older", async () => {
+  const text = { name: "Тихий ранок", why: "Затишний образ." };
+  actions.prepareShare.mockResolvedValue({ status: "ok", token: TOKEN, text });
+  actions.publishShare.mockResolvedValue({ status: "published" });
+  const sheet = await open();
+  expect(r.renderCard.mock.calls.at(-1)![1].title).toBe(outfit.lookName);
+  r.renderCard.mockClear();
+  await userEvent.click(within(sheet).getByRole("button", { name: /create link/i }));
+  await within(sheet).findByTestId("share-url");
+  expect(r.renderCard.mock.calls.map(call => [call[0], call[1].title, call[1].why])).toEqual([
+    ["story", text.name, text.why], ["post", text.name, text.why], ["preview", text.name, text.why],
+  ]);
+});
+
+test("a text update redraws the preview and device export without using an older cached card", async () => {
+  const view = render(<ShareSheet outfit={outfit} pieces={pieces} onClose={() => {}} />);
+  await waitFor(() => expect(r.renderCard).toHaveBeenCalledOnce());
+  view.rerender(<ShareSheet outfit={{ ...outfit, lookName: "New words", reasoning: null }} pieces={pieces} onClose={() => {}} />);
+  await waitFor(() => expect(r.renderCard).toHaveBeenCalledTimes(2));
+  expect(r.renderCard.mock.calls.at(-1)![1]).toMatchObject({ title: "New words", why: null });
+});
+
 test("the cap shows its message and uploads nothing", async () => {
-  actions.prepareShare.mockResolvedValue({ status: "limited", message: "You can have up to 100 shared links." });
+  actions.prepareShare.mockResolvedValue({ status: "limited", message: "share.cap", values: { limit: 100 } });
   const sheet = await open();
   await userEvent.click(within(sheet).getByRole("button", { name: /create link/i }));
   expect(await within(sheet).findByText(/up to 100 shared links/i)).toBeInTheDocument();
@@ -104,7 +126,7 @@ test("an existing live link shows its expiry and can be stopped", async () => {
   actions.getShareState.mockResolvedValue({ token: TOKEN, readyAt: "2026-09-26T10:00:00.000Z" });
   actions.stopSharing.mockResolvedValue({ status: "stopped" });
   const sheet = await open();
-  expect(await within(sheet).findByText(/expires 26 oct/i)).toBeInTheDocument();
+  expect(await within(sheet).findByText(/expires oct 26/i)).toBeInTheDocument();
   await userEvent.click(within(sheet).getByRole("button", { name: /stop sharing/i }));
   await waitFor(() => expect(within(sheet).queryByTestId("share-url")).not.toBeInTheDocument());
   expect(actions.stopSharing).toHaveBeenCalledWith(TOKEN);
@@ -112,7 +134,7 @@ test("an existing live link shows its expiry and can be stopped", async () => {
 
 test("a failed image cleanup leaves the public link off and offers a retry", async () => {
   actions.getShareState.mockResolvedValue({ token: TOKEN, readyAt: "2026-09-26T10:00:00.000Z" });
-  actions.stopSharing.mockResolvedValue({ status: "error", message: "Your link is off, but image cleanup didn't finish. Try again." });
+  actions.stopSharing.mockResolvedValue({ status: "error", message: "share.cleanupFailed" });
   const sheet = await open();
   expect(await within(sheet).findByTestId("share-url")).toBeInTheDocument();
   await userEvent.click(within(sheet).getByRole("button", { name: /stop sharing/i }));
@@ -186,7 +208,7 @@ test("Create link starts the clipboard write inside the tap and fills it with th
   const sheet = await open();
   fireEvent.click(within(sheet).getByRole("button", { name: /create link/i }));
   expect(write).toHaveBeenCalledTimes(1); // synchronously, before the server has answered
-  finishPrepare({ status: "ok", token: TOKEN });
+  finishPrepare({ status: "ok", token: TOKEN, text: { name: outfit.lookName, why: outfit.reasoning } });
   expect(await within(sheet).findByRole("button", { name: /^copied$/i })).toBeInTheDocument();
   expect(await (await written!).text()).toContain(`/l/${TOKEN}`);
   vi.unstubAllGlobals();
@@ -196,7 +218,7 @@ test("without ClipboardItem, Create link copies the link once it exists", async 
   vi.stubGlobal("ClipboardItem", undefined);
   const writeText = vi.fn(async () => {});
   Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
-  actions.prepareShare.mockResolvedValue({ status: "ok", token: TOKEN });
+  actions.prepareShare.mockResolvedValue({ status: "ok", token: TOKEN, text: { name: outfit.lookName, why: outfit.reasoning } });
   actions.publishShare.mockResolvedValue({ status: "published" });
   const sheet = await open();
   fireEvent.click(within(sheet).getByRole("button", { name: /create link/i }));
@@ -209,7 +231,7 @@ test("a failed Create link copies nothing", async () => {
   vi.stubGlobal("ClipboardItem", undefined);
   const writeText = vi.fn(async () => {});
   Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
-  actions.prepareShare.mockResolvedValue({ status: "limited", message: "You can have up to 100 shared links." });
+  actions.prepareShare.mockResolvedValue({ status: "limited", message: "share.cap", values: { limit: 100 } });
   const sheet = await open();
   fireEvent.click(within(sheet).getByRole("button", { name: /create link/i }));
   expect(await within(sheet).findByText(/up to 100 shared links/i)).toBeInTheDocument();

@@ -34,25 +34,27 @@ const ROUTES = [
 ];
 
 test("walk every route @insights", async ({ page }) => {
-  for (const route of ROUTES) {
+  test.setTimeout(120_000); // Both locale trees include cold compilation and deliberate insight waits.
+  for (const route of ["", "/uk"].flatMap(prefix => ROUTES.map(route => prefix + route))) {
     await page.goto(route, { waitUntil: "domcontentloaded" }).catch(() => {});
     await page.waitForTimeout(1200);
   }
 
-  // The two dynamic-param routes, reached the way a user reaches them.
-  await page.goto("/closet");
-  await page
-    .getByText("E2E Oxford Shirt")
-    .first()
-    .click()
-    .catch(() => {});
-  await page.waitForTimeout(1500);
+  // Reach an owned item in each locale; static shells alone do not exercise the body.
+  for (const prefix of ["", "/uk"]) {
+    await page.goto(`${prefix}/closet`);
+    await page.getByText("E2E Oxford Shirt").first().click();
+    await expect(page).toHaveURL(new RegExp(`${prefix}/closet/[^/]+$`));
+    await page.waitForTimeout(1500);
+  }
 
   // The public page's ready branch is distinct from the unknown-token route.
   // The local insights fixture supplies a real token and cleans it up afterwards.
   const readyToken = process.env.INSIGHTS_READY_SHARE_TOKEN;
   if (readyToken) {
-    await page.goto(`/l/${readyToken}`);
-    await expect(page.getByRole("img", { name: /Insights ready share/ })).toBeVisible();
+    for (const prefix of ["", "/uk"]) {
+      await page.goto(`${prefix}/l/${readyToken}`);
+      await expect(page.getByRole("img", { name: /Insights ready share/ })).toBeVisible();
+    }
   }
 });
