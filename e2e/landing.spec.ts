@@ -34,6 +34,20 @@ test.describe("landing, signed out", () => {
     await expect(page.locator("#hero-cta")).toHaveAttribute("href", "/de/sign-in");
   });
 
+  test("an expired or reused sign-in link lands on sign-in with an explanation", async ({ page }) => {
+    await page.goto("/auth/callback");
+    await expect(page).toHaveURL(/\/sign-in$/);
+    await expect(page.getByRole("alert").filter({ hasText: en.auth.signInFailed })).toBeVisible();
+    await expect(page.getByRole("button", { name: en.auth.google })).toBeVisible();
+  });
+
+  test("sign-in is not indexed; the landing is", async ({ page }) => {
+    await page.goto("/sign-in");
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+    await page.goto("/");
+    await expect(page.locator('meta[name="robots"]')).toHaveCount(0);
+  });
+
   test("a protected page sends a signed-out visitor to sign-in", async ({ page }) => {
     await page.goto("/closet");
     await expect(page).toHaveURL(/\/sign-in$/);

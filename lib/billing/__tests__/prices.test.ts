@@ -37,3 +37,14 @@ describe("amountLabel", () => {
     expect(amountLabel(5, undefined)).toBe("CHF 5");
   });
 });
+
+describe("planAmountLabel", () => {
+  it("reads the viewer's OWN currency price, so per-currency prices can differ", async () => {
+    const { planAmountLabel } = await import("../prices");
+    const table = { month: { CHF: 5, EUR: 6, USD: 7 }, year: { CHF: 50, EUR: 60, USD: 70 } };
+    expect(planAmountLabel("month", "Europe/Zurich", table)).toBe("CHF 5");
+    expect(planAmountLabel("month", "Europe/Berlin", table)).toBe("€6");
+    expect(planAmountLabel("year", "America/New_York", table)).toBe("$70");
+    expect(planAmountLabel("year", undefined, table)).toBe("CHF 50");
+  });
+});

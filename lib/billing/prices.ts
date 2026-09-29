@@ -60,3 +60,9 @@ export function monthlyEquivalent(tz: string | undefined, monthLabel: string = e
 export function amountLabel(amount: number, tz: string | undefined): string {
   return FORMAT_TEXT[currencyForTimeZone(tz).currency](String(amount));
 }
+
+/** A plan's price in the viewer's display currency, read from THAT currency's own amount ("CHF 5", "€6"). Display only. */
+export function planAmountLabel(interval: Interval, tz: string | undefined, table = DISPLAY_AMOUNTS): string {
+  const { currency } = currencyForTimeZone(tz);
+  return FORMAT_TEXT[currency](String(table[interval][currency]));
+}

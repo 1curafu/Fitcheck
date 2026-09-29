@@ -9,6 +9,7 @@ import { OAuthButtons } from "@/components/auth/oauth-buttons";
 import { EmailSignIn } from "@/components/auth/email-sign-in";
 import { BrandMark } from "@/components/brand/mark";
 import { AccountDeletedNotice } from "@/components/auth/account-deleted-notice";
+import { SignInFailedNotice } from "@/components/auth/sign-in-failed-notice";
 import { LanguageButton } from "@/components/i18n/language-button";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -18,13 +19,15 @@ export async function generateMetadata(): Promise<Metadata> {
     title: home("signInMetadata.title"),
     description: t("metadata.description"),
     alternates: alternatesFor("/sign-in", await getLocale()),
+    // Crawlable (robots allow) but not a search result; it is also left out of the sitemap (lib/site NOINDEX_PATHS).
+    robots: { index: false, follow: true },
   };
 }
 
 export default function SignIn({
   searchParams,
 }: {
-  searchParams: Promise<{ account?: string }>;
+  searchParams: Promise<{ account?: string; error?: string }>;
 }) {
   // The session read is what blocks a shell, so it moves behind a boundary
   // and the route's chrome prerenders and prefetches without it.
@@ -38,10 +41,10 @@ export default function SignIn({
 async function SignInBody({
   searchParams,
 }: {
-  searchParams: Promise<{ account?: string }>;
+  searchParams: Promise<{ account?: string; error?: string }>;
 }) {
   const t = await getTranslations("landing");
-  const { account } = await searchParams;
+  const { account, error } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -54,6 +57,7 @@ async function SignInBody({
       <div className="flex justify-end"><LanguageButton align="end" /></div>
       <div className="flex flex-1 flex-col items-center justify-center text-center">
         {account === "deleted" && <AccountDeletedNotice />}
+        {error === "auth" && <SignInFailedNotice />}
         {/* ⚠️ Deliberately ABOVE the kicker and deliberately small. The
             wordmark below is the Display step — DESIGN.md reserves ~4.5rem
             Caslon for "the wordmark and welcome-screen moments only" — so the

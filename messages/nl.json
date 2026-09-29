@@ -202,6 +202,7 @@
     }
   },
   "auth": {
+    "signInFailed": "Inloggen is niet gelukt. Probeer het opnieuw: een link uit de e-mail werkt maar één keer en verloopt na een tijdje.",
     "deleted": "Je account en actuele gegevens zijn verwijderd.",
     "checkInbox": "Kijk in je inbox",
     "sentBody": "We hebben een inloglink gestuurd naar {email}.",

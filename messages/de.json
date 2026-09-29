@@ -202,6 +202,7 @@
     }
   },
   "auth": {
+    "signInFailed": "Die Anmeldung hat nicht geklappt. Versuch es noch einmal – ein Link aus der E-Mail funktioniert nur einmal und läuft nach einer Weile ab.",
     "deleted": "Dein Konto und deine Live-Daten wurden gelöscht.",
     "checkInbox": "Schau in dein Postfach",
     "sentBody": "Wir haben einen Anmeldelink an {email} geschickt.",

@@ -202,6 +202,7 @@
     }
   },
   "auth": {
+    "signInFailed": "Não foi possível iniciar sessão. Tenta novamente: uma ligação recebida por e-mail só funciona uma vez e expira ao fim de algum tempo.",
     "deleted": "A tua conta e os teus dados ativos foram eliminados.",
     "checkInbox": "Vê o teu e-mail",
     "sentBody": "Enviámos uma ligação de início de sessão para {email}.",

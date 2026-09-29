@@ -148,6 +148,7 @@
     "footer": { "legal": "Legal", "copyright": "© Fitcheck" }
   },
   "auth": {
+    "signInFailed": "Sign-in didn’t go through. Try again — an email link works once and expires after a while.",
     "deleted": "Your account and live data have been deleted.",
     "checkInbox": "Check your inbox",
     "sentBody": "We sent a sign-in link to {email}.",

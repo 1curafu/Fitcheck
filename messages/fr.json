@@ -202,6 +202,7 @@
     }
   },
   "auth": {
+    "signInFailed": "La connexion n’a pas abouti. Réessaie : un lien reçu par e-mail ne fonctionne qu’une fois et expire au bout d’un moment.",
     "deleted": "Ton compte et tes données actives ont été supprimés.",
     "checkInbox": "Consulte ta boîte mail",
     "sentBody": "Nous avons envoyé un lien de connexion à {email}.",

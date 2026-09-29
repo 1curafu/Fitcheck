@@ -202,6 +202,7 @@
     }
   },
   "auth": {
+    "signInFailed": "No se ha podido iniciar sesión. Vuelve a intentarlo: un enlace recibido por correo solo funciona una vez y caduca al cabo de un tiempo.",
     "deleted": "Tu cuenta y tus datos activos se han eliminado.",
     "checkInbox": "Revisa tu correo",
     "sentBody": "Hemos enviado un enlace de acceso a {email}.",
