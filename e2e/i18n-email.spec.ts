@@ -3,10 +3,12 @@ import { test, expect } from "@playwright/test";
 import { admin } from "./helpers";
 import enUS from "../messages/en-US.json";
 import uk from "../messages/uk.json";
+import ru from "../messages/ru.json";
 
 test.use({ storageState: { cookies: [], origins: [] }, trace: "off", screenshot: "off" });
 const cases = [
  {name:"new Ukrainian account",newUser:true,request:"uk",metadata:"uk",saved:undefined,emailLang:"uk",destination:"/uk/onboarding"},
+ {name:"new Russian account",newUser:true,request:"ru",metadata:"ru",saved:undefined,emailLang:"ru",destination:"/ru/onboarding"},
  {name:"saved Ukrainian beats British browsing",request:"en-gb",metadata:"uk",saved:"uk",emailLang:"uk",destination:"/uk/onboarding"},
  {name:"saved American English",request:"uk",metadata:"en-US",saved:"en-US",emailLang:"en-US",destination:"/onboarding"},
  {name:"saved British English",request:"uk",metadata:"en-GB",saved:"en-GB",emailLang:"en-GB",destination:"/en-gb/onboarding"},
@@ -28,8 +30,8 @@ for (const scenario of cases) test(`local sign-in email: ${scenario.name}`, asyn
    const saved = await db.from("profiles").update({preferences:scenario.saved?{locale:scenario.saved}:{}}).eq("id",userId);
    if (saved.error) throw new Error("Local email fixture preference failed");
   }
-  await page.goto(scenario.request === "en-gb" ? "/en-gb" : "/uk");
-  const copy = scenario.request === "uk" ? uk.auth : enUS.auth;
+  await page.goto(`/${scenario.request}`);
+  const copy = scenario.request === "uk" ? uk.auth : scenario.request === "ru" ? ru.auth : enUS.auth;
   await page.getByPlaceholder(copy.emailPlaceholder).fill(address);
   const delivery = page.waitForResponse(r => new URL(r.url()).pathname === "/auth/v1/otp" && r.request().method() === "POST");
   await page.getByRole("button",{name:copy.emailLink,exact:true}).click();
@@ -55,6 +57,8 @@ for (const scenario of cases) test(`local sign-in email: ${scenario.name}`, asyn
   expect(message.HTML.includes(`<html lang="${scenario.emailLang}">`)).toBe(true);
   const phrases = scenario.emailLang === "uk"
    ? ["Твоє посилання для входу", "Відкрити Fitcheck", "Твій стиліст", "Якщо потрібна допомога", "Гардероб, що думає."]
+   : scenario.emailLang === "ru"
+   ? ["Твоя ссылка для входа", "Открыть Fitcheck", "Твой ИИ-стилист", "Нужна помощь?", "Гардероб, который думает."]
    : ["Your sign-in link", "Open Fitcheck", "Your AI Stylist", "Need help?", scenario.emailLang === "en-GB" ? "A wardrobe that thinks." : "A closet that thinks."];
   for (const phrase of phrases) expect(message.HTML.includes(phrase)).toBe(true);
   const links = [...message.HTML.matchAll(/href="([^"]+)"/g)].map(m=>m[1].replaceAll("&amp;","&"));
@@ -66,7 +70,7 @@ for (const scenario of cases) test(`local sign-in email: ${scenario.name}`, asyn
   userId ??= users.data.users.find(u=>u.email===address)?.id;
   if (!userId) throw new Error("Local email account is missing");
   const user = await db.auth.admin.getUserById(userId);
-  const resolved = scenario.destination.startsWith('/uk') ? 'uk' : scenario.destination.startsWith('/en-gb') ? 'en-GB' : 'en-US';
+  const resolved = scenario.destination.startsWith('/uk') ? 'uk' : scenario.destination.startsWith('/ru') ? 'ru' : scenario.destination.startsWith('/en-gb') ? 'en-GB' : 'en-US';
   expect(user.data.user?.user_metadata.locale).toBe(resolved);
  } finally {
   if (!userId) {

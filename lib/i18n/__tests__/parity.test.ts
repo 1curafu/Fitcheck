@@ -53,7 +53,7 @@ const SAME_AS_ENGLISH: Partial<Record<Full, string[]>> = {
     "vocab.texture.Seersucker", "vocab.color.beige", "vocab.color.taupe", "vocab.color.camel", "vocab.color.caramel",
     "vocab.color.indigo", "vocab.color.olive", "vocab.color.orange", "vocab.length.Midi", "generate.refine.palette.camel",
     "generate.refine.palette.olive", "share.format", "share.story", "packing.destination"],
-  it: ["shell.nav.stylist", "vocab.material.Tweed", "vocab.material.Nylon", "vocab.material.Modal", "vocab.material.Lyocell",
+  it: ["shell.nav.stylist", "vocab.occasion.weekend", "onboarding.questions.occasions.options.Weekend.label", "vocab.material.Tweed", "vocab.material.Nylon", "vocab.material.Modal", "vocab.material.Lyocell",
     "vocab.texture.Twill", "vocab.texture.Seersucker", "vocab.color.beige", "vocab.color.terracotta", "vocab.length.Midi",
     "share.post", "billing.privacy"],
   pt: ["item.edit.material", "capture.confirm.material", "vocab.material.Tweed", "vocab.material.Nylon", "vocab.material.Viscose",

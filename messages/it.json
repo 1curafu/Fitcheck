@@ -177,11 +177,11 @@
             "desc": "Ufficio, riunioni"
           },
           "Everyday": {
-            "label": "Tutti i giorni",
+            "label": "Ogni giorno",
             "desc": "Commissioni, caffè, vita"
           },
           "Weekend": {
-            "label": "Fine settimana",
+            "label": "Weekend",
             "desc": "Tempo libero, relax"
           },
           "Evening": {
@@ -392,9 +392,9 @@
   },
   "vocab": {
     "occasion": {
-      "everyday": "Tutti i giorni",
+      "everyday": "Ogni giorno",
       "work": "Lavoro",
-      "weekend": "Fine settimana",
+      "weekend": "Weekend",
       "evening": "Sera"
     },
     "material": {
