@@ -39,7 +39,8 @@ const plurals = (m: string) => {
 /** Full catalogues. Each Plan 3 locale task adds its import and entry. */
 const CATALOGUES: Partial<Record<Full, Tree>> = { uk: uk as Tree, de: de as Tree, ru: ru as Tree, fr: fr as Tree, it: it_ as Tree, pt: pt as Tree, es: es as Tree, nl: nl as Tree };
 /** Brand words that stay English in every language. */
-const ALWAYS_ENGLISH = new Set(["common.brand", "landing.wordmark", "share.cardFooter", "billing.pro", "billing.proBrand", "billing.proPlan"]);
+const ALWAYS_ENGLISH = new Set(["common.brand", "landing.wordmark", "share.cardFooter", "billing.pro", "billing.proBrand", "billing.proPlan",
+  "home.features.proKicker", "home.footer.copyright"]);
 /** Reviewed keys whose correct translation equals English (for example "Look" in German). Each must still equal English. */
 const SAME_AS_ENGLISH: Partial<Record<Full, string[]>> = {
   de: ["shell.nav.stylist", "item.edit.name", "item.edit.material", "item.edit.branding", "capture.confirm.name", "capture.confirm.material",
@@ -47,8 +48,8 @@ const SAME_AS_ENGLISH: Partial<Record<Full, string[]>> = {
     "vocab.material.Lyocell", "vocab.material.Gold", "vocab.texture.Seersucker", "vocab.color.beige", "vocab.color.taupe",
     "vocab.color.khaki", "vocab.color.camel", "vocab.color.indigo", "vocab.color.gold", "vocab.color.orange", "vocab.length.Midi",
     "vocab.season.Winter", "generate.refine.palette.neutral", "generate.refine.palette.camel", "share.format", "share.story",
-    "share.post", "packing.outfits"],
-  fr: ["onboarding.questions.nogos.options.shorts.label", "item.edit.texture", "capture.confirm.texture", "vocab.material.Tweed",
+    "share.post", "packing.outfits", "home.preview.city", "home.example.tags"],
+  fr: ["home.example.tags", "onboarding.questions.nogos.options.shorts.label", "item.edit.texture", "capture.confirm.texture", "vocab.material.Tweed",
     "vocab.material.Polyester", "vocab.material.Nylon", "vocab.material.Viscose", "vocab.material.Modal", "vocab.material.Lyocell",
     "vocab.texture.Seersucker", "vocab.color.beige", "vocab.color.taupe", "vocab.color.camel", "vocab.color.caramel",
     "vocab.color.indigo", "vocab.color.olive", "vocab.color.orange", "vocab.length.Midi", "generate.refine.palette.camel",
@@ -67,7 +68,7 @@ const SAME_AS_ENGLISH: Partial<Record<Full, string[]>> = {
     "vocab.material.Nylon", "vocab.material.Viscose", "vocab.material.Modal", "vocab.material.Lyocell", "vocab.material.Rubber",
     "vocab.texture.Seersucker", "vocab.color.beige", "vocab.color.taupe", "vocab.color.camel", "vocab.color.indigo",
     "vocab.color.terracotta", "vocab.length.Midi", "vocab.season.Winter", "vocab.pattern.print", "generate.refine.palette.camel",
-    "share.story", "share.post", "billing.privacy", "packing.outfits"],
+    "share.story", "share.post", "billing.privacy", "packing.outfits", "home.preview.city", "home.example.tags"],
 };
 /** Another region's vocabulary a catalogue must not use. */
 const FORBIDDEN: Partial<Record<Full, RegExp>> = {

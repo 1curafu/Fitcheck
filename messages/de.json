@@ -39,6 +39,168 @@
     "and": "und die",
     "privacy": "Datenschutzerklärung"
   },
+  "home": {
+    "metadata": {
+      "title": "Fitcheck — Outfits aus der Kleidung, die du schon hast",
+      "description": "Füge deinen Kleiderschrank einmal hinzu. Jeden Tag bekommst du drei Looks aus deiner eigenen Kleidung für Wetter und Anlass, jeweils mit einem Satz dazu, warum er funktioniert. Kostenlos starten."
+    },
+    "signInMetadata": {
+      "title": "Anmelden"
+    },
+    "nav": {
+      "label": "Konto",
+      "signIn": "Anmelden",
+      "home": "Fitcheck Startseite"
+    },
+    "hero": {
+      "kicker": "Dein KI-Stylist",
+      "titleLead": "Outfits aus der Kleidung,",
+      "titleEmphasis": "die du schon hast.",
+      "lede": "Füge deinen Kleiderschrank einmal hinzu. Jeden Tag bekommst du drei Looks für das Wetter und deine Pläne, jeweils mit einem Satz dazu, warum sie funktionieren.",
+      "cta": "Fitcheck kostenlos testen",
+      "noCard": "Keine Karte nötig",
+      "proofBrowser": "Funktioniert im Browser deines Handys",
+      "proofStart": "Starte mit {count} Teilen",
+      "proofLanguages": "{count} Sprachen"
+    },
+    "preview": {
+      "label": "Der Fitcheck-Stylist-Bildschirm mit einem Beispiel aus drei Looks",
+      "example": "Beispiel",
+      "city": "Zürich",
+      "later": "Bis 15 Uhr werden es bis zu {temperature},",
+      "advice": "also reicht ein Strickteil."
+    },
+    "looks": {
+      "quietNavy": {
+        "name": "Ruhiges Marine",
+        "why": "Der marineblaue Pullover hebt sich schön von der weißen Hose ab, und weiße Ledersneaker halten alles leicht für einen milden Nachmittag."
+      },
+      "blueStone": {
+        "name": "Blau & Sand",
+        "why": "Das hellblaue Hemd hält die sandfarbene Hose frisch, und cremefarbene Sneaker machen den Look weicher für einen entspannten Tag."
+      },
+      "creamDenim": {
+        "name": "Creme & Denim",
+        "why": "Das cremefarbene Strick-Polo macht die helle Jeans weicher, und hellblaue Sneaker greifen den Denim-Ton für einen leichten Tag auf."
+      }
+    },
+    "pieces": {
+      "navySweater": "Marineblauer Rundhalspullover",
+      "whiteTrousers": "Weiße Hose",
+      "whiteSneakers": "Weiße Leder-Sneaker",
+      "watch": "Silberne Uhr",
+      "blueShirt": "Hellblaues Hemd",
+      "stoneTrousers": "Sandfarbene Hose",
+      "creamSneakers": "Cremefarbene Sneaker",
+      "creamPolo": "Cremefarbenes Strick-Polo",
+      "lightJeans": "Helle Jeans",
+      "paleBlueSneakers": "Hellblaue Sneaker",
+      "inLook": "{piece}, im heutigen Look"
+    },
+    "how": {
+      "kicker": "So funktioniert’s",
+      "title": "Einmal die Kleidung fotografieren. Danach jeden Tag anziehen.",
+      "steps": {
+        "add": {
+          "title": "Kleidung hinzufügen",
+          "body": "Fotografiere jedes Teil. Der Hintergrund wird auf deinem Handy entfernt, und Fitcheck schlägt Tags vor, die du prüfst oder korrigierst."
+        },
+        "looks": {
+          "title": "Die heutigen Looks holen",
+          "body": "Wähle Arbeit, Alltag, Wochenende oder Abend. Fitcheck stellt drei Outfits aus deinem Schrank für die heutige Vorhersage zusammen."
+        },
+        "wear": {
+          "title": "Speichern oder tragen",
+          "body": "Behalte die Looks, die dir gefallen, und markiere den, den du trägst. Er landet in deinem Tagebuch, sodass du siehst, wozu du wirklich greifst."
+        }
+      },
+      "effortLead": "Es beginnt mit ein paar Fotos.",
+      "effortBody": "Fitcheck kann nur stylen, was es gesehen hat. Darum fügst du zuerst {count} Teile hinzu: ein paar Oberteile, eine Hose und Schuhe. Je mehr du hinzufügst, desto besser werden die Looks."
+    },
+    "example": {
+      "kicker": "Ein Beispiel",
+      "title": "Neun Teile im Schrank. Ein Look für den Tag.",
+      "body": "Fitcheck prüft Wetter und Anlass, vergleicht Farben, Stoffe und Formalität über alles, was du besitzt, und wählt aus, was zusammenpasst.",
+      "tags": "Tags",
+      "tagsLabel": "Tags für {piece}",
+      "subcategory": "Rundhalspullover",
+      "upTo": "bis zu {temperature}",
+      "caption": "Beispielergebnis. Deine Looks entstehen aus deinem eigenen Schrank, und der Satz wird für dein Outfit am jeweiligen Tag geschrieben."
+    },
+    "features": {
+      "kicker": "Was du bekommst",
+      "title": "Ein Stylist, der deinen Kleiderschrank schon kennt.",
+      "daily": {
+        "title": "Drei Looks jeden Tag",
+        "body": "Jeden Morgen ein frisches Set für jeden Anlass. Zwischen den Anlässen zu wechseln kostet nichts und geht nie aus."
+      },
+      "weather": {
+        "title": "Passend zur Vorhersage",
+        "body": "Die Looks sind auf die wärmste Zeit deines Tages an deinem Ort abgestimmt, damit Strick und Jacke dann auftauchen, wenn du sie brauchst."
+      },
+      "occasion": {
+        "title": "Richtig für dein Ziel",
+        "body": "Arbeit, Alltag, Wochenende oder Abend, im Rahmen der Dresscodes, die du zu Beginn festlegst."
+      },
+      "wardrobe": {
+        "title": "Mehr aus dem, was du besitzt",
+        "body": "Kombinationen, auf die du vielleicht nicht gekommen wärst, aus Teilen, die schon in deinem Schrank hängen."
+      },
+      "proKicker": "Fitcheck Pro",
+      "pro": "Pro",
+      "free": "Kostenlos",
+      "share": {
+        "title": "Einen Look teilen",
+        "body": "Ein Story- oder Post-Bild deines Outfits oder ein Link, der nur über die direkte Adresse erreichbar ist und nach 30 Tagen abläuft."
+      }
+    },
+    "plans": {
+      "kicker": "Kostenlos und Pro",
+      "title": "Alles, was du zum Anziehen brauchst, ist kostenlos.",
+      "body": "Pro holt mehr aus dem ganzen Kleiderschrank: unbegrenztes Neuerstellen und unbegrenzt viele Teile, Reisen, Looks rund um ein Teil und was deine Kleidung wirklich kostet.",
+      "free": "Kostenlos",
+      "forever": "für immer",
+      "freeDaily": "Drei Looks täglich für jeden Anlass",
+      "freeRerolls": "{count, plural, one {Einmal} other {# Mal}} pro Tag neu erstellen",
+      "freeCloset": "Bis zu {count} Teile im Kleiderschrank",
+      "freeDiary": "Tragetagebuch und Teilen",
+      "pro": "Pro",
+      "perMonth": "pro Monat oder {yearly} pro Jahr",
+      "everythingFree": "Alles aus Kostenlos",
+      "proNote": "Steuern inklusive. Upgrade jederzeit in der App, und Kündigung jederzeit ebenfalls dort."
+    },
+    "trust": {
+      "kicker": "Deine Fotos",
+      "title": "Dein Kleiderschrank bleibt privat.",
+      "body": "So läuft es mit einem Foto, nachdem du es gemacht hast.",
+      "device": {
+        "title": "Der Freisteller entsteht auf deinem Handy",
+        "body": "Die Hintergrundentfernung läuft auf deinem Gerät, bevor irgendetwas hochgeladen wird."
+      },
+      "storage": {
+        "title": "Privat in der EU gespeichert",
+        "body": "Fotos liegen in einem privaten Speicher und werden nur dir gezeigt, über Links, die nach kurzer Zeit ablaufen, außer du teilst einen Look."
+      },
+      "ai": {
+        "title": "Die KI sieht jedes Foto einmal",
+        "body": "Ein Freisteller wird einmal gesendet, um Tags vorzuschlagen. Outfits werden danach aus diesen Tags als Text gewählt, nie aus deinen Fotos."
+      },
+      "cookies": {
+        "title": "Keine Tracking-Cookies, echtes Löschen",
+        "body": "Besuche werden ohne Cookies gezählt. Wenn du dein Konto in den Einstellungen löschst, verschwinden deine Fotos und Daten."
+      }
+    },
+    "final": {
+      "kicker": "Kostenlos starten",
+      "title": "Zieh dich aus deinem eigenen Schrank an.",
+      "line": "Ein paar Fotos und eine Minute Tagging, und das Outfit für morgen wartet schon.",
+      "note": "Anmelden mit Google oder E-Mail"
+    },
+    "footer": {
+      "legal": "Rechtliches",
+      "copyright": "© Fitcheck"
+    }
+  },
   "auth": {
     "deleted": "Dein Konto und deine Live-Daten wurden gelöscht.",
     "checkInbox": "Schau in dein Postfach",

@@ -39,6 +39,168 @@
     "and": "e",
     "privacy": "l’Informativa sulla privacy"
   },
+  "home": {
+    "metadata": {
+      "title": "Fitcheck — outfit con i vestiti che hai già",
+      "description": "Aggiungi il tuo guardaroba una volta sola. Ogni giorno tre look con i tuoi vestiti, pensati per il meteo e l’occasione, ciascuno con una frase su perché funziona. Inizia gratis."
+    },
+    "signInMetadata": {
+      "title": "Accedi"
+    },
+    "nav": {
+      "label": "Il tuo account",
+      "signIn": "Accedi",
+      "home": "Home di Fitcheck"
+    },
+    "hero": {
+      "kicker": "Il tuo stylist IA",
+      "titleLead": "Outfit con i vestiti",
+      "titleEmphasis": "che hai già.",
+      "lede": "Aggiungi il tuo guardaroba una volta sola. Ogni giorno ricevi tre look per il meteo e per i tuoi programmi, ciascuno con una frase su perché funziona.",
+      "cta": "Prova Fitcheck gratis",
+      "noCard": "Nessuna carta richiesta",
+      "proofBrowser": "Funziona nel browser del telefono",
+      "proofStart": "Inizia con {count} capi",
+      "proofLanguages": "{count} lingue"
+    },
+    "preview": {
+      "label": "La schermata dello stylist di Fitcheck con un esempio di tre look",
+      "example": "Esempio",
+      "city": "Zurigo",
+      "later": "Fino a {temperature} entro le 15,",
+      "advice": "quindi basta un maglione."
+    },
+    "looks": {
+      "quietNavy": {
+        "name": "Il blu discreto",
+        "why": "Il maglione blu navy risalta sui pantaloni bianchi, e le sneaker bianche in pelle mantengono il tutto leggero per un pomeriggio mite."
+      },
+      "blueStone": {
+        "name": "Azzurro & sabbia",
+        "why": "La camicia azzurra tiene in ordine i pantaloni color sabbia, e le sneaker color crema ammorbidiscono l’insieme per una giornata rilassata."
+      },
+      "creamDenim": {
+        "name": "Crema & denim",
+        "why": "Il polo in maglia color crema ammorbidisce i jeans chiari, e le sneaker azzurre riprendono il denim per una giornata facile."
+      }
+    },
+    "pieces": {
+      "navySweater": "Maglione blu navy girocollo",
+      "whiteTrousers": "Pantaloni bianchi",
+      "whiteSneakers": "Sneaker bianche in pelle",
+      "watch": "Orologio argentato",
+      "blueShirt": "Camicia azzurra",
+      "stoneTrousers": "Pantaloni color sabbia",
+      "creamSneakers": "Sneaker color crema",
+      "creamPolo": "Polo in maglia color crema",
+      "lightJeans": "Jeans chiari",
+      "paleBlueSneakers": "Sneaker azzurre",
+      "inLook": "{piece}, nel look di oggi"
+    },
+    "how": {
+      "kicker": "Come funziona",
+      "title": "Fotografa i vestiti una volta. Poi vestiti ogni giorno.",
+      "steps": {
+        "add": {
+          "title": "Aggiungi i tuoi vestiti",
+          "body": "Fai una foto di ogni capo. Lo sfondo viene rimosso sul telefono, e Fitcheck propone i tag da controllare o correggere."
+        },
+        "looks": {
+          "title": "Ricevi i look di oggi",
+          "body": "Scegli lavoro, ogni giorno, weekend o sera. Fitcheck compone tre outfit con il tuo armadio per le previsioni di oggi."
+        },
+        "wear": {
+          "title": "Salvalo o indossalo",
+          "body": "Tieni i look che ti piacciono e segna quello che indossi. Finisce nel diario, così vedi cosa scegli davvero."
+        }
+      },
+      "effortLead": "Si comincia con qualche foto.",
+      "effortBody": "Fitcheck può abbinare solo ciò che ha visto, quindi il primo passo è aggiungere {count} capi: un paio di magliette, dei pantaloni e delle scarpe. Più ne aggiungi, meglio funzionano i look."
+    },
+    "example": {
+      "kicker": "Un esempio",
+      "title": "Nove capi nell’armadio. Un look per la giornata.",
+      "body": "Fitcheck controlla meteo e occasione, confronta colori, tessuti e formalità tra tutto ciò che possiedi e sceglie ciò che sta bene insieme.",
+      "tags": "Tag",
+      "tagsLabel": "Tag per {piece}",
+      "subcategory": "Maglione girocollo",
+      "upTo": "fino a {temperature}",
+      "caption": "Esempio di risultato. I tuoi look nascono dal tuo armadio, e la frase è scritta per il tuo outfit del giorno."
+    },
+    "features": {
+      "kicker": "Cosa ottieni",
+      "title": "Uno stylist che conosce già il tuo guardaroba.",
+      "daily": {
+        "title": "Tre look ogni giorno",
+        "body": "Un set nuovo ogni mattina per ogni occasione. Passare da un’occasione all’altra non costa nulla e non finisce mai."
+      },
+      "weather": {
+        "title": "Adatto alle previsioni",
+        "body": "I look sono scelti per la parte più calda della tua giornata dove ti trovi, così maglia e giacca arrivano quando servono."
+      },
+      "occasion": {
+        "title": "Giusto per dove vai",
+        "body": "Lavoro, ogni giorno, weekend o sera, nei dress code che imposti all’inizio."
+      },
+      "wardrobe": {
+        "title": "Di più da ciò che hai",
+        "body": "Abbinamenti a cui magari non avevi pensato, con capi che hai già nell’armadio."
+      },
+      "proKicker": "Fitcheck Pro",
+      "pro": "Pro",
+      "free": "Gratis",
+      "share": {
+        "title": "Condividi un look",
+        "body": "Un’immagine per story o post del tuo outfit, oppure un link raggiungibile solo dall’indirizzo diretto, valido 30 giorni."
+      }
+    },
+    "plans": {
+      "kicker": "Gratis e Pro",
+      "title": "Tutto ciò che serve per vestirsi è gratis.",
+      "body": "Pro serve a ottenere di più da tutto il guardaroba: rigenerazioni e capi illimitati, viaggi, look costruiti attorno a un capo e quanto costano davvero i tuoi vestiti.",
+      "free": "Gratis",
+      "forever": "per sempre",
+      "freeDaily": "Tre look al giorno per ogni occasione",
+      "freeRerolls": "Rigenera {count, plural, one {una volta} other {# volte}} al giorno",
+      "freeCloset": "Fino a {count} capi nell’armadio",
+      "freeDiary": "Diario dei look indossati e condivisione",
+      "pro": "Pro",
+      "perMonth": "al mese, o {yearly} all’anno",
+      "everythingFree": "Tutto ciò che è gratis",
+      "proNote": "Tasse incluse. Passa a Pro dall’app quando vuoi e annulla quando vuoi, sempre dall’app."
+    },
+    "trust": {
+      "kicker": "Le tue foto",
+      "title": "Il tuo armadio resta privato.",
+      "body": "Ecco cosa succede a una foto dopo che l’hai scattata.",
+      "device": {
+        "title": "Il ritaglio si fa sul tuo telefono",
+        "body": "La rimozione dello sfondo avviene sul tuo dispositivo, prima che venga caricato qualsiasi cosa."
+      },
+      "storage": {
+        "title": "Archiviate in privato nell’UE",
+        "body": "Le foto restano in un archivio privato e sono mostrate solo a te, tramite link che scadono in poco tempo, a meno che tu non condivida un look."
+      },
+      "ai": {
+        "title": "L’IA vede ogni foto una volta",
+        "body": "Un ritaglio viene inviato una sola volta per suggerire i tag. Gli outfit sono poi scelti da quei tag come testo, mai dalle tue foto."
+      },
+      "cookies": {
+        "title": "Niente cookie di tracciamento, cancellazione vera",
+        "body": "Le visite sono contate senza cookie. Eliminare l’account nelle Impostazioni rimuove le tue foto e i tuoi dati."
+      }
+    },
+    "final": {
+      "kicker": "Inizia gratis",
+      "title": "Vestiti dal tuo armadio.",
+      "line": "Qualche foto e un minuto di tag, e l’outfit di domani è già pronto.",
+      "note": "Accedi con Google o e-mail"
+    },
+    "footer": {
+      "legal": "Note legali",
+      "copyright": "© Fitcheck"
+    }
+  },
   "auth": {
     "deleted": "Il tuo account e i tuoi dati attivi sono stati eliminati.",
     "checkInbox": "Controlla la posta",
