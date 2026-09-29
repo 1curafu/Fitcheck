@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { currencyForTimeZone, displayPrice, LOOKUP_KEYS, monthlyEquivalent } from "../prices";
+import { amountLabel, currencyForTimeZone, displayPrice, LOOKUP_KEYS, monthlyEquivalent } from "../prices";
 
 describe("currencyForTimeZone", () => {
   it.each([["Europe/Zurich", "CHF"], ["Europe/Vaduz", "CHF"], ["Europe/Berlin", "EUR"], ["Europe/Paris", "EUR"],
@@ -26,5 +26,14 @@ describe("monthlyEquivalent", () => {
   it("shows what the annual plan costs per month, rounded to cents", () => {
     expect(monthlyEquivalent("Europe/Zurich")).toBe("CHF 4.17 / month");
     expect(monthlyEquivalent("Europe/Berlin")).toBe("€4.17 / month");
+  });
+});
+
+describe("amountLabel", () => {
+  it("shows the bare amount in the viewer's display currency", () => {
+    expect(amountLabel(5, "Europe/Berlin")).toBe("€5");
+    expect(amountLabel(50, "America/New_York")).toBe("$50");
+    expect(amountLabel(0, "Europe/Zurich")).toBe("CHF 0");
+    expect(amountLabel(5, undefined)).toBe("CHF 5");
   });
 });

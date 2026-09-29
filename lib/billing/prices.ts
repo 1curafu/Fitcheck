@@ -55,3 +55,8 @@ export function monthlyEquivalent(tz: string | undefined, monthLabel: string = e
   const perMonth = (DISPLAY_AMOUNTS.year[currency] / 12).toFixed(2);
   return `${FORMAT_TEXT[currency](perMonth)} / ${monthLabel}`;
 }
+
+/** A bare amount in the viewer's display currency ("CHF 5", "€50", "$0"). Display only, like displayPrice. */
+export function amountLabel(amount: number, tz: string | undefined): string {
+  return FORMAT_TEXT[currencyForTimeZone(tz).currency](String(amount));
+}

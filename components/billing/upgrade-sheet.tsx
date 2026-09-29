@@ -10,12 +10,14 @@ import {
   ChartColumn,
   Compass,
   Bookmark,
+  type LucideIcon,
 } from "lucide-react";
 import { Check } from "lucide-react";
 import { unstable_rethrow } from "next/navigation";
 import { useState, useTransition } from "react";
 import { startCheckout, type StartCheckoutResult } from "@/app/billing/actions";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
+import { PRO_BENEFIT_KEYS, type ProBenefitKey } from "@/lib/billing/benefits";
 import { displayPrice, monthlyEquivalent, type Interval } from "@/lib/billing/prices";
 import { useClientTimeZone } from "@/lib/billing/use-client-time-zone";
 import { cn } from "@/lib/utils";
@@ -30,15 +32,16 @@ import { cn } from "@/lib/utils";
  * Icons are muted, not rust: seven rust glyphs would spend the One Rust Rule
  * seven times over. The kicker is this sheet's single rust element.
  */
-export const PRO_BENEFITS = [
-  { icon: RotateCcw, key: "rerolls" },
-  { icon: Sparkles, key: "styled" },
-  { icon: Shirt, key: "closet" },
-  { icon: Luggage, key: "packing" },
-  { icon: ChartColumn, key: "analytics" },
-  { icon: Compass, key: "gap" },
-  { icon: Bookmark, key: "saved" },
-] as const;
+const BENEFIT_ICONS: Record<ProBenefitKey, LucideIcon> = {
+  rerolls: RotateCcw,
+  styled: Sparkles,
+  closet: Shirt,
+  packing: Luggage,
+  analytics: ChartColumn,
+  gap: Compass,
+  saved: Bookmark,
+};
+export const PRO_BENEFITS = PRO_BENEFIT_KEYS.map((key) => ({ key, icon: BENEFIT_ICONS[key] }));
 
 /**
  * The one place a Pro gate explains itself.
