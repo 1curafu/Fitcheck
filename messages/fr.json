@@ -42,7 +42,7 @@
   "home": {
     "metadata": {
       "title": "Fitcheck — des tenues avec les vêtements que tu as déjà",
-      "description": "Ajoute ta garde-robe une seule fois. Chaque jour, trois looks avec tes propres vêtements, adaptés à la météo et à l’occasion, chacun avec une phrase qui explique pourquoi il fonctionne. Gratuit pour commencer."
+      "description": "Ajoute ta garde-robe une seule fois. Chaque jour, découvre trois tenues avec tes vêtements, adaptées à la météo et à l’occasion, chacune accompagnée d’une phrase qui explique pourquoi elle fonctionne. Gratuit pour commencer."
     },
     "signInMetadata": {
       "title": "Connexion"
@@ -56,7 +56,7 @@
       "kicker": "Ton styliste IA",
       "titleLead": "Des tenues avec les vêtements",
       "titleEmphasis": "que tu as déjà.",
-      "lede": "Ajoute ta garde-robe une seule fois. Chaque jour, tu reçois trois looks adaptés à la météo et à tes plans, chacun avec une phrase qui explique pourquoi il fonctionne.",
+      "lede": "Ajoute ta garde-robe une seule fois. Chaque jour, tu reçois trois tenues adaptées à la météo et à tes projets, chacune avec une phrase qui explique pourquoi elle fonctionne.",
       "cta": "Essayer Fitcheck gratuitement",
       "noCard": "Aucune carte requise",
       "proofBrowser": "Fonctionne dans le navigateur de ton téléphone",
@@ -64,20 +64,20 @@
       "proofLanguages": "{count} langues"
     },
     "preview": {
-      "label": "L’écran du styliste Fitcheck avec un exemple de trois looks",
+      "label": "Écran du styliste Fitcheck avec un exemple de trois tenues",
       "example": "Exemple",
       "city": "Zurich",
-      "later": "Jusqu’à {temperature} d’ici 15 h,",
+      "later": "Jusqu’à {temperature} vers 15 h,",
       "advice": "donc une maille suffit."
     },
     "looks": {
       "quietNavy": {
-        "name": "Le marine discret",
-        "why": "Le pull marine se détache joliment du pantalon blanc, et les baskets en cuir blanc gardent l’ensemble léger pour un après-midi doux."
+        "name": "Bleu marine tout en douceur",
+        "why": "Le pull bleu marine contraste avec le pantalon blanc, et les baskets en cuir blanc apportent de la légèreté pour un après-midi doux."
       },
       "blueStone": {
-        "name": "Bleu & pierre",
-        "why": "La chemise bleu clair garde le pantalon couleur pierre net, et les baskets crème adoucissent l’ensemble pour une journée détendue."
+        "name": "Bleu clair & pierre",
+        "why": "La chemise bleu clair s’accorde avec le pantalon couleur pierre, et les baskets crème adoucissent la tenue pour une journée décontractée."
       },
       "creamDenim": {
         "name": "Crème & denim",
@@ -99,30 +99,30 @@
     },
     "how": {
       "kicker": "Comment ça marche",
-      "title": "Photographie tes vêtements une fois. Habille-toi chaque jour ensuite.",
+      "title": "Photographie tes vêtements une fois. Choisis ta tenue chaque jour.",
       "steps": {
         "add": {
           "title": "Ajoute tes vêtements",
-          "body": "Prends chaque pièce en photo. Le fond est retiré sur ton téléphone, et Fitcheck propose des tags que tu vérifies ou corriges."
+          "body": "Photographie chaque pièce. Le fond est retiré sur ton téléphone, et Fitcheck suggère des caractéristiques que tu peux vérifier ou corriger."
         },
         "looks": {
           "title": "Reçois les looks du jour",
-          "body": "Choisis travail, quotidien, week-end ou soirée. Fitcheck compose trois tenues avec ta garde-robe pour la météo d’aujourd’hui."
+          "body": "Choisis travail, quotidien, week-end ou soirée. Fitcheck compose trois tenues avec ta garde-robe, adaptées aux prévisions du jour."
         },
         "wear": {
-          "title": "Garde-le ou porte-le",
-          "body": "Garde les looks qui te plaisent et marque celui que tu portes. Il rejoint ton journal, pour voir ce que tu portes vraiment."
+          "title": "Enregistre ou porte la tenue",
+          "body": "Garde les tenues qui te plaisent et indique celle que tu portes. Elle apparaîtra dans ton journal, où tu verras ce que tu choisis vraiment."
         }
       },
       "effortLead": "Tout commence par quelques photos.",
-      "effortBody": "Fitcheck ne peut styliser que ce qu’il a vu : ajoute d’abord {count} pièces, par exemple quelques hauts, un pantalon et des chaussures. Plus tu en ajoutes, meilleurs sont les looks."
+      "effortBody": "Fitcheck ne peut composer des tenues qu’avec les vêtements qu’il connaît. Commence par ajouter {count} pièces : quelques hauts, un pantalon et des chaussures. Plus tu en ajoutes, plus les tenues sont réussies."
     },
     "example": {
       "kicker": "Un exemple",
       "title": "Neuf pièces dans une garde-robe. Un look pour la journée.",
       "body": "Fitcheck regarde la météo et l’occasion, compare couleurs, matières et formalité parmi tout ce que tu possèdes, et choisit ce qui va ensemble.",
-      "tags": "Tags",
-      "tagsLabel": "Tags de {piece}",
+      "tags": "Caractéristiques",
+      "tagsLabel": "Caractéristiques de {piece}",
       "subcategory": "Pull à col rond",
       "upTo": "jusqu’à {temperature}",
       "caption": "Exemple de résultat. Tes looks sont composés avec ta propre garde-robe, et la phrase est écrite pour ta tenue du jour."
@@ -132,42 +132,42 @@
       "title": "Un styliste qui connaît déjà ta garde-robe.",
       "daily": {
         "title": "Trois looks chaque jour",
-        "body": "Un nouveau set chaque matin pour chaque occasion. Passer d’une occasion à l’autre ne coûte rien et ne s’épuise jamais."
+        "body": "De nouvelles tenues chaque matin pour chaque occasion. Tu peux changer d’occasion gratuitement, sans limite."
       },
       "weather": {
-        "title": "Pensé pour la météo",
-        "body": "Les looks sont choisis pour le moment le plus chaud de ta journée, là où tu es : la maille et la veste sortent quand tu en as besoin."
+        "title": "Des tenues adaptées à la météo",
+        "body": "Les tenues sont choisies en fonction du moment le plus chaud de ta journée et de ton lieu. Tu as ainsi la maille et la veste qu’il te faut."
       },
       "occasion": {
-        "title": "Juste pour là où tu vas",
-        "body": "Travail, quotidien, week-end ou soirée, dans les codes vestimentaires que tu définis au départ."
+        "title": "Pour ce que tu as prévu",
+        "body": "Travail, quotidien, week-end ou soirée, selon les codes vestimentaires que tu définis au départ."
       },
       "wardrobe": {
-        "title": "Plus de ce que tu possèdes",
-        "body": "Des associations auxquelles tu n’aurais peut-être pas pensé, avec des pièces déjà dans ta garde-robe."
+        "title": "Tirer le meilleur de ta garde-robe",
+        "body": "Des associations auxquelles tu n’aurais peut-être pas pensé, avec les pièces déjà dans ta garde-robe."
       },
       "proKicker": "Fitcheck Pro",
       "pro": "Pro",
       "free": "Gratuit",
       "share": {
         "title": "Partager un look",
-        "body": "Une image pour story ou post de ta tenue, ou un lien accessible uniquement via son adresse, valable 30 jours."
+        "body": "Une image de ta tenue pour une story ou une publication, ou un lien non répertorié qui expire au bout de 30 jours."
       }
     },
     "plans": {
       "kicker": "Gratuit et Pro",
-      "title": "Tout ce qu’il faut pour t’habiller est gratuit.",
-      "body": "Pro sert à tirer davantage de toute la garde-robe : régénérations et pièces illimitées, voyages, looks construits autour d’une pièce et ce que tes vêtements coûtent vraiment.",
+      "title": "Tout ce qu’il te faut pour t’habiller est gratuit.",
+      "body": "Pro t’aide à tirer davantage parti de toute ta garde-robe : régénérations et pièces illimitées, voyages, tenues composées autour d’une pièce et coût réel de tes vêtements.",
       "free": "Gratuit",
-      "forever": "pour toujours",
+      "forever": "sans limite de durée",
       "freeDaily": "Trois looks par jour pour chaque occasion",
-      "freeRerolls": "Régénération {count, plural, one {une fois} other {# fois}} par jour",
+      "freeRerolls": "Régénérer {count, plural, one {une fois} other {# fois}} par jour",
       "freeCloset": "Jusqu’à {count} pièces dans ta garde-robe",
       "freeDiary": "Journal des tenues portées et partage",
       "pro": "Pro",
       "perMonth": "par mois, ou {yearly} par an",
-      "everythingFree": "Toute l’offre gratuite",
-      "proNote": "Taxes incluses. Passe à Pro depuis l’app quand tu veux, et résilie à tout moment au même endroit."
+      "everythingFree": "Tout ce qui est inclus dans l’offre gratuite",
+      "proNote": "Taxes incluses. Tu peux passer à Pro depuis l’app quand tu veux et résilier à tout moment depuis l’app."
     },
     "trust": {
       "kicker": "Tes photos",
@@ -175,26 +175,26 @@
       "body": "Voici ce qui arrive à une photo après que tu l’as prise.",
       "device": {
         "title": "Le détourage se fait sur ton téléphone",
-        "body": "Le retrait du fond s’exécute sur ton appareil, avant tout envoi."
+        "body": "Le fond est retiré sur ton appareil avant tout envoi."
       },
       "storage": {
         "title": "Stockées en privé dans l’UE",
-        "body": "Les photos restent dans un stockage privé et ne te sont montrées qu’à toi, via des liens qui expirent vite, sauf si tu partages un look."
+        "body": "Les photos sont conservées dans un espace de stockage privé et ne sont visibles que par toi via des liens qui expirent rapidement, sauf si tu partages une tenue."
       },
       "ai": {
-        "title": "L’IA voit chaque photo une fois",
-        "body": "Un détourage est envoyé une seule fois pour proposer ses tags. Les tenues sont ensuite choisies à partir de ces tags sous forme de texte, jamais à partir de tes photos."
+        "title": "L’IA ne voit chaque photo qu’une fois",
+        "body": "Une image détourée est envoyée une seule fois pour suggérer les caractéristiques du vêtement. Les tenues sont ensuite choisies à partir de ces indications textuelles, jamais à partir de tes photos."
       },
       "cookies": {
-        "title": "Pas de cookies de suivi, suppression réelle",
-        "body": "Les visites sont comptées sans cookies. Supprimer ton compte dans les Réglages efface tes photos et tes données."
+        "title": "Pas de cookies de suivi. Suppression effective.",
+        "body": "Les visites sont comptabilisées sans cookies. La suppression de ton compte dans les réglages efface tes photos et tes données."
       }
     },
     "final": {
       "kicker": "Gratuit pour commencer",
-      "title": "Habille-toi avec ta propre garde-robe.",
-      "line": "Quelques photos et une minute de tags, et la tenue de demain t’attend déjà.",
-      "note": "Connexion avec Google ou e-mail"
+      "title": "Compose tes tenues avec ta propre garde-robe.",
+      "line": "Quelques photos et une minute pour vérifier les caractéristiques : la tenue de demain t’attend déjà.",
+      "note": "Connexion avec Google ou par e-mail"
     },
     "footer": {
       "legal": "Mentions légales",

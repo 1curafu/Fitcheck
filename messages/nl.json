@@ -41,8 +41,8 @@
   },
   "home": {
     "metadata": {
-      "title": "Fitcheck — outfits van de kleding die je al hebt",
-      "description": "Voeg je kledingkast één keer toe. Elke dag drie looks van je eigen kleding, afgestemd op het weer en de gelegenheid, elk met één zin over waarom het werkt. Gratis starten."
+      "title": "Fitcheck — outfits met de kleding die je al hebt",
+      "description": "Voeg je kledingkast één keer toe. Elke dag krijg je drie outfits met je eigen kleding, afgestemd op het weer en de gelegenheid, met bij elke outfit een zin over waarom die werkt. Begin gratis."
     },
     "signInMetadata": {
       "title": "Inloggen"
@@ -54,33 +54,33 @@
     },
     "hero": {
       "kicker": "Je AI-stylist",
-      "titleLead": "Outfits van de kleding",
+      "titleLead": "Outfits met de kleding",
       "titleEmphasis": "die je al hebt.",
-      "lede": "Voeg je kledingkast één keer toe. Elke dag krijg je drie looks voor het weer en je plannen, elk met één zin over waarom het werkt.",
+      "lede": "Voeg je kledingkast één keer toe. Elke dag krijg je drie outfits die passen bij het weer en je plannen, met bij elke outfit een zin over waarom die werkt.",
       "cta": "Probeer Fitcheck gratis",
       "noCard": "Geen kaart nodig",
-      "proofBrowser": "Werkt in de browser van je telefoon",
+      "proofBrowser": "Werkt in de browser op je telefoon",
       "proofStart": "Begin met {count} stuks",
       "proofLanguages": "{count} talen"
     },
     "preview": {
-      "label": "Het Fitcheck-stylistscherm met een voorbeeld van drie looks",
+      "label": "Het Fitcheck-stylisten-scherm met een voorbeeld van drie outfits",
       "example": "Voorbeeld",
       "city": "Zürich",
-      "later": "Tot {temperature} rond 15:00,",
-      "advice": "dus een gebreide trui is genoeg."
+      "later": "Rond 15.00 uur wordt het {temperature},",
+      "advice": "dus een trui is genoeg."
     },
     "looks": {
       "quietNavy": {
-        "name": "Het Rustige Marineblauw",
-        "why": "De marineblauwe trui steekt mooi af tegen de witte broek, en witte leren sneakers houden het licht voor een zachte middag."
+        "name": "Rustig marineblauw",
+        "why": "De marineblauwe trui steekt af tegen de witte broek. Witte leren sneakers maken de outfit luchtig voor een zachte middag."
       },
       "blueStone": {
-        "name": "Blauw & Zand",
-        "why": "Het lichtblauwe overhemd houdt de zandkleurige broek strak, en crèmekleurige sneakers maken het zachter voor een ontspannen dag."
+        "name": "Lichtblauw & zand",
+        "why": "Het lichtblauwe overhemd past bij de zandkleurige broek. Crèmekleurige sneakers maken de outfit zachter voor een ontspannen dag."
       },
       "creamDenim": {
-        "name": "Crème & Denim",
+        "name": "Crème & denim",
         "why": "De crèmekleurige gebreide polo verzacht de lichte jeans, en lichtblauwe sneakers pakken de denimtint op voor een makkelijke dag."
       }
     },
@@ -99,30 +99,30 @@
     },
     "how": {
       "kicker": "Zo werkt het",
-      "title": "Fotografeer je kleding één keer. Kleed je daarna elke dag aan.",
+      "title": "Fotografeer je kleding één keer. Kies elke dag een outfit.",
       "steps": {
         "add": {
           "title": "Voeg je kleding toe",
-          "body": "Maak een foto van elk stuk. De achtergrond wordt op je telefoon verwijderd, en Fitcheck stelt de tags voor die jij controleert of aanpast."
+          "body": "Maak van elk kledingstuk een foto. De achtergrond wordt op je telefoon verwijderd. Fitcheck stelt kenmerken voor die je kunt controleren of aanpassen."
         },
         "looks": {
           "title": "Ontvang de looks van vandaag",
-          "body": "Kies werk, dagelijks, weekend of avond. Fitcheck stelt drie outfits uit je kast samen voor de voorspelling van vandaag."
+          "body": "Kies werk, dagelijks, weekend of avond. Fitcheck stelt drie outfits uit je kledingkast samen, afgestemd op de weersverwachting van vandaag."
         },
         "wear": {
-          "title": "Bewaar of draag",
-          "body": "Bewaar de looks die je mooi vindt en markeer degene die je draagt. Die komt in je dagboek, zodat je ziet waar je echt naar grijpt."
+          "title": "Bewaar of draag de outfit",
+          "body": "Bewaar de outfits die je mooi vindt en markeer welke je draagt. Die komt in je dagboek, zodat je ziet waar je echt naar grijpt."
         }
       },
       "effortLead": "Het begint met een paar foto’s.",
-      "effortBody": "Fitcheck kan alleen stylen wat het heeft gezien, dus de eerste stap is {count} stuks toevoegen: een paar tops, een broek en schoenen. Hoe meer je toevoegt, hoe beter de looks."
+      "effortBody": "Fitcheck kan alleen kleding combineren die het kent. Voeg daarom eerst {count} stuks toe: een paar tops, een broek en schoenen. Hoe meer je toevoegt, hoe beter de outfits."
     },
     "example": {
       "kicker": "Een voorbeeld",
       "title": "Negen stuks in een kast. Eén look voor de dag.",
       "body": "Fitcheck kijkt naar het weer en de gelegenheid, vergelijkt kleuren, stoffen en formaliteit binnen alles wat je bezit, en kiest wat bij elkaar past.",
-      "tags": "Tags",
-      "tagsLabel": "Tags voor {piece}",
+      "tags": "Kenmerken",
+      "tagsLabel": "Kenmerken van {piece}",
       "subcategory": "Trui met ronde hals",
       "upTo": "tot {temperature}",
       "caption": "Voorbeelduitkomst. Je looks worden samengesteld uit je eigen kast, en de zin wordt geschreven voor je outfit van die dag."
@@ -132,68 +132,68 @@
       "title": "Een stylist die je kledingkast al kent.",
       "daily": {
         "title": "Drie looks per dag",
-        "body": "Elke ochtend een nieuwe set voor elke gelegenheid. Wisselen tussen gelegenheden kost niets en raakt nooit op."
+        "body": "Elke ochtend een nieuwe set voor elke gelegenheid. Je kunt gratis en onbeperkt tussen gelegenheden wisselen."
       },
       "weather": {
-        "title": "Gekleed voor de voorspelling",
-        "body": "Looks worden gekozen voor het warmste deel van je dag op jouw locatie, zodat de trui en het jasje er zijn wanneer je ze nodig hebt."
+        "title": "Gekleed op het weer",
+        "body": "De outfits zijn afgestemd op het warmste moment van de dag op jouw locatie, zodat je een trui of jasje krijgt wanneer je dat nodig hebt."
       },
       "occasion": {
-        "title": "Passend bij waar je heen gaat",
-        "body": "Werk, dagelijks, weekend of avond, binnen de dresscodes die je aan het begin instelt."
+        "title": "Voor waar je naartoe gaat",
+        "body": "Werk, dagelijks, weekend of avond, binnen de kledingvoorschriften die je aan het begin instelt."
       },
       "wardrobe": {
-        "title": "Meer uit wat je bezit",
-        "body": "Combinaties waar je misschien niet aan had gedacht, met stukken die al in je kast hangen."
+        "title": "Meer uit je eigen kleding halen",
+        "body": "Combinaties waar je misschien niet aan had gedacht, met kleding die je al hebt."
       },
       "proKicker": "Fitcheck Pro",
       "pro": "Pro",
       "free": "Gratis",
       "share": {
         "title": "Deel een look",
-        "body": "Een story- of postafbeelding van je outfit, of een link die alleen via het directe adres werkt en na 30 dagen verloopt."
+        "body": "Een afbeelding van je outfit voor een story of bericht, of een niet-vermelde link die na 30 dagen verloopt."
       }
     },
     "plans": {
       "kicker": "Gratis en Pro",
-      "title": "Alles wat je nodig hebt om je aan te kleden is gratis.",
-      "body": "Pro haalt meer uit je hele kast: onbeperkt opnieuw maken en onbeperkt stukken, trips, looks rond één stuk en wat je kleding echt kost.",
+      "title": "Alles wat je nodig hebt om je aan te kleden, is gratis.",
+      "body": "Met Pro haal je meer uit je hele kledingkast: onbeperkt outfits opnieuw samenstellen en kledingstukken toevoegen, reizen, outfits rond één kledingstuk en zien wat je kleding echt kost.",
       "free": "Gratis",
       "forever": "voor altijd",
       "freeDaily": "Drie looks per dag voor elke gelegenheid",
-      "freeRerolls": "{count, plural, one {Eén keer} other {# keer}} per dag opnieuw maken",
-      "freeCloset": "Tot {count} stuks in je kast",
-      "freeDiary": "Draagdagboek en delen",
+      "freeRerolls": "Per dag {count, plural, one {één keer} other {# keer}} opnieuw genereren",
+      "freeCloset": "Tot {count} kledingstukken in je kledingkast",
+      "freeDiary": "Dagboek en outfits delen",
       "pro": "Pro",
       "perMonth": "per maand, of {yearly} per jaar",
-      "everythingFree": "Alles uit het gratis plan",
-      "proNote": "Belasting inbegrepen. Upgrade wanneer je wilt in de app en zeg op elk moment op, ook in de app."
+      "everythingFree": "Alles uit het gratis abonnement",
+      "proNote": "Belastingen inbegrepen. Je kunt op elk moment in de app upgraden en je abonnement daar ook op elk moment opzeggen."
     },
     "trust": {
       "kicker": "Je foto’s",
       "title": "Je kledingkast blijft privé.",
       "body": "Dit gebeurt er met een foto nadat je hem hebt gemaakt.",
       "device": {
-        "title": "Het uitknippen gebeurt op je telefoon",
+        "title": "De achtergrond wordt op je telefoon verwijderd",
         "body": "Het verwijderen van de achtergrond draait op je apparaat, voordat er iets wordt geüpload."
       },
       "storage": {
         "title": "Privé opgeslagen in de EU",
-        "body": "Foto’s staan in privéopslag en worden alleen aan jou getoond, via links die na korte tijd verlopen, tenzij je een look deelt."
+        "body": "Foto’s worden privé opgeslagen en zijn alleen voor jou zichtbaar via links die na korte tijd verlopen, tenzij je een outfit deelt."
       },
       "ai": {
-        "title": "De AI ziet elke foto één keer",
-        "body": "Een uitgeknipte foto wordt één keer verstuurd om tags voor te stellen. Outfits worden daarna gekozen uit die tags als tekst, nooit uit je foto’s."
+        "title": "De AI verwerkt elke foto maar één keer",
+        "body": "Een vrijstaand beeld wordt één keer verstuurd om kenmerken van het kledingstuk voor te stellen. Daarna worden outfits gekozen op basis van die tekstkenmerken, nooit op basis van je foto’s."
       },
       "cookies": {
-        "title": "Geen trackingcookies, echt verwijderen",
-        "body": "Bezoeken worden zonder cookies geteld. Als je je account in Instellingen verwijdert, verdwijnen je foto’s en gegevens."
+        "title": "Geen trackingcookies. Je gegevens worden echt verwijderd.",
+        "body": "Bezoeken worden zonder cookies geteld. Als je je account in Instellingen verwijdert, worden ook je foto’s en gegevens verwijderd."
       }
     },
     "final": {
       "kicker": "Gratis starten",
-      "title": "Kleed je aan uit je eigen kast.",
-      "line": "Een paar foto’s en een minuut tags, en de outfit van morgen ligt al klaar.",
+      "title": "Stel outfits samen met je eigen kleding.",
+      "line": "Een paar foto’s en een minuut om de kenmerken te controleren, en je outfit voor morgen staat al klaar.",
       "note": "Inloggen met Google of e-mail"
     },
     "footer": {

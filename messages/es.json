@@ -41,8 +41,8 @@
   },
   "home": {
     "metadata": {
-      "title": "Fitcheck — outfits con la ropa que ya tienes",
-      "description": "Añade tu armario una sola vez. Cada día, tres looks con tu propia ropa, para el tiempo y la ocasión, cada uno con una frase sobre por qué funciona. Empieza gratis."
+      "title": "Fitcheck — conjuntos con la ropa que ya tienes",
+      "description": "Añade tu armario una sola vez. Cada día recibe tres conjuntos con tu ropa, adecuados al tiempo y a la ocasión, cada uno con una frase que explica por qué funciona. Empieza gratis."
     },
     "signInMetadata": {
       "title": "Iniciar sesión"
@@ -54,9 +54,9 @@
     },
     "hero": {
       "kicker": "Tu estilista con IA",
-      "titleLead": "Outfits con la ropa",
+      "titleLead": "Conjuntos con la ropa",
       "titleEmphasis": "que ya tienes.",
-      "lede": "Añade tu armario una sola vez. Cada día recibes tres looks para el tiempo y tus planes, cada uno con una frase sobre por qué funciona.",
+      "lede": "Añade tu armario una sola vez. Cada día recibes tres conjuntos adecuados al tiempo y a tus planes, cada uno con una frase que explica por qué funciona.",
       "cta": "Prueba Fitcheck gratis",
       "noCard": "Sin tarjeta",
       "proofBrowser": "Funciona en el navegador del móvil",
@@ -64,7 +64,7 @@
       "proofLanguages": "{count} idiomas"
     },
     "preview": {
-      "label": "La pantalla del estilista de Fitcheck con un ejemplo de tres looks",
+      "label": "Pantalla del estilista Fitcheck con un ejemplo de tres conjuntos",
       "example": "Ejemplo",
       "city": "Zúrich",
       "later": "Hasta {temperature} hacia las 15:00,",
@@ -72,12 +72,12 @@
     },
     "looks": {
       "quietNavy": {
-        "name": "El Azul Discreto",
-        "why": "El jersey azul marino resalta sobre el pantalón blanco, y las zapatillas blancas de piel mantienen todo ligero para una tarde suave."
+        "name": "Azul marino discreto",
+        "why": "El jersey azul marino contrasta con el pantalón blanco, y las zapatillas blancas de piel dan ligereza al conjunto para una tarde templada."
       },
       "blueStone": {
-        "name": "Azul y arena",
-        "why": "La camisa azul claro mantiene el pantalón color arena impecable, y las zapatillas color crema suavizan el conjunto para un día relajado."
+        "name": "Azul claro y arena",
+        "why": "La camisa azul claro combina con el pantalón color arena, y las zapatillas color crema suavizan el conjunto para un día relajado."
       },
       "creamDenim": {
         "name": "Crema y vaquero",
@@ -95,106 +95,106 @@
       "creamPolo": "Polo de punto color crema",
       "lightJeans": "Vaqueros claros",
       "paleBlueSneakers": "Zapatillas azul claro",
-      "inLook": "{piece}, en el look de hoy"
+      "inLook": "{piece}, en el conjunto de hoy"
     },
     "how": {
       "kicker": "Cómo funciona",
-      "title": "Fotografía tu ropa una vez. Vístete cada día después.",
+      "title": "Fotografía tu ropa una vez. Elige el conjunto cada día.",
       "steps": {
         "add": {
           "title": "Añade tu ropa",
-          "body": "Haz una foto de cada prenda. El fondo se quita en tu móvil, y Fitcheck sugiere las etiquetas para que las revises o corrijas."
+          "body": "Haz una foto de cada prenda. El fondo se elimina en el móvil y Fitcheck sugiere características que puedes revisar o corregir."
         },
         "looks": {
-          "title": "Recibe los looks de hoy",
-          "body": "Elige trabajo, día a día, fin de semana o noche. Fitcheck compone tres outfits con tu armario para el tiempo de hoy."
+          "title": "Mira los conjuntos de hoy",
+          "body": "Elige trabajo, diario, fin de semana o noche. Fitcheck combina tres conjuntos de tu armario teniendo en cuenta el tiempo de hoy."
         },
         "wear": {
           "title": "Guárdalo o póntelo",
-          "body": "Guarda los looks que te gusten y marca el que llevas. Va a tu diario, así ves lo que de verdad eliges."
+          "body": "Guarda los conjuntos que te gusten y marca el que te pongas. Aparecerá en tu diario, donde podrás ver qué eliges de verdad."
         }
       },
       "effortLead": "Empieza con unas pocas fotos.",
-      "effortBody": "Fitcheck solo puede combinar lo que ha visto, así que el primer paso es añadir {count} prendas: un par de partes de arriba, un pantalón y zapatos. Cuantas más añadas, mejores serán los looks."
+      "effortBody": "Fitcheck solo puede combinar prendas que ya conoce. Empieza por añadir {count} prendas: un par de partes de arriba, unos pantalones y zapatos. Cuantas más añadas, mejores serán los conjuntos."
     },
     "example": {
       "kicker": "Un ejemplo",
-      "title": "Nueve prendas en un armario. Un look para el día.",
+      "title": "Nueve prendas en un armario. Un conjunto para el día.",
       "body": "Fitcheck consulta el tiempo y la ocasión, compara colores, tejidos y formalidad entre todo lo que tienes, y elige lo que combina.",
-      "tags": "Etiquetas",
-      "tagsLabel": "Etiquetas de {piece}",
+      "tags": "Características",
+      "tagsLabel": "Características de {piece}",
       "subcategory": "Jersey de cuello redondo",
       "upTo": "hasta {temperature}",
-      "caption": "Ejemplo de resultado. Tus looks se componen con tu propio armario, y la frase se escribe para tu outfit del día."
+      "caption": "Ejemplo de resultado. Tus conjuntos se crean con la ropa de tu armario, y la frase se redacta para el conjunto que lleves ese día."
     },
     "features": {
       "kicker": "Qué obtienes",
-      "title": "Tu estilista ya conoce tu armario.",
+      "title": "Un estilista que ya conoce tu armario.",
       "daily": {
-        "title": "Tres looks cada día",
-        "body": "Un set nuevo cada mañana para cada ocasión. Cambiar de ocasión no cuesta nada y nunca se acaba."
+        "title": "Tres conjuntos cada día",
+        "body": "Cada mañana tienes nuevos conjuntos para cada ocasión. Puedes cambiar de ocasión gratis y todas las veces que quieras."
       },
       "weather": {
-        "title": "Pensado para el tiempo",
-        "body": "Los looks se eligen para la parte más cálida de tu día donde estás, así el jersey y la chaqueta aparecen cuando los necesitas."
+        "title": "Conjuntos según el tiempo",
+        "body": "Los conjuntos tienen en cuenta la hora más cálida del día donde estás, para incluir el jersey y la chaqueta cuando los necesites."
       },
       "occasion": {
-        "title": "Adecuado para donde vas",
-        "body": "Trabajo, día a día, fin de semana o noche, dentro de los códigos de vestimenta que defines al empezar."
+        "title": "Para tus planes",
+        "body": "Trabajo, diario, fin de semana o noche, según el código de vestimenta que definas al empezar."
       },
       "wardrobe": {
-        "title": "Más de lo que ya tienes",
-        "body": "Combinaciones que quizá no se te habrían ocurrido, con prendas que ya están en tu armario."
+        "title": "Más posibilidades con lo que ya tienes",
+        "body": "Combinaciones que quizá no se te habrían ocurrido, con prendas que ya tienes en el armario."
       },
       "proKicker": "Fitcheck Pro",
       "pro": "Pro",
       "free": "Gratis",
       "share": {
-        "title": "Compartir un look",
-        "body": "Una imagen para stories o publicación de tu outfit, o un enlace accesible solo con la dirección directa, válido durante 30 días."
+        "title": "Comparte un conjunto",
+        "body": "Una imagen de tu conjunto para una historia o publicación, o un enlace no listado que caduca a los 30 días."
       }
     },
     "plans": {
       "kicker": "Gratis y Pro",
       "title": "Todo lo que necesitas para vestirte es gratis.",
-      "body": "Pro es para sacarle más partido a todo el armario: regeneraciones y prendas ilimitadas, viajes, looks construidos en torno a una prenda y lo que cuesta de verdad tu ropa.",
+      "body": "Pro te permite aprovechar mejor todo el armario: regeneraciones y prendas ilimitadas, viajes, conjuntos creados a partir de una prenda y el coste real de tu ropa.",
       "free": "Gratis",
       "forever": "para siempre",
-      "freeDaily": "Tres looks al día para cada ocasión",
-      "freeRerolls": "Regenerar {count, plural, one {una vez} other {# veces}} al día",
-      "freeCloset": "Hasta {count} prendas en tu armario",
-      "freeDiary": "Diario de looks llevados y compartir",
+      "freeDaily": "Tres conjuntos al día para cada ocasión",
+      "freeRerolls": "Regenera {count, plural, one {una vez} other {# veces}} al día",
+      "freeCloset": "Hasta {count} prendas en el armario",
+      "freeDiary": "Diario de conjuntos y opción para compartirlos",
       "pro": "Pro",
       "perMonth": "al mes, o {yearly} al año",
       "everythingFree": "Todo lo incluido en el plan gratuito",
-      "proNote": "Impuestos incluidos. Pásate a Pro desde la app cuando quieras y cancela en cualquier momento, también desde la app."
+      "proNote": "Impuestos incluidos. Puedes pasarte a Pro desde la app cuando quieras y cancelar en cualquier momento, también desde la app."
     },
     "trust": {
       "kicker": "Tus fotos",
       "title": "Tu armario sigue siendo privado.",
       "body": "Esto es lo que pasa con una foto después de hacerla.",
       "device": {
-        "title": "El recorte se hace en tu móvil",
+        "title": "El fondo se elimina en tu móvil",
         "body": "La eliminación del fondo se ejecuta en tu dispositivo, antes de subir nada."
       },
       "storage": {
-        "title": "Guardadas en privado en la UE",
-        "body": "Las fotos permanecen en almacenamiento privado y solo se te muestran a ti, mediante enlaces que caducan al poco tiempo, salvo que compartas un look."
+        "title": "Almacenadas de forma privada en la UE",
+        "body": "Las fotos se guardan en un espacio privado y solo tú puedes verlas mediante enlaces que caducan al poco tiempo, salvo que compartas un conjunto."
       },
       "ai": {
-        "title": "La IA ve cada foto una vez",
-        "body": "Un recorte se envía una sola vez para sugerir sus etiquetas. Después los outfits se eligen a partir de esas etiquetas como texto, nunca a partir de tus fotos."
+        "title": "La IA analiza cada foto una sola vez",
+        "body": "La imagen recortada se envía una sola vez para sugerir las características de la prenda. Después, los conjuntos se eligen a partir de esa información en texto, nunca de tus fotos."
       },
       "cookies": {
-        "title": "Sin cookies de seguimiento, borrado real",
-        "body": "Las visitas se cuentan sin cookies. Eliminar tu cuenta en Ajustes borra tus fotos y datos."
+        "title": "Sin cookies de seguimiento. Eliminación real de los datos.",
+        "body": "Las visitas se cuentan sin cookies. Al eliminar tu cuenta en Ajustes, también se eliminan tus fotos y tus datos."
       }
     },
     "final": {
       "kicker": "Empieza gratis",
-      "title": "Vístete con tu propio armario.",
-      "line": "Unas pocas fotos y un minuto de etiquetas, y el outfit de mañana ya te espera.",
-      "note": "Inicia sesión con Google o correo electrónico"
+      "title": "Crea conjuntos con la ropa de tu armario.",
+      "line": "Unas fotos y un minuto para revisar las características, y el conjunto de mañana ya te espera.",
+      "note": "Inicia sesión con Google o por correo electrónico"
     },
     "footer": {
       "legal": "Aviso legal",
