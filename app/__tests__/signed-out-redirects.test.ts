@@ -12,3 +12,9 @@ test("no route sends a signed-out visitor to the marketing page instead of sign-
   const offenders = sources("app/[locale]").filter((f) => /redirect\(\{\s*href:\s*"\/(\?[^"]*)?"/.test(readFileSync(f, "utf8")));
   expect(offenders).toEqual([]);
 });
+
+test("a link labelled Sign in goes to the sign-in page, not the marketing page", () => {
+  const offenders = sources("app/[locale]").concat(sources("components")).filter((f) =>
+    /href="\/"[^>]*>\s*\{t\("signIn"\)\}/.test(readFileSync(f, "utf8")));
+  expect(offenders).toEqual([]);
+});
