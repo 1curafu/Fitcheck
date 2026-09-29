@@ -19,6 +19,6 @@ it("explicit action locale never reads unsupported root params", async () => {
   expect(rootLocale).not.toHaveBeenCalled();
 });
 it("unsupported overrides fail closed", async () => {
-  await expect(config({ locale: "de" as never, requestLocale: Promise.resolve(undefined) })).rejects.toThrow("404");
+  await expect(config({ locale: "pl" as never, requestLocale: Promise.resolve(undefined) })).rejects.toThrow("404");
   expect(rootLocale).not.toHaveBeenCalled();
 });

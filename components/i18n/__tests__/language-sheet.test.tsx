@@ -14,10 +14,12 @@ test("lists shipped languages in their own names and marks the current choice", 
   render(<LanguageSheet open current="en-US" onClose={mock.close} />);
   expect(screen.getByRole("button", { name: "English (US)" })).toHaveAttribute("aria-current", "true");
   expect(screen.getByRole("button", { name: "Українська" })).toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: "Deutsch" })).not.toBeInTheDocument();
+  for (const name of ["Русский", "Deutsch", "Français", "Italiano", "Português", "Español", "Nederlands"]) {
+    expect(screen.getByRole("button", { name })).toBeInTheDocument();
+  }
 });
 
-test.each([["Українська", "uk"], ["English (UK)", "en-GB"]])("saves %s and preserves the page and query", async (name, locale) => {
+test.each([["Українська", "uk"], ["English (UK)", "en-GB"], ["Deutsch", "de"], ["Português", "pt"]])("saves %s and preserves the page and query", async (name, locale) => {
   render(<LanguageSheet open current="en-US" onClose={mock.close} />);
   await userEvent.click(screen.getByRole("button", { name }));
   expect(mock.setLocale).toHaveBeenCalledWith(locale);

@@ -54,7 +54,7 @@ it("retries and clears a marker for this account only after a successful save", 
   expect(response.cookies.get("FITCHECK_PENDING_LOCALE")?.value).toBe("");
 });
 
-it.each(["other:uk", "user:de", "malformed"])("ignores a foreign or invalid marker %s", async (marker) => {
+it.each(["other:uk", "user:pl", "malformed"])("ignores a foreign or invalid marker %s", async (marker) => {
   mock.read.mockResolvedValue({ data: { preferences: { locale: "en-GB" } }, error: null });
   const response = await GET(request(`NEXT_LOCALE=uk; FITCHECK_PENDING_LOCALE=${marker}`));
   expect(response.headers.get("location")).toBe("https://fitcheck.space/en-gb/onboarding");

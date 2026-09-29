@@ -37,27 +37,27 @@ it.each([
   ["en-US", "Sep 28"], ["en-GB", "28 Sep"], ["uk", "28 вер"], ["ru", "28 сен"], ["de", "28. Sep"],
   ["fr", "28 sept"], ["it", "28 set"], ["pt", "28 set"], ["es", "28 sept"], ["nl", "28 sep"],
 ] as [Locale, string][])("%s short date is pinned", (locale, expected) => {
-  expect(formatShortDate(sep28, locale as never)).toBe(expected);
+  expect(formatShortDate(sep28, locale)).toBe(expected);
 });
 it.each([
   ["de", "3.–7. Okt", "29. Sep – 2. Okt"], ["ru", "3–7 окт", "29 сен – 2 окт"], ["fr", "3–7 oct", "29 sept – 2 oct"],
   ["it", "3–7 ott", "29 set – 2 ott"], ["pt", "3–7 out", "29 set – 2 out"], ["es", "3–7 oct", "29 sept – 2 oct"],
   ["nl", "3–7 okt", "29 sep – 2 okt"], ["en-US", "Oct 3–7", "Sep 29 – Oct 2"], ["en-GB", "3–7 Oct", "29 Sep – 2 Oct"],
 ] as [Locale, string, string][])("%s trip ranges are pinned", (locale, sameMonth, crossMonth) => {
-  expect(formatDateRange("2026-10-03", "2026-10-07", locale as never)).toBe(sameMonth);
-  expect(formatDateRange("2026-09-29", "2026-10-02", locale as never)).toBe(crossMonth);
+  expect(formatDateRange("2026-10-03", "2026-10-07", locale)).toBe(sameMonth);
+  expect(formatDateRange("2026-09-29", "2026-10-02", locale)).toBe(crossMonth);
 });
 it("maps every locale to a regional Intl code and only en-US starts weeks on Sunday", () => {
-  expect(["ru", "de", "fr", "it", "pt", "es", "nl"].map(l => intlLocale(l as never)))
+  expect((["ru", "de", "fr", "it", "pt", "es", "nl"] as Locale[]).map(l => intlLocale(l)))
     .toEqual(["ru-RU", "de-DE", "fr-FR", "it-IT", "pt-PT", "es-ES", "nl-NL"]);
-  for (const l of ["ru", "de", "fr", "it", "pt", "es", "nl"]) expect(weekStartsOn(l as never)).toBe(1);
+  for (const l of ["ru", "de", "fr", "it", "pt", "es", "nl"] as Locale[]) expect(weekStartsOn(l)).toBe(1);
 });
-it("German day-month uses the ordinal dot", () => expect(dayMonth(3, "Okt", "de" as never)).toBe("3. Okt"));
+it("German day-month uses the ordinal dot", () => expect(dayMonth(3, "Okt", "de")).toBe("3. Okt"));
 it("money uses the reader's punctuation in the new languages", () => {
-  expect(formatMoney(5, "de" as never)).toMatch(/^5,00\s€$/u);
-  expect(formatMoney(5, "nl" as never)).toMatch(/^€\s5,00$/u);
+  expect(formatMoney(5, "de")).toMatch(/^5,00\s€$/u);
+  expect(formatMoney(5, "nl")).toMatch(/^€\s5,00$/u);
 });
 it("share kicker day-month follows the sharer's language", () => {
-  expect(shareKicker("Work", "2026-09-28", "de" as never)).toBe("Work · 28. Sep");
-  expect(shareKicker("Work", "2026-09-28", "fr" as never)).toBe("Work · 28 sept");
+  expect(shareKicker("Work", "2026-09-28", "de")).toBe("Work · 28. Sep");
+  expect(shareKicker("Work", "2026-09-28", "fr")).toBe("Work · 28 sept");
 });

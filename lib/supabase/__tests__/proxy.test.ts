@@ -46,6 +46,19 @@ it("a Ukrainian browser is sent to /uk on first visit", async () => {
   expect(new URL(res.headers.get("location")!).pathname).toBe("/uk");
 });
 
+it.each([
+  ["de-CH,de;q=0.9", "/de"], ["pt-BR,pt;q=0.9", "/pt"], ["fr-CA,fr;q=0.9", "/fr"], ["es-MX,es;q=0.9", "/es"],
+  ["nl-BE,nl;q=0.9", "/nl"], ["ru-RU,ru;q=0.9", "/ru"], ["it-IT,it;q=0.9", "/it"],
+])("a %s browser is sent to %s on first visit", async (header, prefix) => {
+  const res = await proxy(req("/", { "accept-language": header }));
+  expect(new URL(res.headers.get("location")!).pathname).toBe(prefix);
+});
+
+it("an unsupported browser language stays on unprefixed en-US", async () => {
+  const res = await proxy(req("/closet", { "accept-language": "pl-PL,pl;q=0.9" }));
+  expect(res.headers.get("location")).toBeNull();
+});
+
 it.each(["/auth/callback?code=x", "/billing/return?session_id=x", "/api/cities?q=a"])(
   "%s is locale-free: never redirected, session still refreshed", async (path) => {
     ssr.toSet = [{ name: "sb-access-token", value: "fresh", options: { path: "/" } }];

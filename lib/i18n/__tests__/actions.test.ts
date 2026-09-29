@@ -48,7 +48,7 @@ it("saves the profile and metadata, clearing only this user's marker", async () 
   expect(mock.delete).not.toHaveBeenCalled();
 });
 
-it.each(["de", "../x"])("rejects unsupported locale %s before any writes", async (locale) => {
+it.each(["pl", "../x"])("rejects unsupported locale %s before any writes", async (locale) => {
   await expect(setLocale(locale)).rejects.toThrow("Unsupported locale");
   expect(mock.set).not.toHaveBeenCalled();
   expect(mock.from).not.toHaveBeenCalled();

@@ -114,7 +114,7 @@ describe.each(Object.entries(CATALOGUES) as [Full, Tree][])("%s catalogue", (loc
 
 it("Russian counts use the right plural form", async () => {
   const { createTranslator } = await import("next-intl");
-  const t = createTranslator({ locale: "ru" as never, messages: ru as never });
+  const t = createTranslator({ locale: "ru", messages: ru as never });
   expect([1, 2, 5, 11, 21, 22, 25].map(n => t("stats.slot.other" as never, { n } as never)))
     .toEqual(["1 вещь", "2 вещи", "5 вещей", "11 вещей", "21 вещь", "22 вещи", "25 вещей"]);
 });

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { forStructuredOutput } from "@/lib/ai/tagging-schema";
 import { outputLanguage } from "@/lib/ai/output-locale";
 import { clampName } from "@/lib/generator/rerank";
+import type { ShippedLocale } from "@/lib/i18n/locales";
 import type { TranslationClaim } from "./text";
 
 const Wire = z.strictObject({ texts: z.array(z.strictObject({
@@ -26,8 +27,11 @@ export async function translateOutfitText(claims: TranslationClaim[]): Promise<A
     if (Number.isFinite(delay) && delay > 0) await new Promise(resolve => setTimeout(resolve, Math.min(delay, 8000)));
     const unavailable = process.env.FITCHECK_TRANSLATION_STUB_FAIL_NAME;
     if (unavailable && claims.some(claim => claim.source.name === unavailable)) throw new Error("Local translation fixture unavailable");
-    const names = { "en-US": "Quiet Morning", "en-GB": "Quiet Morning UK", uk: "Тихий ранок" };
-    const whys = { "en-US": "An outfit for your day.", "en-GB": "A look for your day.", uk: "Образ для вашого дня." };
+    const names: Record<ShippedLocale, string> = { "en-US": "Quiet Morning", "en-GB": "Quiet Morning UK", uk: "Тихий ранок",
+      ru: "Тихое утро", de: "Ruhiger Morgen", fr: "Matin calme", it: "Mattina tranquilla", pt: "Manhã calma", es: "Mañana tranquila", nl: "Rustige ochtend" };
+    const whys: Record<ShippedLocale, string> = { "en-US": "An outfit for your day.", "en-GB": "A look for your day.", uk: "Образ для вашого дня.",
+      ru: "Образ для твоего дня.", de: "Ein Look für deinen Tag.", fr: "Un look pour ta journée.", it: "Un look per la tua giornata.",
+      pt: "Um look para o teu dia.", es: "Un look para tu día.", nl: "Een look voor je dag." };
     raw = { texts: claims.map(c => ({ id: c.source.id, name: names[target], why: c.source.why === null ? null : whys[target] })) };
   } else {
     const client = new Anthropic({ timeout: 8000, maxRetries: 0 });

@@ -69,7 +69,7 @@ describe("readPreferences", () => {
 
 test("locale is optional, strict on writes and lenient on reads", () => {
   expect(PreferencesSchema.parse({ locale: "uk" }).locale).toBe("uk");
-  expect(() => PreferencesSchema.parse({ locale: "de" })).toThrow();
+  expect(() => PreferencesSchema.parse({ locale: "pl" })).toThrow();
   expect(readPreferences({ locale: "uk" }).locale).toBe("uk");
   expect(readPreferences({ locale: "zz" }).locale).toBeUndefined();
 });

@@ -306,10 +306,17 @@ export function stubbedRerank(comboCount: number, want: number, locale: Locale =
     "en-US": "Test Look", "en-GB": "Test Outfit", uk: "Тестовий образ", ru: "Тестовый образ",
     de: "Testlook", fr: "Tenue test", it: "Look di prova", pt: "Look de teste", es: "Look de prueba", nl: "Testoutfit",
   };
+  const whys: Record<Locale, (n: number) => string> = {
+    "en-US": n => `A deterministic stand-in for look ${n}, used only when FITCHECK_STUB_AI is set.`,
+    "en-GB": n => `A deterministic stand-in for look ${n}, used only when FITCHECK_STUB_AI is set.`,
+    uk: n => `Тестовий опис образу ${n}.`, ru: n => `Тестовое описание образа ${n}.`, de: n => `Testbeschreibung für Look ${n}.`,
+    fr: n => `Description test du look ${n}.`, it: n => `Descrizione di prova del look ${n}.`, pt: n => `Descrição de teste do look ${n}.`,
+    es: n => `Descripción de prueba del look ${n}.`, nl: n => `Testbeschrijving voor look ${n}.`,
+  };
   const picks = Array.from({ length: Math.min(want, comboCount) }, (_, i) => ({
     combo_index: i,
     name: `${names[locale]} ${i + 1}`,
-    why: locale === "uk" ? `Тестовий опис образу ${i + 1}.` : `A deterministic stand-in for look ${i + 1}, used only when FITCHECK_STUB_AI is set.`,
+    why: whys[locale](i + 1),
   }));
   return { picks };
 }

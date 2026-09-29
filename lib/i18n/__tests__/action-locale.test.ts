@@ -10,7 +10,7 @@ it.each(["en-US", "en-GB", "uk"])("actions use proxy locale %s", async locale =>
   expect(await getActionLocale()).toBe(locale);
   expect(get).toHaveBeenCalledWith("X-NEXT-INTL-LOCALE");
 });
-it.each([null, "de", "../x"])("unknown action locale %s falls back to en-US", async locale => {
+it.each([null, "pl", "../x"])("unknown action locale %s falls back to en-US", async locale => {
   get.mockReturnValue(locale);
   expect(await getActionLocale()).toBe("en-US");
 });

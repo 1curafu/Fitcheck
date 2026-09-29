@@ -16,6 +16,13 @@ const LOADERS: Record<ShippedLocale, () => Promise<Tree>> = {
   "en-US": async () => ({}),
   "en-GB": async () => (await import("@/messages/en-GB.json")).default as Tree,
   uk: async () => (await import("@/messages/uk.json")).default as Tree,
+  ru: async () => (await import("@/messages/ru.json")).default as Tree,
+  de: async () => (await import("@/messages/de.json")).default as Tree,
+  fr: async () => (await import("@/messages/fr.json")).default as Tree,
+  it: async () => (await import("@/messages/it.json")).default as Tree,
+  pt: async () => (await import("@/messages/pt.json")).default as Tree,
+  es: async () => (await import("@/messages/es.json")).default as Tree,
+  nl: async () => (await import("@/messages/nl.json")).default as Tree,
 };
 
 /** Every locale sits on top of en-US, so a missing key shows English, never a raw key. */

@@ -8,7 +8,7 @@ test("signed-out cannot claim or read anything",async()=>{
  state.user=null;for(const action of [requestOutfitTexts,refreshOutfitTexts])await expect(action({outfitIds:[id],locale:"uk"})).rejects.toThrow("Not authenticated");
  expect(state.ensure).not.toHaveBeenCalled();expect(state.readSources).not.toHaveBeenCalled();
 });
-test.each([{outfitIds:["bad"],locale:"uk"},{outfitIds:[id],locale:"ru"},{outfitIds:[],locale:"uk"},{outfitIds:Array(7).fill(id),locale:"uk"}])("invalid request rejected: %j",async input=>{
+test.each([{outfitIds:["bad"],locale:"uk"},{outfitIds:[id],locale:"pl"},{outfitIds:[],locale:"uk"},{outfitIds:Array(7).fill(id),locale:"uk"}])("invalid request rejected: %j",async input=>{
  for(const action of [requestOutfitTexts,refreshOutfitTexts])await expect(action(input)).rejects.toThrow();expect(state.ensure).not.toHaveBeenCalled();expect(state.readSources).not.toHaveBeenCalled();
 });
 test("explicit target works on default route; duplicates dedupe and a supplied userId has no authority",async()=>{

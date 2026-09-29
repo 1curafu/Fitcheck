@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_LOCALE, LOCALES, LOCALE_NAMES, SHIPPED_LOCALES, isShippedLocale, localizedPath } from "../locales";
+import { routing } from "../routing";
+import { DEFAULT_LOCALE, LOCALES, LOCALE_NAMES, LOCALE_PREFIXES, SHIPPED_LOCALES, isShippedLocale, localizedPath } from "../locales";
 
 describe("locales", () => {
-  it("ships en-US, en-GB and Ukrainian first, from the ten product locales", () => {
+  it("ships all ten product locales", () => {
     expect(LOCALES).toEqual(["en-US", "en-GB", "uk", "ru", "de", "fr", "it", "pt", "es", "nl"]);
-    expect(SHIPPED_LOCALES).toEqual(["en-US", "en-GB", "uk"]);
+    expect(SHIPPED_LOCALES).toEqual(LOCALES);
     expect(DEFAULT_LOCALE).toBe("en-US");
   });
   it("names every language in its own language", () => {
@@ -19,7 +20,15 @@ describe("locales", () => {
   });
   it("accepts only shipped locales", () => {
     expect(isShippedLocale("uk")).toBe(true);
-    expect(isShippedLocale("de")).toBe(false);
+    expect(isShippedLocale("de")).toBe(true);
+    expect(isShippedLocale("pt-BR")).toBe(false);
+    expect(isShippedLocale("xx")).toBe(false);
     expect(isShippedLocale("../x")).toBe(false);
+  });
+  it("routing prefixes are exactly the non-empty locale prefixes", () => {
+    expect(routing.localePrefix).toMatchObject({ mode: "as-needed",
+      prefixes: Object.fromEntries(Object.entries(LOCALE_PREFIXES).filter(([, p]) => p)) });
+    expect(localizedPath("pt", "/closet?x=1")).toBe("/pt/closet?x=1");
+    expect(localizedPath("de", "/")).toBe("/de");
   });
 });

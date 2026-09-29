@@ -12,7 +12,7 @@ it("saves locale and defaults units only when no stored unit exists", () => {
 
 it("accepts pending choices only for the authenticated account", () => {
   expect(pendingLocaleForUser("user:uk", "user")).toBe("uk");
-  for (const value of [undefined, "other:uk", "user:de", "user", "user:uk:extra"]) {
+  for (const value of [undefined, "other:uk", "user:pl", "user", "user:uk:extra"]) {
     expect(pendingLocaleForUser(value, "user")).toBeUndefined();
   }
 });

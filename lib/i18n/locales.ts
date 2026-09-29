@@ -1,8 +1,8 @@
 export const LOCALES = ["en-US", "en-GB", "uk", "ru", "de", "fr", "it", "pt", "es", "nl"] as const;
 export type Locale = (typeof LOCALES)[number];
-/** Routed today. Plan 3 appends the other seven once their messages exist. */
-export const SHIPPED_LOCALES = ["en-US", "en-GB", "uk"] as const satisfies readonly Locale[];
-export type ShippedLocale = (typeof SHIPPED_LOCALES)[number];
+/** Every locale is routed since Plan 3. The alias remains because routing, preferences and actions speak of "shipped". */
+export const SHIPPED_LOCALES = LOCALES;
+export type ShippedLocale = Locale;
 export const DEFAULT_LOCALE = "en-US" satisfies ShippedLocale;
 
 export const LOCALE_NAMES: Record<Locale, string> = {
@@ -10,7 +10,9 @@ export const LOCALE_NAMES: Record<Locale, string> = {
   fr: "Français", it: "Italiano", pt: "Português", es: "Español", nl: "Nederlands",
 };
 
-const PREFIX: Record<ShippedLocale, string> = { "en-US": "", "en-GB": "/en-gb", uk: "/uk" };
+const PREFIX: Record<ShippedLocale, string> = {
+  "en-US": "", "en-GB": "/en-gb", uk: "/uk", ru: "/ru", de: "/de", fr: "/fr", it: "/it", pt: "/pt", es: "/es", nl: "/nl",
+};
 export const LOCALE_PREFIXES = PREFIX;
 
 export function isShippedLocale(v: unknown): v is ShippedLocale {
