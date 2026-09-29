@@ -1,18 +1,23 @@
-import { alternatesFor } from "@/lib/i18n/alternates";
 import type { Metadata } from "next";
-import { Suspense } from "react";
-import { Link, redirect } from "@/lib/i18n/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
-
+import { Suspense } from "react";
+import { ExampleSection } from "@/components/landing/example-section";
+import { Features } from "@/components/landing/features";
+import { FinalCta } from "@/components/landing/final-cta";
+import { Footer } from "@/components/landing/footer";
+import { Hero } from "@/components/landing/hero";
+import { HowItWorks } from "@/components/landing/how-it-works";
+import { Plans } from "@/components/landing/plans";
+import { Wrap } from "@/components/landing/section";
+import { StickyCta } from "@/components/landing/sticky-cta";
+import { TopBar } from "@/components/landing/top-bar";
+import { Trust } from "@/components/landing/trust";
+import { alternatesFor } from "@/lib/i18n/alternates";
+import { redirect } from "@/lib/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { OAuthButtons } from "@/components/auth/oauth-buttons";
-import { EmailSignIn } from "@/components/auth/email-sign-in";
-import { BrandMark } from "@/components/brand/mark";
-import { AccountDeletedNotice } from "@/components/auth/account-deleted-notice";
-import { LanguageButton } from "@/components/i18n/language-button";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations("landing");
+  const t = await getTranslations("home");
   return {
     title: { absolute: t("metadata.title") },
     description: t("metadata.description"),
@@ -20,72 +25,39 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function Welcome({
-  searchParams,
-}: {
-  searchParams: Promise<{ account?: string }>;
-}) {
-  // The session read is what blocks a shell, so it moves behind a boundary
-  // and the route's chrome prerenders and prefetches without it.
+/**
+ * The public landing. Everything below prerenders into the shell (spec §3); only the session check is
+ * request-time, in its own boundary, and it renders nothing — it only moves a signed-in visitor (the
+ * home-screen app opens "/") into the app, as the old welcome screen did.
+ */
+export default async function Home() {
+  const t = await getTranslations("home.hero");
   return (
-    <Suspense fallback={null}>
-      <WelcomeBody searchParams={searchParams} />
-    </Suspense>
+    <div className="flex flex-1 flex-col">
+      <Suspense fallback={null}>
+        <SignedInRedirect />
+      </Suspense>
+      <Wrap><TopBar /></Wrap>
+      <main className="flex-1">
+        <Wrap><Hero /></Wrap>
+        <HowItWorks />
+        <ExampleSection />
+        <Features />
+        <Plans />
+        <Trust />
+        <Wrap><FinalCta /></Wrap>
+      </main>
+      <Wrap><Footer /></Wrap>
+      <StickyCta label={t("cta")} />
+    </div>
   );
 }
 
-async function WelcomeBody({
-  searchParams,
-}: {
-  searchParams: Promise<{ account?: string }>;
-}) {
-  const t = await getTranslations("landing");
-  const { account } = await searchParams;
+async function SignedInRedirect() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (user) return redirect({ href: "/onboarding", locale: await getLocale() });
-
-  return (
-    // gap-8 keeps the tagline off the sign-in buttons when the welcome block fills the screen.
-    <main className="screen-top flex flex-1 flex-col justify-between gap-8 px-7 pb-10">
-      <div className="flex flex-1 flex-col items-center justify-center text-center">
-        {account === "deleted" && <AccountDeletedNotice />}
-        {/* ⚠️ Deliberately ABOVE the kicker and deliberately small. The
-            wordmark below is the Display step — DESIGN.md reserves ~4.5rem
-            Caslon for "the wordmark and welcome-screen moments only" — so the
-            mark supports it and must not compete with it. 56px against 72px
-            type reads as a lockup; matching their sizes would read as two
-            logos. The 28px gap is the brand's 25%-of-tile clear space, rounded
-            to the kicker's own rhythm. */}
-        <BrandMark size={56} className="mb-[28px]" />
-        <p className="mb-[22px] text-[13px] uppercase tracking-[0.34em] text-brand">
-          {t("kicker")}
-        </p>
-        <h1 className="font-serif text-7xl/[0.92] tracking-[-0.02em] text-foreground">
-          {t("wordmark")}
-        </h1>
-        <p className="mt-[26px] max-w-[280px] font-serif text-[21px]/[1.45] italic text-muted-foreground">
-          {t("heroDescription")}
-        </p>
-      </div>
-      <div className="flex flex-col gap-4">
-        <OAuthButtons />
-        <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.2em] text-muted-dim">
-          <span className="h-px flex-1 bg-[--border]" />
-          {t("or")}
-          <span className="h-px flex-1 bg-[--border]" />
-        </div>
-        <EmailSignIn />
-        <p className="mt-5 text-center text-[11.5px] text-muted-dim">
-          {t("legalLead")}{" "}
-          <Link href="/terms" className="text-muted-foreground underline underline-offset-2">{t("terms")}</Link>
-          {" "}{t("and")}{" "}
-          <Link href="/privacy" className="text-muted-foreground underline underline-offset-2">{t("privacy")}</Link>.
-        </p>
-        <div className="flex justify-center"><LanguageButton align="center" /></div>
-      </div>
-    </main>
-  );
+  return null;
 }
