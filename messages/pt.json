@@ -575,10 +575,16 @@
       "button": "Afinar",
       "close": "Fechar",
       "title": "Afinar os looks",
-      "description": "Vestido para {occasion} — ajusta o resto.",
+      "description": "Look para {occasion} — ajusta o resto.",
       "formality": "Formalidade",
       "leanInto": "Puxar para",
-      "palette": { "neutral": "neutro", "camel": "camelo", "navy": "azul-marinho", "olive": "azeitona", "dark": "escuro" },
+      "palette": {
+        "neutral": "neutro",
+        "camel": "camelo",
+        "navy": "azul-marinho",
+        "olive": "azeitona",
+        "dark": "escuro"
+      },
       "showLooks": "Mostrar 3 looks"
     }
   },
@@ -611,7 +617,7 @@
       "keepCoat": "mantém o casaco.",
       "coatEarns": "o casaco merece o lugar.",
       "takeLayer": "leva mais uma camada por agora.",
-      "dressedForIt": "estás bem vestido para isso.",
+      "dressedForIt": "a roupa é a certa.",
       "carryJacket": "leva um casaco leve.",
       "noLayer": "sem camada extra."
     },
@@ -756,7 +762,7 @@
     "dayStreak": "Dias seguidos",
     "archetype": "O teu arquétipo",
     "notSet": "Ainda não definido",
-    "welcomePro": "Bem-vindo ao Pro.",
+    "welcomePro": "Boas-vindas ao Pro.",
     "activatingPro": "A ativar o Pro… atualiza daqui a pouco.",
     "privacy": "Política de Privacidade",
     "terms": "Termos de Serviço",

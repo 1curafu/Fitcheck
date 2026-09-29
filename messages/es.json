@@ -578,7 +578,13 @@
       "description": "Vistiendo para {occasion} — ajusta el resto.",
       "formality": "Formalidad",
       "leanInto": "Tirar hacia",
-      "palette": { "neutral": "neutros", "camel": "camel", "navy": "azul marino", "olive": "oliva", "dark": "oscuros" },
+      "palette": {
+        "neutral": "neutros",
+        "camel": "camel",
+        "navy": "azul marino",
+        "olive": "oliva",
+        "dark": "oscuros"
+      },
       "showLooks": "Mostrar 3 looks"
     }
   },
@@ -611,7 +617,7 @@
       "keepCoat": "no te quites el abrigo.",
       "coatEarns": "el abrigo se gana su sitio.",
       "takeLayer": "llévate una capa más por ahora.",
-      "dressedForIt": "vas bien vestido para ello.",
+      "dressedForIt": "tu ropa es la adecuada.",
       "carryJacket": "llévate una chaqueta.",
       "noLayer": "sin capa extra."
     },

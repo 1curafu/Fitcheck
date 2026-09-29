@@ -87,7 +87,7 @@ export const PRIVACY_IT: LegalDocument = {
       ],
       bullets: [
         "Vedere tutto ciò che conserviamo su di te e riceverne una copia in formato leggibile da una macchina.",
-        "Correggere ciò che è sbagliato — la maggior parte puoi correggerla da solo, nell’app.",
+        "Correggere ciò che è sbagliato — la maggior parte si corregge direttamente nell’app.",
         "Far eliminare il tuo account e tutto ciò che contiene.",
         "Opporti a qualsiasi trattamento basato sul legittimo interesse, o chiederci di limitarlo.",
         "Presentare reclamo a un’autorità di controllo: l’Incaricato federale della protezione dei dati e della trasparenza in Svizzera, o l’autorità del tuo Paese UE.",
@@ -97,7 +97,7 @@ export const PRIVACY_IT: LegalDocument = {
       id: "cookies-and-storage-on-your-device",
       heading: "Cookie e memoria sul tuo dispositivo",
       paragraphs: [
-        "Fitcheck imposta solo i cookie necessari per tenerti connesso e ricordare la tua lingua. Non ci sono cookie pubblicitari o di tracciamento, ed è per questo che vedi un avviso invece di una richiesta di consenso.",
+        "Fitcheck imposta solo i cookie necessari per mantenere l’accesso e ricordare la tua lingua. Non ci sono cookie pubblicitari o di tracciamento, ed è per questo che vedi un avviso invece di una richiesta di consenso.",
         "L’app conserva anche alcune piccole preferenze nella memoria del browser — per esempio, quali note di versione hai già chiuso. Non lasciano mai il tuo dispositivo.",
       ],
     },

@@ -87,7 +87,7 @@ export const PRIVACY_PT: LegalDocument = {
       ],
       bullets: [
         "Ver tudo o que guardamos sobre ti e obter uma cópia num formato de leitura automática.",
-        "Corrigir o que estiver errado — a maior parte podes corrigir tu mesmo, na app.",
+        "Corrigir o que estiver errado — a maior parte pode ser corrigida diretamente na app.",
         "Pedir que a tua conta e tudo o que contém sejam eliminados.",
         "Opor-te a qualquer tratamento baseado no interesse legítimo, ou pedir-nos que o limitemos.",
         "Apresentar queixa a uma autoridade de controlo: o Comissário Federal para a Proteção de Dados e a Informação, na Suíça, ou a autoridade do teu país da UE.",
@@ -104,7 +104,7 @@ export const PRIVACY_PT: LegalDocument = {
     {
       id: "age",
       heading: "Idade",
-      paragraphs: ["O Fitcheck destina-se a pessoas com 16 anos ou mais. Se fores mais novo, não cries uma conta."],
+      paragraphs: ["O Fitcheck destina-se a pessoas com 16 anos ou mais. Se tiveres menos de 16 anos, não cries uma conta."],
     },
     {
       id: "changes",

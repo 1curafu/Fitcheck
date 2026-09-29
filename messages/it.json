@@ -575,7 +575,7 @@
       "button": "Affina",
       "close": "Chiudi",
       "title": "Affina i look",
-      "description": "Vestito per {occasion} — sistema il resto.",
+      "description": "Look per {occasion} — sistema il resto.",
       "formality": "Formalità",
       "leanInto": "Più verso",
       "palette": {
@@ -617,7 +617,7 @@
       "keepCoat": "tieni il cappotto.",
       "coatEarns": "il cappotto si guadagna il posto.",
       "takeLayer": "per ora porta uno strato in più.",
-      "dressedForIt": "sei vestito giusto.",
+      "dressedForIt": "l’outfit è quello giusto.",
       "carryJacket": "porta una giacca.",
       "noLayer": "niente strato in più."
     },
@@ -762,7 +762,7 @@
     "dayStreak": "Giorni di fila",
     "archetype": "Il tuo archetipo",
     "notSet": "Non ancora impostato",
-    "welcomePro": "Benvenuto in Pro.",
+    "welcomePro": "Ti diamo il benvenuto in Pro.",
     "activatingPro": "Attivazione di Pro… ricarica tra poco.",
     "privacy": "Informativa sulla privacy",
     "terms": "Termini di servizio",

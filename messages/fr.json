@@ -575,7 +575,7 @@
       "button": "Affiner",
       "close": "Fermer",
       "title": "Affiner les looks",
-      "description": "Habillé pour {occasion} — ajuste le reste.",
+      "description": "Tenue pour {occasion} — ajuste le reste.",
       "formality": "Formalité",
       "leanInto": "Tirer vers",
       "palette": {
@@ -617,7 +617,7 @@
       "keepCoat": "garde le manteau.",
       "coatEarns": "le manteau mérite sa place.",
       "takeLayer": "prends une couche de plus pour l’instant.",
-      "dressedForIt": "tu es bien habillé pour ça.",
+      "dressedForIt": "ta tenue est adaptée.",
       "carryJacket": "prends une veste.",
       "noLayer": "pas besoin de couche en plus."
     },
@@ -645,7 +645,7 @@
       "label": "Confirmation de port",
       "today": "Aujourd’hui",
       "question": "As-tu porté {lookName} aujourd’hui ?",
-      "explanation": "Toi seul peux le dire — nous n’enregistrons jamais un port à ta place.",
+      "explanation": "Personne d’autre que toi ne peut le dire — nous n’enregistrons jamais un port à ta place.",
       "no": "Non",
       "yes": "Oui"
     }

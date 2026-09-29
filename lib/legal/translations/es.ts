@@ -87,7 +87,7 @@ export const PRIVACY_ES: LegalDocument = {
       ],
       bullets: [
         "Ver todo lo que tenemos sobre ti y obtener una copia en un formato legible por máquina.",
-        "Corregir lo que esté mal — casi todo puedes corregirlo tú mismo en la app.",
+        "Corregir lo que esté mal — casi todo se puede corregir directamente en la app.",
         "Hacer que se elimine tu cuenta y todo lo que contiene.",
         "Oponerte a cualquier tratamiento basado en el interés legítimo, o pedirnos que lo limitemos.",
         "Reclamar ante una autoridad de control: el Comisionado Federal de Protección de Datos e Información de Suiza, o la autoridad de tu país de la UE.",

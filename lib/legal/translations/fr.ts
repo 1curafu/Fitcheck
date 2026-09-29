@@ -97,7 +97,7 @@ export const PRIVACY_FR: LegalDocument = {
       id: "cookies-and-storage-on-your-device",
       heading: "Cookies et stockage sur ton appareil",
       paragraphs: [
-        "Fitcheck ne dépose que les cookies nécessaires pour te garder connecté et retenir ta langue. Il n’y a aucun cookie publicitaire ni de pistage, c’est pourquoi tu vois un avis plutôt qu’une demande de consentement.",
+        "Fitcheck ne dépose que les cookies nécessaires pour garder ta session ouverte et retenir ta langue. Il n’y a aucun cookie publicitaire ni de pistage, c’est pourquoi tu vois un avis plutôt qu’une demande de consentement.",
         "L’app garde aussi quelques petites préférences dans le stockage de ton navigateur — par exemple, les notes de version que tu as déjà fermées. Elles ne quittent jamais ton appareil.",
       ],
     },
