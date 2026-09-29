@@ -5,6 +5,7 @@ import { PRIVACY_FR } from "./translations/fr";
 import { PRIVACY_IT } from "./translations/it";
 import { PRIVACY_PT } from "./translations/pt";
 import { PRIVACY_ES } from "./translations/es";
+import { PRIVACY_NL } from "./translations/nl";
 import { OPERATOR, PRIVACY_UPDATED, type LegalDocument } from "./types";
 
 /**
@@ -237,4 +238,4 @@ const PRIVACY_UK: LegalDocument = {
     },
   ],
 };
-export const PRIVACY: Record<ShippedLocale, LegalDocument> & Partial<Record<Locale, LegalDocument>> = { "en-US": PRIVACY_EN, "en-GB": PRIVACY_EN, uk: PRIVACY_UK, de: PRIVACY_DE, ru: PRIVACY_RU, fr: PRIVACY_FR, it: PRIVACY_IT, pt: PRIVACY_PT, es: PRIVACY_ES };
+export const PRIVACY: Record<ShippedLocale, LegalDocument> & Partial<Record<Locale, LegalDocument>> = { "en-US": PRIVACY_EN, "en-GB": PRIVACY_EN, uk: PRIVACY_UK, de: PRIVACY_DE, ru: PRIVACY_RU, fr: PRIVACY_FR, it: PRIVACY_IT, pt: PRIVACY_PT, es: PRIVACY_ES, nl: PRIVACY_NL };
