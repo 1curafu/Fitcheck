@@ -1,17 +1,12 @@
-import { test, expect, type Page } from "@playwright/test";
+import { noNativeShare, seededLookId, cleanupShares, createLink } from "./share-helpers";
+import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { admin, disposableSessionCookies, testUserId } from "./helpers";
+import uk from "../messages/uk.json";
 
 test.use({ storageState: "e2e/.auth/state.json" });
 const BOT = { "user-agent": "facebookexternalhit/1.1" };
-
-async function noNativeShare(page: Page) {
-  await page.addInitScript(() => {
-    Object.defineProperty(navigator, "share", { value: undefined, configurable: true });
-    Object.defineProperty(navigator, "canShare", { value: undefined, configurable: true });
-  });
-}
 
 function jpegSize(buf: Buffer): { w: number; h: number } {
   for (let i = 2; i < buf.length; ) {
@@ -22,25 +17,6 @@ function jpegSize(buf: Buffer): { w: number; h: number } {
     i += 2 + len;
   }
   throw new Error("not a JPEG");
-}
-
-async function seededLookId() {
-  const { data } = await admin().from("outfits").select("id").eq("user_id", await testUserId()).eq("look_name", "E2E Seeded Look").single();
-  return data!.id as string;
-}
-
-async function cleanupShares() {
-  const db = admin();
-  const { data } = await db.from("look_shares").select("token").eq("user_id", await testUserId());
-  for (const s of data ?? []) await db.storage.from("shares").remove(["story.jpg", "post.jpg", "og.jpg"].map((f) => `${s.token}/${f}`));
-  await db.from("look_shares").delete().eq("user_id", await testUserId());
-}
-
-async function createLink(page: Page): Promise<string> {
-  await page.getByRole("button", { name: "Share" }).click();
-  const sheet = page.getByRole("dialog", { name: /share this look/i });
-  await sheet.getByRole("button", { name: /create link/i }).click();
-  return (await sheet.getByTestId("share-url").textContent({ timeout: 30_000 }))!.trim();
 }
 
 test("create a link, open it signed out, then stop sharing", async ({ page, browser, request }) => {
@@ -74,13 +50,45 @@ test("create a link, open it signed out, then stop sharing", async ({ page, brow
   }
 });
 
+test("a Ukrainian share freezes its text while an English visitor sees English controls", async ({ page, browser }) => {
+  await noNativeShare(page);
+  const stranger = await browser.newContext({ locale: "en-US", storageState: { cookies: [], origins: [] } });
+  try {
+    const outfitId = await seededLookId();
+    await page.goto(`/uk/outfits/${outfitId}`);
+    await expect(page.getByRole("heading", { name: "Тихий ранок", exact: true })).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("button", { name: uk.outfit.share, exact: true }).click();
+    const sheet = page.getByRole("dialog", { name: uk.share.title, exact: true });
+    await sheet.getByRole("button", { name: uk.share.createLink, exact: true }).click();
+    const url = (await sheet.getByTestId("share-url").textContent({ timeout: 30_000 }))!.trim();
+    const token = new URL(url).pathname.split("/").at(-1)!;
+    const db = admin();
+    const snapshot = await db.from("look_shares").select("look_name,reasoning").eq("token", token).single();
+    const cache = await db.from("outfit_text_translations").select("name,why").eq("outfit_id", outfitId).eq("target_locale", "uk").single();
+    expect(snapshot.error).toBeNull();
+    expect(cache.error).toBeNull();
+    expect(snapshot.data).toEqual({ look_name: cache.data!.name, reasoning: cache.data!.why });
+    const visitor = await stranger.newPage();
+    await visitor.goto(url);
+    await expect(visitor.locator("html")).toHaveAttribute("lang", "en-US");
+    await expect(visitor.getByRole("img", { name: /Тихий ранок/ })).toBeVisible();
+    await expect(visitor.getByRole("link", { name: /get your own looks/i })).toBeVisible();
+    await visitor.goto(`/uk${new URL(url).pathname}`);
+    await expect(visitor.getByRole("img", { name: /Тихий ранок/ })).toBeVisible();
+    expect((await db.from("look_shares").select("look_name,reasoning").eq("token", token).single()).data).toEqual(snapshot.data);
+  } finally {
+    await stranger.close();
+    await cleanupShares();
+  }
+});
+
 test("a link survives its look being deleted, and can be stopped from Settings", async ({ page, request }) => {
   await noNativeShare(page);
   const db = admin();
   const userId = await testUserId();
   // A throwaway look copied from the seeded one, so deleting it leaves the seed intact.
   const seeded = await seededLookId();
-  const { data: look } = await db.from("outfits").insert({ user_id: userId, look_name: "E2E Share Reroll", occasion: "everyday" }).select("id").single();
+  const { data: look } = await db.from("outfits").insert({ user_id: userId, look_name: "E2E Share Reroll", text_locale: "en-US", occasion: "everyday" }).select("id").single();
   const { data: links } = await db.from("outfit_items").select("item_id, slot").eq("outfit_id", seeded);
   await db.from("outfit_items").insert((links ?? []).map((l) => ({ outfit_id: look!.id, item_id: l.item_id, slot: l.slot })));
   try {
@@ -138,7 +146,7 @@ test("deleting an account removes its public share page and images", async ({ br
       colors: ["white"], pattern: "solid", formality: 3, seasons: ["Spring"], archived: false,
     }))).select("id, category");
     if (items.error || !items.data || items.data.length !== 2) throw new Error(`seed disposable items: ${items.error?.message}`);
-    const outfit = await db.from("outfits").insert({ user_id: userId, look_name: "Disposable Look", occasion: "everyday" }).select("id").single();
+    const outfit = await db.from("outfits").insert({ user_id: userId, look_name: "Disposable Look", text_locale: "en-US", occasion: "everyday" }).select("id").single();
     if (outfit.error || !outfit.data) throw new Error(`seed disposable look: ${outfit.error?.message}`);
     const relations = await db.from("outfit_items").insert(items.data.map((item) => ({
       outfit_id: outfit.data.id, item_id: item.id, slot: item.category,

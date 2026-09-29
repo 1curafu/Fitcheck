@@ -1,10 +1,10 @@
-import { RotationSchema, TagSchema, WEARABLE_CATEGORIES, type Rotation, type Tags } from "./tagging-schema";
+import { RotationSchema, SuggestedNameSchema, TagSchema, WEARABLE_CATEGORIES, type Rotation, type Tags } from "./tagging-schema";
 
 // `fit` and `length` are BODY-REFERENCED — a hem placement and a fit correction
 // both require a body wearing the garment. Shoes, accessories and fragrance
 // have neither, the same argument that made `bulk` (below) footwear-only.
 
-export function parseTaggingResponse(text: string): { tags: Tags; rotation: Rotation } {
+export function parseTaggingResponse(text: string): { tags: Tags; rotation: Rotation; suggestedName: string | null } {
   let json: unknown;
   try {
     json = JSON.parse(text);
@@ -15,10 +15,11 @@ export function parseTaggingResponse(text: string): { tags: Tags; rotation: Rota
   // response never carries the key. Default it to null here rather than
   // leaving it undefined — TagSchema requires the key to be present, and
   // tagsToItemRow is where an untouched null becomes "model".
-  const { rotation, ...rest } = json as Record<string, unknown>;
+  const { rotation, suggested_name, ...rest } = json as Record<string, unknown>;
   return {
     tags: TagSchema.parse({ fit_source: null, ...rest }),
     rotation: rotation === undefined ? 0 : RotationSchema.parse(rotation),
+    suggestedName: suggested_name === undefined ? null : SuggestedNameSchema.parse(suggested_name),
   };
 }
 

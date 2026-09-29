@@ -26,17 +26,17 @@ function renderGrid(over: Partial<React.ComponentProps<typeof DiaryGrid>> = {}) 
   );
 }
 
-test("renders a Monday-first weekday header", () => {
+test("renders the locale's narrow weekday header", () => {
   renderGrid();
   const header = screen.getByTestId("weekday-header");
-  expect(within(header).getAllByText(/^Mon$/i)[0]).toBeInTheDocument();
-  expect(within(header).getByText(/^Sun$/i)).toBeInTheDocument();
+  expect(within(header).getAllByText(/^S$/i)).toHaveLength(2);
+  expect(within(header).getAllByText(/^M$/i)).toHaveLength(1);
 });
 
 test("a logged day links to its outfit; an empty day does not", () => {
   renderGrid();
-  expect(screen.getByRole("link", { name: /9 July/i })).toHaveAttribute("href", "/outfits/o1");
-  expect(screen.queryByRole("link", { name: /10 July/i })).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /July 9/i })).toHaveAttribute("href", "/outfits/o1");
+  expect(screen.queryByRole("link", { name: /July 10/i })).not.toBeInTheDocument();
 });
 
 // getByText("3") would also match the day-3 cell — scope to the pill.
@@ -62,7 +62,7 @@ test("a zero streak is not rendered as a boast", () => {
 
 test("a logged day renders its look as stacked cutouts", () => {
   renderGrid();
-  const cell = screen.getByRole("link", { name: /9 July/i });
+  const cell = screen.getByRole("link", { name: /July 9/i });
   expect(within(cell).getAllByRole("presentation")).toHaveLength(3);
 });
 
@@ -73,7 +73,7 @@ test("a wear whose outfit is gone marks the day but is not a link", () => {
     { worn_on: "2026-07-09", outfitId: null, pieces },
   ]);
   renderGrid({ cells: orphaned });
-  expect(screen.queryByRole("link", { name: /9 July/i })).not.toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: /July 9/i })).not.toBeInTheDocument();
   expect(screen.getByTestId("cell-2026-07-09")).toBeInTheDocument();
 });
 

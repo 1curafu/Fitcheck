@@ -2,8 +2,8 @@ import { freshIndexStart, isWornToday, wearLabel } from "../wear";
 
 test("the button says what it will do, then what it did", () => {
   // Design :362 — wearLabel is dynamic, so the button reflects state.
-  expect(wearLabel(false)).toBe("Wear this today");
-  expect(wearLabel(true)).toBe("Worn today");
+  expect(wearLabel(false)).toBe("wearThisToday");
+  expect(wearLabel(true)).toBe("wornToday");
 });
 
 test("a wear counts for today only when its local date matches", () => {

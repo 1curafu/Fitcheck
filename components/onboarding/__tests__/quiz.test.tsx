@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { Quiz } from "../quiz";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }));
-vi.mock("@/app/onboarding/actions", () => ({ saveStyleProfile: vi.fn() }));
+vi.mock("@/app/[locale]/onboarding/actions", () => ({ saveStyleProfile: vi.fn() }));
 
 test("the first step carries the agreement, where the account becomes real", () => {
   render(<Quiz />);

@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/lib/i18n/navigation";
 import { useSyncExternalStore } from "react";
 
 /**
@@ -42,6 +43,7 @@ function subscribe(n: () => void) {
 }
 
 export function CookieNotice() {
+  const t = useTranslations("shell.cookie");
   // The server has no storage and answers "seen", so the bar appears on
   // hydration only for a browser that has not dismissed it.
   const seen = useSyncExternalStore(subscribe, read, () => true);
@@ -55,14 +57,14 @@ export function CookieNotice() {
     // nothing, and disappears on OK.
     <div
       role="region"
-      aria-label="Cookie notice"
+      aria-label={t("label")}
       className="px-4 pt-[calc(env(safe-area-inset-top)+10px)]"
     >
       <div className="surface-card flex items-center gap-3 rounded-[14px] px-4 py-3">
         <p className="flex-1 text-[12.5px] leading-[1.45] text-muted-foreground">
-          Only the cookies that keep you signed in. No tracking.{" "}
+          {t("body")}{" "}
           <Link href="/privacy" className="text-foreground underline underline-offset-2">
-            How we handle your data
+            {t("privacy")}
           </Link>
         </p>
         <button
@@ -70,7 +72,7 @@ export function CookieNotice() {
           onClick={dismiss}
           className="min-h-[40px] shrink-0 rounded-full px-4 text-[13px] font-semibold text-canvas bg-foreground"
         >
-          OK
+          {t("dismiss")}
         </button>
       </div>
     </div>

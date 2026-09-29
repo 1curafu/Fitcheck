@@ -1,4 +1,6 @@
 import type Stripe from "stripe";
+import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/locales";
+import { stripeCheckoutLocale } from "./locale";
 
 export type CheckoutParams = {
   customerId: string;
@@ -7,6 +9,7 @@ export type CheckoutParams = {
   waiverAt: string;
   successUrl: string;
   cancelUrl: string;
+  locale?: Locale;
 };
 
 /** Rejected by Managed Payments (Dashboard setup wizard, 2026-09-23). Tests assert none is ever sent. */
@@ -24,6 +27,7 @@ export const FORBIDDEN_CHECKOUT_KEYS = [
 export function buildCheckoutParams(p: CheckoutParams): Stripe.Checkout.SessionCreateParams {
   return {
     mode: "subscription",
+    locale: stripeCheckoutLocale(p.locale ?? DEFAULT_LOCALE),
     customer: p.customerId,
     client_reference_id: p.userId,
     line_items: [{ price: p.priceId, quantity: 1 }],

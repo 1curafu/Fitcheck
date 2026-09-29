@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { expect, test, type Page } from "@playwright/test";
-import { admin, disposableSessionCookies, reseed, testUserId } from "./helpers";
+import { admin, disposableSessionCookies, reseed, testUserId, setCaptureFiles } from "./helpers";
+import uk from "../messages/uk.json";
 
 const garment = readFileSync("e2e/fixtures/garment.jpg");
 
@@ -15,7 +16,7 @@ function photos(count: number) {
 }
 
 async function selectPhotos(page: Page, count: number) {
-  await page.locator('input[type="file"][multiple]').setInputFiles(photos(count));
+  await setCaptureFiles(page, 'input[type="file"][multiple]', photos(count));
   await expect(page.getByRole("button", { name: "Add to closet" })).toBeVisible({ timeout: 120_000 });
 }
 
@@ -72,6 +73,32 @@ async function snapshot(userId: string) {
 
 test.describe("batch capture", () => {
   test.use({ storageState: "e2e/.auth/state.json" });
+
+  test("Ukrainian batch suggestions preserve an edited name and English tags on save", async ({ page }) => {
+    test.setTimeout(240_000);
+    const userId = await testUserId();
+    const before = await snapshot(userId);
+    try {
+      await page.goto("/uk/closet/upload");
+      await setCaptureFiles(page, 'input[type="file"][multiple]', photos(2));
+      const name = page.getByPlaceholder(uk.capture.confirm.name, { exact: true });
+      await expect(name).toHaveValue("Оксфордська сорочка", { timeout: 120_000 });
+      await name.fill("Моя улюблена сорочка");
+      await page.getByRole("button", { name: uk.capture.confirm.addToCloset, exact: true }).click();
+      await expect(page.locator("[data-filled=true] img")).toHaveCount(1);
+      await expect(name).toHaveValue("Оксфордська сорочка", { timeout: 120_000 });
+      await page.getByRole("button", { name: uk.capture.confirm.addToCloset, exact: true }).click();
+      await expect(page.locator("[data-filled=true] img")).toHaveCount(2);
+      const rows = await admin().from("items").select("id,name,category,subcategory,material").eq("user_id", userId);
+      expect(rows.error).toBeNull();
+      const added = (rows.data ?? []).filter(row => !before.ids.has(row.id));
+      expect(added.map(row => row.name).sort()).toEqual(["Моя улюблена сорочка", "Оксфордська сорочка"].sort());
+      expect(added.every(row => row.category === "Tops" && row.subcategory === "Oxford shirt" && row.material === "Cotton")).toBe(true);
+    } finally {
+      await cleanupNewCapture(userId, before.ids, before.folders);
+      await reseed();
+    }
+  });
 
   test("reviews two photos in order, skips one, and saves exactly two owned items", async ({ page }) => {
     test.setTimeout(360_000);
@@ -139,7 +166,7 @@ test.describe("batch capture", () => {
     const before = await snapshot(userId);
     try {
       await page.goto("/closet/upload");
-      await page.locator('input[type="file"][multiple]').setInputFiles(photos(10));
+      await setCaptureFiles(page, 'input[type="file"][multiple]', photos(10));
       await expect(page.getByRole("region", { name: "Batch progress" })).toBeVisible();
       await page.goto("/closet");
       await page.goto("/closet/upload");

@@ -1,3 +1,6 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 /**
@@ -18,6 +21,7 @@ import { cn } from "@/lib/utils";
  * heavier strokes for 16px.
  */
 export function BrandMark({ size = 56, className }: { size?: number; className?: string }) {
+  const t = useTranslations("common");
   return (
     <svg
       viewBox="0 0 32 32"
@@ -25,7 +29,7 @@ export function BrandMark({ size = 56, className }: { size?: number; className?:
       height={size}
       className={cn("shrink-0", className)}
       role="img"
-      aria-label="Fitcheck"
+      aria-label={t("brand")}
     >
       <rect x="1.6" y="1.6" width="28.8" height="28.8" rx="8.4" fill="#161517" />
       <rect

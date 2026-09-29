@@ -1,0 +1,1028 @@
+{
+  "common": {
+    "back": "Terug",
+    "brand": "Fitcheck"
+  },
+  "shell": {
+    "nav": {
+      "closet": "Kast",
+      "stylist": "Stylist",
+      "diary": "Dagboek",
+      "profile": "Profiel"
+    },
+    "cookie": {
+      "label": "Cookiemelding",
+      "body": "Alleen cookies om in te loggen en je taal te onthouden. Geen tracking.",
+      "privacy": "Hoe we met je gegevens omgaan",
+      "dismiss": "Oké"
+    },
+    "whatsNew": {
+      "label": "Nieuw in Fitcheck",
+      "kicker": "Nieuw in Fitcheck",
+      "dismiss": "Nieuws sluiten",
+      "new": "Nieuw",
+      "fixed": "Opgelost"
+    }
+  },
+  "landing": {
+    "description": "Je AI-stylist. Elke dag looks met de kleren die je al hebt.",
+    "metadata": {
+      "title": "Fitcheck — je AI-stylist",
+      "description": "Zet je kledingkast er één keer in. Elke dag drie outfits van de kleren die je al hebt, passend bij het weer en de gelegenheid, met de reden waarom elke outfit werkt."
+    },
+    "kicker": "Je AI-stylist",
+    "wordmark": "fitcheck",
+    "heroDescription": "Een kledingkast die meedenkt. Elke dag looks, samengesteld uit de kleren die je al hebt.",
+    "or": "of",
+    "legalLead": "Door verder te gaan ga je akkoord met de",
+    "terms": "Voorwaarden",
+    "and": "en het",
+    "privacy": "Privacybeleid"
+  },
+  "auth": {
+    "deleted": "Je account en actuele gegevens zijn verwijderd.",
+    "checkInbox": "Kijk in je inbox",
+    "sentBody": "We hebben een inloglink gestuurd naar {email}.",
+    "emailPlaceholder": "jij@email.nl",
+    "sending": "Versturen…",
+    "emailLink": "Stuur me een inloglink",
+    "google": "Doorgaan met Google",
+    "failed": "Inloggen is niet gelukt. Probeer het opnieuw."
+  },
+  "legal": {
+    "back": "← Naar Fitcheck",
+    "updated": "Bijgewerkt op {date}",
+    "seeAlso": "Zie ook het",
+    "privacy": {
+      "title": "Privacybeleid",
+      "description": "Hoe Fitcheck met je foto's en gegevens omgaat — Zwitsers en Europees recht, verwerkers bij naam genoemd, geen trackingcookies."
+    },
+    "terms": {
+      "title": "Gebruiksvoorwaarden",
+      "description": "De voorwaarden voor het gebruik van Fitcheck."
+    }
+  },
+  "notFound": {
+    "title": "Hier is niets",
+    "body": "Deze pagina bestaat niet.",
+    "home": "Naar Fitcheck"
+  },
+  "onboarding": {
+    "saveFailed": "Er ging iets mis",
+    "saving": "Opslaan…",
+    "agreementLead": "Door verder te gaan bevestig je dat je 16 jaar of ouder bent en ga je akkoord met de",
+    "terms": "Voorwaarden",
+    "and": "en het",
+    "privacy": "Privacybeleid",
+    "questions": {
+      "archetype": {
+        "kicker": "Vraag 1 van 6",
+        "title": "Welke kledingkast voelt als de jouwe?",
+        "sub": "Kies degene waar je naartoe trekt.",
+        "cta": "Verder",
+        "options": {
+          "Old Money": {
+            "label": "Ingetogen klassiek",
+            "desc": "Traditie, maatwerk, rust"
+          },
+          "Smart Casual": {
+            "label": "Verzorgd casual",
+            "desc": "Brei, chino, gemak"
+          },
+          "Preppy": {
+            "label": "Collegestijl",
+            "desc": "Oxford, polo, campus"
+          },
+          "Streetwear": {
+            "label": "Straatstijl",
+            "desc": "Ruim, ton-sur-ton, sneakers voorop"
+          }
+        }
+      },
+      "palette": {
+        "kicker": "Vraag 2 van 6",
+        "title": "Je gevoel voor kleur?",
+        "sub": "We stemmen de aanbevelingen erop af.",
+        "cta": "Verder",
+        "options": {
+          "Neutrals": {
+            "label": "Rustige neutrale tinten",
+            "desc": "Crème, steen, antraciet"
+          },
+          "Earth": {
+            "label": "Aarde & tabak",
+            "desc": "Camel, olijf, roest"
+          },
+          "Navy": {
+            "label": "Klassiek marineblauw",
+            "desc": "Marine, wit, ossenbloed"
+          },
+          "Mono": {
+            "label": "Volledig monochroom",
+            "desc": "Zwart, grijs, wit"
+          }
+        }
+      },
+      "fit": {
+        "kicker": "Vraag 3 van 6",
+        "title": "Hoe moet het zitten?",
+        "sub": "Je standaardsilhouet.",
+        "cta": "Verder",
+        "options": {
+          "Tailored": {
+            "label": "Getailleerd",
+            "desc": "Nauw, strakke lijnen"
+          },
+          "Relaxed": {
+            "label": "Losjes",
+            "desc": "Bewegingsruimte, soepel vallend"
+          },
+          "Oversized": {
+            "label": "Bewust ruim",
+            "desc": "Volume, met opzet"
+          }
+        }
+      },
+      "dress_codes": {
+        "kicker": "Vraag 4 van 6",
+        "title": "Waar sta jij op de schaal?",
+        "sub": "Kies elke dresscode die je echt draagt.",
+        "cta": "Verder",
+        "options": {
+          "Loungewear": {
+            "label": "Huiskleding"
+          },
+          "Casual": {
+            "label": "Informeel"
+          },
+          "Smart casual": {
+            "label": "Verzorgd casual"
+          },
+          "Business": {
+            "label": "Zakelijk"
+          },
+          "Black tie": {
+            "label": "Avondkleding"
+          }
+        }
+      },
+      "occasions": {
+        "kicker": "Vraag 5 van 6",
+        "title": "Waarvoor kleed je je?",
+        "sub": "Kies alles wat van toepassing is.",
+        "cta": "Verder",
+        "options": {
+          "Work": {
+            "label": "Werk",
+            "desc": "Kantoor, vergaderingen"
+          },
+          "Everyday": {
+            "label": "Dagelijks",
+            "desc": "Boodschappen, koffie, het leven"
+          },
+          "Weekend": {
+            "label": "Weekend",
+            "desc": "Vrij, ontspannen"
+          },
+          "Evening": {
+            "label": "Avond",
+            "desc": "Diner, borrel, dates"
+          }
+        }
+      },
+      "nogos": {
+        "kicker": "Vraag 6 van 6",
+        "title": "Iets wat niet kan?",
+        "sub": "Je no-go's — die zetten we nooit in een look.",
+        "cta": "Profiel afronden",
+        "options": {
+          "logos": {
+            "label": "Grote logo's"
+          },
+          "skinny": {
+            "label": "Skinny fit"
+          },
+          "bright": {
+            "label": "Felle kleuren"
+          },
+          "shorts": {
+            "label": "Korte broeken"
+          },
+          "ripped": {
+            "label": "Gescheurde jeans"
+          },
+          "double_denim": {
+            "label": "Denim op denim"
+          },
+          "graphic": {
+            "label": "Printshirts"
+          },
+          "square_toe": {
+            "label": "Vierkante neuzen"
+          }
+        }
+      }
+    }
+  },
+  "closet": {
+    "title": "De kledingkast",
+    "pieces": "{count} stuks",
+    "empty": "Je kledingkast is leeg.",
+    "addPiece": "Kledingstuk toevoegen",
+    "addFirst": "Voeg je eerste kledingstuk toe",
+    "removedCount": "Verwijderde stukken ({count})",
+    "removedTitle": "Verwijderde stukken",
+    "nothingRemoved": "Niets verwijderd.",
+    "backToCloset": "Terug naar je kledingkast",
+    "nothingIn": "Niets in {category}.",
+    "filters": {
+      "All": "Alles",
+      "Tops": "Bovenstukken",
+      "Bottoms": "Onderstukken",
+      "One-piece": "Eendelig",
+      "Outerwear": "Jassen",
+      "Shoes": "Schoenen",
+      "Bags": "Tassen",
+      "Accessories": "Accessoires"
+    },
+    "colourPicker": {
+      "hide": "Kleurenpalet verbergen",
+      "choose": "Kleuren kiezen"
+    }
+  },
+  "item": {
+    "back": "Terug",
+    "more": "Meer",
+    "removed": "Uit je kledingkast verwijderd",
+    "timesWorn": "Keer gedragen",
+    "costPerWear": "Kosten / keer",
+    "lastWorn": "Laatst gedragen",
+    "formality": "Formaliteit",
+    "goesWith": "Past bij",
+    "puttingBack": "Terugzetten…",
+    "putBack": "Terugzetten",
+    "eraseOriginalPhoto": "Originele foto wissen",
+    "deleteForGood": "Definitief verwijderen",
+    "archive": "Archiveren",
+    "putBackUpgradeTitle": "Meer stukken terugzetten",
+    "style": {
+      "styling": "Stylen…",
+      "button": "Stel hiermee een outfit samen",
+      "upgradeTitle": "Style een look rond elk kledingstuk",
+      "proReason": "Een look rond een kledingstuk bouwen is een Pro-functie.",
+      "notSignedIn": "Niet ingelogd",
+      "pieceNotFound": "Kledingstuk niet gevonden",
+      "fragrance": "Een geur maakt een look af, maar bouwt hem niet.",
+      "thinCloset": "Nog niet genoeg andere stukken om hier een look omheen te bouwen.",
+      "failed": "Kon deze look niet stylen",
+      "saveFailed": "Kon de look niet opslaan",
+      "around": "Rond: {name}"
+    },
+    "edit": {
+      "close": "Sluiten",
+      "title": "Kledingstuk bewerken",
+      "cancel": "Annuleren",
+      "name": "Naam",
+      "brand": "Merk",
+      "brandOptional": "Merk (optioneel)",
+      "category": "Categorie",
+      "fit": "Pasvorm",
+      "sole": "Zool",
+      "notSet": "Niet ingesteld",
+      "material": "Materiaal",
+      "formality": "Formaliteit · {label}",
+      "formalityNumber": "Formaliteit {number}",
+      "seasons": "Seizoenen",
+      "subcategory": "Subcategorie",
+      "colour": "Kleur",
+      "accentColour": "Accentkleur",
+      "none": "Geen",
+      "texture": "Structuur",
+      "pattern": "Patroon",
+      "branding": "Logo",
+      "length": "Lengte",
+      "wear": "Slijtage",
+      "pricePaid": "Betaalde prijs",
+      "priceHint": "Optioneel — maakt kosten per keer mogelijk",
+      "saving": "Opslaan…",
+      "save": "Opslaan"
+    },
+    "remove": {
+      "close": "Sluiten",
+      "kicker": "Kledingkast",
+      "deleteTitle": "Dit stuk definitief verwijderen?",
+      "deleteBody": "De foto's, uitsnede en gegevens worden verwijderd. Eerdere looks, je kalender en reizen houden hun andere stukken; een look die rond dit stuk is gestyled, wordt mee verwijderd.",
+      "deleteBackup": "Dit kan niet ongedaan worden gemaakt. Kopieën in onze versleutelde back-ups verlopen binnen 30 dagen.",
+      "deleting": "Verwijderen…",
+      "delete": "Definitief verwijderen",
+      "back": "Terug",
+      "eraseTitle": "Originele foto wissen?",
+      "eraseBody": "De foto die je maakte wordt definitief gewist. Het uitgesneden kledingstuk blijft in je eerdere looks, kalender en draaggeschiedenis, en je kunt het stuk nog steeds terugzetten.",
+      "eraseBackup": "Kopieën in onze versleutelde back-ups verlopen binnen 30 dagen. Een gewist origineel kan later niet worden gebruikt voor een betere uitsnede.",
+      "erasing": "Wissen…",
+      "erase": "Origineel wissen",
+      "archiveTitle": "Dit stuk verwijderen?",
+      "archiveBody": "Het verdwijnt uit je kledingkast en komt niet meer in nieuwe looks. Eerdere looks en je draaggeschiedenis houden het.",
+      "archiveRestore": "Je kunt het terugzetten via Verwijderde stukken.",
+      "removing": "Verwijderen…",
+      "remove": "Uit de kast verwijderen",
+      "removeErase": "Verwijderen en originele foto wissen",
+      "cancel": "Annuleren"
+    },
+    "never": "Nooit"
+  },
+  "capture": {
+    "addPiece": "Kledingstuk toevoegen",
+    "reviewPieces": "Controleer je stukken.",
+    "preparingPhoto": "Foto voorbereiden…",
+    "captureItemTitle": "Fotografeer een kledingstuk.",
+    "instructions": "Fotografeer elk stuk op een vlakke ondergrond die ervan afsteekt — donkere kleding op een lichte vloer. Wij snijden het uit en herkennen kleur, stof en formaliteit.",
+    "batch": {
+      "summaryLabel": "Samenvatting",
+      "complete": "Je vastleggen is klaar.",
+      "counts": "{saved} opgeslagen · {skipped} overgeslagen · {unprocessed} niet verwerkt",
+      "summaryHint": "Opgeslagen stukken staan in je kledingkast. Niet-verwerkte foto's zijn niet opgeslagen.",
+      "enterCloset": "Naar de kledingkast",
+      "progressLabel": "Voortgang",
+      "photoProgress": "Foto {index} van {total}",
+      "lastPhoto": "Laatste foto",
+      "nextReady": "Volgende foto klaar",
+      "preparingNext": "Volgende foto voorbereiden",
+      "preparationFailed": "Foto voorbereiden mislukt.",
+      "retryPhoto": "Foto opnieuw proberen",
+      "skipPhoto": "Foto overslaan",
+      "finishBatch": "Afronden",
+      "waitingHint": "Foto's die nog wachten, worden niet opgeslagen als je afrondt.",
+      "remaining": "Deze kledingkast heeft nog ruimte voor {remaining} stukken. De rest wordt niet verwerkt."
+    },
+    "confirm": {
+      "rotate": "Draaien",
+      "name": "Naam",
+      "brand": "Merk (optioneel)",
+      "aiDetected": "Herkend door AI",
+      "subcategory": "Subcategorie",
+      "colour": "Kleur",
+      "texture": "Structuur",
+      "pattern": "Patroon",
+      "category": "Categorie",
+      "material": "Materiaal",
+      "formality": "Formaliteit · {label}",
+      "formalityNumber": "Formaliteit {number}",
+      "fit": "Pasvorm",
+      "seasons": "Seizoenen",
+      "accuracyHint": "We zitten er zo'n 90% goed — pas aan wat niet klopt.",
+      "retake": "Opnieuw maken",
+      "skipPhoto": "Foto overslaan",
+      "saving": "Opslaan…",
+      "rotating": "Draaien…",
+      "addToCloset": "Aan kast toevoegen"
+    },
+    "onboarding": {
+      "almostThere": "Bijna klaar",
+      "firstFive": "Fotografeer je eerste vijf.",
+      "enterCloset": "Naar je kledingkast",
+      "skipForNow": "Nu overslaan"
+    },
+    "viewfinder": {
+      "captureItem": "Kledingstuk fotograferen",
+      "cuttingOut": "Uitsnijden & kleuren lezen…",
+      "tap": "Tik om een kledingstuk te fotograferen",
+      "chooseSeveral": "Meerdere foto's kiezen"
+    }
+  },
+  "vocab": {
+    "occasion": {
+      "everyday": "Dagelijks",
+      "work": "Werk",
+      "weekend": "Weekend",
+      "evening": "Avond"
+    },
+    "material": {
+      "Cotton": "Katoen",
+      "Wool": "Wol",
+      "Merino wool": "Merinowol",
+      "Cashmere": "Kasjmier",
+      "Linen": "Linnen",
+      "Silk": "Zijde",
+      "Denim": "Spijkerstof",
+      "Leather": "Leer",
+      "Suede": "Suède",
+      "Faux leather": "Kunstleer",
+      "Canvas": "Canvas",
+      "Corduroy": "Ribfluweel",
+      "Tweed": "Tweed",
+      "Fleece": "Fleece",
+      "Shearling": "Lamswol",
+      "Down": "Dons",
+      "Polyester": "Polyester",
+      "Acrylic": "Acryl",
+      "Nylon": "Nylon",
+      "Viscose": "Viscose",
+      "Modal": "Modal",
+      "Lyocell": "Lyocell",
+      "Stainless steel": "Roestvrij staal",
+      "Gold": "Goud",
+      "Silver": "Zilver",
+      "Rubber": "Rubber",
+      "Other": "Overig"
+    },
+    "texture": {
+      "Flat": "Glad",
+      "Ribbed": "Geribd",
+      "Cable knit": "Kabelbrei",
+      "Waffle": "Wafel",
+      "Chunky knit": "Grof gebreid",
+      "Fine knit": "Fijn gebreid",
+      "Brushed": "Geruwd",
+      "Fleece-back": "Fleece binnenkant",
+      "Twill": "Keperstof",
+      "Herringbone": "Visgraat",
+      "Quilted": "Doorgestikt",
+      "Pile": "Pool",
+      "Open knit": "Opengebreid",
+      "Terry": "Badstof",
+      "Seersucker": "Seersucker",
+      "Other": "Overig"
+    },
+    "color": {
+      "black": "zwart",
+      "charcoal": "antraciet",
+      "grey": "grijs",
+      "silver": "zilver",
+      "white": "wit",
+      "ivory": "ivoor",
+      "cream": "crème",
+      "stone": "steengrijs",
+      "sand": "zandkleur",
+      "beige": "beige",
+      "taupe": "taupe",
+      "khaki": "kaki",
+      "camel": "camel",
+      "tan": "lichtbruin",
+      "caramel": "karamel",
+      "chocolate": "chocoladebruin",
+      "brown": "bruin",
+      "navy": "marineblauw",
+      "indigo": "indigo",
+      "denim": "jeansblauw",
+      "blue": "blauw",
+      "sky": "hemelsblauw",
+      "teal": "petrol",
+      "olive": "olijfgroen",
+      "sage": "saliegroen",
+      "forest": "bosgroen",
+      "green": "groen",
+      "mint": "mintgroen",
+      "burgundy": "bordeaux",
+      "maroon": "kastanjebruin",
+      "red": "rood",
+      "rust": "roestbruin",
+      "terracotta": "terracotta",
+      "coral": "koraal",
+      "pink": "roze",
+      "purple": "paars",
+      "lavender": "lavendel",
+      "plum": "pruim",
+      "mustard": "mosterdgeel",
+      "yellow": "geel",
+      "gold": "goud",
+      "orange": "oranje"
+    },
+    "fit": {
+      "Fitted": "Nauwsluitend",
+      "Tailored": "Getailleerd",
+      "Regular": "Normaal",
+      "Relaxed": "Losjes",
+      "Oversized": "Ruim"
+    },
+    "length": {
+      "Cropped": "Kort",
+      "Natural waist": "Taillehoogte",
+      "Hip": "Heup",
+      "Knee": "Knie",
+      "Midi": "Midi",
+      "Ankle": "Enkel",
+      "Floor": "Tot de grond"
+    },
+    "bulk": {
+      "Low profile": "Plat",
+      "Regular": "Normaal",
+      "Chunky": "Grof"
+    },
+    "distressing": {
+      "None": "Geen",
+      "Faded": "Verwassen",
+      "Ripped": "Gescheurd"
+    },
+    "branding": {
+      "None": "Geen",
+      "Small": "Klein",
+      "Large": "Groot"
+    },
+    "category": {
+      "Tops": "Bovenstukken",
+      "Bottoms": "Onderstukken",
+      "One-piece": "Eendelig",
+      "Outerwear": "Jassen",
+      "Shoes": "Schoenen",
+      "Bags": "Tassen",
+      "Accessories": "Accessoires",
+      "Fragrance": "Geur"
+    },
+    "season": {
+      "Spring": "Lente",
+      "Summer": "Zomer",
+      "Autumn": "Herfst",
+      "Winter": "Winter"
+    },
+    "pattern": {
+      "solid": "effen",
+      "striped": "gestreept",
+      "check": "geruit",
+      "print": "print",
+      "other": "overig"
+    },
+    "formality": {
+      "1": "Heel informeel",
+      "2": "Informeel",
+      "3": "Verzorgd casual",
+      "4": "Zakelijk",
+      "5": "Formeel"
+    }
+  },
+  "generate": {
+    "title": "De looks van vandaag",
+    "reason": {
+      "work": "Gestyled voor je werkdag",
+      "everyday": "Dagelijks gemak",
+      "weekend": "Weekend, vrij",
+      "evening": "Vanavond uit"
+    },
+    "emptyTitle": "Nog niets om te stylen",
+    "emptyShoes": "Geen schoenen die formeel genoeg zijn voor {occasion} — voeg nettere schoenen toe of probeer een andere gelegenheid.",
+    "emptyTops": "Geen bovenstukken die passen bij {occasion} — voeg er een toe of probeer een andere gelegenheid.",
+    "emptyBottoms": "Geen onderstukken die passen bij {occasion} — voeg er een toe of probeer een andere gelegenheid.",
+    "emptyOnePiece": "Geen jurken die passen bij {occasion} — voeg er een toe of probeer een andere gelegenheid.",
+    "emptyGeneric": "Voeg nog een paar stukken toe om outfits te ontgrendelen",
+    "limitTitle": "Dat waren de looks van vandaag",
+    "error": "De stylist is niet bereikbaar.",
+    "retry": "Opnieuw proberen",
+    "wornToday": "Vandaag gedragen",
+    "seeFullLook": "Bekijk de hele look",
+    "regenerate": "Looks van vandaag opnieuw maken",
+    "upgradeTitle": "Maak opnieuw zo vaak je wilt",
+    "refine": {
+      "button": "Verfijnen",
+      "close": "Sluiten",
+      "title": "Looks verfijnen",
+      "description": "Gekleed voor {occasion} — stel de rest bij.",
+      "formality": "Formaliteit",
+      "leanInto": "Meer richting",
+      "palette": { "neutral": "neutraal", "camel": "camel", "navy": "marine", "olive": "olijf", "dark": "donker" },
+      "showLooks": "Toon 3 looks"
+    }
+  },
+  "weather": {
+    "feels": "voelt als {temperature}",
+    "now": "Nu",
+    "later": "Straks",
+    "locating": "Locatie bepalen…",
+    "currentLocation": "Huidige locatie",
+    "attribution": "Weergegevens © OpenWeather",
+    "location": {
+      "close": "Sluiten",
+      "title": "Locatie",
+      "question": "Waar ben je?",
+      "description": "Je looks zijn op deze verwachting gebaseerd.",
+      "cancel": "Annuleren",
+      "chooseCity": "Kies een stad",
+      "useMyLocation": "Mijn locatie gebruiken",
+      "searchCity": "Zoek een stad",
+      "searchPlaceholder": "Zoek een stad…"
+    },
+    "advice": {
+      "rainFrom": "Regen vanaf {hour}",
+      "downTonight": "Vannacht tot {temperature}",
+      "coldDay": "De hele dag koud",
+      "upLater": "Straks tot {temperature}",
+      "upAfternoon": "Vanmiddag tot {temperature}",
+      "dryEvening": "Droog tot de avond",
+      "takeShell": "neem een regenjas mee.",
+      "keepCoat": "houd de jas aan.",
+      "coatEarns": "de jas is het waard.",
+      "takeLayer": "neem voorlopig een extra laag.",
+      "dressedForIt": "je bent er goed op gekleed.",
+      "carryJacket": "neem een jas mee.",
+      "noLayer": "geen extra laag nodig."
+    },
+    "conditions": {
+      "rain": "Regen",
+      "clear": "Helder",
+      "partlyCloudy": "Half bewolkt",
+      "snow": "Sneeuw",
+      "overcast": "Bewolkt"
+    }
+  },
+  "outfit": {
+    "back": "Terug",
+    "share": "Delen",
+    "inLook": "In deze look",
+    "favourite": "Favoriet",
+    "wearThisToday": "Vandaag dragen",
+    "wornToday": "Vandaag gedragen",
+    "todayLook": "De look van vandaag",
+    "tryAnother": "Probeer een andere look",
+    "styling": "Stylen…",
+    "styleAround": "Style een look rond elk kledingstuk",
+    "wearConfirm": {
+      "dismiss": "Sluiten",
+      "label": "Draagbevestiging",
+      "today": "Vandaag",
+      "question": "Heb je {lookName} vandaag gedragen?",
+      "explanation": "Alleen jij kunt dat zeggen — we registreren nooit iets voor je.",
+      "no": "Nee",
+      "yes": "Ja"
+    }
+  },
+  "share": {
+    "close": "Sluiten",
+    "kicker": "Delen",
+    "title": "Deze look delen",
+    "format": "Formaat",
+    "story": "Story",
+    "post": "Post",
+    "cardAlt": "Deelkaart voor {lookName}",
+    "cardFooter": "fitcheck.space",
+    "showBrands": "Merken tonen",
+    "brandHint": "Voeg een merk toe op de pagina van een stuk om het hier te tonen.",
+    "shareImage": "Afbeelding delen",
+    "creating": "Link maken…",
+    "updateLink": "Link bijwerken",
+    "createLink": "Link maken",
+    "privacy": "Iedereen met de link kan deze look 30 dagen zien. Geen naam, geen account.",
+    "expires": "Verloopt op {date}",
+    "share": "Delen",
+    "copied": "Gekopieerd",
+    "copy": "Kopiëren",
+    "stopping": "Stoppen…",
+    "stop": "Stoppen met delen",
+    "off": "Deze link staat uit. De afbeeldingen worden nog verwijderd.",
+    "finishing": "Opruimen afronden…",
+    "retryCleanup": "Opruimen opnieuw proberen",
+    "photosFailed": "De foto's van deze look konden niet worden geladen. Probeer het opnieuw.",
+    "openFailed": "Delen kon niet worden geopend. Probeer het opnieuw.",
+    "createFailed": "De link kon niet worden gemaakt. Probeer het opnieuw.",
+    "copyFailed": "Kopiëren is niet gelukt. Houd de link ingedrukt om hem te kopiëren.",
+    "stopFailed": "Stoppen met delen is niet gelukt. Probeer het opnieuw.",
+    "cap": "Je kunt maximaal {limit} gedeelde links hebben. Stop er één in Instellingen om een andere te delen.",
+    "publishFailed": "Delen kon niet worden afgerond. Probeer het opnieuw.",
+    "changed": "Deze link is veranderd. Probeer het opnieuw.",
+    "cleanupFailed": "Je link staat uit, maar het verwijderen van de afbeeldingen is niet afgerond. Probeer het opnieuw.",
+    "metadataTitle": "{lookName} — een look op Fitcheck",
+    "metadataDescription": "Een look samengesteld uit iemands eigen kledingkast.",
+    "signIn": "Inloggen",
+    "piecesLabel": "Stukken in deze look",
+    "looksLike": "Looks zoals deze, met de kleren die je al hebt.",
+    "openFitcheck": "Fitcheck openen",
+    "getLooks": "Krijg je eigen looks — gratis",
+    "anonymous": "Anoniem gedeeld uit iemands kledingkast. Die kan op elk moment stoppen met delen. ·",
+    "report": "Deze look melden",
+    "notFound": "Deze look wordt niet meer gedeeld."
+  },
+  "diary": {
+    "title": "Stijldagboek",
+    "previousMonth": "Vorige maand",
+    "nextMonth": "Volgende maand",
+    "streakDays": "{n, plural, one {dag} other {dagen}}",
+    "empty": "Draag een look uit de selectie van vandaag en hij komt hier terecht.",
+    "weekdays": {
+      "mon": "ma",
+      "tue": "di",
+      "wed": "wo",
+      "thu": "do",
+      "fri": "vr",
+      "sat": "za",
+      "sun": "zo"
+    }
+  },
+  "stats": {
+    "title": "Draagstatistieken",
+    "back": "Terug",
+    "closetValue": "Waarde van de kast",
+    "totalWears": "Totaal gedragen",
+    "costPerWear": "Kosten per keer",
+    "empty": "Draag een look en registreer hem, dan laat dit scherm zien wat je kledingkast je echt kost.",
+    "mostWorn": "Meest gedragen",
+    "mostWornPitch": "Zie welke stukken hun plek verdienen",
+    "biggestGap": "Je grootste gat",
+    "biggestGapPitch": "Het ene stuk dat het meest ontgrendelt",
+    "gatheringDust": "Stof aan het verzamelen",
+    "gatheringDustPitch": "Wat je hebt en nooit pakt",
+    "shareMissing": "Zonder kan je kast geen enkele look maken",
+    "shareAdds": "Levert {pct}% meer outfits op",
+    "neverWorn": "Nooit gedragen",
+    "wornToday": "Vandaag gedragen",
+    "daysAgo": "{days, plural, one {1 dag geleden} other {# dagen geleden}}",
+    "wornOnce": "Eén keer gedragen",
+    "wornTimes": "{n} keer gedragen",
+    "thatPiece": "Dat stuk",
+    "reasonPairs": "Het past bij meer van je kast dan al het andere dat je mist.",
+    "reasonCounts": "Je hebt {mine} tegenover {deepest} — dat houdt de rest tegen.",
+    "slot": {
+      "Tops": "{n, plural, one {# bovenstuk} other {# bovenstukken}}",
+      "Bottoms": "{n, plural, one {# onderstuk} other {# onderstukken}}",
+      "Shoes": "{n, plural, one {# paar schoenen} other {# paar schoenen}}",
+      "Outerwear": "{n, plural, one {# jas} other {# jassen}}",
+      "other": "{n, plural, one {# stuk} other {# stukken}}"
+    },
+    "gapPieces": {
+      "navyKnit": "Een marineblauwe trui",
+      "whiteShirt": "Een wit overhemd",
+      "woolTrousers": "Een grijze wollen pantalon",
+      "darkDenim": "Een donkere jeans",
+      "camelCoat": "Een camelkleurige overjas",
+      "whiteSneakers": "Strakke witte sneakers",
+      "brownLoafers": "Bruine leren loafers",
+      "blackShoes": "Zwarte leren schoenen",
+      "blackDress": "Een zwarte jurk",
+      "navyDress": "Een marineblauwe dagjurk"
+    }
+  },
+  "profile": {
+    "you": "Jij",
+    "soon": "Binnenkort",
+    "pieces": "Stukken",
+    "outfitsWorn": "Outfits gedragen",
+    "dayStreak": "Dagen op rij",
+    "archetype": "Jouw archetype",
+    "notSet": "Nog niet ingesteld",
+    "welcomePro": "Welkom bij Pro.",
+    "activatingPro": "Pro wordt geactiveerd… ververs zo meteen.",
+    "privacy": "Privacybeleid",
+    "terms": "Gebruiksvoorwaarden",
+    "links": {
+      "styleDna": {
+        "label": "Stijl-DNA",
+        "description": "Jouw archetype, om te delen"
+      },
+      "savedOutfits": {
+        "label": "Opgeslagen outfits",
+        "description": "Looks die je hebt bewaard"
+      },
+      "packing": {
+        "label": "Inpakmodus",
+        "description": "De kleinste koffer voor de hele reis"
+      },
+      "stats": {
+        "label": "Draagstatistieken",
+        "description": "Wat je echt draagt"
+      },
+      "settings": {
+        "label": "Instellingen",
+        "description": "Voorkeuren en account"
+      }
+    }
+  },
+  "settings": {
+    "title": "Instellingen",
+    "back": "Terug",
+    "preferences": "Voorkeuren",
+    "rainGuard": "Regenbescherming",
+    "rainGuardDescription": "Nooit suède of canvas als het regent",
+    "metricUnits": "Metrische eenheden",
+    "metricUnitsDescription": "Temperaturen in °C in plaats van °F",
+    "saveFailed": "Opslaan is niet gelukt — controleer je verbinding.",
+    "location": "Locatie",
+    "notSet": "Niet ingesteld",
+    "signOut": "Uitloggen",
+    "subscription": "Abonnement",
+    "sharedLinks": "Gedeelde links",
+    "sharedLinksDescription": "Links naar je looks. Elke link werkt 30 dagen of tot je hem stopt.",
+    "dangerZone": "Gevarenzone",
+    "deleteAccount": "Account verwijderen",
+    "permanent": "Definitief",
+    "privacy": "Privacybeleid",
+    "terms": "Gebruiksvoorwaarden",
+    "delete": {
+      "close": "Sluiten",
+      "description": "Als je je account verwijdert, worden je foto's en kleding, outfits, draaggeschiedenis, reizen en voorkeuren direct en definitief verwijderd. Dit kan niet ongedaan worden gemaakt.",
+      "backup": "Versleutelde back-ups kunnen deze gegevens tot 30 dagen bewaren voordat ze verlopen.",
+      "confirm": "Typ je e-mailadres precies om door te gaan",
+      "deleting": "Verwijderen…",
+      "cancel": "Annuleren",
+      "sessionExpired": "Je sessie is verlopen. Log in en probeer het opnieuw.",
+      "confirmationFailed": "Typ precies het e-mailadres van je account om door te gaan.",
+      "failure": "We konden je account niet verwijderen. Probeer het opnieuw of neem contact op met support."
+    },
+    "links": {
+      "empty": "Geen gedeelde links.",
+      "label": "Gedeelde links",
+      "cleanupPending": "Opruimen in behandeling",
+      "notPublished": "Niet gepubliceerd",
+      "expired": "Verlopen",
+      "expires": "Verloopt op {date}",
+      "shared": "Gedeeld op {date}",
+      "stop": "Stoppen met delen",
+      "stopFailed": "Stoppen met delen is niet gelukt. Probeer het opnieuw."
+    },
+    "language": "Taal"
+  },
+  "billing": {
+    "pro": "Pro",
+    "proBrand": "Fitcheck Pro",
+    "active": "Actief — alles ontgrendeld.",
+    "wholeWardrobe": "Laat je hele kledingkast voor je werken.",
+    "membership": "Je lidmaatschap",
+    "goProPrice": "Neem Pro · {price}",
+    "yourProMembership": "Je Pro-lidmaatschap",
+    "close": "Sluiten",
+    "notNow": "Niet nu",
+    "opening": "Openen…",
+    "manageSubscription": "Abonnement beheren",
+    "openFailed": "Kon de facturering niet openen. Probeer het zo opnieuw.",
+    "waiverRequired": "Bevestig dat Pro nu moet starten.",
+    "alreadyPro": "Je hebt al Pro — beheer het via je profiel.",
+    "signedOut": "Log opnieuw in.",
+    "unavailable": "Pro is op dit moment niet beschikbaar.",
+    "checkoutFailed": "Kon het afrekenen niet starten. Probeer het zo opnieuw.",
+    "billingInterval": "Factuurperiode",
+    "annual": "Jaarlijks",
+    "monthly": "Maandelijks",
+    "monthPeriod": "maand",
+    "yearPeriod": "jaar",
+    "annualHint": "2 maanden gratis · {monthlyEquivalent}",
+    "finalPrice": "Eindprijs en valuta zie je bij het afrekenen.",
+    "waiver": "Start Pro nu. Ik begrijp dat ik mijn herroepingsrecht van 14 dagen verlies zodra het begint.",
+    "openingCheckout": "Afrekenen openen…",
+    "goPro": "Neem Pro",
+    "payments": "Betalingen verwerkt door Stripe · verkocht via Link. Verlengt automatisch — altijd opzegbaar in de app.",
+    "terms": "Voorwaarden",
+    "privacy": "Privacy",
+    "paymentFailed": "Betaling mislukt — werk je kaart bij",
+    "proUntil": "Pro tot {date}",
+    "proRenews": "Pro · {plan} — verlengt op {date}",
+    "proPlan": "Pro · {plan}",
+    "benefits": {
+      "rerolls": {
+        "label": "Onbeperkt opnieuw maken",
+        "description": "Elke gelegenheid, zo vaak je wilt"
+      },
+      "styled": {
+        "label": "Style rond elk stuk",
+        "description": "Bouw een look vanuit één kledingstuk"
+      },
+      "closet": {
+        "label": "Een onbeperkte kast",
+        "description": "Meer dan de gratis 50 stukken"
+      },
+      "packing": {
+        "label": "Inpakmodus",
+        "description": "Er gaat een reis in, er komt een capsule uit"
+      },
+      "analytics": {
+        "label": "Analyse van kosten per keer",
+        "description": "Wat je kledingkast echt kost"
+      },
+      "gap": {
+        "label": "Gatenanalyse",
+        "description": "Het ene stuk dat het meest ontgrendelt"
+      },
+      "saved": {
+        "label": "Onbeperkt opgeslagen outfits",
+        "description": "Bewaar elke look waar je van houdt"
+      }
+    }
+  },
+  "packing": {
+    "mode": "Inpakmodus",
+    "yourTrips": "Je reizen",
+    "emptyTrips": "Nog niets gepland. Vertel Fitcheck waar je heen gaat en het zoekt de kleinste set kleren uit waarmee je elke dag van de reis gekleed bent.",
+    "tripCounts": "{pieces, plural, one {# stuk} other {# stukken}} · {days, plural, one {# dag} other {# dagen}}",
+    "planTrip": "Reis plannen",
+    "planAnother": "Nog een reis plannen",
+    "newTitle": "Waar ga je heen?",
+    "destination": "Bestemming",
+    "from": "Van",
+    "to": "Tot",
+    "occasionMix": "Mix van gelegenheden",
+    "mixCount": "{assigned} van {days, plural, one {# dag} other {# dagen}}",
+    "fewerDay": "Eén {occasion}-dag minder",
+    "moreDay": "Eén {occasion}-dag meer",
+    "rewear": "Opnieuw dragen",
+    "planning": "Plannen…",
+    "planAction": "Plan de reis",
+    "proRequired": "De inpakmodus hoort bij Pro.",
+    "planFailed": "Kon die reis niet plannen",
+    "invalidDateRange": "Die periode bevat geen dagen",
+    "tripGone": "Die reis bestaat niet meer",
+    "editFailed": "Kon de koffer niet aanpassen",
+    "back": "Terug",
+    "pieces": "Stukken",
+    "days": "Dagen",
+    "outfits": "Outfits",
+    "uncovered": "Niet gedekt",
+    "pieceHeadline": "{word} {n, plural, one {stuk.} other {stukken.}}",
+    "number": {
+      "0": "Nul",
+      "1": "Eén",
+      "2": "Twee",
+      "3": "Drie",
+      "4": "Vier",
+      "5": "Vijf",
+      "6": "Zes",
+      "7": "Zeven",
+      "8": "Acht",
+      "9": "Negen",
+      "10": "Tien",
+      "11": "Elf",
+      "12": "Twaalf"
+    },
+    "changePiece": "{name} wijzigen",
+    "tapPiece": "Tik op een stuk om het te wisselen of thuis te laten.",
+    "capsuleWhy": "{days} dagen · {pieces} stukken",
+    "forecastEstimate": "Een deel van deze reis valt buiten de verwachting, dus het weer is een schatting.",
+    "doneCloset": "Klaar — terug naar de kast",
+    "seeDays": "Bekijk de dagen",
+    "dayTitle": "{days, plural, one {# dag} other {# dagen}}, één koffer.",
+    "rain": "regen",
+    "wearOrdinal": "{n}e keer",
+    "pieceSheet": {
+      "close": "Sluiten",
+      "noAlternatives": "Niets anders in je kast past op deze plek.",
+      "back": "Terug",
+      "swap": "Neem iets anders mee",
+      "unpin": "Hier niet meer op staan",
+      "pin": "Dit neem ik zeker mee",
+      "leave": "Thuislaten",
+      "seePiece": "Bekijk het stuk",
+      "repacking": "Opnieuw inpakken…"
+    },
+    "shortfall": {
+      "title": "Je kast kan deze reis niet aankleden.",
+      "missing": "Wat ontbreekt",
+      "somethingFor": "Iets voor {occasion}",
+      "daysMissing": "{days, plural, one {# dag} other {# dagen}} — {dates} — zonder iets dat past.",
+      "canBuild": "Wat wel kan",
+      "capsule": "Een capsule voor {days} dagen.",
+      "whyName": "{covered} van {total} dagen",
+      "noOccasion": "{days, plural, one {# dag heeft} other {# dagen hebben}} niets dat past.",
+      "and": "en",
+      "description": "Je hebt niets dat werkt voor {occasions} — {days, plural, one {# dag} other {# dagen}} van deze reis kun je niet uit je kast aankleden.",
+      "fallbackWhy": "Pak de dagen in die ik goed kan aankleden en laat de rest open — lenen is beter dan een slechte vervanger.",
+      "buildDays": "Pak de {days} dagen in",
+      "addPiece": "Kledingstuk toevoegen"
+    },
+    "rewearLevels": {
+      "1": {
+        "label": "Elke dag vers",
+        "hint": "Elke dag schone kleren. Reken op de grootste koffer."
+      },
+      "2": {
+        "label": "Twee keer gedragen",
+        "hint": "Eén herhaling per stuk — een middenweg voor kortere reizen."
+      },
+      "3": {
+        "label": "Drie keer gedragen",
+        "hint": "De sweet spot: een week uit negen stukken, niets ziet er gedragen uit."
+      },
+      "4": {
+        "label": "Vier keer gedragen",
+        "hint": "Een lichtere tas. Onderstukken en breiwerk dragen de meeste herhalingen."
+      },
+      "5": {
+        "label": "Zo vaak als het werkt",
+        "hint": "De kleinst mogelijke koffer. Twee overhemden en één broek voor de hele week."
+      }
+    }
+  },
+  "errors": {
+    "geoDenied": "Locatietoegang staat uit — zoek in plaats daarvan een stad.",
+    "geoFailed": "Kon je locatie niet bepalen — zoek in plaats daarvan een stad.",
+    "generateNotSignedIn": "Niet ingelogd",
+    "generateFailed": "Maken mislukt",
+    "regenerateLimit": "Dat waren je {limit} keer opnieuw maken voor vandaag. Met Pro zonder limiet.",
+    "eraseFailed": "Kon de foto niet wissen. Er is niets veranderd — probeer het opnieuw.",
+    "eraseNoCutout": "Deze foto kan hier niet worden gewist: het stuk heeft geen uitsnede om ervoor in de plaats te tonen. Schrijf naar legal@fitcheck.space en wij verwijderen hem.",
+    "eraseAlready": "Deze foto is al gewist.",
+    "deleteFailed": "Kon het stuk niet verwijderen. Er is niets veranderd — probeer het opnieuw.",
+    "deleteNotRemoved": "Verwijder dit stuk eerst uit je kast en verwijder het daarna via Verwijderde stukken.",
+    "editSaveFailed": "Opslaan mislukt",
+    "closetFull": "Een gratis kast bevat {limit} stukken. Pro is onbeperkt — of archiveer iets wat je niet meer draagt.",
+    "previewFailed": "Voorbeeld mislukt",
+    "photoFailed": "Foto mislukt",
+    "cutoutFailed": "Uitsnijden mislukt",
+    "taggingFailed": "Herkennen mislukt",
+    "capacityFailed": "Kan de ruimte in de kast niet controleren",
+    "captureFailed": "Vastleggen mislukt",
+    "rotationFailed": "Draaien mislukt",
+    "saveFailed": "Opslaan mislukt",
+    "cutoutCancelled": "Uitsnijden geannuleerd",
+    "cutoutWorkerBusy": "Uitsnijden is bezet",
+    "cutoutWorkerResponseFailed": "Uitsnijden gaf geen antwoord"
+  },
+  "language": {
+    "title": "Taal",
+    "close": "Taalkeuze sluiten",
+    "saveFailed": "Kon de taal niet wijzigen. Probeer het opnieuw."
+  }
+}

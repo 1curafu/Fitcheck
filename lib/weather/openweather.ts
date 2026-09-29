@@ -1,6 +1,7 @@
 import type { HourCell } from "@/lib/generator/types";
 import type { Weather } from "@/lib/generator/rules";
 import type { TripForecast } from "./trip";
+import { conditionKey } from "./condition";
 
 /**
  * OpenWeather One Call 4.0 — the mapping layer.
@@ -105,11 +106,8 @@ export function isRainId(id: number): boolean {
 
 /** Kept to the same four strings the UI already renders and truncates. */
 function conditionFor(id: number): string {
-  if (isRainId(id)) return "Rain";
-  if (id === 800) return "Clear";
-  if (id === 801 || id === 802) return "Partly cloudy";
-  if (id >= 600 && id < 700) return "Snow";
-  return "Overcast";
+  const labels = { rain: "Rain", clear: "Clear", partlyCloudy: "Partly cloudy", snow: "Snow", overcast: "Overcast" };
+  return labels[conditionKey(id)];
 }
 
 function idOf(cell: OwmCell): number {
@@ -134,6 +132,7 @@ export function mapOneCall(
   tempC: number;
   feelsLikeC: number;
   condition: string;
+  conditionId: number;
   timezone: string;
   hourly: HourCell[];
   /** Every remaining hour of TODAY — what the look is planned against. */
@@ -221,6 +220,7 @@ export function mapOneCall(
       (typeof cur?.feels_like === "number" ? cur.feels_like : cur?.feels_like?.day) ?? nowC,
     ),
     condition: conditionFor(cur ? idOf(cur) : 800),
+    conditionId: cur ? idOf(cur) : 800,
     timezone: bundle.current.timezone ?? bundle.hourly.timezone ?? "UTC",
     hourly,
     restOfDay,

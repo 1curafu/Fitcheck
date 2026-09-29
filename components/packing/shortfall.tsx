@@ -1,6 +1,11 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { PackingBack } from "./back-link";
-import { WhyQuote } from "@/components/generate/why-quote";
+import { LookWhy } from "./look-why";
+import type { OutfitText } from "@/lib/outfits/text";
+import type { UiOccasion } from "@/lib/generator/types";
 
 export type Gap = { occasion: string; days: string[] };
 
@@ -23,6 +28,7 @@ export function Shortfall({
   totalDays,
   pieceCount,
   why,
+  lookText,
   onBuildPartial,
 }: {
   destination: string;
@@ -32,8 +38,19 @@ export function Shortfall({
   totalDays: number;
   pieceCount: number;
   why: string;
+  lookText: OutfitText | null;
   onBuildPartial: React.ReactNode;
 }) {
+  const t = useTranslations("packing");
+  const tOccasion = useTranslations("vocab.occasion");
+  const occasionLabel = (occasion: string) => (["everyday", "work", "weekend", "evening"] as string[]).includes(occasion)
+    ? tOccasion(occasion as UiOccasion) : occasion;
+  const uncovered = totalDays - coveredDays;
+  const names = gaps.map((gap) => occasionLabel(gap.occasion));
+  const occasionList = names.length === 1 ? names[0]
+    : `${names.slice(0, -1).join(", ")} ${t("shortfall.and")} ${names[names.length - 1]}`;
+  const description = gaps.length === 0 ? t("shortfall.noOccasion", { days: uncovered })
+    : t("shortfall.description", { occasions: occasionList, days: uncovered });
   return (
     <div className="flex min-h-dvh flex-1 flex-col">
       <div className="screen-top flex-1 px-[22px]">
@@ -42,13 +59,13 @@ export function Shortfall({
         </div>
         <Kicker className="block">{`${destination} · ${dateRange}`}</Kicker>
         <h1 className="mt-[14px] font-serif text-3xl/[1.12] tracking-[-0.01em] text-foreground-strong text-balance">
-          Your closet can&rsquo;t dress this trip.
+          {t("shortfall.title")}
         </h1>
         <p className="mt-[10px] text-[15.5px] leading-[1.45] text-muted-foreground text-pretty">
-          {describeGaps(gaps, totalDays - coveredDays)}
+          {description}
         </p>
 
-        <Kicker className="mb-[9px] mt-[18px] block">What&rsquo;s missing</Kicker>
+        <Kicker className="mb-[9px] mt-[18px] block">{t("shortfall.missing")}</Kicker>
         <div className="flex flex-col gap-2">
           {gaps.map((g) => (
             <div
@@ -56,11 +73,10 @@ export function Shortfall({
               className="rounded-[14px] bg-surface-1 px-[14px] py-3 shadow-[inset_0_0_0_1px_var(--hairline-3)]"
             >
               <div className="font-serif text-[18px]/[1.2] text-foreground">
-                Something for {g.occasion}
+                {t("shortfall.somethingFor", { occasion: occasionLabel(g.occasion) })}
               </div>
               <div className="mt-1 text-[13.5px] leading-[1.42] text-muted-foreground text-pretty">
-                {g.days.length} day{g.days.length === 1 ? "" : "s"} — {g.days.join(", ")} — have
-                nothing that fits.
+                {t("shortfall.daysMissing", { days: g.days.length, dates: g.days.join(", ") })}
               </div>
             </div>
           ))}
@@ -70,16 +86,16 @@ export function Shortfall({
             screen, per the One Rust Rule. */}
         <div className="mt-[18px] rounded-[16px] bg-surface-1 p-4 shadow-[inset_0_0_0_1px_rgba(184,106,71,0.20)]">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-dna-camel">
-            What it can build
+            {t("shortfall.canBuild")}
           </div>
           <div className="mt-2 font-serif text-[20px]/[1.15] text-foreground">
-            A {coveredDays}-day capsule.
+            {t("shortfall.capsule", { days: coveredDays })}
           </div>
           <div className="mt-[15px] flex gap-2">
             {[
-              [String(pieceCount), "Pieces"],
-              [String(coveredDays), "Days"],
-              [String(totalDays - coveredDays), "Uncovered"],
+              [String(pieceCount), t("pieces")],
+              [String(coveredDays), t("days")],
+              [String(uncovered), t("uncovered")],
             ].map(([value, label]) => (
               <div
                 key={label}
@@ -94,7 +110,7 @@ export function Shortfall({
           </div>
         </div>
 
-        <WhyQuote name={`${coveredDays} of ${totalDays} days`} why={why} />
+        <LookWhy name={t("shortfall.whyName", { covered: coveredDays, total: totalDays })} text={lookText} fallbackWhy={why} />
       </div>
 
       <div className="sticky bottom-0 z-30 flex gap-3 bg-gradient-to-t from-canvas from-60% to-transparent px-[22px] pb-[calc(env(safe-area-inset-bottom)+14px)] pt-[14px]">
@@ -102,17 +118,4 @@ export function Shortfall({
       </div>
     </div>
   );
-}
-
-/** Plain language, naming the shape of the gap rather than counting failures. */
-export function describeGaps(gaps: Gap[], uncovered: number): string {
-  if (gaps.length === 0) return `${uncovered} days have nothing that fits.`;
-  const names = gaps.map((g) => g.occasion);
-  const list =
-    names.length === 1
-      ? names[0]
-      : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
-  return `You have nothing that works for ${list} — ${uncovered} day${
-    uncovered === 1 ? "" : "s"
-  } of this trip can't be dressed from your closet.`;
 }

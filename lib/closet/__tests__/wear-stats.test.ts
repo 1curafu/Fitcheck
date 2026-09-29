@@ -47,3 +47,9 @@ test("a wear across a DST boundary is still counted in whole days", () => {
 test("a wear dated ahead of today reads as Today rather than a negative count", () => {
   expect(itemWearStats([{ worn_on: "2026-07-25" }], null, "2026-07-24").lastWorn).toBe("Today");
 });
+
+test("last worn follows Ukrainian rather than English", () => {
+  expect(itemWearStats([], null, "2026-07-24", "uk", "Ніколи").lastWorn).toBe("Ніколи");
+  expect(itemWearStats([{ worn_on: "2026-07-23" }], null, "2026-07-24", "uk").lastWorn).toBe("Учора");
+  expect(itemWearStats([{ worn_on: "2026-07-14" }], null, "2026-07-24", "uk").lastWorn).toBe("10 днів тому");
+});

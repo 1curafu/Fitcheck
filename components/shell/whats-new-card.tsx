@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
@@ -33,11 +34,12 @@ export function WhatsNewCard({
   release: ReleaseNote;
   onDismiss: () => void;
 }) {
+  const t = useTranslations("shell.whatsNew");
   const [open, setOpen] = useState(false);
   const line = "flex gap-2 text-[13px] leading-[1.4] text-muted-foreground";
 
   return (
-    <Surface role="group" aria-label="What's new in Fitcheck" className="mx-4 px-4 py-3">
+    <Surface role="group" aria-label={t("label")} className="mx-4 px-4 py-3">
       <div className="flex items-center justify-between gap-3">
         <button
           type="button"
@@ -47,7 +49,7 @@ export function WhatsNewCard({
           className="flex min-h-[44px] flex-1 items-center gap-2 text-left"
         >
           <span className="flex-1">
-            <Kicker>New in Fitcheck</Kicker>
+            <Kicker>{t("kicker")}</Kicker>
             <span className="mt-0.5 block font-serif text-[15.5px] leading-[1.3] text-foreground">
               {release.headline}
             </span>
@@ -73,7 +75,7 @@ export function WhatsNewCard({
         <button
           type="button"
           onClick={onDismiss}
-          aria-label="Dismiss what's new"
+          aria-label={t("dismiss")}
           className="-mr-1 min-h-[44px] min-w-[44px] shrink-0 text-[17px] text-muted-foreground"
         >
           ✕
@@ -83,12 +85,12 @@ export function WhatsNewCard({
       {open && (
         <div id="whats-new-detail" className="mt-3 flex flex-col gap-3">
           {release.added.length > 0 && (
-            <Section title="New" items={release.added} marker="+" markerClass="text-foreground" lineClass={line} />
+            <Section title={t("new")} items={release.added} marker="+" markerClass="text-foreground" lineClass={line} />
           )}
           {release.fixed.length > 0 && (
             // A repair is marked differently from an addition but not shouted —
             // it is reassurance, not a headline.
-            <Section title="Fixed" items={release.fixed} marker="·" markerClass="text-muted-dim" lineClass={line} />
+            <Section title={t("fixed")} items={release.fixed} marker="·" markerClass="text-muted-dim" lineClass={line} />
           )}
         </div>
       )}

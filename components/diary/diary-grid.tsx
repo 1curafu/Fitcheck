@@ -1,10 +1,12 @@
-import Link from "next/link";
+"use client";
+
+import { useLocale, useTranslations } from "next-intl";
+import { Link } from "@/lib/i18n/navigation";
 import type { CSSProperties } from "react";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import type { Cell, DiaryPiece } from "@/lib/diary/month";
-
-/** Monday-first, matching `buildMonth`'s leading pad. */
-const DOWS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+import { intlLocale, weekStartsOn } from "@/lib/i18n/format";
+import type { ShippedLocale } from "@/lib/i18n/locales";
 
 function Flame() {
   return (
@@ -15,9 +17,9 @@ function Flame() {
 }
 
 /** `2026-07-09` → `9 July` — the cell's accessible name. */
-function dayLabel(key: string): string {
+function dayLabel(key: string, locale: ShippedLocale): string {
   const [y, m, d] = key.split("-").map(Number);
-  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", timeZone: "UTC" }).format(
+  return new Intl.DateTimeFormat(intlLocale(locale), { day: "numeric", month: "long", timeZone: "UTC" }).format(
     new Date(Date.UTC(y, m - 1, d)),
   );
 }
@@ -63,6 +65,7 @@ function Thumbnail({ pieces }: { pieces: DiaryPiece[] }) {
 }
 
 function DayCell({ cell }: { cell: Cell }) {
+  const locale = useLocale();
   if (!cell.inMonth) return <div aria-hidden="true" />;
 
   const worn = Boolean(cell.log);
@@ -120,7 +123,7 @@ function DayCell({ cell }: { cell: Cell }) {
     return (
       <Link
         href={`/outfits/${cell.log.outfitId}`}
-        aria-label={dayLabel(cell.key)}
+        aria-label={dayLabel(cell.key, locale)}
         data-testid={`cell-${cell.key}`}
         className={shell}
       >
@@ -153,6 +156,10 @@ export function DiaryGrid({
   prevHref: string;
   nextHref: string;
 }) {
+  const t = useTranslations("diary");
+  const locale = useLocale();
+  const start = weekStartsOn(locale);
+  const weekday = new Intl.DateTimeFormat(intlLocale(locale), { weekday: "narrow", timeZone: "UTC" });
   const hasWears = cells.some((c) => c.log);
 
   return (
@@ -163,7 +170,7 @@ export function DiaryGrid({
             <div className="flex items-center gap-2">
               <Link
                 href={prevHref}
-                aria-label="Previous month"
+                aria-label={t("previousMonth")}
                 className="grid size-6 shrink-0 place-items-center rounded-full text-muted-dim"
               >
                 ‹
@@ -171,13 +178,13 @@ export function DiaryGrid({
               <Kicker className="truncate">{monthLabel}</Kicker>
               <Link
                 href={nextHref}
-                aria-label="Next month"
+                aria-label={t("nextMonth")}
                 className="grid size-6 shrink-0 place-items-center rounded-full text-muted-dim"
               >
                 ›
               </Link>
             </div>
-            <h1 className="mt-1 font-serif text-[34px]/[1] text-foreground">Fit Diary</h1>
+            <h1 className="mt-1 font-serif text-[34px]/[1] text-foreground">{t("title")}</h1>
           </div>
 
           {/* Hidden at zero: "0 days" congratulates you on nothing. */}
@@ -190,7 +197,7 @@ export function DiaryGrid({
               <div>
                 <span className="font-serif text-[18px] text-foreground">{streak}</span>
                 <span className="ml-1 text-[11px] text-muted-foreground">
-                  {streak === 1 ? "day" : "days"}
+                  {t("streakDays", { n: streak })}
                 </span>
               </div>
             </div>
@@ -203,8 +210,8 @@ export function DiaryGrid({
           data-testid="weekday-header"
           className="mb-2 grid grid-cols-7 gap-[7px] text-center text-[10px] uppercase tracking-[0.1em] text-muted-dim"
         >
-          {DOWS.map((d) => (
-            <div key={d}>{d}</div>
+          {Array.from({ length: 7 }, (_, offset) => (
+            <div key={offset}>{weekday.format(new Date(Date.UTC(2026, 0, 4 + start + offset)))}</div>
           ))}
         </div>
 
@@ -217,7 +224,7 @@ export function DiaryGrid({
         {!hasWears && (
           <div className="mt-[22px] flex items-center gap-[14px] rounded-[14px] bg-surface-1 px-[18px] py-4 shadow-[inset_0_0_0_1px_var(--hairline-2)]">
             <p className="font-serif text-[16px]/[1.4] italic text-muted-foreground text-pretty">
-              Wear a look from today&rsquo;s set and it lands here.
+              {t("empty")}
             </p>
           </div>
         )}

@@ -1,3 +1,5 @@
+import type { MessageKey } from "@/lib/i18n/keys";
+
 export type Tier = "free" | "pro";
 
 /** The three things that spend a model request. See docs/MONETISATION.md §2. */
@@ -94,7 +96,8 @@ export type GenerationCheck = {
   allowed: boolean;
   /** null = unlimited. Only meaningful for a metered kind. */
   remaining: number | null;
-  reason?: string;
+  reason?: MessageKey;
+  values?: { limit: number };
 };
 
 /**
@@ -120,7 +123,7 @@ export function checkGeneration(
       : {
           allowed: false,
           remaining: 0,
-          reason: "Building a look around a piece is a Pro feature.",
+          reason: "item.style.proReason",
         };
   }
 
@@ -131,7 +134,8 @@ export function checkGeneration(
     : {
         allowed: false,
         remaining: 0,
-        reason: `That's your ${e.regeneratesPerDay} rerolls for today. Pro rerolls without limit.`,
+        reason: "errors.regenerateLimit",
+        values: { limit: e.regeneratesPerDay },
       };
 }
 
@@ -149,6 +153,7 @@ export function checkCloset(e: Entitlements, held: number): GenerationCheck {
     : {
         allowed: false,
         remaining: 0,
-        reason: `A free closet holds ${e.closetItems} pieces. Pro is unlimited — or archive something you no longer wear.`,
+        reason: "errors.closetFull",
+        values: { limit: e.closetItems },
       };
 }

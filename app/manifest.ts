@@ -6,6 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Fitcheck",
     description: "Your AI stylist. Daily looks from the clothes you already own.",
     start_url: "/",
+    lang: "en-US",
     display: "standalone",
     background_color: "#0E0E10",
     theme_color: "#0E0E10",

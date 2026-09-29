@@ -1,5 +1,18 @@
-import { PROMPT } from "../tagging-prompt";
+import { PROMPT, taggingPrompt } from "../tagging-prompt";
+import { LOCALES } from "@/lib/i18n/locales";
+import { outputLanguage } from "../output-locale";
 import { BRANDING, FITS, LENGTHS, BULKS, DISTRESSING } from "../tagging-schema";
+
+test.each(LOCALES)("%s localizes only suggested_name", locale => {
+  const prompt = taggingPrompt(locale);
+  expect(prompt).toContain(PROMPT);
+  expect(prompt).toContain("All tag values, including subcategory, must remain English");
+  expect(prompt).toContain(`Write only suggested_name in ${outputLanguage(locale)}`);
+  expect(prompt).toContain("80 characters");
+});
+test("default tagging output remains American English", () => {
+  expect(taggingPrompt()).toContain("American English");
+});
 
 test("the prompt no longer instructs the model to discard logos", () => {
   expect(PROMPT).not.toContain("Ignore small logos");

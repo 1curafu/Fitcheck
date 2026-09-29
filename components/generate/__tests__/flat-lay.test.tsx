@@ -15,6 +15,8 @@ const piece = (over: Partial<LookPiece>): LookPiece => ({
 });
 
 const look: Look = {
+  textSource: { id: "o1", sourceLocale: "en-US", name: "The Camel", why: "why" },
+  textLocale: "en-US", textTranslated: false,
   id: "o1",
   name: "The Camel",
   why: "why",

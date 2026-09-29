@@ -1,3 +1,6 @@
+import { SHORT_MONTHS, dayMonth } from "@/lib/i18n/format";
+import type { Locale } from "@/lib/i18n/locales";
+
 /** Pure share helpers used by BOTH the browser card and the server snapshot, so their numbering can never drift. */
 
 export type SnapshotPiece = { n: number; name: string; category: string; brand: string | null };
@@ -16,7 +19,6 @@ export function clipText(text: string, max: number): string {
 }
 
 const READING_ORDER: Record<string, number> = { Outerwear: 0, "One-piece": 1, Tops: 1, Bottoms: 2, Shoes: 3 };
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const TOKEN = /^[A-Za-z0-9_-]{22}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -40,11 +42,15 @@ export function pieceLabel(p: { name: string; brand: string | null }): string {
 }
 
 /** Fixed month names: Intl disagrees between Node ("Sept") and Safari ("Sep"). */
-export function shareKicker(occasion: string, isoDate: string | null): string {
+export function shareKicker(occasion: string, isoDate: string | null, locale: Locale = "en-GB"): string {
   const parts: string[] = [];
   if (occasion) parts.push(occasion.charAt(0).toUpperCase() + occasion.slice(1));
   const m = isoDate?.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (m) parts.push(`${Number(m[3])} ${MONTHS[Number(m[2]) - 1]}`);
+  if (m) {
+    const day = Number(m[3]);
+    const month = SHORT_MONTHS[locale][Number(m[2]) - 1];
+    parts.push(dayMonth(day, month, locale));
+  }
   return parts.join(" · ");
 }
 

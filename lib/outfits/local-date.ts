@@ -3,7 +3,8 @@
  *
  * This is the key of the daily look set. It must be LOCAL: keyed on the UTC
  * date, the drop would roll over mid-evening for eastern users and mid-morning
- * for western ones. `en-CA` is used purely because it formats as YYYY-MM-DD.
+ * for western ones. `en-CA` is used purely because it formats as YYYY-MM-DD;
+ * this Intl call computes a storage key, not a display string.
  */
 export function localDateFor(now: Date, timeZone: string): string {
   try {

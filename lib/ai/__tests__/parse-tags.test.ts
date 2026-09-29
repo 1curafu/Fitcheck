@@ -22,6 +22,20 @@ test("parseTagText returns validated tags", () => {
   expect(parseTagText(valid).category).toBe("Bottoms");
 });
 
+test("a localized suggestion is response-only while English tags remain exact", () => {
+  const parsed = parseTaggingResponse(JSON.stringify({ ...JSON.parse(valid), suggested_name: "  Бежеві чиноси  " }));
+  expect(parsed.suggestedName).toBe("Бежеві чиноси");
+  expect(parsed.tags.subcategory).toBe("chinos");
+  expect(parsed.tags).not.toHaveProperty("suggested_name");
+  expect(tagsToItemRow({ userId: "u1", imageUrl: "a.jpg", cutoutUrl: null, tags: parsed.tags })).not.toHaveProperty("suggested_name");
+});
+test("legacy responses without a suggestion keep the existing fallback", () => {
+  expect(parseTaggingResponse(valid).suggestedName).toBeNull();
+});
+test.each([null, 12, " ", "x".repeat(81)])("malformed suggestion %j fails closed", suggested_name => {
+  expect(() => parseTaggingResponse(JSON.stringify({ ...JSON.parse(valid), suggested_name }))).toThrow();
+});
+
 test("parseTagText throws on non-JSON", () => {
   expect(() => parseTagText("sorry, here are the tags:")).toThrow();
 });

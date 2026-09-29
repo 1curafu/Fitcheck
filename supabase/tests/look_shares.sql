@@ -1,7 +1,7 @@
 -- E (spec 2026-09-26-share-a-look-design.md §0 A1/A4/A5): owner-only rows, token minted by the database, a 30-day
 -- public read by exact token, and a bucket writable only at shares/<own token>/{story,post,og}.jpg.
 begin;
-select plan(35);
+select plan(40);
 
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -125,11 +125,27 @@ select ok((select abs(extract(epoch from ready_at - clock_timestamp())) < 10
   'a client cannot set a future expiry timestamp');
 reset role;
 
+-- Failed Storage cleanup leaves a claimed snapshot. Foreign-key detachment must still allow a reroll.
+update public.look_shares set purging_at = now() where outfit_id = '88888888-8888-4888-8888-888888888888';
+select throws_ok($$ update public.look_shares set outfit_id = null, ready_at = now()
+  where outfit_id = '88888888-8888-4888-8888-888888888888' $$, 'P0001', 'share is being purged',
+  'detachment cannot disguise a publish update');
+select throws_ok($$ update public.look_shares set outfit_id = null, purging_at = null
+  where outfit_id = '88888888-8888-4888-8888-888888888888' $$, 'P0001', 'share is being purged',
+  'detachment cannot disguise clearing the purge claim');
+select lives_ok($$ delete from public.outfits where id = '88888888-8888-4888-8888-888888888888' $$,
+  'a claimed share cannot block deleting its outfit');
+select is((select count(*)::int from public.look_shares where look_name = repeat('l', 120) and outfit_id is null
+  and purging_at is not null), 1, 'detachment preserves the claimed snapshot');
+
 -- The cap: the 101st row for one user is refused.
 insert into public.look_shares (user_id, look_name, pieces)
   select '66666666-6666-4666-8666-666666666666', 'filler', '[{"n":1}]' from generate_series(1, 99);
 select throws_ok($$ insert into public.look_shares (user_id, look_name, pieces)
   values ('66666666-6666-4666-8666-666666666666', 'over', '[{"n":1}]') $$, 'P0001', 'share cap reached', 'a user holds at most 100 shares');
+
+select lives_ok($$ delete from auth.users where id = '55555555-5555-4555-8555-555555555555' $$,
+  'claimed shares cannot block account deletion');
 
 select * from finish();
 rollback;

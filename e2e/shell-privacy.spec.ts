@@ -1,5 +1,6 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { randomUUID } from "node:crypto";
 import { test, expect } from "@playwright/test";
 import { admin, testUserId } from "./helpers";
 
@@ -23,6 +24,17 @@ import { admin, testUserId } from "./helpers";
  */
 
 const ROUTES = ["/closet", "/closet/removed", "/generate", "/stats", "/profile", "/calendar", "/settings", "/l/AAAAAAAAAAAAAAAAAAAAAA"];
+const privateOutfitId = randomUUID();
+const originalMarker = "Private shell original prose";
+const translatedMarker = "Private shell translated prose";
+test.beforeAll(async () => {
+  const db=admin(), userId=await testUserId();
+  const original=await db.from("outfits").insert({id:privateOutfitId,user_id:userId,look_name:originalMarker,ai_reasoning:"Private original explanation",text_locale:"en-US",occasion:"everyday"});
+  expect(original.error).toBeNull();
+  const translated=await db.from("outfit_text_translations").insert({outfit_id:privateOutfitId,user_id:userId,target_locale:"uk",source_locale:"en-US",source_name:originalMarker,source_why:"Private original explanation",name:translatedMarker,why:"Private translated explanation",status:"ready"});
+  expect(translated.error).toBeNull();
+});
+test.afterAll(async () => {const removed=await admin().from("outfits").delete().eq("id",privateOutfitId);expect(removed.error).toBeNull();});
 
 /** Strings that exist ONLY because a specific user owns specific things. */
 async function privateStrings(): Promise<string[]> {
@@ -30,18 +42,25 @@ async function privateStrings(): Promise<string[]> {
   const userId = await testUserId();
 
   const { data: items } = await db.from("items").select("name").eq("user_id", userId);
+  const { data: outfits } = await db.from("outfits").select("look_name,ai_reasoning").eq("user_id", userId);
+  const { data: texts } = await db.from("outfit_text_translations").select("name,why").eq("user_id", userId);
   const { data: profile } = await db
     .from("profiles")
-    .select("display_name, archetype, location_label")
+    .select("display_name, location_label")
     .eq("id", userId)
     .single();
 
-  return [
+  const secrets = [
     ...(items ?? []).map((i) => i.name as string),
+    ...(outfits ?? []).flatMap(row => [row.look_name, row.ai_reasoning]),
+    ...(texts ?? []).flatMap(row => [row.name, row.why]),
     profile?.display_name,
-    profile?.archetype,
+    // Archetype options/keys are public catalogue data, so their raw strings cannot prove a leak.
+    // Account identity, unique item names and saved location remain private markers.
     profile?.location_label,
   ].filter((s): s is string => typeof s === "string" && s.length > 2);
+  expect(secrets).toEqual(expect.arrayContaining([originalMarker,translatedMarker]));
+  return secrets;
 }
 
 test("no route's unauthenticated response contains another user's data", async ({ playwright }) => {
@@ -61,7 +80,7 @@ test("no route's unauthenticated response contains another user's data", async (
     baseURL: process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000",
   });
 
-  for (const route of ROUTES) {
+  for (const route of ["", "/uk"].flatMap(prefix => ROUTES.map(route => prefix + route))) {
     const response = await api.get(route, { maxRedirects: 0 });
     const html = await response.text();
 
@@ -105,7 +124,11 @@ test("no PRERENDERED shell contains user data", async () => {
    * because those files ARE what gets served.
    */
   const secrets = await privateStrings();
-  const files = shellArtefacts();
+  const files = ["en-US", "uk"].flatMap(locale => {
+    const shells = shellArtefacts(`.next/server/app/${locale}`);
+    expect(shells.length, `${locale} has no shells — did the build run?`).toBeGreaterThan(0);
+    return shells;
+  });
   expect(files.length, "no prerendered artefacts — did the build run?").toBeGreaterThan(0);
 
   for (const file of files) {

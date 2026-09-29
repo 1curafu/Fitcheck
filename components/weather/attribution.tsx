@@ -1,3 +1,6 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 /**
@@ -25,9 +28,10 @@ import { cn } from "@/lib/utils";
  * NOT used, because a licence credit is not a wayfinding label.
  */
 export function WeatherAttribution({ className }: { className?: string }) {
+  const t = useTranslations("weather");
   return (
     <p className={cn("text-[11px] leading-[1.4] text-muted-foreground", className)}>
-      Weather data © OpenWeather
+      {t("attribution")}
     </p>
   );
 }

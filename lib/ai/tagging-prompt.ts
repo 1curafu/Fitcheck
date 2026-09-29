@@ -1,3 +1,6 @@
+import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/locales";
+import { outputLanguage } from "./output-locale";
+
 export const PROMPT = `You are an expert menswear cataloguer. Tag the SINGLE item in the photo — a \
 garment, a pair of shoes, or an accessory. Its background may be removed. Judge only from what \
 is visible and fill every field.
@@ -60,3 +63,9 @@ rotation — degrees CLOCKWISE to turn the photo so the item is upright as it is
 carried: 0, 90, 180 or 270. Upright means collar, waistband, hood or bag opening at the top and \
 shoes standing on their soles. Items laid flat lengthways — a belt, a chain, a tie, a scarf, a \
 watch strap — are upright at 0 when they run left to right. Answer 0 when unsure.`;
+
+export function taggingPrompt(locale: Locale = DEFAULT_LOCALE): string {
+  return PROMPT + "\nAll tag values, including subcategory, must remain English. " +
+    `Write only suggested_name in ${outputLanguage(locale)}; use at most 80 characters. ` +
+    "Suggest a short, natural garment name based on the visible piece. Preserve brand names exactly.";
+}

@@ -1,6 +1,7 @@
 import type Stripe from "stripe";
 import { buildCheckoutParams, type CheckoutParams } from "./checkout-params";
 import type { SubscriptionLike } from "./status";
+import type { PortalLocale } from "./locale";
 
 /** Every Stripe call Fitcheck makes. Logic depends on this interface, so tests use a fake and never the SDK. */
 export interface StripeGateway {
@@ -12,7 +13,7 @@ export interface StripeGateway {
   retrieveCheckoutSession(id: string): Promise<{ clientReferenceId: string | null; customerId: string | null }>;
   listSubscriptions(customerId: string): Promise<SubscriptionLike[]>;
   cancelSubscriptionNow(subscriptionId: string): Promise<void>;
-  createPortalSession(customerId: string, returnUrl: string): Promise<{ url: string }>;
+  createPortalSession(customerId: string, returnUrl: string, locale: PortalLocale): Promise<{ url: string }>;
 }
 
 const idOf = (v: string | { id: string } | null | undefined): string | null =>
@@ -58,8 +59,8 @@ export function createStripeGateway(stripe: Stripe): StripeGateway {
     async cancelSubscriptionNow(subscriptionId) {
       await stripe.subscriptions.cancel(subscriptionId);
     },
-    async createPortalSession(customerId, returnUrl) {
-      const session = await stripe.billingPortal.sessions.create({ customer: customerId, return_url: returnUrl });
+    async createPortalSession(customerId, returnUrl, locale) {
+      const session = await stripe.billingPortal.sessions.create({ customer: customerId, return_url: returnUrl, locale });
       return { url: session.url };
     },
   };
@@ -75,10 +76,18 @@ export function createStubGateway(): StripeGateway {
     createCustomer: async ({ userId }) => `cus_stub_${userId.slice(0, 8)}`,
     customerEmail: async () => null,
     updateCustomerEmail: async () => {},
-    createCheckoutSession: async () => ({ url: "/profile?pro=stub-checkout" }),
+    createCheckoutSession: async (params) => {
+      const url = new URL(params.cancelUrl);
+      url.searchParams.set("pro", "stub-checkout");
+      return { url: url.toString() };
+    },
     retrieveCheckoutSession: async () => ({ clientReferenceId: null, customerId: null }),
     listSubscriptions: async () => [],
     cancelSubscriptionNow: async () => {},
-    createPortalSession: async () => ({ url: "/profile?pro=stub-portal" }),
+    createPortalSession: async (_customerId, returnUrl) => {
+      const url = new URL(returnUrl);
+      url.searchParams.set("pro", "stub-portal");
+      return { url: url.toString() };
+    },
   };
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { UpgradeSheet } from "@/components/billing/upgrade-sheet";
 import { useStyleWithItem } from "./use-style-with-item";
 
@@ -21,6 +23,7 @@ import { useStyleWithItem } from "./use-style-with-item";
  * that look, where the regenerate control is.
  */
 export function StyleCta({ itemId }: { itemId: string }) {
+  const t = useTranslations("item.style");
   const { run, pending, message, upgrade, dismissUpgrade } = useStyleWithItem(itemId);
 
   return (
@@ -31,7 +34,7 @@ export function StyleCta({ itemId }: { itemId: string }) {
         onClick={() => run(false)}
         className="min-h-[54px] w-full rounded-[14px] bg-foreground text-[15.5px] font-semibold text-canvas disabled:opacity-70"
       >
-        {pending ? "Styling…" : "Style an outfit with this"}
+        {pending ? t("styling") : t("button")}
       </button>
 
       {message && (
@@ -42,7 +45,7 @@ export function StyleCta({ itemId }: { itemId: string }) {
 
       <UpgradeSheet
         open={Boolean(upgrade)}
-        title="Style a look around any piece"
+        title={t("upgradeTitle")}
         body={upgrade ?? ""}
         onClose={dismissUpgrade}
       />

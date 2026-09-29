@@ -50,6 +50,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { fileURLToPath } from "node:url";
 import { tagItem } from "@/lib/ai/tag-item";
+import { DEFAULT_LOCALE } from "@/lib/i18n/locales";
 
 const COST_PER_ITEM = 0.002;
 
@@ -109,7 +110,8 @@ export async function backfillItem(
     if (dlError || !blob) return "failed";
 
     const buf = Buffer.from(await blob.arrayBuffer());
-    const { tags } = await tagItem(buf.toString("base64"), mediaTypeFor(item.cutout_url));
+    // Suggestions belong to new capture drafts; backfill preserves existing user names.
+    const { tags } = await tagItem(buf.toString("base64"), mediaTypeFor(item.cutout_url), DEFAULT_LOCALE);
     onBilled?.(); // the API call succeeded here — this item is billed regardless of what happens next
 
     // ⚠️ `fit` is intentionally absent from this object — see file header.

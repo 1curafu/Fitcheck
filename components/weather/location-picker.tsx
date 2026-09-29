@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { regionLabel, type City } from "@/lib/weather/geocode";
 import { WeatherAttribution } from "./attribution";
@@ -43,6 +44,7 @@ export function LocationPicker({
   variant?: "overlay" | "bare";
   className?: string;
 }) {
+  const t = useTranslations("weather.location");
   const bare = variant === "bare";
   const row = bare
     ? "flex min-h-11 w-full items-center px-4 py-[13px] text-left text-[14px] text-foreground"
@@ -51,7 +53,7 @@ export function LocationPicker({
     <div className={className}>
       <ul
         role="listbox"
-        aria-label="Choose a city"
+        aria-label={t("chooseCity")}
         className={cn(
           "w-full",
           bare ? "overflow-hidden" : cn("rounded-[12px] border bg-surface-3 p-1.5", HAIR2),
@@ -77,14 +79,14 @@ export function LocationPicker({
                 <circle cx="12" cy="12" r="3.2" />
                 <path d="M12 2v3.2M12 18.8V22M22 12h-3.2M5.2 12H2" strokeLinecap="round" />
               </svg>
-              Use my location
+              {t("useMyLocation")}
             </button>
           </li>
         )}
         <li className={bare ? undefined : "p-1"}>
           <input
-            aria-label="Search a city"
-            placeholder="Search a city…"
+            aria-label={t("searchCity")}
+            placeholder={t("searchPlaceholder")}
             onChange={(e) => onSearch(e.target.value)}
             className={cn(
               "w-full text-foreground outline-none placeholder:text-muted-dim",

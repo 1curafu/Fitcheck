@@ -1,4 +1,5 @@
-import { maxWears, REWEAR_LABELS, REWEAR_HINTS } from "../rewear";
+import { maxWears, REWEAR_LEVELS } from "../rewear";
+import enUS from "@/messages/en-US.json";
 
 describe("maxWears", () => {
   // Outerwear and shoes are worn the whole trip at any setting — nobody packs
@@ -65,6 +66,9 @@ describe("maxWears", () => {
 });
 
 test("there is one label and one hint per level", () => {
-  expect(REWEAR_LABELS).toHaveLength(5);
-  expect(REWEAR_HINTS).toHaveLength(5);
+  expect(REWEAR_LEVELS).toHaveLength(5);
+  for (const level of REWEAR_LEVELS) {
+    expect(enUS.packing.rewearLevels[level].label).toBeTruthy();
+    expect(enUS.packing.rewearLevels[level].hint).toBeTruthy();
+  }
 });

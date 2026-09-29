@@ -46,3 +46,8 @@ describe("formatTemp", () => {
     expect(formatTemp(18.6, "F")).toBe("65°");
   });
 });
+test("temperature formatting uses the requested locale while retaining unit conversion", () => {
+  expect(formatTemp(1000, "C", "uk")).toBe(new Intl.NumberFormat("uk", { maximumFractionDigits: 0 }).format(1000) + "°");
+  expect(formatTemp(20, "F", "uk")).toBe("68°");
+  expect(formatTemp(-0.1, "C", "uk")).toBe("0°");
+});

@@ -1,16 +1,18 @@
 "use client";
+import { useTranslations } from "next-intl";
 
 import { ManageSubscription } from "@/components/billing/manage-subscription";
 import type { SubscriptionSummary } from "@/lib/billing/status-line";
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { Link } from "@/lib/i18n/navigation";
 import type { Preferences } from "@/lib/profile/preferences";
 import { useLocationPicker } from "@/lib/weather/use-location-picker";
+import { LanguageButton } from "@/components/i18n/language-button";
 import { LocationSheet } from "@/components/weather/location-sheet";
 import { DeleteAccountSheet } from "./delete-account-sheet";
 import { SharedLinks } from "./shared-links";
 import type { City } from "@/lib/weather/geocode";
-import type { deleteAccount, stopSharedLink } from "@/app/settings/actions";
+import type { deleteAccount, stopSharedLink } from "@/app/[locale]/settings/actions";
 
 const CARD =
   "rounded-[14px] bg-surface-1 shadow-[inset_0_0_0_1px_var(--hairline-2)]";
@@ -129,6 +131,8 @@ export function SettingsView({
   sharedLinks: { token: string; lookName: string; readyAt: string | null; purgingAt?: string; createdAt: string }[];
   onStopSharedLinkAction: typeof stopSharedLink;
 }) {
+  const t = useTranslations("settings");
+  const tWeather = useTranslations("weather");
   const [prefs, setPrefs] = useState(preferences);
   const [location, setLocation] = useState(locationLabel);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -176,7 +180,7 @@ export function SettingsView({
       setPrefs(previous);
       setError({
         where: "prefs",
-        message: "Couldn't save that — check your connection.",
+        message: t("saveFailed"),
       });
     }
   }
@@ -193,7 +197,7 @@ export function SettingsView({
       setLocation(previous);
       setError({
         where: "location",
-        message: "Couldn't save that — check your connection.",
+        message: t("saveFailed"),
       });
     }
   }
@@ -208,12 +212,12 @@ export function SettingsView({
       <div className="flex items-center gap-3 px-[22px] screen-top">
         <Link
           href="/profile"
-          aria-label="Back"
+          aria-label={t("back")}
           className="grid size-[34px] shrink-0 place-items-center rounded-full bg-[#19181b] text-[18px] text-foreground shadow-[inset_0_0_0_1px_var(--hairline-5)]"
         >
           ‹
         </Link>
-        <h1 className="font-serif text-[30px] text-foreground">Settings</h1>
+        <h1 className="font-serif text-[30px] text-foreground">{t("title")}</h1>
       </div>
 
       <div className="flex-1 overflow-y-auto px-[22px] pb-[120px] pt-[18px]">
@@ -229,17 +233,20 @@ export function SettingsView({
           </div>
         </div>
 
-        <Kicker>Preferences</Kicker>
+        <Kicker>{t("language")}</Kicker>
+        <div className={`${CARD} px-4 py-1`}><LanguageButton /></div>
+
+        <Kicker>{t("preferences")}</Kicker>
         <div className={`${CARD} overflow-hidden`}>
           <Toggle
-            label="Rain guard"
-            desc="Never suede or canvas when it rains"
+            label={t("rainGuard")}
+            desc={t("rainGuardDescription")}
             checked={prefs.rainGuard}
             onChange={() => patch({ rainGuard: !prefs.rainGuard })}
           />
           <Toggle
-            label="Metric units"
-            desc="Temperatures in °C rather than °F"
+            label={t("metricUnits")}
+            desc={t("metricUnitsDescription")}
             checked={prefs.tempUnit === "C"}
             onChange={() =>
               patch({ tempUnit: prefs.tempUnit === "C" ? "F" : "C" })
@@ -253,45 +260,6 @@ export function SettingsView({
             {error.message}
           </p>
         )}
-
-        <Kicker>Language</Kicker>
-        <div className="flex gap-1 rounded-full bg-surface-1 p-1 shadow-[inset_0_0_0_1px_var(--hairline-3)]">
-          <button
-            type="button"
-            aria-pressed="true"
-            className="flex-1 rounded-full bg-foreground py-[10px] text-center text-[13px] font-semibold text-canvas"
-          >
-            English
-          </button>
-          {/* next-intl is deferred, so DE is rendered and disabled rather than
-              offered. Disabled — not merely styled — so it is unreachable by
-              keyboard too. */}
-          <button
-            type="button"
-            disabled
-            className="flex-1 rounded-full py-[10px] text-center text-[13px] font-semibold text-muted-dim"
-          >
-            Deutsch
-            {/* Inline geometry, NOT arbitrary-value utilities. `ml-[6px]`,
-                `text-[9.5px]` and `align-[1px]` all silently failed to resolve
-                here — the badge collapsed flush against the word, reading as
-                "DeutschSOON". Fourth occurrence of this in the project; see the
-                rule in docs/STATE.md. Its own weight too, since inheriting the
-                button's semibold made the badge compete with the label. */}
-            <span
-              className="uppercase text-faint"
-              style={{
-                marginLeft: 6,
-                fontSize: 9.5,
-                fontWeight: 400,
-                letterSpacing: "0.14em",
-                verticalAlign: 1,
-              }}
-            >
-              Soon
-            </span>
-          </button>
-        </div>
 
         {/* Opens a sheet, not an inline expansion: nesting the Stylist's
             floating picker inside this card produced a card-in-a-card, and a
@@ -307,10 +275,10 @@ export function SettingsView({
             onClick={() => setPickerOpen(true)}
             className="flex w-full items-center justify-between p-4 text-left"
           >
-            <span className="text-[14.5px] text-foreground">Location</span>
+            <span className="text-[14.5px] text-foreground">{t("location")}</span>
             <span className="flex items-center gap-2">
               <span className="text-[13.5px] text-muted-foreground">
-                {location ?? "Not set"}
+                {location === "Current location" ? tWeather("currentLocation") : location ?? t("notSet")}
               </span>
               <span aria-hidden className="text-[20px] text-muted-dim">
                 ›
@@ -344,28 +312,28 @@ export function SettingsView({
             type="submit"
             className="w-full rounded-[14px] p-4 text-center text-[14px] font-semibold text-brand shadow-[inset_0_0_0_1px_rgba(184,106,71,0.25)]"
           >
-            Sign out
+            {t("signOut")}
           </button>
         </form>
 
         {subscription && (
           <>
-            <Kicker>Subscription</Kicker>
+            <Kicker>{t("subscription")}</Kicker>
             <div className={CARD}>
               <ManageSubscription {...subscription} />
             </div>
           </>
         )}
 
-        <Kicker>Shared links</Kicker>
+        <Kicker>{t("sharedLinks")}</Kicker>
         <p className="mb-3 text-[12.5px] text-muted-foreground">
-          Links to your looks. Each works for 30 days, or until you stop it.
+          {t("sharedLinksDescription")}
         </p>
         <div className={`${CARD} px-4`}>
           <SharedLinks links={sharedLinks} stop={onStopSharedLinkAction} />
         </div>
 
-        <Kicker>Danger zone</Kicker>
+        <Kicker>{t("dangerZone")}</Kicker>
         <div className={CARD}>
           <button
             type="button"
@@ -374,8 +342,8 @@ export function SettingsView({
             onClick={() => setDeleteOpen(true)}
             className="flex min-h-[44px] w-full items-center justify-between px-4 py-3 text-left"
           >
-            <span className="text-[14.5px] text-foreground">Delete account</span>
-            <span aria-hidden="true" className="text-[13px] text-muted-foreground">Permanent</span>
+            <span className="text-[14.5px] text-foreground">{t("deleteAccount")}</span>
+            <span aria-hidden="true" className="text-[13px] text-muted-foreground">{t("permanent")}</span>
           </button>
         </div>
 
@@ -387,9 +355,9 @@ export function SettingsView({
         />
 
         <p className="mt-6 text-center text-[11.5px] text-muted-dim">
-          <Link href="/privacy" className="text-muted-foreground underline underline-offset-2">Privacy Policy</Link>
+          <Link href="/privacy" className="text-muted-foreground underline underline-offset-2">{t("privacy")}</Link>
           {" · "}
-          <Link href="/terms" className="text-muted-foreground underline underline-offset-2">Terms of Service</Link>
+          <Link href="/terms" className="text-muted-foreground underline underline-offset-2">{t("terms")}</Link>
         </p>
       </div>
     </div>

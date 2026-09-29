@@ -9,7 +9,7 @@ vi.mock("@/lib/images/process", () => ({
   processImage: vi.fn(),
   blobToBase64: vi.fn(),
 }));
-vi.mock("@/app/closet/upload/actions", () => ({
+vi.mock("@/app/[locale]/closet/upload/actions", () => ({
   uploadAndTag: vi.fn(),
   confirmItem: vi.fn(),
 }));

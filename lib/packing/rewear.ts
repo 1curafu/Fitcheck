@@ -3,8 +3,8 @@
  *
  * ⚠️ **TOTAL wears, not re-wears.** The design comp's labels were ambiguous
  * between the two ("Never", "Once", "Up to twice" — is "Once" one wear or one
- * repeat?). These are not: `REWEAR_LABELS[1]` is "Worn twice" and `maxWears`
- * returns 2. Reconcile the comp's copy to these, not the other way round.
+ * repeat?). These are not: `REWEAR_LEVELS[1]` identifies "Worn twice" and
+ * `maxWears` returns 2. Reconcile the comp's copy to these, not the other way round.
  *
  * ⚠️ **Per-category, and that is not a refinement — it is what stops the output
  * being absurd.** A flat "wear everything twice" on a 7-day trip asks for ~4
@@ -16,22 +16,7 @@
 const ALWAYS_REWEARABLE = new Set(["Outerwear", "Shoes", "Bags", "Accessories"]);
 
 /** Meter positions 1–5, in the plain language the labelled meter requires. */
-export const REWEAR_LABELS = [
-  "Fresh every day",
-  "Worn twice",
-  "Worn three times",
-  "Worn four times",
-  "As often as it works",
-] as const;
-
-/** One line per level explaining the trade the user is making. */
-export const REWEAR_HINTS = [
-  "Every day gets fresh clothes. Expect the largest suitcase.",
-  "One repeat per piece — a middle path for shorter trips.",
-  "The sweet spot: a week out of nine pieces, nothing worn tired.",
-  "A lighter bag. Bottoms and knitwear carry most of the repeats.",
-  "The smallest possible case. Two shirts and one trouser do the week.",
-] as const;
+export const REWEAR_LEVELS = ["1", "2", "3", "4", "5"] as const;
 
 export function maxWears(category: string, level: number, tripDays: number): number {
   // Clamped rather than validated: the level arrives from a meter position

@@ -1,7 +1,9 @@
 "use client";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/lib/i18n/navigation";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+
 import { useCapture } from "./use-capture";
 import { Viewfinder } from "./viewfinder";
 import { ConfirmForm } from "./confirm-form";
@@ -10,6 +12,7 @@ import { ProgressStrip, type SavedSlotImage } from "./progress-strip";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 
 export function CaptureFlow() {
+  const t = useTranslations("capture");
   const router = useRouter();
   const [savedImages, setSavedImages] = useState<SavedSlotImage[]>([]);
   const localUrlsRef = useRef(new Set<string>());
@@ -62,29 +65,29 @@ export function CaptureFlow() {
             onToggleSeason={cap.toggleSeason}
             onSave={cap.save}
             onRetake={cap.batch ? cap.skip : cap.discard}
-            rejectLabel={cap.batch ? "Skip photo" : "Retake"}
+            rejectMode={cap.batch ? "skip" : "retake"}
             onRotate={cap.rotate}
           />
         </>
       ) : cap.batch ? (
         <>
-          <Kicker className="mb-[10px] block">Add a piece</Kicker>
-          <h1 className="font-serif text-3xl/[1.12] text-foreground">Review your pieces.</h1>
+          <Kicker className="mb-[10px] block">{t("addPiece")}</Kicker>
+          <h1 className="font-serif text-3xl/[1.12] text-foreground">{t("reviewPieces")}</h1>
           <ProgressStrip filled={savedImages.length} images={savedImages} total={cap.batch.total} />
           {batchStatus}
           {!cap.batch.stopped && cap.batch.currentStage !== "failed" && (
             <div className="surface-stage relative flex aspect-[1.3] items-center justify-center rounded-[18px]">
-              <p className="text-sm text-muted-foreground" aria-live="polite">Preparing this photo…</p>
+              <p className="text-sm text-muted-foreground" aria-live="polite">{t("preparingPhoto")}</p>
             </div>
           )}
         </>
       ) : (
         <>
-          <Kicker className="mb-[10px] block">Add a piece</Kicker>
-          <h1 className="mb-6 font-serif text-3xl/[1.12] text-foreground">Capture an item.</h1>
+          <Kicker className="mb-[10px] block">{t("addPiece")}</Kicker>
+          <h1 className="mb-6 font-serif text-3xl/[1.12] text-foreground">{t("captureItemTitle")}</h1>
           <Viewfinder busy={cap.phase === "removing"} onFile={cap.capture} onMany={startBatch} />
           <p className="mt-6 text-sm text-muted-foreground">
-            Snap each piece on a flat surface that contrasts with it — dark clothes on a pale floor. We cut it out and learn its colour, fabric and formality.
+            {t("instructions")}
           </p>
           {cap.error && <p className="mt-4 text-sm text-brand">{cap.error}</p>}
         </>

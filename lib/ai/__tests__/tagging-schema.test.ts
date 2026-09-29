@@ -218,3 +218,10 @@ test("the model is asked for rotation, as an enum of numbers", () => {
   expect(props.rotation).toEqual({ type: "number", enum: [0, 90, 180, 270] });
   expect((taggingJsonSchema as { required: string[] }).required).toContain("rotation");
 });
+
+test("the model is asked for a response-only suggested name", () => {
+  expect((taggingJsonSchema as { required: string[] }).required).toContain("suggested_name");
+  const props = (taggingJsonSchema as { properties: Record<string, unknown> }).properties;
+  expect(props.suggested_name).toMatchObject({ type: "string" });
+  expect(TagSchema.shape).not.toHaveProperty("suggested_name");
+});
