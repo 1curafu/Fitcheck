@@ -2,15 +2,28 @@ import { NextResponse, type NextRequest } from "next/server";
 import createIntlMiddleware from "next-intl/middleware";
 import { routing } from "@/lib/i18n/routing";
 import { refreshSession } from "@/lib/supabase/proxy";
+import { LOCALE_PREFIXES } from "@/lib/i18n/locales";
 
 const intl = createIntlMiddleware(routing);
 /** Never localized: handlers, callbacks and the billing return keep one URL for every language. */
 const LOCALE_FREE = /^\/(auth|api|billing\/return)(\/|$)/;
+/** The public landing in every locale: "/", "/uk", "/en-gb", … (a trailing slash tolerated). */
+const LANDING = new RegExp(`^(${Object.values(LOCALE_PREFIXES).filter(Boolean).join("|")})?/?$`);
 
 // Next.js 16 "proxy" convention (formerly middleware.ts).
 export async function proxy(request: NextRequest) {
-  const refreshed = await refreshSession(request);
-  const response = LOCALE_FREE.test(request.nextUrl.pathname) ? NextResponse.next({ request }) : intl(request);
+  const { cookies: refreshed, signedIn } = await refreshSession(request);
+  const { pathname } = request.nextUrl;
+  let response = LOCALE_FREE.test(pathname) ? NextResponse.next({ request }) : intl(request);
+  // The landing is for visitors. A signed-in launch (the installed app opens "/") goes straight into the app from
+  // here, so it never paints the marketing page first — the in-page SignedInRedirect streams too late for that
+  // (~150 ms of landing, measured). Locale routing wins first: if next-intl already redirects, that stands.
+  // Routing only: /onboarding re-checks the session itself and forwards onboarded users to /closet.
+  if (signedIn && (request.method === "GET" || request.method === "HEAD") && LANDING.test(pathname)
+    && !response.headers.get("location")) {
+    // A plain URL, not nextUrl.clone(): NextURL re-appends the original trailing slash ("/de/" → "/de/onboarding/").
+    response = NextResponse.redirect(new URL(`${pathname.replace(/\/$/, "")}/onboarding`, request.url));
+  }
   refreshed.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
   return response;
 }

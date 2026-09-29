@@ -68,6 +68,12 @@ test.describe("landing, signed in", () => {
     await expect(page).toHaveURL(/\/onboarding$/);
   });
 
+  test("the redirect happens before any HTML: a signed-in / never paints the marketing page", async ({ page }) => {
+    const res = await page.request.get("/", { maxRedirects: 0 });
+    expect(res.status()).toBe(307);
+    expect(new URL(res.headers()["location"]!, "http://x").pathname).toBe("/onboarding");
+  });
+
   test("/sign-in also goes into the app", async ({ page }) => {
     await page.goto("/sign-in");
     await expect(page).toHaveURL(/\/onboarding$/);

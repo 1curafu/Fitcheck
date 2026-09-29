@@ -1,10 +1,10 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-const ssr = vi.hoisted(() => ({ toSet: [] as { name: string; value: string; options: object }[] }));
+const ssr = vi.hoisted(() => ({ toSet: [] as { name: string; value: string; options: object }[], user: null as { id: string } | null }));
 vi.mock("@supabase/ssr", () => ({
   createServerClient: (_u: string, _k: string, o: { cookies: { setAll: (c: typeof ssr.toSet) => void } }) => ({
-    auth: { getUser: async () => { o.cookies.setAll(ssr.toSet); return { data: { user: null } }; } },
+    auth: { getUser: async () => { o.cookies.setAll(ssr.toSet); return { data: { user: ssr.user } }; } },
   }),
 }));
 
@@ -13,7 +13,7 @@ import { config, proxy } from "@/proxy";
 const req = (path: string, headers: Record<string, string> = {}) =>
   new NextRequest(new URL(path, "https://fitcheck.space"), { headers });
 
-beforeEach(() => { ssr.toSet = []; });
+beforeEach(() => { ssr.toSet = []; ssr.user = null; });
 
 it("leaves the image model and ONNX runtime files outside locale routing", () => {
   const matcher = new RegExp(`^${config.matcher[0]}$`);
@@ -66,3 +66,33 @@ it.each(["/auth/callback?code=x", "/billing/return?session_id=x", "/api/cities?q
     expect(res.headers.get("location")).toBeNull();
     expect(res.cookies.get("sb-access-token")?.value).toBe("fresh");
   });
+
+// The landing is for visitors. A signed-in launch — the installed app opens "/" — goes straight into the app from the
+// proxy, so it never paints the marketing page first (measured ~150 ms of landing before the in-page redirect).
+it.each([["/", "/onboarding"], ["/uk", "/uk/onboarding"], ["/en-gb", "/en-gb/onboarding"], ["/de/", "/de/onboarding"]])(
+  "a signed-in visit to the landing %s goes straight to %s", async (path, destination) => {
+    ssr.user = { id: "u1" };
+    ssr.toSet = [{ name: "sb-access-token", value: "fresh", options: { path: "/" } }];
+    const res = await proxy(req(path, { "accept-language": "en-US,en;q=0.9" }));
+    expect(new URL(res.headers.get("location")!).pathname).toBe(destination);
+    expect(res.cookies.get("sb-access-token")?.value).toBe("fresh");
+  });
+
+it("a signed-out visit to the landing is served, not redirected", async () => {
+  const res = await proxy(req("/", { "accept-language": "en-US,en;q=0.9" }));
+  expect(res.headers.get("location")).toBeNull();
+});
+
+it("a signed-in visit to any other page is left to that page", async () => {
+  ssr.user = { id: "u1" };
+  for (const path of ["/closet", "/sign-in", "/privacy", "/uk/closet"]) {
+    const res = await proxy(req(path, { "accept-language": "en-US,en;q=0.9" }));
+    expect(res.headers.get("location"), path).toBeNull();
+  }
+});
+
+it("the saved language still wins first: a signed-in / with a Ukrainian choice goes to /uk", async () => {
+  ssr.user = { id: "u1" };
+  const res = await proxy(req("/", { cookie: "NEXT_LOCALE=uk" }));
+  expect(new URL(res.headers.get("location")!).pathname).toBe("/uk");
+});
