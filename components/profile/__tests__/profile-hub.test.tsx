@@ -89,7 +89,7 @@ describe("the Pro card", () => {
     render(<ProfileHub {...props} />);
     // The price follows the device's time zone (CHF/€/$); the test must pass in any zone, CI runs in UTC.
     expect(screen.getByRole("button", { name: /fitcheck pro/i })).toHaveTextContent(
-      /go pro · (CHF 5|€5|\$5) \/ month/i,
+      /go pro · (CHF 5|€5\.29|\$5\.99) \/ month/i,
     );
   });
 
@@ -100,7 +100,7 @@ describe("the Pro card", () => {
     expect(sheet).toHaveTextContent(/gap analysis/i);
     expect(sheet).toHaveTextContent(/around any piece/i);
     // The price is shown in the buyer's currency (CHF/€/$ by time zone). The design's £5 stays superseded.
-    expect(sheet).toHaveTextContent(/(CHF 5|€5|\$5) \/ month/);
+    expect(sheet).toHaveTextContent(/(CHF 5|€5\.29|\$5\.99) \/ month/);
     expect(sheet).not.toHaveTextContent(/£/);
   });
 

@@ -6,7 +6,7 @@
  * Run once against the sandbox key and once against the live key. Exits 1 on any mismatch. Read-only.
  */
 import Stripe from "stripe";
-import { DISPLAY_AMOUNTS, LOOKUP_KEYS, type Interval } from "../lib/billing/prices";
+import { centsFor, DISPLAY_AMOUNTS, LOOKUP_KEYS, type Interval } from "../lib/billing/prices";
 
 const key = process.env.STRIPE_SECRET_KEY;
 if (!key) {
@@ -32,7 +32,7 @@ async function main(): Promise<number> {
         code === price.currency
           ? { unit_amount: price.unit_amount, tax_behavior: price.tax_behavior }
           : price.currency_options?.[code];
-      const ok = option?.unit_amount === amount * 100 && option?.tax_behavior === "inclusive";
+      const ok = option?.unit_amount === centsFor(amount) && option?.tax_behavior === "inclusive";
       console.log(`${ok ? "ok " : "BAD"} ${LOOKUP_KEYS[interval]} ${currency} ${option?.unit_amount ?? "–"} ${option?.tax_behavior ?? "–"}`);
       if (!ok) bad++;
     }
