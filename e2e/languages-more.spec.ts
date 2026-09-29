@@ -26,6 +26,17 @@ test.describe("seven more languages, signed out", () => {
     });
   }
 
+  for (const [locale, width, height] of [["", 393, 852], ["fr", 393, 852], ["de", 375, 667]] as const) {
+    test(`landing keeps a clear gap between the tagline and sign-in (${locale || "en-US"} ${width}×${height})`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await page.goto(`/${locale}`);
+      const tagline = page.locator("main p.font-serif.italic").first();
+      const google = page.locator("main button").first();
+      const [t, g] = [(await tagline.boundingBox())!, (await google.boundingBox())!];
+      expect(g.y - (t.y + t.height)).toBeGreaterThanOrEqual(24);
+    });
+  }
+
   test("a Swiss German browser lands on /de", async ({ browser }) => {
     const ctx = await browser.newContext({ ...devices["iPhone 15"], locale: "de-CH" });
     try {
@@ -62,18 +73,59 @@ test.describe("seven more languages, signed in", () => {
     }
   });
 
-  test("the ten-language sheet fits a small iPhone and every language is reachable", async ({ page }) => {
-    await page.setViewportSize({ width: 375, height: 548 });
-    await page.goto("/settings");
-    await page.getByRole("button", { name: "English (US)", exact: true }).click();
-    const sheet = page.getByRole("dialog");
-    await expect(sheet.getByRole("heading")).toBeInViewport();
-    const box = await sheet.boundingBox();
-    expect(box!.y).toBeGreaterThanOrEqual(0);
-    const last = sheet.getByRole("button", { name: "Nederlands", exact: true });
+  /** The picker is a small dropdown beside its button: on screen, compact, and scrollable for all ten languages. */
+  async function expectCompactScrollableMenu(page: import("@playwright/test").Page, trigger: string, centered = false) {
+    const button = page.getByRole("button", { name: trigger, exact: true });
+    await button.scrollIntoViewIfNeeded();
+    const anchor = (await button.boundingBox())!;
+    await button.click();
+    const menu = page.getByRole("dialog");
+    const box = (await menu.boundingBox())!, height = page.viewportSize()!.height;
+    expect(box.height).toBeLessThanOrEqual(300);
+    expect(box.y).toBeGreaterThanOrEqual(0);
+    expect(box.y + box.height).toBeLessThanOrEqual(height);
+    // Anchored to its button, not a full-width sheet from the bottom edge.
+    expect(Math.min(Math.abs(box.y - (anchor.y + anchor.height)), Math.abs(box.y + box.height - anchor.y))).toBeLessThanOrEqual(12);
+    expect(box.width).toBeLessThan(page.viewportSize()!.width - 40);
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+    if (centered) expect(Math.abs(box.x + box.width / 2 - (anchor.x + anchor.width / 2))).toBeLessThanOrEqual(12);
+    expect(await menu.evaluate(el => el.scrollHeight > el.clientHeight)).toBe(true);
+    const last = menu.getByRole("button", { name: "Nederlands", exact: true });
     await last.scrollIntoViewIfNeeded();
     await expect(last).toBeInViewport();
     await page.keyboard.press("Escape");
+    await expect(menu).toHaveCount(0);
+  }
+
+  test("the language dropdown is small, anchored and scrollable on a small iPhone", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 548 });
+    await page.goto("/settings");
+    await expectCompactScrollableMenu(page, "English (US)");
+  });
+
+  for (const locale of ["pt", "es", "ru", "de"] as const) {
+    test(`${locale} occasion chips stay on one line and all four fit the screen`, async ({ page }) => {
+      await page.goto(`/${locale}/generate`);
+      const chips = page.locator("button[aria-pressed]").filter({ hasText: MORE[locale].vocab.occasion.weekend });
+      await expect(chips.first()).toBeVisible({ timeout: 30_000 });
+      const row = page.locator("button[aria-pressed]");
+      const boxes = await Promise.all((await row.all()).slice(0, 4).map(chip => chip.boundingBox()));
+      const width = page.viewportSize()!.width;
+      for (const box of boxes) {
+        expect(box!.height).toBeLessThanOrEqual(48);
+        expect(box!.x + box!.width).toBeLessThanOrEqual(width);
+      }
+    });
+  }
+
+  test("the landing dropdown opens upward from the bottom button and stays on screen", async ({ browser }) => {
+    const ctx = await browser.newContext({ ...devices["iPhone 15"], storageState: { cookies: [], origins: [] } });
+    try {
+      const page = await ctx.newPage();
+      await page.goto("/");
+      await expectCompactScrollableMenu(page, "English (US)", true);
+    } finally { await ctx.close(); }
   });
 
   test("a historical English look is shown in German and its original stays saved", async ({ page }) => {

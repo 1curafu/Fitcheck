@@ -35,7 +35,8 @@ test("all four occasions are present and the row does NOT scroll", () => {
   // Measured on a 390px iPhone, the old scrolling row put "Evening" 100%
   // off-screen — a quarter of the feature was undiscoverable. jsdom can't
   // measure layout, so guard the structure: no horizontal-scroll container,
-  // and every chip flexes to share the width.
+  // and every chip flexes to share the width, sized by its label so long
+  // translations ("Fim de semana") stay on one line.
   const { container } = render(<OccasionRow occasion="everyday" onOccasion={() => {}} />);
   for (const label of ["Everyday", "Work", "Weekend", "Evening"]) {
     expect(screen.getByRole("button", { name: label })).toBeInTheDocument();
@@ -43,7 +44,7 @@ test("all four occasions are present and the row does NOT scroll", () => {
   const row = container.firstElementChild as HTMLElement;
   expect(row.className).not.toMatch(/overflow-x-auto/);
   expect(row.className).not.toMatch(/mask-image/);
-  expect(screen.getByRole("button", { name: "Evening" }).className).toMatch(/flex-1/);
+  expect(screen.getByRole("button", { name: "Evening" }).className).toMatch(/flex-auto/);
 });
 
 test("Refine is no longer inside the occasion row (it's a header action, not a 5th occasion)", () => {

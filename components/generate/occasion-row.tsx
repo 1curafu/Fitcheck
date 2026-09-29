@@ -29,7 +29,8 @@ export function OccasionRow({
           variant="select"
           active={occasion === o}
           onClick={() => onOccasion(o)}
-          className="flex-1 px-0 text-[13px]"
+          // Width follows the label, so "Fim de semana" takes more room than "Noite" and stays on one line.
+          className="flex-auto px-2 text-[13px]"
         >
           {t(o)}
         </Chip>

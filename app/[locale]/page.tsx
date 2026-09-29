@@ -48,7 +48,8 @@ async function WelcomeBody({
   if (user) return redirect({ href: "/onboarding", locale: await getLocale() });
 
   return (
-    <main className="screen-top flex flex-1 flex-col justify-between px-7 pb-10">
+    // gap-8 keeps the tagline off the sign-in buttons when the welcome block fills the screen.
+    <main className="screen-top flex flex-1 flex-col justify-between gap-8 px-7 pb-10">
       <div className="flex flex-1 flex-col items-center justify-center text-center">
         {account === "deleted" && <AccountDeletedNotice />}
         {/* ⚠️ Deliberately ABOVE the kicker and deliberately small. The
@@ -83,7 +84,7 @@ async function WelcomeBody({
           {" "}{t("and")}{" "}
           <Link href="/privacy" className="text-muted-foreground underline underline-offset-2">{t("privacy")}</Link>.
         </p>
-        <div className="flex justify-center"><LanguageButton /></div>
+        <div className="flex justify-center"><LanguageButton align="center" /></div>
       </div>
     </main>
   );
