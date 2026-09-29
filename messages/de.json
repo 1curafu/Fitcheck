@@ -88,7 +88,7 @@
       "navySweater": "Marineblauer Rundhalspullover",
       "whiteTrousers": "Weiße Hose",
       "whiteSneakers": "Weiße Leder-Sneaker",
-      "watch": "Silberne Uhr",
+      "watch": "Silberne Armbanduhr",
       "blueShirt": "Hellblaues Hemd",
       "stoneTrousers": "Sandfarbene Hose",
       "creamSneakers": "Cremefarbene Sneaker",
@@ -110,7 +110,7 @@
           "body": "Wähle Arbeit, Alltag, Wochenende oder Abend. Fitcheck stellt drei Outfits aus deinem Schrank für die heutige Vorhersage zusammen."
         },
         "wear": {
-          "title": "Speichern oder tragen",
+          "title": "Speichern oder als getragen markieren",
           "body": "Behalte die Looks, die dir gefallen, und markiere den, den du trägst. Er landet in deinem Tagebuch, sodass du siehst, wozu du wirklich greifst."
         }
       },
@@ -166,7 +166,7 @@
       "freeDiary": "Tagebuch und Teilen von Looks",
       "pro": "Pro",
       "perMonth": "pro Monat oder {yearly} pro Jahr",
-      "everythingFree": "Alles aus Kostenlos",
+      "everythingFree": "Alles aus dem kostenlosen Tarif",
       "proNote": "Steuern inklusive. Du kannst jederzeit in der App auf Pro wechseln und dort auch jederzeit kündigen."
     },
     "trust": {
