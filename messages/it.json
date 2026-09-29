@@ -208,7 +208,7 @@
     "sentBody": "Abbiamo inviato un link di accesso a {email}.",
     "emailPlaceholder": "tu@email.it",
     "sending": "Invio…",
-    "emailLink": "Inviami un link di accesso",
+    "emailLink": "Ricevi un link per accedere",
     "google": "Continua con Google",
     "failed": "Accesso non riuscito. Riprova."
   },
@@ -1037,7 +1037,7 @@
         "description": "Ogni occasione, tutte le volte che vuoi"
       },
       "styled": {
-        "label": "Look attorno a ogni capo",
+        "label": "Crea un look con qualsiasi capo",
         "description": "Costruisci un look da un solo capo"
       },
       "closet": {
@@ -1053,7 +1053,7 @@
         "description": "Quanto costa davvero il tuo guardaroba"
       },
       "gap": {
-        "label": "Analisi delle lacune",
+        "label": "Cosa manca",
         "description": "Il capo che sblocca di più"
       },
       "saved": {

@@ -1033,11 +1033,11 @@
     "proPlan": "Pro · {plan}",
     "benefits": {
       "rerolls": {
-        "label": "Unbegrenzt neu erstellen",
+        "label": "Unbegrenzt neu generieren",
         "description": "Jeder Anlass, so oft du willst"
       },
       "styled": {
-        "label": "Um jedes Teil stylen",
+        "label": "Looks mit jedem Teil kombinieren",
         "description": "Ein Look aus einem Kleidungsstück"
       },
       "closet": {
@@ -1053,7 +1053,7 @@
         "description": "Was dein Kleiderschrank wirklich kostet"
       },
       "gap": {
-        "label": "Lückenanalyse",
+        "label": "Fehlende Teile",
         "description": "Das eine Teil, das am meisten freischaltet"
       },
       "saved": {

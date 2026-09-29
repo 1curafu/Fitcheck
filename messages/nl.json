@@ -208,7 +208,7 @@
     "sentBody": "We hebben een inloglink gestuurd naar {email}.",
     "emailPlaceholder": "jij@email.nl",
     "sending": "Versturen…",
-    "emailLink": "Stuur me een inloglink",
+    "emailLink": "Ontvang een inloglink per e-mail",
     "google": "Doorgaan met Google",
     "failed": "Inloggen is niet gelukt. Probeer het opnieuw."
   },
@@ -746,7 +746,7 @@
     }
   },
   "weather": {
-    "feels": "voelt als {temperature}",
+    "feels": "voelt aan als {temperature}",
     "now": "Nu",
     "later": "Straks",
     "locating": "Locatie bepalen…",
@@ -1027,11 +1027,11 @@
     "proPlan": "Pro · {plan}",
     "benefits": {
       "rerolls": {
-        "label": "Onbeperkt opnieuw maken",
+        "label": "Onbeperkt opnieuw genereren",
         "description": "Elke gelegenheid, zo vaak je wilt"
       },
       "styled": {
-        "label": "Style rond elk stuk",
+        "label": "Looks maken met elk kledingstuk",
         "description": "Bouw een look vanuit één kledingstuk"
       },
       "closet": {
@@ -1047,7 +1047,7 @@
         "description": "Wat je kledingkast echt kost"
       },
       "gap": {
-        "label": "Gatenanalyse",
+        "label": "Ontbrekende stukken",
         "description": "Het ene stuk dat het meest ontgrendelt"
       },
       "saved": {

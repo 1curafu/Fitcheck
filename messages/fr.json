@@ -1037,7 +1037,7 @@
         "description": "Toute occasion, autant de fois que tu veux"
       },
       "styled": {
-        "label": "Un look autour de toute pièce",
+        "label": "Créer un look avec n’importe quelle pièce",
         "description": "Construis un look à partir d’un vêtement"
       },
       "closet": {
@@ -1053,7 +1053,7 @@
         "description": "Ce que ta garde-robe coûte vraiment"
       },
       "gap": {
-        "label": "Analyse des manques",
+        "label": "Pièces manquantes",
         "description": "La pièce qui débloque le plus"
       },
       "saved": {

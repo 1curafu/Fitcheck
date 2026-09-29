@@ -208,7 +208,7 @@
     "sentBody": "Enviámos uma ligação de início de sessão para {email}.",
     "emailPlaceholder": "tu@email.pt",
     "sending": "A enviar…",
-    "emailLink": "Enviar-me uma ligação de acesso",
+    "emailLink": "Enviar ligação de acesso por e-mail",
     "google": "Continuar com o Google",
     "failed": "Não foi possível iniciar sessão. Tenta novamente."
   },
@@ -752,7 +752,7 @@
     }
   },
   "weather": {
-    "feels": "sensação {temperature}",
+    "feels": "sensação de {temperature}",
     "now": "Agora",
     "later": "Mais tarde",
     "locating": "A localizar…",
@@ -1033,11 +1033,11 @@
     "proPlan": "Pro · {plan}",
     "benefits": {
       "rerolls": {
-        "label": "Gerar de novo sem limites",
+        "label": "Gerações ilimitadas",
         "description": "Qualquer ocasião, sempre que quiseres"
       },
       "styled": {
-        "label": "Look à volta de qualquer peça",
+        "label": "Cria conjuntos a partir de qualquer peça",
         "description": "Cria um look a partir de uma peça"
       },
       "closet": {
@@ -1053,7 +1053,7 @@
         "description": "Quanto te custa realmente o roupeiro"
       },
       "gap": {
-        "label": "Análise de lacunas",
+        "label": "Peças em falta",
         "description": "A peça que desbloqueia mais"
       },
       "saved": {

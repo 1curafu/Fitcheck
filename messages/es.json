@@ -208,7 +208,7 @@
     "sentBody": "Hemos enviado un enlace de acceso a {email}.",
     "emailPlaceholder": "tu@correo.es",
     "sending": "Enviando…",
-    "emailLink": "Envíame un enlace de acceso",
+    "emailLink": "Recibir enlace de acceso por correo",
     "google": "Continuar con Google",
     "failed": "No se ha podido iniciar sesión. Inténtalo de nuevo."
   },
@@ -730,7 +730,7 @@
     "limitTitle": "Estos son los looks de hoy",
     "error": "No se ha podido contactar con el estilista.",
     "retry": "Reintentar",
-    "wornToday": "Llevado hoy",
+    "wornToday": "Puesto hoy",
     "seeFullLook": "Ver el look completo",
     "regenerate": "Regenerar los looks de hoy",
     "upgradeTitle": "Regenera tantas veces como quieras",
@@ -798,7 +798,7 @@
     "inLook": "En este look",
     "favourite": "Favorito",
     "wearThisToday": "Ponérmelo hoy",
-    "wornToday": "Llevado hoy",
+    "wornToday": "Puesto hoy",
     "todayLook": "El look de hoy",
     "tryAnother": "Probar otro look",
     "styling": "Creando el look…",
@@ -1037,7 +1037,7 @@
         "description": "Cualquier ocasión, tantas veces como quieras"
       },
       "styled": {
-        "label": "Un look con cualquier prenda",
+        "label": "Crea conjuntos con cualquier prenda",
         "description": "Crea un look a partir de una prenda"
       },
       "closet": {
@@ -1053,7 +1053,7 @@
         "description": "Lo que de verdad te cuesta tu armario"
       },
       "gap": {
-        "label": "Análisis de carencias",
+        "label": "Prendas que faltan",
         "description": "La prenda que más desbloquea"
       },
       "saved": {
