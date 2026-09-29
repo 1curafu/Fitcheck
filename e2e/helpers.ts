@@ -245,3 +245,18 @@ export async function logWearToday(): Promise<void> {
     .insert({ user_id: userId, outfit_id: outfit.id, worn_on: today, occasion: "work" });
   if (error) throw new Error(`logging today's wear failed: ${error.message}`);
 }
+
+/**
+ * Set files on a hidden capture input only after React has hydrated it. Before hydration the input has no
+ * `onChange`, so Playwright's change event is lost and the capture never starts (CI flake, 2026-09-29).
+ * A real user cannot hit this: the input opens only through a button whose click handler needs hydration.
+ */
+export async function setCaptureFiles(page: import("@playwright/test").Page, selector: string, files: Parameters<import("@playwright/test").Locator["setInputFiles"]>[0]): Promise<void> {
+  const input = page.locator(selector);
+  await input.waitFor({ state: "attached" });
+  await page.waitForFunction(sel => {
+    const el = document.querySelector(sel);
+    return !!el && Object.keys(el).some(key => key.startsWith("__reactProps"));
+  }, selector);
+  await input.setInputFiles(files);
+}

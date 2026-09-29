@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { expect, test, type Page } from "@playwright/test";
-import { admin, disposableSessionCookies, reseed, testUserId } from "./helpers";
+import { admin, disposableSessionCookies, reseed, testUserId, setCaptureFiles } from "./helpers";
 import uk from "../messages/uk.json";
 
 const garment = readFileSync("e2e/fixtures/garment.jpg");
@@ -16,7 +16,7 @@ function photos(count: number) {
 }
 
 async function selectPhotos(page: Page, count: number) {
-  await page.locator('input[type="file"][multiple]').setInputFiles(photos(count));
+  await setCaptureFiles(page, 'input[type="file"][multiple]', photos(count));
   await expect(page.getByRole("button", { name: "Add to closet" })).toBeVisible({ timeout: 120_000 });
 }
 
@@ -80,7 +80,7 @@ test.describe("batch capture", () => {
     const before = await snapshot(userId);
     try {
       await page.goto("/uk/closet/upload");
-      await page.locator('input[type="file"][multiple]').setInputFiles(photos(2));
+      await setCaptureFiles(page, 'input[type="file"][multiple]', photos(2));
       const name = page.getByPlaceholder(uk.capture.confirm.name, { exact: true });
       await expect(name).toHaveValue("Оксфордська сорочка", { timeout: 120_000 });
       await name.fill("Моя улюблена сорочка");
@@ -166,7 +166,7 @@ test.describe("batch capture", () => {
     const before = await snapshot(userId);
     try {
       await page.goto("/closet/upload");
-      await page.locator('input[type="file"][multiple]').setInputFiles(photos(10));
+      await setCaptureFiles(page, 'input[type="file"][multiple]', photos(10));
       await expect(page.getByRole("region", { name: "Batch progress" })).toBeVisible();
       await page.goto("/closet");
       await page.goto("/closet/upload");
