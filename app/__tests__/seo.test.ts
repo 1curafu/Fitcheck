@@ -55,10 +55,11 @@ test("the session-refresh proxy skips the crawler files", () => {
 
 test("sitemap lists every public page in every locale with its alternates", () => {
   const entries = sitemap();
-  expect(entries).toHaveLength(30);
+  expect(entries).toHaveLength(40);
   expect(entries.map(e => e.url)).toEqual(expect.arrayContaining([
     `${SITE_URL}/`, `${SITE_URL}/en-gb`, `${SITE_URL}/uk`, `${SITE_URL}/uk/privacy`, `${SITE_URL}/en-gb/terms`,
     `${SITE_URL}/de`, `${SITE_URL}/pt/privacy`, `${SITE_URL}/nl/terms`,
+    `${SITE_URL}/sign-in`, `${SITE_URL}/de/sign-in`, `${SITE_URL}/en-gb/sign-in`,
   ]));
   expect(entries[0].alternates?.languages).toMatchObject({ "en-US": `${SITE_URL}/`, uk: `${SITE_URL}/uk` });
 });

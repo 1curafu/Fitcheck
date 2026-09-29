@@ -177,7 +177,7 @@ describe("deleteAccount", () => {
     expect(context.tags.account_deletion_stage).toBe("residual-storage");
     expect(JSON.stringify({ message: captured.message, tags: context.tags })).not.toContain(USER_ID);
     expect(signOut).toHaveBeenCalledWith({ scope: "local" });
-    expect(redirect).toHaveBeenCalledWith("/?account=deleted", "replace");
+    expect(redirect).toHaveBeenCalledWith("/sign-in?account=deleted", "replace");
   });
 
   test("treats a residual share-images failure as a completed deletion that still alerts", async () => {
@@ -193,7 +193,7 @@ describe("deleteAccount", () => {
     expect(context.tags.account_deletion_stage).toBe("residual-shares");
     expect(JSON.stringify({ message: captured.message, tags: context.tags })).not.toContain(USER_ID);
     expect(signOut).toHaveBeenCalledWith({ scope: "local" });
-    expect(redirect).toHaveBeenCalledWith("/?account=deleted", "replace");
+    expect(redirect).toHaveBeenCalledWith("/sign-in?account=deleted", "replace");
   });
 
   test.each(["storage", "shares", "ledger", "auth"] as const)(
@@ -213,7 +213,7 @@ describe("deleteAccount", () => {
     await expect(deleteAccount({ status: "idle" }, confirmationForm(EMAIL))).rejects.toBe(REDIRECT);
 
     expect(signOut).toHaveBeenCalledWith({ scope: "local" });
-    expect(redirect).toHaveBeenCalledWith("/?account=deleted", "replace");
+    expect(redirect).toHaveBeenCalledWith("/sign-in?account=deleted", "replace");
   });
 
   test("still redirects after a successful hard deletion when local sign-out fails", async () => {
@@ -221,7 +221,7 @@ describe("deleteAccount", () => {
 
     await expect(deleteAccount({ status: "idle" }, confirmationForm(EMAIL))).rejects.toBe(REDIRECT);
 
-    expect(redirect).toHaveBeenCalledWith("/?account=deleted", "replace");
+    expect(redirect).toHaveBeenCalledWith("/sign-in?account=deleted", "replace");
   });
 
   test("still redirects after a successful hard deletion when local sign-out resolves with an error", async () => {
@@ -229,6 +229,6 @@ describe("deleteAccount", () => {
 
     await expect(deleteAccount({ status: "idle" }, confirmationForm(EMAIL))).rejects.toBe(REDIRECT);
 
-    expect(redirect).toHaveBeenCalledWith("/?account=deleted", "replace");
+    expect(redirect).toHaveBeenCalledWith("/sign-in?account=deleted", "replace");
   });
 });

@@ -66,7 +66,7 @@ async function DiaryBody({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return redirect({ href: "/", locale: await getLocale() });
+  if (!user) return redirect({ href: "/sign-in", locale: await getLocale() });
 
   const { data: profile } = await supabase
     .from("profiles")

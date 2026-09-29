@@ -32,7 +32,7 @@ export async function saveStyleProfile(input: unknown) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return redirect({ href: "/", locale: await getActionLocale() });
+  if (!user) return redirect({ href: "/sign-in", locale: await getActionLocale() });
 
   const { error } = await supabase
     .from("profiles")
