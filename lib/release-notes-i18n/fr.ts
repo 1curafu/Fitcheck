@@ -2,6 +2,11 @@ import type { LocalizedNote } from "@/lib/release-notes";
 
 /** Keyed by version; one entry for every RELEASE_NOTES version, same line counts. */
 export const FR_NOTES: Record<string, LocalizedNote> = {
+  "0.5.0": {
+    headline: "Fitcheck parle désormais dix langues.",
+    added: ["Utilise Fitcheck en français, anglais, allemand, italien et plus encore", "Choisis ta langue dans un petit menu sur l’accueil ou dans les Réglages", "Tes looks, la météo et le détail des pièces s’affichent dans ta langue", "Les looks passés s’affichent dans ta langue ; l’original est conservé"],
+    fixed: ["Le texte d’accueil ne touche plus les boutons de connexion", "Les noms d’occasion longs tiennent sur une ligne"],
+  },
   "0.4.1": {
     headline: "Partager un look est plus fluide, et les pièces retirées peuvent partir.",
     added: ["Créer un lien copie désormais le lien pour toi", "Supprime définitivement une pièce retirée depuis sa page"],
