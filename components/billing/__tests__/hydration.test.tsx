@@ -27,5 +27,5 @@ it("server HTML for the Pro pill does not depend on the device time zone", () =>
 it("after mount the pill shows the device's currency", () => {
   deviceIn("Europe/Berlin");
   render(<ProCard tier="free" />);
-  expect(screen.getByRole("button", { name: /fitcheck pro/i })).toHaveTextContent("€5 / month");
+  expect(screen.getByRole("button", { name: /fitcheck pro/i })).toHaveTextContent("€5.29 / month");
 });

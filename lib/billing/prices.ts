@@ -6,11 +6,27 @@ export type DisplayCurrency = "CHF" | "EUR" | "USD";
 /** Dashboard lookup keys (live + sandbox). Renaming one here breaks checkout. */
 export const LOOKUP_KEYS: Record<Interval, string> = { month: "pro_monthly", year: "pro_annual" };
 
-/** Mirrors the Dashboard's manual currency options (tax-inclusive). Verified by scripts/stripe-verify-prices.ts. */
+/**
+ * Mirrors the Dashboard's manual currency options (tax-inclusive). Verified by scripts/stripe-verify-prices.ts.
+ *
+ * CHF is the main currency (owner, 2026-09-30). EUR and USD are CHF converted at the ECB rate of 2026-09-29
+ * (1 CHF = €1.057 = $1.2002) and set just under it; yearly stays exactly 10 × monthly so the "2 months free" hint is true.
+ * They are fixed prices, not a live conversion: re-check them against the rate when you revisit pricing.
+ */
 export const DISPLAY_AMOUNTS: Record<Interval, Record<DisplayCurrency, number>> = {
-  month: { CHF: 5, EUR: 5, USD: 5 },
-  year: { CHF: 50, EUR: 50, USD: 50 },
+  month: { CHF: 5, EUR: 5.29, USD: 5.99 },
+  year: { CHF: 50, EUR: 52.9, USD: 59.9 },
 };
+
+/** A display amount in Stripe's minor units. Rounded: 5.29 * 100 is 528.99… in floating point. */
+export function centsFor(amount: number): number {
+  return Math.round(amount * 100);
+}
+
+/** "5" stays "5"; anything with cents always shows two digits ("52.90", never "52.9"). */
+function money(amount: number): string {
+  return Number.isInteger(amount) ? String(amount) : amount.toFixed(2);
+}
 
 const CHF_ZONES = new Set(["Europe/Zurich", "Europe/Vaduz", "Europe/Busingen"]);
 const EUR_ZONES = new Set([
@@ -46,7 +62,7 @@ const FORMAT_TEXT: Record<DisplayCurrency, (amount: string) => string> = {
 export function displayPrice(interval: Interval, tz: string | undefined,
   intervalLabel: string = enUS.billing[interval === "month" ? "monthPeriod" : "yearPeriod"]): { label: string; converted: boolean } {
   const { currency, converted } = currencyForTimeZone(tz);
-  return { label: `${FORMAT_TEXT[currency](String(DISPLAY_AMOUNTS[interval][currency]))} / ${intervalLabel}`, converted };
+  return { label: `${FORMAT_TEXT[currency](money(DISPLAY_AMOUNTS[interval][currency]))} / ${intervalLabel}`, converted };
 }
 
 /** The annual plan's per-month cost, as a hint under it ("CHF 4.17 / month"). Display only. */
@@ -58,11 +74,11 @@ export function monthlyEquivalent(tz: string | undefined, monthLabel: string = e
 
 /** A bare amount in the viewer's display currency ("CHF 5", "€50", "$0"). Display only, like displayPrice. */
 export function amountLabel(amount: number, tz: string | undefined): string {
-  return FORMAT_TEXT[currencyForTimeZone(tz).currency](String(amount));
+  return FORMAT_TEXT[currencyForTimeZone(tz).currency](money(amount));
 }
 
 /** A plan's price in the viewer's display currency, read from THAT currency's own amount ("CHF 5", "€6"). Display only. */
 export function planAmountLabel(interval: Interval, tz: string | undefined, table = DISPLAY_AMOUNTS): string {
   const { currency } = currencyForTimeZone(tz);
-  return FORMAT_TEXT[currency](String(table[interval][currency]));
+  return FORMAT_TEXT[currency](money(table[interval][currency]));
 }
