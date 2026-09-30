@@ -365,9 +365,6 @@
           "skinny": {
             "label": "Taglio skinny"
           },
-          "bright": {
-            "label": "Colori accesi"
-          },
           "shorts": {
             "label": "Pantaloncini"
           },
@@ -379,13 +376,18 @@
           },
           "graphic": {
             "label": "T-shirt con stampa"
-          },
-          "square_toe": {
-            "label": "Punta quadrata"
           }
         }
       }
     }
+  },
+  "styleProfile": {
+    "title": "Profilo di stile",
+    "intro": "Puoi cambiare qualsiasi risposta. Le cose che vuoi evitare, il tuo stile e i dress code si applicano subito ai look di oggi.",
+    "save": "Salva modifiche",
+    "saving": "Salvataggio…",
+    "saved": "Salvato",
+    "incomplete": "Per salvare, scegli almeno una risposta per ogni domanda."
   },
   "closet": {
     "title": "L’armadio",
@@ -436,6 +438,7 @@
       "notSignedIn": "Accesso non effettuato",
       "pieceNotFound": "Capo non trovato",
       "fragrance": "Un profumo completa un look, non lo costruisce.",
+      "nogos": "Le cose che vuoi evitare escludono tutti i capi che starebbero bene con questo capo. Puoi cambiarle nel profilo di stile.",
       "thinCloset": "Non ci sono ancora abbastanza altri capi per costruire un look attorno a questo.",
       "failed": "Impossibile creare il look",
       "saveFailed": "Impossibile salvare il look",
@@ -726,6 +729,8 @@
     "emptyTops": "Nessun capo sopra adatto a {occasion} — aggiungine uno o prova un’altra occasione.",
     "emptyBottoms": "Nessun capo sotto adatto a {occasion} — aggiungine uno o prova un’altra occasione.",
     "emptyOnePiece": "Nessun abito adatto a {occasion} — aggiungine uno o prova un’altra occasione.",
+    "emptyNogos": "Le cose che vuoi evitare escludono qui tutte le opzioni. Puoi cambiarle quando vuoi.",
+    "emptyNogosLink": "Apri il profilo di stile",
     "emptyGeneric": "Aggiungi qualche capo in più per sbloccare gli outfit",
     "limitTitle": "Ecco i look di oggi",
     "error": "Impossibile raggiungere lo stylist.",
@@ -953,6 +958,9 @@
     }
   },
   "settings": {
+    "styleProfile": "Profilo di stile",
+    "styleProfileRow": "Le tue risposte sullo stile",
+    "styleProfileRowDescription": "Stile, palette, vestibilità, dress code, occasioni, cose da evitare",
     "title": "Impostazioni",
     "back": "Indietro",
     "preferences": "Preferenze",

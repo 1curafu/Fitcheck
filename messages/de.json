@@ -365,9 +365,6 @@
           "skinny": {
             "label": "Skinny Fit"
           },
-          "bright": {
-            "label": "Knallige Farben"
-          },
           "shorts": {
             "label": "Kurze Hosen"
           },
@@ -379,13 +376,18 @@
           },
           "graphic": {
             "label": "Print-Shirts"
-          },
-          "square_toe": {
-            "label": "Eckige Schuhspitzen"
           }
         }
       }
     }
+  },
+  "styleProfile": {
+    "title": "Stilprofil",
+    "intro": "Du kannst jede Antwort ändern. Deine No-Gos, dein Stil und deine Dresscodes wirken sich sofort auf die heutigen Looks aus.",
+    "save": "Änderungen speichern",
+    "saving": "Wird gespeichert…",
+    "saved": "Gespeichert",
+    "incomplete": "Wähle zum Speichern bei jeder Frage mindestens eine Antwort."
   },
   "closet": {
     "title": "Der Kleiderschrank",
@@ -436,6 +438,7 @@
       "notSignedIn": "Nicht angemeldet",
       "pieceNotFound": "Teil nicht gefunden",
       "fragrance": "Ein Duft rundet einen Look ab, er trägt ihn nicht.",
+      "nogos": "Deine No-Gos schließen alle Teile aus, die dazu passen würden. Du kannst sie im Stilprofil ändern.",
       "thinCloset": "Noch nicht genug andere Teile, um einen Look darum zu bauen.",
       "failed": "Konnte nicht gestylt werden",
       "saveFailed": "Look konnte nicht gespeichert werden",
@@ -726,6 +729,8 @@
     "emptyTops": "Keine Oberteile, die zu {occasion} passen — füg eins hinzu oder probier einen anderen Anlass.",
     "emptyBottoms": "Keine Unterteile, die zu {occasion} passen — füg eins hinzu oder probier einen anderen Anlass.",
     "emptyOnePiece": "Keine Kleider, die zu {occasion} passen — füg eins hinzu oder probier einen anderen Anlass.",
+    "emptyNogos": "Deine No-Gos schließen hier alle Optionen aus. Du kannst sie jederzeit ändern.",
+    "emptyNogosLink": "Stilprofil öffnen",
     "emptyGeneric": "Füg ein paar Teile hinzu, um Outfits freizuschalten",
     "limitTitle": "Das waren die Looks für heute",
     "error": "Der Stylist ist gerade nicht erreichbar.",
@@ -953,6 +958,9 @@
     }
   },
   "settings": {
+    "styleProfile": "Stilprofil",
+    "styleProfileRow": "Deine Stilangaben",
+    "styleProfileRowDescription": "Stil, Farbpalette, Passform, Dresscodes, Anlässe, No-Gos",
     "title": "Einstellungen",
     "back": "Zurück",
     "preferences": "Vorlieben",

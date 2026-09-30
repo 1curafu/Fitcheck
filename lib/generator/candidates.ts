@@ -1,3 +1,4 @@
+import { comboBlocked, itemBlocked, type NoGo } from "./nogos";
 import { weatherRules, type Weather } from "./rules";
 import { inSeason } from "./season";
 import { itemWarmth } from "./texture";
@@ -47,6 +48,8 @@ export type CandidateItem = {
   /** Branding prominence and visible wear, carried through for the rule registry. */
   branding?: string | null;
   distressing?: string | null;
+  /** How the garment is cut (`FITS`). Read by the `skinny` no-go; part 2 of the quiz work scores it. */
+  fit?: string | null;
 };
 
 export type CandidateArgs = {
@@ -84,6 +87,15 @@ export type CandidateArgs = {
    * the temperature unit.
    */
   rainGuard?: boolean;
+  /**
+   * The user's no-gos (`lib/generator/nogos.ts`). Optional: absent means none, so every existing caller and
+   * fixture keeps its behaviour.
+   *
+   * ⚠️ HARD and never relieved — checked inside `isEligible`, which BOTH the barred and the relief pass call.
+   */
+  nogos?: readonly NoGo[];
+  /** Ids exempt from the ITEM no-go check — the piece a user asked to style. The look rule still applies. */
+  keepItemIds?: readonly string[];
 };
 
 /**
@@ -171,6 +183,7 @@ function isEligible(i: CandidateItem, a: CandidateArgs, bars: WeatherBars): bool
   const [lo, hi] = a.band;
   if (i.category === "Fragrance") return false; // D11: fragrances are never slotted
   if (a.excludeItemIds.includes(i.id)) return false;
+  if (a.nogos?.length && !a.keepItemIds?.includes(i.id) && itemBlocked(i, a.nogos)) return false;
   if (materialExcluded(i.material, bars.excludeMaterials)) return false;
   // On a genuinely sweltering day warmth stops being a preference. Reads the
   // wearer's season tags, so a cable knit they wear in July survives and one
@@ -416,8 +429,24 @@ function walkShape(
       // who owns no coat — that silently killed every outfit below 15°. The
       // index rotates too; it was pinned to [0], so one coat was worn on every
       // cold day and every other coat was unreachable.
-      const base =
-        needsOuterwear && outer.length ? [...core, outer[(t + d) % outer.length]] : core;
+      //
+      // ⚠️ A coat that would break a look-level no-go (a denim jacket over jeans) is passed over for the next
+      // one, and with none left the look goes coatless: outerwear is a preference, so a no-go must never turn
+      // "the only coat is denim" into "no looks at all" on a cold day.
+      let coat: CandidateItem[] | undefined;
+      if (needsOuterwear && outer.length) {
+        // Lazy: the first coat that keeps the look legal, rotating from (t + d). With no no-gos that is always the
+        // first candidate, so no array is built for the coats that are never tried.
+        for (let k = 0; k < outer.length && !coat; k++) {
+          const tryCoat = [...core, outer[(t + d + k) % outer.length]];
+          if (!a.nogos?.length || !comboBlocked(tryCoat, a.nogos)) coat = tryCoat;
+        }
+      }
+      const base = coat ?? core;
+
+      // Accessories and bags never count toward a look-level no-go, so judging the base judges every
+      // variant built on it — and a skipped base never spends the CAP.
+      if (a.nogos?.length && comboBlocked(base, a.nogos)) continue;
 
       combos.push(base);
       if (combos.length >= cap) break build;
@@ -469,3 +498,17 @@ export function buildCandidates(items: CandidateItem[], a: CandidateArgs): Candi
 // Colour is deliberately NOT filtered anywhere above. The Refine palette is a
 // lean, and leans are expressed by ranking (`scoreCombo`'s lean term), not by
 // exclusion — the same soft-preference model outerwear uses.
+
+/**
+ * True when the user's no-gos are the reason there is nothing to show: the closet WOULD dress them without the
+ * no-gos and cannot with them. Lets the stylist say so instead of telling someone with eight pairs of trousers to
+ * "add a pair".
+ *
+ * ⚠️ PRECONDITION: the caller has ALREADY built with `a` and got nothing — this does not re-check that (it used to,
+ * which repeated a whole build). Called on a closet that does have looks it answers "would it dress them without
+ * the no-gos", i.e. true, which is only meaningful after an empty result.
+ */
+export function emptiedByNogos(items: CandidateItem[], a: CandidateArgs): boolean {
+  if (!a.nogos?.length) return false;
+  return buildCandidates(items, { ...a, nogos: undefined, keepItemIds: undefined }).length > 0;
+}

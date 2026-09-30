@@ -365,9 +365,6 @@
           "skinny": {
             "label": "Corte pitillo"
           },
-          "bright": {
-            "label": "Colores vivos"
-          },
           "shorts": {
             "label": "Pantalones cortos"
           },
@@ -379,13 +376,18 @@
           },
           "graphic": {
             "label": "Camisetas estampadas"
-          },
-          "square_toe": {
-            "label": "Puntera cuadrada"
           }
         }
       }
     }
+  },
+  "styleProfile": {
+    "title": "Perfil de estilo",
+    "intro": "Puedes cambiar cualquier respuesta. Lo que quieres evitar, tu estilo y tus códigos de vestimenta se aplican de inmediato a los looks de hoy.",
+    "save": "Guardar cambios",
+    "saving": "Guardando…",
+    "saved": "Guardado",
+    "incomplete": "Para guardar, elige al menos una respuesta en cada pregunta."
   },
   "closet": {
     "title": "El armario",
@@ -436,6 +438,7 @@
       "notSignedIn": "No has iniciado sesión",
       "pieceNotFound": "Prenda no encontrada",
       "fragrance": "Un perfume remata un look, no lo construye.",
+      "nogos": "Lo que quieres evitar descarta todas las prendas que combinarían con esta. Puedes cambiar estas opciones en el perfil de estilo.",
       "thinCloset": "Aún no hay suficientes prendas para crear un look alrededor de esta.",
       "failed": "No se ha podido crear el look",
       "saveFailed": "No se ha podido guardar el look",
@@ -726,6 +729,8 @@
     "emptyTops": "No hay partes de arriba para {occasion} — añade una o prueba otra ocasión.",
     "emptyBottoms": "No hay partes de abajo para {occasion} — añade una o prueba otra ocasión.",
     "emptyOnePiece": "No hay vestidos para {occasion} — añade uno o prueba otra ocasión.",
+    "emptyNogos": "Lo que quieres evitar descarta aquí todas las opciones. Puedes cambiarlo cuando quieras.",
+    "emptyNogosLink": "Abrir perfil de estilo",
     "emptyGeneric": "Añade algunas prendas más para desbloquear conjuntos",
     "limitTitle": "Estos son los looks de hoy",
     "error": "No se ha podido contactar con el estilista.",
@@ -953,6 +958,9 @@
     }
   },
   "settings": {
+    "styleProfile": "Perfil de estilo",
+    "styleProfileRow": "Tus respuestas sobre tu estilo",
+    "styleProfileRowDescription": "Estilo, paleta, corte, códigos de vestimenta, ocasiones, cosas a evitar",
     "title": "Ajustes",
     "back": "Atrás",
     "preferences": "Preferencias",

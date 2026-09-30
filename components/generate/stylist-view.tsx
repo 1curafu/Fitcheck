@@ -31,6 +31,8 @@ export function StylistView(props: {
   refineOpen: boolean;
   /** Required slot that blocked every combo, when status === "empty". */
   missing?: string | null;
+  /** The user's own no-gos removed what would have dressed them (status === "empty"). */
+  byNogos?: boolean;
   /**
    * The reason the meter gave, when status === "limited". Rendered verbatim:
    * the seam knows WHICH allowance ran out (a regenerate, a styled look), and
@@ -114,8 +116,13 @@ export function StylistView(props: {
           <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
             <p className="font-serif text-[20px] text-foreground">{t("emptyTitle")}</p>
             <p data-testid="empty-copy" className="max-w-[30ch] text-sm text-muted-foreground">
-              {missingKey ? t(missingKey, { occasion: occLabel }) : t("emptyGeneric")}
+              {props.byNogos ? t("emptyNogos") : missingKey ? t(missingKey, { occasion: occLabel }) : t("emptyGeneric")}
             </p>
+            {props.byNogos && (
+              <Link href="/settings/style" className="text-sm text-brand underline underline-offset-2">
+                {t("emptyNogosLink")}
+              </Link>
+            )}
           </div>
         )}
 

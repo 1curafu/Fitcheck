@@ -14,6 +14,8 @@ import { saveTrip, loadTrip, replaceCapsule, saveTripLooks } from "@/lib/packing
 import { PackingLockedError } from "@/lib/packing/errors";
 import type { CandidateItem } from "@/lib/generator/candidates";
 import { CANDIDATE_SELECT, toCandidateItem } from "@/lib/generator/from-row";
+import { itemBlocked, type NoGo } from "@/lib/generator/nogos";
+import { readNogos } from "@/lib/onboarding/style-profile";
 
 export type PlanTripInput = {
   destinationLabel: string;
@@ -71,7 +73,7 @@ export async function planTrip(input: PlanTripInput): Promise<{ tripId: string }
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("archetype, rain_guard")
+    .select("archetype, rain_guard, nogos")
     .eq("id", user.id)
     .maybeSingle();
   const aesthetic = profile?.archetype ? [profile.archetype as string] : [];
@@ -85,6 +87,7 @@ export async function planTrip(input: PlanTripInput): Promise<{ tripId: string }
     forecast,
     aesthetic,
     rainGuard: profile?.rain_guard ?? undefined,
+    nogos: readNogos(profile?.nogos),
   });
 
   // Recorded, NOT limited (spec decision #5). Packing is Pro-only and Pro is
@@ -109,6 +112,7 @@ type SolveArgs = {
   forecast: Awaited<ReturnType<typeof fetchTripForecast>>;
   aesthetic: string[];
   rainGuard?: boolean;
+  nogos: NoGo[];
   pinned?: string[];
   excluded?: string[];
   tripId?: string;
@@ -116,12 +120,21 @@ type SolveArgs = {
 
 /** The shared path: solve → schedule → narrate → persist. Used by both plan and edit. */
 async function solveAndPersist(args: SolveArgs): Promise<string> {
-  const build = realBuilder(args.items, (date) => args.forecast.byDate[date], {
+  /**
+   * No-gos leave the closet BEFORE the solve, so a ruled-out piece is never packed. A piece the user
+   * pinned in the trip editor is their explicit choice and stays, exactly as the styled look's anchor does.
+   */
+  const pinned = args.pinned ?? [];
+  const items = args.items.filter((i) => pinned.includes(i.id) || !itemBlocked(i, args.nogos));
+
+  const build = realBuilder(items, (date) => args.forecast.byDate[date], {
     aesthetic: args.aesthetic,
     rainGuard: args.rainGuard,
+    nogos: args.nogos,
+    keepItemIds: pinned,
   });
 
-  const capsuleItems: CapsuleItem[] = args.items.map((i) => ({ id: i.id, category: i.category }));
+  const capsuleItems: CapsuleItem[] = items.map((i) => ({ id: i.id, category: i.category }));
   const solved = solveCapsule({
     closet: capsuleItems,
     days: args.days,
@@ -133,7 +146,7 @@ async function solveAndPersist(args: SolveArgs): Promise<string> {
   });
 
   const scheduled = scheduleDays(solved);
-  const byId = new Map(args.items.map((i) => [i.id, i]));
+  const byId = new Map(items.map((i) => [i.id, i]));
   // `describeCombos` reads these fields to write an accurate sentence — the
   // model saw none of them until 2026-08-15 and invented fabric from a
   // subcategory name.
@@ -237,7 +250,7 @@ export async function editCapsule(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("archetype, rain_guard")
+    .select("archetype, rain_guard, nogos")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -260,6 +273,7 @@ export async function editCapsule(
     forecast,
     aesthetic: profile?.archetype ? [profile.archetype as string] : [],
     rainGuard: profile?.rain_guard ?? undefined,
+    nogos: readNogos(profile?.nogos),
     pinned: [...pinned],
     excluded: edit.remove ? [edit.remove] : undefined,
   });

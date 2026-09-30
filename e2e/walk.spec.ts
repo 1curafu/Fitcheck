@@ -22,6 +22,7 @@ const ROUTES = [
   "/calendar",
   "/profile",
   "/settings",
+  "/settings/style",
   "/stats",
   "/closet/upload",
   "/closet/removed",

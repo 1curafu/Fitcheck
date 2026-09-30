@@ -365,9 +365,6 @@
           "skinny": {
             "label": "Coupe skinny"
           },
-          "bright": {
-            "label": "Couleurs vives"
-          },
           "shorts": {
             "label": "Shorts"
           },
@@ -379,13 +376,18 @@
           },
           "graphic": {
             "label": "T-shirts imprimés"
-          },
-          "square_toe": {
-            "label": "Bouts carrés"
           }
         }
       }
     }
+  },
+  "styleProfile": {
+    "title": "Profil de style",
+    "intro": "Tu peux modifier n’importe quelle réponse. Ce que tu veux éviter, ton style et tes codes vestimentaires s’appliquent immédiatement aux looks du jour.",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "saved": "Enregistré",
+    "incomplete": "Pour enregistrer, choisis au moins une réponse à chaque question."
   },
   "closet": {
     "title": "La garde-robe",
@@ -436,6 +438,7 @@
       "notSignedIn": "Non connecté",
       "pieceNotFound": "Pièce introuvable",
       "fragrance": "Un parfum complète un look, il ne le construit pas.",
+      "nogos": "Ce que tu veux éviter exclut toutes les pièces qui iraient avec celle-ci. Tu peux modifier ces choix dans ton profil de style.",
       "thinCloset": "Pas encore assez d’autres pièces pour créer un look autour de celle-ci.",
       "failed": "Impossible de créer ce look",
       "saveFailed": "Impossible d’enregistrer le look",
@@ -726,6 +729,8 @@
     "emptyTops": "Aucun haut adapté à {occasion} — ajoutes-en un ou essaie une autre occasion.",
     "emptyBottoms": "Aucun bas adapté à {occasion} — ajoutes-en un ou essaie une autre occasion.",
     "emptyOnePiece": "Aucune robe adaptée à {occasion} — ajoutes-en une ou essaie une autre occasion.",
+    "emptyNogos": "Ce que tu veux éviter exclut ici toutes les options. Tu peux modifier ces choix à tout moment.",
+    "emptyNogosLink": "Ouvrir le profil de style",
     "emptyGeneric": "Ajoute encore quelques pièces pour débloquer des tenues",
     "limitTitle": "Voilà les looks du jour",
     "error": "Impossible de joindre le styliste.",
@@ -953,6 +958,9 @@
     }
   },
   "settings": {
+    "styleProfile": "Profil de style",
+    "styleProfileRow": "Tes réponses sur ton style",
+    "styleProfileRowDescription": "Style, palette, coupe, codes vestimentaires, occasions, à éviter",
     "title": "Réglages",
     "back": "Retour",
     "preferences": "Préférences",

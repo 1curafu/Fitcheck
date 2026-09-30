@@ -143,7 +143,7 @@ export function ProfileHub({
       </div>
 
       <Link
-        href="/style-dna"
+        href="/settings/style"
         className="relative mt-[13px] block overflow-hidden rounded-[16px] p-5 shadow-[inset_0_0_0_1px_rgba(184,106,71,0.18)] [background:radial-gradient(120%_120%_at_82%_8%,#241d18,#161517)]"
       >
         <span className="text-[10px] uppercase tracking-[0.22em] text-[#b89a6a]">

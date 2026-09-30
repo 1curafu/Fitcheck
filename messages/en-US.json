@@ -311,9 +311,6 @@
           "skinny": {
             "label": "Skinny fit"
           },
-          "bright": {
-            "label": "Bright colours"
-          },
           "shorts": {
             "label": "Shorts"
           },
@@ -325,13 +322,18 @@
           },
           "graphic": {
             "label": "Graphic tees"
-          },
-          "square_toe": {
-            "label": "Square-toe shoes"
           }
         }
       }
     }
+  },
+  "styleProfile": {
+    "title": "Style profile",
+    "intro": "Change any answer. Your no-gos, style and dress codes apply to today's looks right away.",
+    "save": "Save changes",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "incomplete": "Choose at least one answer for each question to save."
   },
   "closet": {
     "title": "The Closet",
@@ -382,6 +384,7 @@
       "notSignedIn": "Not signed in",
       "pieceNotFound": "Piece not found",
       "fragrance": "Fragrance finishes a look rather than forming one.",
+      "nogos": "Your no-gos rule out every piece that would go with this one. You can change them in Style profile.",
       "thinCloset": "Not enough other pieces to build a look around this one yet.",
       "failed": "Couldn't style this",
       "saveFailed": "Couldn't save the look",
@@ -672,6 +675,8 @@
     "emptyTops": "No tops that suit {occasion} — add one, or try another occasion.",
     "emptyBottoms": "No bottoms that suit {occasion} — add a pair, or try another occasion.",
     "emptyOnePiece": "No dresses that suit {occasion} — add one, or try another occasion.",
+    "emptyNogos": "Your no-gos rule out every option for this. You can change them any time.",
+    "emptyNogosLink": "Open Style profile",
     "emptyGeneric": "Add a few more pieces to unlock outfits",
     "limitTitle": "That's today's looks",
     "error": "Couldn't reach the stylist.",
@@ -893,6 +898,9 @@
     }
   },
   "settings": {
+    "styleProfile": "Style profile",
+    "styleProfileRow": "Your style answers",
+    "styleProfileRowDescription": "Style, palette, fit, dress codes, occasions, no-gos",
     "title": "Settings",
     "back": "Back",
     "preferences": "Preferences",

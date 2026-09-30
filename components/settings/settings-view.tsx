@@ -236,6 +236,15 @@ export function SettingsView({
         <Kicker>{t("language")}</Kicker>
         <div className={`${CARD} px-4 py-1`}><LanguageButton /></div>
 
+        <Kicker>{t("styleProfile")}</Kicker>
+        <Link href="/settings/style" className={`${CARD} flex items-center gap-[14px] px-4 py-[15px]`}>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[14.5px] text-foreground">{t("styleProfileRow")}</span>
+            <span className="mt-[2px] block text-[12px] text-muted-foreground">{t("styleProfileRowDescription")}</span>
+          </span>
+          <span aria-hidden className="text-[20px] text-muted-dim">›</span>
+        </Link>
+
         <Kicker>{t("preferences")}</Kicker>
         <div className={`${CARD} overflow-hidden`}>
           <Toggle

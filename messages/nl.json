@@ -365,9 +365,6 @@
           "skinny": {
             "label": "Skinny fit"
           },
-          "bright": {
-            "label": "Felle kleuren"
-          },
           "shorts": {
             "label": "Korte broeken"
           },
@@ -379,13 +376,18 @@
           },
           "graphic": {
             "label": "Printshirts"
-          },
-          "square_toe": {
-            "label": "Vierkante neuzen"
           }
         }
       }
     }
+  },
+  "styleProfile": {
+    "title": "Stijlprofiel",
+    "intro": "Je kunt elk antwoord aanpassen. Je no-go’s, stijl en dresscodes gelden meteen voor de looks van vandaag.",
+    "save": "Wijzigingen opslaan",
+    "saving": "Opslaan…",
+    "saved": "Opgeslagen",
+    "incomplete": "Kies minstens één antwoord per vraag om op te slaan."
   },
   "closet": {
     "title": "De kledingkast",
@@ -436,6 +438,7 @@
       "notSignedIn": "Niet ingelogd",
       "pieceNotFound": "Kledingstuk niet gevonden",
       "fragrance": "Een geur maakt een look af, maar bouwt hem niet.",
+      "nogos": "Je no-go’s sluiten alle kledingstukken uit die hierbij zouden passen. Je kunt ze aanpassen in je stijlprofiel.",
       "thinCloset": "Nog niet genoeg andere stukken om hier een look omheen te bouwen.",
       "failed": "Kon deze look niet stylen",
       "saveFailed": "Kon de look niet opslaan",
@@ -726,6 +729,8 @@
     "emptyTops": "Geen bovenstukken die passen bij {occasion} — voeg er een toe of probeer een andere gelegenheid.",
     "emptyBottoms": "Geen onderstukken die passen bij {occasion} — voeg er een toe of probeer een andere gelegenheid.",
     "emptyOnePiece": "Geen jurken die passen bij {occasion} — voeg er een toe of probeer een andere gelegenheid.",
+    "emptyNogos": "Je no-go’s sluiten hier alle opties uit. Je kunt ze altijd aanpassen.",
+    "emptyNogosLink": "Stijlprofiel openen",
     "emptyGeneric": "Voeg nog een paar stukken toe om outfits te ontgrendelen",
     "limitTitle": "Dat waren de looks van vandaag",
     "error": "De stylist is niet bereikbaar.",
@@ -947,6 +952,9 @@
     }
   },
   "settings": {
+    "styleProfile": "Stijlprofiel",
+    "styleProfileRow": "Je antwoorden over je stijl",
+    "styleProfileRowDescription": "Stijl, palet, pasvorm, dresscodes, gelegenheden, no-go’s",
     "title": "Instellingen",
     "back": "Terug",
     "preferences": "Voorkeuren",

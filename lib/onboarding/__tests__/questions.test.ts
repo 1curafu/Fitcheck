@@ -1,6 +1,12 @@
 import { expect, it } from "vitest";
 import enUS from "@/messages/en-US.json";
+import { NOGO_VALUES } from "@/lib/generator/nogos";
 import { QUESTIONS } from "../questions";
+
+it("the no-go chips are exactly the no-gos the generator enforces", () => {
+  const nogos = QUESTIONS.find((q) => q.id === "nogos")!;
+  expect(nogos.options.map((o) => o.value)).toEqual([...NOGO_VALUES]);
+});
 
 it("every question and stored option value has English display copy", () => {
   const messages = (enUS as { onboarding?: { questions?: Record<string, unknown> } }).onboarding?.questions;

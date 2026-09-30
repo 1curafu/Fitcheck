@@ -62,9 +62,10 @@ test("the outfits stat is labelled as what was worn", () => {
   expect(screen.getByTestId("stat-trio")).toHaveTextContent(/worn/i);
 });
 
-test("the archetype card links through to Style DNA", () => {
+test("the archetype card opens the Style profile editor", () => {
   render(<ProfileHub {...props} />);
-  expect(screen.getByRole("link", { name: /old money/i })).toHaveAttribute("href", "/style-dna");
+  // It pointed at /style-dna, which was never built — a tap landed on the 404 page.
+  expect(screen.getByRole("link", { name: /old money/i })).toHaveAttribute("href", "/settings/style");
 });
 
 test("an unbuilt destination is not a link — it says Soon", () => {
