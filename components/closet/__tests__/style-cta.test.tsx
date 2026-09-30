@@ -73,7 +73,7 @@ test("the gate's sheet makes the full case, not just the refusal", async () => {
   await userEvent.click(screen.getByRole("button", { name: /style an outfit/i }));
   const sheet = await screen.findByRole("dialog");
   expect(sheet).toHaveTextContent(/gap analysis/i);
-  expect(sheet).toHaveTextContent(/(CHF 5|€5|\$5) \/ month/);
+  expect(sheet).toHaveTextContent(/(CHF 5|€5\.29|\$5\.99) \/ month/);
 });
 
 // "Your closet is too thin for this yet" has nothing to sell — you add a piece.
