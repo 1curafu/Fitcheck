@@ -955,8 +955,8 @@
   },
   "settings": {
     "styleProfile": "Profil de style",
-    "styleProfileRow": "Tes réponses de style",
-    "styleProfileRowDescription": "Style, palette, coupe, dress codes, occasions, interdits",
+    "styleProfileRow": "Tes réponses sur ton style",
+    "styleProfileRowDescription": "Style, palette, coupe, codes vestimentaires, occasions, à éviter",
     "title": "Réglages",
     "back": "Retour",
     "preferences": "Préférences",

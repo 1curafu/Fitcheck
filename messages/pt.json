@@ -383,7 +383,7 @@
   },
   "styleProfile": {
     "title": "Perfil de estilo",
-    "intro": "Muda qualquer resposta: os novos looks seguem-na a partir de hoje.",
+    "intro": "Altera qualquer resposta. Os novos looks passam a tê-la em conta a partir de hoje.",
     "save": "Guardar alterações",
     "saving": "A guardar…",
     "saved": "Guardado"
@@ -955,8 +955,8 @@
   },
   "settings": {
     "styleProfile": "Perfil de estilo",
-    "styleProfileRow": "As tuas respostas de estilo",
-    "styleProfileRowDescription": "Estilo, paleta, corte, dress codes, ocasiões, proibições",
+    "styleProfileRow": "As tuas respostas sobre estilo",
+    "styleProfileRowDescription": "Estilo, paleta, corte, dress codes, ocasiões, a evitar",
     "title": "Definições",
     "back": "Voltar",
     "preferences": "Preferências",

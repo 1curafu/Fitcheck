@@ -383,7 +383,7 @@
   },
   "styleProfile": {
     "title": "Stijlprofiel",
-    "intro": "Pas elk antwoord aan: nieuwe looks volgen het vanaf vandaag.",
+    "intro": "Je kunt elk antwoord aanpassen. Nieuwe looks houden er vanaf vandaag rekening mee.",
     "save": "Wijzigingen opslaan",
     "saving": "Opslaan…",
     "saved": "Opgeslagen"
@@ -949,7 +949,7 @@
   },
   "settings": {
     "styleProfile": "Stijlprofiel",
-    "styleProfileRow": "Je stijlantwoorden",
+    "styleProfileRow": "Je antwoorden over je stijl",
     "styleProfileRowDescription": "Stijl, palet, pasvorm, dresscodes, gelegenheden, no-go’s",
     "title": "Instellingen",
     "back": "Terug",

@@ -383,7 +383,7 @@
   },
   "styleProfile": {
     "title": "Stilprofil",
-    "intro": "Ändere jede Antwort – neue Looks richten sich ab heute danach.",
+    "intro": "Ändere eine beliebige Antwort. Neue Looks richten sich ab heute danach.",
     "save": "Änderungen speichern",
     "saving": "Wird gespeichert…",
     "saved": "Gespeichert"
@@ -955,7 +955,7 @@
   },
   "settings": {
     "styleProfile": "Stilprofil",
-    "styleProfileRow": "Deine Stilantworten",
+    "styleProfileRow": "Deine Stilangaben",
     "styleProfileRowDescription": "Stil, Farbpalette, Passform, Dresscodes, Anlässe, No-Gos",
     "title": "Einstellungen",
     "back": "Zurück",
