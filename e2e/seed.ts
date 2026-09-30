@@ -222,6 +222,12 @@ export async function seedTestUser(cfg: { url: string; service: string }): Promi
       location_lon: 8.54,
       location_source: "city",
       location_timezone: "Europe/Zurich",
+      // The quiz answers, reset so `reseed()` undoes a spec that edited the Style profile.
+      palette: null,
+      fit: null,
+      dress_codes: null,
+      occasions: null,
+      nogos: null,
     })
     .eq("id", userId);
 
