@@ -231,3 +231,8 @@ test("the row still shows the EFFECTIVE location", () => {
   renderSettings();
   expect(within(screen.getByTestId("location-row")).getByText("Berlin")).toBeInTheDocument();
 });
+
+test("the Style profile row opens the editor", () => {
+  renderSettings();
+  expect(screen.getByRole("link", { name: /your style answers/i })).toHaveAttribute("href", "/settings/style");
+});
