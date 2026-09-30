@@ -386,7 +386,8 @@
     "intro": "Modifie n’importe quelle réponse : les nouveaux looks en tiennent compte dès aujourd’hui.",
     "save": "Enregistrer",
     "saving": "Enregistrement…",
-    "saved": "Enregistré"
+    "saved": "Enregistré",
+    "incomplete": "Pour enregistrer, choisis au moins une réponse à chaque question."
   },
   "closet": {
     "title": "La garde-robe",
@@ -727,6 +728,8 @@
     "emptyTops": "Aucun haut adapté à {occasion} — ajoutes-en un ou essaie une autre occasion.",
     "emptyBottoms": "Aucun bas adapté à {occasion} — ajoutes-en un ou essaie une autre occasion.",
     "emptyOnePiece": "Aucune robe adaptée à {occasion} — ajoutes-en une ou essaie une autre occasion.",
+    "emptyNogos": "Ce que tu as choisi d’éviter exclut toutes les options ici. Tu peux le modifier à tout moment.",
+    "emptyNogosLink": "Ouvrir le profil de style",
     "emptyGeneric": "Ajoute encore quelques pièces pour débloquer des tenues",
     "limitTitle": "Voilà les looks du jour",
     "error": "Impossible de joindre le styliste.",

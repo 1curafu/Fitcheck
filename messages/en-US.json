@@ -332,7 +332,8 @@
     "intro": "Change any answer. New looks follow it from today.",
     "save": "Save changes",
     "saving": "Saving…",
-    "saved": "Saved"
+    "saved": "Saved",
+    "incomplete": "Choose at least one answer for each question to save."
   },
   "closet": {
     "title": "The Closet",
@@ -673,6 +674,8 @@
     "emptyTops": "No tops that suit {occasion} — add one, or try another occasion.",
     "emptyBottoms": "No bottoms that suit {occasion} — add a pair, or try another occasion.",
     "emptyOnePiece": "No dresses that suit {occasion} — add one, or try another occasion.",
+    "emptyNogos": "Your no-gos rule out every option for this. You can change them any time.",
+    "emptyNogosLink": "Open Style profile",
     "emptyGeneric": "Add a few more pieces to unlock outfits",
     "limitTitle": "That's today's looks",
     "error": "Couldn't reach the stylist.",

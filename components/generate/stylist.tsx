@@ -83,6 +83,7 @@ export function Stylist() {
   const [cities, setCities] = useState<City[]>([]);
   const [refineOpen, setRefineOpen] = useState(false);
   const [missing, setMissing] = useState<string | null>(null);
+  const [byNogos, setByNogos] = useState(false);
   // The seam's own words for which allowance ran out — never re-worded here.
   const [limitMessage, setLimitMessage] = useState<{ message: "errors.regenerateLimit"; values: { limit: number } } | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
@@ -191,6 +192,7 @@ export function Stylist() {
         setWeather(res.weather);
         setLooks([]);
         setMissing(res.missing);
+        setByNogos(res.byNogos ?? false);
         setStatus("empty");
       } else if (res.status === "limited") {
         // Weather is kept so the strip stays put — being out of regenerates
@@ -311,6 +313,7 @@ export function Stylist() {
       cities={cities}
       refineOpen={refineOpen}
       missing={missing}
+      byNogos={byNogos}
       limitMessage={limitMessage ? t(limitMessage.message, limitMessage.values) : ""}
       upgradeOpen={upgradeOpen}
       onShowUpgrade={() => setUpgradeOpen(true)}

@@ -386,7 +386,8 @@
     "intro": "Ändere eine beliebige Antwort. Neue Looks richten sich ab heute danach.",
     "save": "Änderungen speichern",
     "saving": "Wird gespeichert…",
-    "saved": "Gespeichert"
+    "saved": "Gespeichert",
+    "incomplete": "Wähle zum Speichern bei jeder Frage mindestens eine Antwort."
   },
   "closet": {
     "title": "Der Kleiderschrank",
@@ -727,6 +728,8 @@
     "emptyTops": "Keine Oberteile, die zu {occasion} passen — füg eins hinzu oder probier einen anderen Anlass.",
     "emptyBottoms": "Keine Unterteile, die zu {occasion} passen — füg eins hinzu oder probier einen anderen Anlass.",
     "emptyOnePiece": "Keine Kleider, die zu {occasion} passen — füg eins hinzu oder probier einen anderen Anlass.",
+    "emptyNogos": "Deine No-Gos schließen hier alle Möglichkeiten aus. Du kannst sie jederzeit ändern.",
+    "emptyNogosLink": "Stilprofil öffnen",
     "emptyGeneric": "Füg ein paar Teile hinzu, um Outfits freizuschalten",
     "limitTitle": "Das waren die Looks für heute",
     "error": "Der Stylist ist gerade nicht erreichbar.",

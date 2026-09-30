@@ -386,7 +386,8 @@
     "intro": "Je kunt elk antwoord aanpassen. Nieuwe looks houden er vanaf vandaag rekening mee.",
     "save": "Wijzigingen opslaan",
     "saving": "Opslaan…",
-    "saved": "Opgeslagen"
+    "saved": "Opgeslagen",
+    "incomplete": "Kies om op te slaan minstens één antwoord bij elke vraag."
   },
   "closet": {
     "title": "De kledingkast",
@@ -727,6 +728,8 @@
     "emptyTops": "Geen bovenstukken die passen bij {occasion} — voeg er een toe of probeer een andere gelegenheid.",
     "emptyBottoms": "Geen onderstukken die passen bij {occasion} — voeg er een toe of probeer een andere gelegenheid.",
     "emptyOnePiece": "Geen jurken die passen bij {occasion} — voeg er een toe of probeer een andere gelegenheid.",
+    "emptyNogos": "Je no-go’s sluiten hier alle opties uit. Je kunt ze altijd aanpassen.",
+    "emptyNogosLink": "Stijlprofiel openen",
     "emptyGeneric": "Voeg nog een paar stukken toe om outfits te ontgrendelen",
     "limitTitle": "Dat waren de looks van vandaag",
     "error": "De stylist is niet bereikbaar.",

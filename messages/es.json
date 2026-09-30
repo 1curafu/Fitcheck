@@ -386,7 +386,8 @@
     "intro": "Cambia cualquier respuesta. Los nuevos looks la tendrán en cuenta desde hoy.",
     "save": "Guardar cambios",
     "saving": "Guardando…",
-    "saved": "Guardado"
+    "saved": "Guardado",
+    "incomplete": "Para guardar, elige al menos una respuesta en cada pregunta."
   },
   "closet": {
     "title": "El armario",
@@ -727,6 +728,8 @@
     "emptyTops": "No hay partes de arriba para {occasion} — añade una o prueba otra ocasión.",
     "emptyBottoms": "No hay partes de abajo para {occasion} — añade una o prueba otra ocasión.",
     "emptyOnePiece": "No hay vestidos para {occasion} — añade uno o prueba otra ocasión.",
+    "emptyNogos": "Lo que has elegido evitar excluye todas las opciones aquí. Puedes cambiarlo cuando quieras.",
+    "emptyNogosLink": "Abrir perfil de estilo",
     "emptyGeneric": "Añade algunas prendas más para desbloquear conjuntos",
     "limitTitle": "Estos son los looks de hoy",
     "error": "No se ha podido contactar con el estilista.",

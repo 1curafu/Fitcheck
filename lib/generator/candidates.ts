@@ -496,3 +496,14 @@ export function buildCandidates(items: CandidateItem[], a: CandidateArgs): Candi
 // Colour is deliberately NOT filtered anywhere above. The Refine palette is a
 // lean, and leans are expressed by ranking (`scoreCombo`'s lean term), not by
 // exclusion — the same soft-preference model outerwear uses.
+
+/**
+ * True when the user's no-gos are the reason there is nothing to show: the closet WOULD dress them without the
+ * no-gos and cannot with them. Lets the stylist say so instead of telling someone with eight pairs of trousers to
+ * "add a pair". Only called once a build has already come up empty, so the second build is off the hot path.
+ */
+export function emptiedByNogos(items: CandidateItem[], a: CandidateArgs): boolean {
+  if (!a.nogos?.length) return false;
+  if (buildCandidates(items, a).length > 0) return false;
+  return buildCandidates(items, { ...a, nogos: undefined, keepItemIds: undefined }).length > 0;
+}

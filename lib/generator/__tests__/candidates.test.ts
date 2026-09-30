@@ -1,4 +1,4 @@
-import { buildCandidates, eligibility, missingCategory } from "../candidates";
+import { buildCandidates, eligibility, emptiedByNogos, missingCategory } from "../candidates";
 
 const items = [
   { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["spring"], material: "cotton", texture: null, pattern: null },
@@ -688,5 +688,24 @@ describe("no-gos", () => {
     expect(combos.flat().some((i) => i.id === "nr")).toBe(true);
     // the ripped pair is denim: the denim shirt may never join it
     expect(combos.every((c) => !(c.some((i) => i.id === "nr") && c.some((i) => i.id === "nds")))).toBe(true);
+  });
+});
+
+describe("emptiedByNogos (why the stylist came up empty)", () => {
+  const top = { id: "et", category: "Tops", colors: ["white"], formality: 3, seasons: ["spring"], material: "Cotton", texture: null, pattern: "solid" };
+  const shorts = { id: "es", category: "Bottoms", colors: ["beige"], formality: 3, seasons: ["spring"], material: "Cotton", texture: null, pattern: "solid", subcategory: "Shorts" };
+  const shoe = { id: "eh", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["spring"], material: "Leather", texture: null, pattern: null };
+
+  test("true when the closet could dress the user without the no-gos", () => {
+    const args = { ...base, nogos: ["shorts"] as const };
+    expect(buildCandidates([top, shorts, shoe], args)).toEqual([]);
+    expect(emptiedByNogos([top, shorts, shoe], args)).toBe(true);
+  });
+  test("false when the closet is short of a piece regardless of the no-gos", () => {
+    expect(emptiedByNogos([top, shoe], { ...base, nogos: ["shorts"] })).toBe(false);
+  });
+  test("false when the user has no no-gos, or when looks exist", () => {
+    expect(emptiedByNogos([top, shorts, shoe], base)).toBe(false);
+    expect(emptiedByNogos([top, shorts, shoe], { ...base, nogos: ["logos"] })).toBe(false);
   });
 });

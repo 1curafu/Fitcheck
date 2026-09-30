@@ -11,7 +11,7 @@ import { planningTempFor, rainAheadFor } from "@/lib/weather/planning";
 import { readPreferences } from "@/lib/profile/preferences";
 import { conditionKey } from "@/lib/weather/condition";
 import { personalBand, applyFormalityOverride, planningTemp } from "@/lib/generator/rules";
-import { buildCandidates, missingCategory, type CandidateItem } from "@/lib/generator/candidates";
+import { buildCandidates, emptiedByNogos, missingCategory, type CandidateItem } from "@/lib/generator/candidates";
 import { rankTopN } from "@/lib/generator/rank";
 import { diversify } from "@/lib/generator/diversity";
 import { currentSeason } from "@/lib/generator/season";
@@ -231,7 +231,13 @@ export async function generate(input: {
     };
     const combos = buildCandidates(candItems, candidateArgs);
     if (combos.length === 0) {
-      return { status: "empty", weather, missing: missingCategory(candItems, candidateArgs) };
+      return {
+        status: "empty",
+        weather,
+        missing: missingCategory(candItems, candidateArgs),
+        // "add a pair" is wrong advice when the user's own no-gos removed the pairs they have.
+        byNogos: emptiedByNogos(candItems, candidateArgs),
+      };
     }
 
     const aesthetic = profile?.archetype ? [profile.archetype] : [];
