@@ -383,7 +383,7 @@
   },
   "styleProfile": {
     "title": "Perfil de estilo",
-    "intro": "Cambia cualquier respuesta. Los nuevos looks la tendrán en cuenta desde hoy.",
+    "intro": "Cambia cualquier respuesta. Lo que quieres evitar, el estilo y el código de vestimenta se aplican enseguida a los looks de hoy.",
     "save": "Guardar cambios",
     "saving": "Guardando…",
     "saved": "Guardado",
@@ -729,7 +729,7 @@
     "emptyTops": "No hay partes de arriba para {occasion} — añade una o prueba otra ocasión.",
     "emptyBottoms": "No hay partes de abajo para {occasion} — añade una o prueba otra ocasión.",
     "emptyOnePiece": "No hay vestidos para {occasion} — añade uno o prueba otra ocasión.",
-    "emptyNogos": "Lo que has elegido evitar excluye todas las opciones aquí. Puedes cambiarlo cuando quieras.",
+    "emptyNogos": "Lo que quieres evitar descarta aquí todas las opciones. Puedes cambiarlo cuando quieras.",
     "emptyNogosLink": "Abrir perfil de estilo",
     "emptyGeneric": "Añade algunas prendas más para desbloquear conjuntos",
     "limitTitle": "Estos son los looks de hoy",

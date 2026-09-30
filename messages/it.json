@@ -383,7 +383,7 @@
   },
   "styleProfile": {
     "title": "Profilo di stile",
-    "intro": "Cambia qualsiasi risposta: i nuovi look ne terranno conto da oggi.",
+    "intro": "Cambia qualsiasi risposta. Le cose che vuoi evitare, lo stile e il dress code valgono subito per i look di oggi.",
     "save": "Salva modifiche",
     "saving": "Salvataggio…",
     "saved": "Salvato",
@@ -729,7 +729,7 @@
     "emptyTops": "Nessun capo sopra adatto a {occasion} — aggiungine uno o prova un’altra occasione.",
     "emptyBottoms": "Nessun capo sotto adatto a {occasion} — aggiungine uno o prova un’altra occasione.",
     "emptyOnePiece": "Nessun abito adatto a {occasion} — aggiungine uno o prova un’altra occasione.",
-    "emptyNogos": "Le cose che vuoi evitare escludono ogni opzione qui. Puoi cambiarle quando vuoi.",
+    "emptyNogos": "Le cose che vuoi evitare escludono qui tutte le opzioni. Puoi cambiarle quando vuoi.",
     "emptyNogosLink": "Apri il profilo di stile",
     "emptyGeneric": "Aggiungi qualche capo in più per sbloccare gli outfit",
     "limitTitle": "Ecco i look di oggi",

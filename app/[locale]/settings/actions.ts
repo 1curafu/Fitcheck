@@ -233,12 +233,22 @@ export async function updateStyleProfile(input: unknown): Promise<void> {
     // A profile with no timezone has looks under two keys: styled looks use UTC, the daily drop uses the
     // default city's forecast timezone. Clear both, or a save near midnight leaves the stale set.
     const zones = row?.location_timezone ? [row.location_timezone] : ["UTC", DEFAULT_TIMEZONE];
-    try {
+    const clearAll = async () => {
       for (const zone of zones) await clearTodaysDrop(supabase, user.id, zone);
+    };
+    try {
+      try {
+        await clearAll();
+      } catch {
+        // Most failures are a transient network blip: one retry keeps the save instead of undoing it.
+        await clearAll();
+      }
     } catch (e) {
       // Put the previous answers back and report the failure. Leaving the new answers saved would make a retry
       // see "nothing changed" and never clear the stale looks — a permanent "Saved" that is false.
-      await supabase
+      // ⚠️ Known window: a save from ANOTHER tab/device in the same second is overwritten by this rollback. A
+      // conditional (compare-and-set) rollback needs a version column; not worth a migration for this window.
+      const { error: rollbackError } = await supabase
         .from("profiles")
         .update({
           archetype: row?.archetype ?? null,
@@ -251,6 +261,9 @@ export async function updateStyleProfile(input: unknown): Promise<void> {
           formality_max: row?.formality_max ?? null,
         })
         .eq("id", user.id);
+      // A failed rollback leaves the new answers saved with today's old looks in place: alert, and still report
+      // the ORIGINAL failure to the caller.
+      if (rollbackError) Sentry.captureException(new Error(rollbackError.message), { tags: { style_profile: "rollback-failed" } });
       throw e;
     }
   }

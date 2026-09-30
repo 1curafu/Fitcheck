@@ -383,11 +383,11 @@
   },
   "styleProfile": {
     "title": "Stijlprofiel",
-    "intro": "Je kunt elk antwoord aanpassen. Nieuwe looks houden er vanaf vandaag rekening mee.",
+    "intro": "Pas elk antwoord aan. Je no-go’s, stijl en dresscode gelden meteen voor de looks van vandaag.",
     "save": "Wijzigingen opslaan",
     "saving": "Opslaan…",
     "saved": "Opgeslagen",
-    "incomplete": "Kies om op te slaan minstens één antwoord bij elke vraag."
+    "incomplete": "Kies minstens één antwoord per vraag om op te slaan."
   },
   "closet": {
     "title": "De kledingkast",

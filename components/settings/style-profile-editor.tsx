@@ -38,8 +38,30 @@ export function StyleProfileEditor({
   const tSettings = useTranslations("settings");
   const [baseline, setBaseline] = useState(() => toAnswers(profile));
   const [answers, setAnswers] = useState(baseline);
+  /**
+   * ⚠️ Follow fresh server data. Next keeps this route mounted (React Activity), so state initialised once from
+   * props went stale: a profile changed on another device showed old answers, and saving overwrote it. When the
+   * saved answers change under us, adopt them — unless the user has unsaved edits, which stay (Save is then
+   * judged against the NEW saved answers). Derived state during render, not an effect, so nothing flashes.
+   */
+  const [seenProfile, setSeenProfile] = useState(() => signature(toAnswers(profile)));
+  const profileNow = signature(toAnswers(profile));
+  if (profileNow !== seenProfile) {
+    setSeenProfile(profileNow);
+    const fresh = toAnswers(profile);
+    if (signature(answers) === signature(baseline)) setAnswers(fresh);
+    setBaseline(fresh);
+  }
   const [status, setStatus] = useState<"idle" | "saved" | "error">("idle");
   const [pending, startTransition] = useTransition();
+
+  // Same reason as the sheets elsewhere: a hidden route keeps its state, so leaving must not leave "Saved" behind.
+  useEffect(
+    () => () => {
+      setStatus("idle");
+    },
+    [],
+  );
 
   // What the user has NOW, read when a save resolves — a save that finishes after a newer edit must not claim "Saved".
   const latest = useRef(answers);

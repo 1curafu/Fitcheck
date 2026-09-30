@@ -1,6 +1,7 @@
 import { beforeEach, expect, it, vi } from "vitest";
 
-const mock = vi.hoisted(() => ({ read: vi.fn(), update: vi.fn(), write: vi.fn(), getUser: vi.fn(), revalidate: vi.fn(), clear: vi.fn() }));
+const mock = vi.hoisted(() => ({ read: vi.fn(), update: vi.fn(), write: vi.fn(), getUser: vi.fn(), revalidate: vi.fn(), clear: vi.fn(), capture: vi.fn() }));
+vi.mock("@sentry/nextjs", () => ({ captureException: mock.capture, flush: vi.fn() }));
 vi.mock("@/lib/account-deletion/runtime", () => ({ deleteLiveAccount: vi.fn() }));
 vi.mock("@/lib/share/store", () => ({ stop: vi.fn() }));
 vi.mock("@/lib/i18n/revalidate", () => ({ revalidateEverywhere: mock.revalidate }));
@@ -52,8 +53,18 @@ it("a profile without a timezone clears BOTH days it may be stored under", async
   expect(mock.clear).toHaveBeenCalledTimes(2);
 });
 
-it("a failed clear puts the previous answers back and reports the failure, so a retry still rebuilds", async () => {
-  mock.read.mockResolvedValue({ data: { ...stored, palette: "Earth", fit: "Relaxed", dress_codes: ["Smart casual"], occasions: ["Weekend"] }, error: null });
+const staleProfile = { ...stored, palette: "Earth", fit: "Relaxed", dress_codes: ["Smart casual"], occasions: ["Weekend"] };
+
+it("a transient clear failure is retried once and the save stands", async () => {
+  mock.read.mockResolvedValue({ data: staleProfile, error: null });
+  mock.clear.mockRejectedValueOnce(new Error("blip")).mockResolvedValue(undefined);
+  await expect(updateStyleProfile({ ...answers, nogos: ["ripped", "shorts"] })).resolves.toBeUndefined();
+  expect(mock.clear).toHaveBeenCalledTimes(2);
+  expect(mock.update).toHaveBeenCalledTimes(1); // no rollback
+});
+
+it("a clear that keeps failing puts the previous answers back and reports the failure, so a retry still rebuilds", async () => {
+  mock.read.mockResolvedValue({ data: staleProfile, error: null });
   mock.clear.mockRejectedValue(new Error("clear failed"));
   await expect(updateStyleProfile({ ...answers, nogos: ["ripped", "shorts"] })).rejects.toThrow("clear failed");
   expect(mock.update).toHaveBeenCalledTimes(2);
@@ -61,6 +72,14 @@ it("a failed clear puts the previous answers back and reports the failure, so a 
     archetype: "Old Money", palette: "Earth", fit: "Relaxed", dress_codes: ["Smart casual"], occasions: ["Weekend"],
     nogos: ["ripped"], formality_min: 3, formality_max: 3,
   });
+});
+
+it("a rollback that itself fails is reported to Sentry and never hides the original failure", async () => {
+  mock.read.mockResolvedValue({ data: staleProfile, error: null });
+  mock.clear.mockRejectedValue(new Error("clear failed"));
+  mock.write.mockResolvedValueOnce({ error: null }).mockResolvedValueOnce({ error: new Error("rollback failed") });
+  await expect(updateStyleProfile({ ...answers, nogos: ["ripped", "shorts"] })).rejects.toThrow("clear failed");
+  expect(mock.capture).toHaveBeenCalledWith(expect.objectContaining({ message: "rollback failed" }), expect.anything());
 });
 
 it("a legacy stored no-go is not a change on its own", async () => {
