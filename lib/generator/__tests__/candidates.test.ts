@@ -653,6 +653,28 @@ describe("no-gos", () => {
     expect(combos.some((c) => c.some((i) => i.id === "nds") && c.some((i) => i.id === "nj"))).toBe(true);
   });
 
+  test("a cold day with only a denim coat and all-denim bottoms still dresses the user, just without the coat", () => {
+    // ⚠️ Outerwear is a preference, not a slot: when the only coat would make double denim, the look drops the
+    // coat rather than the whole closet (found in the whole-branch review — it returned zero looks).
+    const top2 = { ...top, id: "nt2" };
+    const denimCoat = { id: "ndc", category: "Outerwear", colors: ["denim"], formality: 3, seasons: ["spring"], material: "Denim", texture: null, pattern: "solid" };
+    const cold = { ...base, weather: { tempC: 5, rain: false } };
+    const closet = [top, top2, jeans, denimCoat, shoe];
+    expect(buildCandidates(closet, cold).length).toBeGreaterThan(0);
+    const combos = buildCandidates(closet, { ...cold, nogos: ["double_denim"] });
+    expect(combos.length).toBeGreaterThan(0);
+    expect(combos.every((c) => !(c.some((i) => i.id === "nj") && c.some((i) => i.id === "ndc")))).toBe(true);
+    expect(missingCategory(closet, { ...cold, nogos: ["double_denim"] })).toBeNull();
+  });
+
+  test("a cold day prefers a coat that does not make double denim over dropping the coat", () => {
+    const denimCoat = { id: "ndc", category: "Outerwear", colors: ["denim"], formality: 3, seasons: ["spring"], material: "Denim", texture: null, pattern: "solid" };
+    const woolCoat = { id: "nwc", category: "Outerwear", colors: ["camel"], formality: 3, seasons: ["spring"], material: "Wool", texture: null, pattern: "solid" };
+    const combos = buildCandidates([top, jeans, denimCoat, woolCoat, shoe], { ...base, weather: { tempC: 5, rain: false }, nogos: ["double_denim"] });
+    expect(combos.length).toBeGreaterThan(0);
+    expect(combos.every((c) => c.some((i) => i.id === "nwc"))).toBe(true);
+  });
+
   test("weather relief cannot bring a blocked piece back when it empties a slot", () => {
     // The only bottom is blocked: the slot is empty and STAYS empty — relief is for weather bars only.
     const args = { ...base, nogos: ["ripped"] as const };

@@ -429,8 +429,18 @@ function walkShape(
       // who owns no coat — that silently killed every outfit below 15°. The
       // index rotates too; it was pinned to [0], so one coat was worn on every
       // cold day and every other coat was unreachable.
-      const base =
-        needsOuterwear && outer.length ? [...core, outer[(t + d) % outer.length]] : core;
+      //
+      // ⚠️ A coat that would break a look-level no-go (a denim jacket over jeans) is passed over for the next
+      // one, and with none left the look goes coatless: outerwear is a preference, so a no-go must never turn
+      // "the only coat is denim" into "no looks at all" on a cold day.
+      const start = outer.length ? (t + d) % outer.length : 0;
+      const coat =
+        needsOuterwear && outer.length
+          ? outer
+              .map((_, k) => [...core, outer[(start + k) % outer.length]])
+              .find((c) => !a.nogos?.length || !comboBlocked(c, a.nogos))
+          : undefined;
+      const base = coat ?? core;
 
       // Accessories and bags never count toward a look-level no-go, so judging the base judges every
       // variant built on it — and a skipped base never spends the CAP.

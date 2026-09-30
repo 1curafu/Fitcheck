@@ -18,6 +18,7 @@ describe("item rules", () => {
     ["skinny", bottom({ fit: "Fitted" })],
     ["shorts", bottom({ subcategory: "Bermuda shorts" })],
     ["shorts", bottom({ subcategory: "Shorts" })],
+    ["shorts", bottom({ subcategory: "Bermudas" })],
     ["graphic", top({ pattern: "print" })],
     ["logos", top({ branding: "Large" })],
   ] as const)("%s blocks its garment", (nogo, item) => {
@@ -28,6 +29,8 @@ describe("item rules", () => {
     ["ripped", bottom({ distressing: "Faded" })],
     ["skinny", top({ fit: "Fitted" })],
     ["shorts", bottom({ subcategory: "Knee-length skirt" })],
+    ["shorts", bottom({ subcategory: "Short skirt" })],
+    ["shorts", bottom({ subcategory: "Short pleated skirt" })],
     ["shorts", top({ subcategory: "Short-sleeve shirt" })],
     ["graphic", bottom({ pattern: "print" })],
     ["logos", top({ branding: "Small" })],

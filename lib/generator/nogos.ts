@@ -22,8 +22,11 @@ export type NoGoItem = {
   material?: string | null;
 };
 
-/** `subcategory` is free text written by the tagger in English. */
-const SHORTS = /\bshorts?\b/i;
+/**
+ * `subcategory` is free text written by the tagger in English. Plural `shorts` or `bermuda(s)` only: the
+ * singular "short" turns up in "Short skirt" and "Short-length trousers", which the user did not rule out.
+ */
+const SHORTS = /\b(shorts|bermudas?)\b/i;
 /** Garments worn on the body; denim shoes or a denim bag do not make "double denim". */
 const GARMENTS = new Set(["Tops", "Bottoms", "One-piece", "Outerwear"]);
 
