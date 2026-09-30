@@ -53,9 +53,12 @@ test("formalityRange spans the chosen dress codes", () => {
 });
 
 describe("affectsLooks", () => {
-  const before = { archetype: "Old Money", nogos: ["ripped"], formality_min: 3, formality_max: 4 };
+  const before = { archetype: "Old Money", nogos: ["ripped"], formality_min: 3, formality_max: 4, occasions: ["Work"] };
   test("an unchanged set does not", () => {
     expect(affectsLooks(before, { ...before, nogos: ["ripped"] })).toBe(false);
+  });
+  test("occasion order does not matter", () => {
+    expect(affectsLooks({ ...before, occasions: ["Work", "Evening"] }, { ...before, occasions: ["Evening", "Work"] })).toBe(false);
   });
   test("no-go order does not matter", () => {
     expect(affectsLooks({ ...before, nogos: ["logos", "ripped"] }, { ...before, nogos: ["ripped", "logos"] })).toBe(false);
@@ -65,6 +68,10 @@ describe("affectsLooks", () => {
     ["a removed no-go", { nogos: [] }],
     ["a new archetype", { archetype: "Streetwear" }],
     ["a different band", { formality_max: 5 }],
+    // "Style with this piece" derives its occasion from these and serves an item/day cache, so a look generated and
+    // narrated for Work stays Work after the user switches to Evening unless the drop is cleared.
+    ["a different occasion", { occasions: ["Evening"] }],
+    ["an added occasion", { occasions: ["Work", "Evening"] }],
   ])("%s does", (_, patch) => {
     expect(affectsLooks(before, { ...before, ...patch })).toBe(true);
   });

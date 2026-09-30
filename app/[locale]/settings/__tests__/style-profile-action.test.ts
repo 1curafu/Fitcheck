@@ -16,7 +16,7 @@ const answers = {
   archetype: "Old Money", palette: "Neutrals", fit: "Tailored",
   dress_codes: ["Smart casual"], occasions: ["Work"], nogos: ["ripped"],
 };
-const stored = { archetype: "Old Money", nogos: ["ripped"], formality_min: 3, formality_max: 3, location_timezone: "Europe/Zurich" };
+const stored = { archetype: "Old Money", nogos: ["ripped"], occasions: ["Work"], formality_min: 3, formality_max: 3, location_timezone: "Europe/Zurich" };
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -34,8 +34,14 @@ it("saves the six answers with the derived band, and never touches onboarding st
 });
 
 it("an unchanged look input keeps today's looks", async () => {
-  await updateStyleProfile({ ...answers, palette: "Earth", occasions: ["Weekend"] });
+  // palette and fit change nothing until quiz part 2 scores them
+  await updateStyleProfile({ ...answers, palette: "Earth", fit: "Relaxed" });
   expect(mock.clear).not.toHaveBeenCalled();
+});
+
+it("changing only the occasions clears today's looks — the styled-look cache is keyed by item and day, not occasion", async () => {
+  await updateStyleProfile({ ...answers, occasions: ["Evening"] });
+  expect(mock.clear).toHaveBeenCalledWith(expect.anything(), "user", "Europe/Zurich");
 });
 
 it("a new no-go clears today's looks in the profile's timezone", async () => {
@@ -80,6 +86,12 @@ it("a rollback that itself fails is reported to Sentry and never hides the origi
   mock.write.mockResolvedValueOnce({ error: null }).mockResolvedValueOnce({ error: new Error("rollback failed") });
   await expect(updateStyleProfile({ ...answers, nogos: ["ripped", "shorts"] })).rejects.toThrow("clear failed");
   expect(mock.capture).toHaveBeenCalledWith(expect.objectContaining({ message: "rollback failed" }), expect.anything());
+});
+
+it("a legacy stored occasion is not a change on its own", async () => {
+  mock.read.mockResolvedValue({ data: { ...stored, occasions: ["Work", "Brunch"] }, error: null });
+  await updateStyleProfile(answers);
+  expect(mock.clear).not.toHaveBeenCalled();
 });
 
 it("a legacy stored no-go is not a change on its own", async () => {

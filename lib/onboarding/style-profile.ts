@@ -63,13 +63,16 @@ export function formalityRange(dressCodes: readonly string[]): { formality_min: 
 export type LookInputs = {
   archetype: string | null;
   nogos: readonly string[];
+  occasions: readonly string[];
   formality_min: number | null;
   formality_max: number | null;
 };
 
 /**
  * Would today's stored looks have been built differently? Only then is the drop cleared (a free rebuild).
- * Part 1: band, no-gos, archetype (it reaches the rerank prompt). Parts 2–3 add palette and fit.
+ * Band, no-gos, archetype (it reaches the rerank prompt) and OCCASIONS: "Style with this piece" derives its occasion
+ * from them (`predictOccasion`) but caches by item and day, so a look built and narrated for Work would otherwise
+ * stay Work after the user switches to Evening. Quiz part 2 adds palette and fit.
  */
 export function affectsLooks(before: LookInputs, after: LookInputs): boolean {
   const same = (a: readonly string[], b: readonly string[]) => [...a].sort().join("|") === [...b].sort().join("|");
@@ -77,7 +80,8 @@ export function affectsLooks(before: LookInputs, after: LookInputs): boolean {
     before.archetype !== after.archetype ||
     before.formality_min !== after.formality_min ||
     before.formality_max !== after.formality_max ||
-    !same(before.nogos, after.nogos)
+    !same(before.nogos, after.nogos) ||
+    !same(before.occasions, after.occasions)
   );
 }
 

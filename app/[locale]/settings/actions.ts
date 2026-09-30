@@ -14,7 +14,7 @@ import { PreferencesSchema, mergePreferencesForSave } from "@/lib/profile/prefer
 import { fetchForecast } from "@/lib/weather/forecast";
 import { DEFAULT_TIMEZONE, locationColumns, invalidatesDrop, resolveLocation } from "@/lib/weather/location";
 import { clearTodaysDrop } from "@/lib/outfits/clear-today";
-import { StyleProfileSchema, affectsLooks, formalityRange, readNogos } from "@/lib/onboarding/style-profile";
+import { StyleProfileSchema, affectsLooks, formalityRange, readNogos, readStyleProfile } from "@/lib/onboarding/style-profile";
 import { isShareToken } from "@/lib/share/snapshot";
 import { stop } from "@/lib/share/store";
 import type { MessageKey } from "@/lib/i18n/keys";
@@ -223,10 +223,12 @@ export async function updateStyleProfile(input: unknown): Promise<void> {
     {
       archetype: row?.archetype ?? null,
       nogos: readNogos(row?.nogos),
+      // Lenient read: a legacy/unknown stored occasion must not read as a change.
+      occasions: readStyleProfile(row).occasions,
       formality_min: row?.formality_min ?? null,
       formality_max: row?.formality_max ?? null,
     },
-    { archetype: data.archetype, nogos: data.nogos, ...range },
+    { archetype: data.archetype, nogos: data.nogos, occasions: data.occasions, ...range },
   );
 
   if (changed) {
