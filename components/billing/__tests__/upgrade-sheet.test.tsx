@@ -73,7 +73,7 @@ it("stays inert when billing is off", () => {
   open();
   expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: /^go pro$/i })).not.toBeInTheDocument();
-  expect(screen.getByText(/€5 \/ month/)).toBeInTheDocument();
+  expect(screen.getByText(/€5\.29 \/ month/)).toBeInTheDocument();
 });
 
 it("a Pro user is not offered a purchase", () => {
