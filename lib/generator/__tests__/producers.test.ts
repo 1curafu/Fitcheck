@@ -85,3 +85,14 @@ test("the daily action re-checks the STORED set against the no-gos before servin
   // …and its result must gate serving the stored set, not just be computed.
   expect(daily?.text).toMatch(/!storedBreaksNogo/);
 });
+
+test("the styled-look action re-checks its CACHED looks and explains a no-go emptiness", () => {
+  // ⚠️ Source-level: a cached styled set is served with no rebuild, so a companion retagged Ripped/Large/Fitted
+  // after styling stayed in the look all day; and a piece whose companions were all ruled out was told
+  // "add more pieces" (thinCloset) although the closet was fine.
+  const styled = FILES.find(({ path }) => path.endsWith("style-actions.ts"))!.text;
+  expect(styled).toMatch(/cachedBreaksNogo = [^;]*storedLooksBlocked\(/);
+  expect(styled).toMatch(/if \(cached\.length && !cachedBreaksNogo\)/);
+  expect(styled).toMatch(/emptiedByNogos\(/);
+  expect(styled).toContain("item.style.nogos");
+});

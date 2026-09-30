@@ -67,16 +67,20 @@ export function storedLooksBlocked(
   looks: readonly { worn?: boolean; pieces: readonly { itemId: string }[] }[],
   itemsById: ReadonlyMap<string, NoGoItem>,
   nogos: readonly NoGo[],
+  /** Ids exempt from the ITEM rules — the piece a styled look was built around (the user chose it). */
+  keepItemIds: readonly string[] = [],
 ): boolean {
   if (!nogos.length) return false;
   // ⚠️ Worn looks are skipped. They are pinned across rebuilds (`saveDailyLooks` keeps them), so a rebuild
   // cannot remove them — counting them made every later visit rebuild again, spending an AI call each time.
   return looks.some((look) => {
     if (look.worn) return false;
-    const items = look.pieces.flatMap((p) => {
+    const present = look.pieces.flatMap((p) => {
       const item = itemsById.get(p.itemId);
-      return item ? [item] : [];
+      return item ? [{ id: p.itemId, item }] : [];
     });
-    return items.some((i) => itemBlocked(i, nogos)) || comboBlocked(items, nogos);
+    const items = present.map((x) => x.item);
+    const itemIds = present.map((x) => x.id);
+    return items.some((i, idx) => !keepItemIds.includes(itemIds[idx]) && itemBlocked(i, nogos)) || comboBlocked(items, nogos);
   });
 }

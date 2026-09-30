@@ -384,6 +384,7 @@
       "notSignedIn": "Not signed in",
       "pieceNotFound": "Piece not found",
       "fragrance": "Fragrance finishes a look rather than forming one.",
+      "nogos": "Your no-gos rule out every piece that would go with this one. You can change them in Style profile.",
       "thinCloset": "Not enough other pieces to build a look around this one yet.",
       "failed": "Couldn't style this",
       "saveFailed": "Couldn't save the look",

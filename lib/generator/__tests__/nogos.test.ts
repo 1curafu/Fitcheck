@@ -85,6 +85,7 @@ describe("storedLooksBlocked (a look stored BEFORE the item was retagged or the 
     ["ripped", bottom({ distressing: "Ripped" })],
     ["denimShirt", top({ material: "Denim" })],
     ["jeans", bottom({ material: "Denim" })],
+    ["logoTee", top({ branding: "Large" })],
   ]);
   const look = (...ids: string[]) => ({ worn: false, pieces: ids.map((itemId) => ({ itemId })) });
 
@@ -103,6 +104,12 @@ describe("storedLooksBlocked (a look stored BEFORE the item was retagged or the 
   });
   test("a WORN look is ignored: it is pinned across rebuilds, so rebuilding cannot fix it and would loop every visit", () => {
     expect(storedLooksBlocked([{ ...look("tee", "ripped"), worn: true }, look("tee", "chino")], items, ["ripped"])).toBe(false);
+  });
+
+  test("the piece a look was STYLED around is exempt — the user chose it, so it must not force a rebuild every visit", () => {
+    expect(storedLooksBlocked([look("tee", "ripped")], items, ["ripped"], ["ripped"])).toBe(false);
+    // …but it does not exempt its companions, or the look-level rule.
+    expect(storedLooksBlocked([look("ripped", "logoTee")], items, ["ripped", "logos"], ["ripped"])).toBe(true);
   });
 
   test("a piece that left the closet is the reassemble path's problem, not this one's", () => {

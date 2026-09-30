@@ -438,6 +438,7 @@
       "notSignedIn": "No has iniciado sesión",
       "pieceNotFound": "Prenda no encontrada",
       "fragrance": "Un perfume remata un look, no lo construye.",
+      "nogos": "Lo que has elegido evitar excluye todas las prendas que irían con esta. Puedes cambiarlo en el perfil de estilo.",
       "thinCloset": "Aún no hay suficientes prendas para crear un look alrededor de esta.",
       "failed": "No se ha podido crear el look",
       "saveFailed": "No se ha podido guardar el look",
