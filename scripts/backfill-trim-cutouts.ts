@@ -11,14 +11,15 @@
  * ⚠️ **DRY RUN BY DEFAULT** — `--apply` is required to write. It overwrites cutout and thumbnail objects in place
  * (same paths, so no row changes). Take an SSD backup first; the originals are never touched, and a cutout can
  * always be re-made from its original.
- * ⚠️ Idempotent: a cutout already cropped (capture's 2% border, or an earlier run) is skipped.
+ * ⚠️ Idempotent: a cutout already cropped (capture's 2% border, or an earlier run) is skipped. The thumbnail is written
+ * BEFORE the cutout, so a run stopped half-way leaves the cutout padded and a rerun redoes the row.
  * ⚠️ Paths come from the row's `cutout_url` / `thumb_url`, never from the item id (see backfill-thumbs.ts).
  * ⚠️ Service-role: crosses all users; lives in scripts/ and must never be imported by app code.
  */
 import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
 import { needsTrim } from "../lib/images/trim";
-import { trimStoredCutout } from "./trim-cutouts-core";
+import { storeTrimmed, trimStoredCutout } from "./trim-cutouts-core";
 
 const apply = process.argv.includes("--apply");
 const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
@@ -43,8 +44,6 @@ async function download(path: string): Promise<Buffer | null> {
   return error || !data ? null : Buffer.from(await data.arrayBuffer());
 }
 
-const contentType = (path: string) => (path.endsWith(".png") ? "image/png" : "image/webp");
-
 async function main() {
   const items = await allItems();
   console.log(`${items.length} items.` + (apply ? "" : "  (dry run — pass --apply to write)"));
@@ -62,12 +61,12 @@ async function main() {
     trimmed++;
     if (!apply) continue;
 
-    const up = await db.storage.from("wardrobe").upload(item.cutout_url, out.cutout, { contentType: contentType(item.cutout_url), upsert: true });
-    if (up.error) throw new Error(`uploading ${item.cutout_url} failed: ${up.error.message}`);
-    if (item.thumb_url && out.thumb) {
-      const t = await db.storage.from("wardrobe").upload(item.thumb_url, out.thumb, { contentType: contentType(item.thumb_url), upsert: true });
-      if (t.error) throw new Error(`uploading ${item.thumb_url} failed: ${t.error.message}`);
-    }
+    // Thumbnail first, then the cutout (see `storeTrimmed`): an interrupted run must stay detectable as padded.
+    await storeTrimmed(
+      async (path, body, contentType) => (await db.storage.from("wardrobe").upload(path, body, { contentType, upsert: true })).error ?? null,
+      { cutout: item.cutout_url, thumb: item.thumb_url },
+      out,
+    );
     // Verify what is actually stored, not what was sent.
     const stored = await download(item.cutout_url);
     const { data, info } = await sharp(stored!).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
