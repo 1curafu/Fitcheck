@@ -2,6 +2,11 @@ import type { LocalizedNote } from "@/lib/release-notes";
 
 /** Keyed by version; one entry for every RELEASE_NOTES version, same line counts. */
 export const RU_NOTES: Record<string, LocalizedNote> = {
+  "0.5.1": {
+    headline: "Небольшие исправления и улучшения.",
+    added: [],
+    fixed: ["Несколько небольших исправлений, чтобы всё работало гладко"],
+  },
   "0.5.0": {
     headline: "Fitcheck теперь говорит на десяти языках.",
     added: ["Пользуйся Fitcheck на английском, русском, немецком, французском и других", "Выбирай язык в небольшом меню на стартовой странице или в настройках", "Образы, погода и детали вещей теперь на твоём языке", "Прошлые образы показаны на твоём языке; оригинал всегда сохраняется"],

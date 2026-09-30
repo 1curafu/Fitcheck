@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { WhatsNew, shouldShow } from "../whats-new";
+import { WhatsNewCard } from "../whats-new-card";
 import { CURRENT_RELEASE } from "@/lib/release-notes";
 
 const KEY = "fitcheck:last-seen-release";
@@ -77,7 +78,8 @@ test("it announces the update in one line, not a changelog", async () => {
   render(<WhatsNew />);
   await screen.findByText(CURRENT_RELEASE.headline);
   expect(screen.queryAllByRole("listitem")).toHaveLength(0);
-  expect(screen.queryByText(CURRENT_RELEASE.added[0])).not.toBeInTheDocument();
+  // Any line of the release (a fixes-only release has no "added" line).
+  expect(screen.queryByText([...CURRENT_RELEASE.added, ...CURRENT_RELEASE.fixed][0])).not.toBeInTheDocument();
 });
 
 test("tapping it opens the full list — nothing written is unreachable", async () => {
@@ -90,10 +92,19 @@ test("tapping it opens the full list — nothing written is unreachable", async 
 });
 
 test("what is new and what is fixed are told apart", async () => {
-  localStorage.setItem(KEY, "0.0.1");
-  render(<WhatsNew />);
-  await userEvent.click(await screen.findByRole("button", { expanded: false }));
+  // Fixed sample data: the shipped release may have only fixes, which must not decide whether this is tested.
+  const release = { version: "9.9.9", date: "2099-01-01", headline: "Sample", added: ["A new thing"], fixed: ["A fixed thing"] };
+  render(<WhatsNewCard release={release} onDismiss={() => {}} />);
+  await userEvent.click(screen.getByRole("button", { expanded: false }));
   expect(screen.getByText("New")).toBeInTheDocument();
+  expect(screen.getByText("Fixed")).toBeInTheDocument();
+});
+
+test("a fixes-only release shows no empty New section", async () => {
+  const release = { version: "9.9.9", date: "2099-01-01", headline: "Sample", added: [], fixed: ["A fixed thing"] };
+  render(<WhatsNewCard release={release} onDismiss={() => {}} />);
+  await userEvent.click(screen.getByRole("button", { expanded: false }));
+  expect(screen.queryByText("New")).not.toBeInTheDocument();
   expect(screen.getByText("Fixed")).toBeInTheDocument();
 });
 

@@ -36,6 +36,17 @@ export type LocalizedNote = { headline: string; added: string[]; fixed: string[]
 
 const BASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.5.1",
+    date: "2026-09-30",
+    headline: "Small fixes and improvements.",
+    added: [],
+    fixed: ["A few small fixes to keep things running smoothly"],
+    i18n: {
+      "en-GB": { headline: "Small fixes and improvements.", added: [], fixed: ["A few small fixes to keep things running smoothly"] },
+      uk: { headline: "Дрібні виправлення та покращення.", added: [], fixed: ["Кілька дрібних виправлень, щоб усе працювало гладко"] },
+    },
+  },
+  {
     version: "0.5.0",
     date: "2026-09-29",
     headline: "Fitcheck now speaks ten languages.",
