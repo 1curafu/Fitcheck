@@ -18,8 +18,7 @@
  */
 import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
-import { needsTrim } from "../lib/images/trim";
-import { storeTrimmed, trimStoredCutout } from "./trim-cutouts-core";
+import { storeTrimmed, trimStoredCutout, verifyTrimmed } from "./trim-cutouts-core";
 
 const apply = process.argv.includes("--apply");
 const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
@@ -44,10 +43,25 @@ async function download(path: string): Promise<Buffer | null> {
   return error || !data ? null : Buffer.from(await data.arrayBuffer());
 }
 
+/**
+ * A read that cannot be served from a CDN cache of the PREVIOUS object: a freshly minted signed URL carries a new token,
+ * so it is a new cache key. The authenticated `download()` used above can return the pre-overwrite bytes for a while,
+ * which made the first production --apply abort on an upload that had actually landed.
+ */
+async function readFresh(path: string): Promise<Buffer | null> {
+  const { data, error } = await db.storage.from("wardrobe").createSignedUrl(path, 120);
+  if (error || !data) return null;
+  const res = await fetch(data.signedUrl);
+  return res.ok ? Buffer.from(await res.arrayBuffer()) : null;
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 async function main() {
   const items = await allItems();
   console.log(`${items.length} items.` + (apply ? "" : "  (dry run — pass --apply to write)"));
   let trimmed = 0, tight = 0, skipped = 0;
+  const failures: string[] = [];
 
   for (const item of items) {
     if (!item.cutout_url) { skipped++; continue; }
@@ -56,6 +70,7 @@ async function main() {
 
     const out = await trimStoredCutout(source, item.cutout_url, item.thumb_url);
     if (!out) { tight++; continue; }
+    const before = await sharp(source).metadata();
     const size = await sharp(out.cutout).metadata();
     console.log(`  ${item.id}: ${kb(source.length)} → ${kb(out.cutout.length)} (${size.width}×${size.height})`);
     trimmed++;
@@ -67,15 +82,25 @@ async function main() {
       { cutout: item.cutout_url, thumb: item.thumb_url },
       out,
     );
-    // Verify what is actually stored, not what was sent.
-    const stored = await download(item.cutout_url);
-    const { data, info } = await sharp(stored!).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-    if (needsTrim({ data: new Uint8ClampedArray(data.buffer, data.byteOffset, data.length), width: info.width, height: info.height })) {
-      throw new Error(`${item.cutout_url} still has its margin after upload`);
+    // Verify what is actually stored, not what was sent — through a fresh read, retried while the new object becomes
+    // visible. One bad row never aborts the run: every upload is idempotent, so the rest can still be done.
+    let verdict = await verifyTrimmed(readFresh, item.cutout_url, { width: before.width!, height: before.height! });
+    for (let attempt = 1; verdict.status !== "ok" && attempt <= 3; attempt++) {
+      await sleep(2000 * attempt);
+      verdict = await verifyTrimmed(readFresh, item.cutout_url, { width: before.width!, height: before.height! });
+    }
+    if (verdict.status !== "ok") {
+      const why = `${verdict.status}${verdict.width ? ` (${verdict.width}×${verdict.height}, expected ${size.width}×${size.height})` : ""}`;
+      console.log(`  ${item.id}: VERIFY FAILED — ${item.cutout_url} is ${why}`);
+      failures.push(item.id);
     }
   }
 
   console.log(`${trimmed} ${apply ? "cropped" : "to crop"} · ${tight} already tight · ${skipped} without a usable cutout`);
+  if (failures.length) {
+    console.log(`${failures.length} row(s) did not verify: ${failures.join(", ")}. Re-run --apply; already-cropped rows are skipped.`);
+    process.exit(1);
+  }
 }
 
 main().catch((e) => {
