@@ -5,13 +5,16 @@ import manifest from "../manifest";
 test("one installed app keeps its stable root launch and English manifest",()=>{
  expect(manifest()).toMatchObject({name:"Fitcheck",short_name:"Fitcheck",start_url:"/",lang:"en-US",display:"standalone"});
 });
-import { PRIVATE_PREFIXES, PUBLIC_PATHS, SITE_URL, UNLISTED_PREFIXES } from "@/lib/site";
+import { NOINDEX_PATHS, PRIVATE_PREFIXES, PUBLIC_PATHS, SITE_URL, UNLISTED_PREFIXES } from "@/lib/site";
 import { readdirSync } from "node:fs";
 import { config as proxyConfig } from "../../proxy";
 
 test("every public path is in the sitemap, as an absolute https URL", () => {
   const urls = sitemap().map((e) => e.url);
-  for (const p of PUBLIC_PATHS) expect(urls).toContain(`${SITE_URL}${p}`);
+  for (const p of PUBLIC_PATHS) {
+    if ((NOINDEX_PATHS as readonly string[]).includes(p)) expect(urls).not.toContain(`${SITE_URL}${p}`);
+    else expect(urls).toContain(`${SITE_URL}${p}`);
+  }
   for (const u of urls) expect(u.startsWith("https://")).toBe(true);
 });
 
@@ -60,6 +63,8 @@ test("sitemap lists every public page in every locale with its alternates", () =
     `${SITE_URL}/`, `${SITE_URL}/en-gb`, `${SITE_URL}/uk`, `${SITE_URL}/uk/privacy`, `${SITE_URL}/en-gb/terms`,
     `${SITE_URL}/de`, `${SITE_URL}/pt/privacy`, `${SITE_URL}/nl/terms`,
   ]));
+  // Sign-in is public and crawlable, but a login form is not a search result.
+  expect(entries.map(e => e.url).filter(u => u.includes("/sign-in"))).toEqual([]);
   expect(entries[0].alternates?.languages).toMatchObject({ "en-US": `${SITE_URL}/`, uk: `${SITE_URL}/uk` });
 });
 test("private routes are disallowed in every locale, shares remain crawlable", () => {

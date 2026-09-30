@@ -39,13 +39,176 @@
     "and": "e a",
     "privacy": "Política de Privacidade"
   },
+  "home": {
+    "metadata": {
+      "title": "Fitcheck — conjuntos com a roupa que já tens",
+      "description": "Adiciona o teu roupeiro uma só vez. Todos os dias, recebe três conjuntos com a tua roupa, adequados ao tempo e à ocasião, cada um com uma frase que explica porque resulta. Começa grátis."
+    },
+    "signInMetadata": {
+      "title": "Iniciar sessão"
+    },
+    "nav": {
+      "label": "Conta",
+      "signIn": "Iniciar sessão",
+      "home": "Página inicial do Fitcheck"
+    },
+    "hero": {
+      "kicker": "O teu stylist com IA",
+      "titleLead": "Conjuntos com a roupa",
+      "titleEmphasis": "que já tens.",
+      "lede": "Adiciona o teu roupeiro uma só vez. Todos os dias recebes três conjuntos adequados ao tempo e aos teus planos, cada um com uma frase que explica porque resulta.",
+      "cta": "Experimenta o Fitcheck grátis",
+      "noCard": "Sem cartão",
+      "proofBrowser": "Funciona no navegador do telemóvel",
+      "proofStart": "Começa com {count} peças",
+      "proofLanguages": "{count} idiomas"
+    },
+    "preview": {
+      "label": "Ecrã do stylist do Fitcheck com um exemplo de três conjuntos",
+      "example": "Exemplo",
+      "city": "Zurique",
+      "later": "Até {temperature} por volta das 15h,",
+      "advice": "por isso, chega uma camisola de malha."
+    },
+    "looks": {
+      "quietNavy": {
+        "name": "Azul-marinho discreto",
+        "why": "A camisola azul-marinho contrasta com as calças brancas, e os ténis de pele brancos dão leveza ao conjunto para uma tarde amena."
+      },
+      "blueStone": {
+        "name": "Azul-claro e areia",
+        "why": "A camisa azul-clara combina com as calças cor de areia, e os ténis cor de creme suavizam o conjunto para um dia descontraído."
+      },
+      "creamDenim": {
+        "name": "Creme e ganga",
+        "why": "O polo de malha cor de creme suaviza as calças de ganga claras, e os ténis azul-claros retomam o tom da ganga para um dia fácil."
+      }
+    },
+    "pieces": {
+      "navySweater": "Camisola azul-marinho de gola redonda",
+      "whiteTrousers": "Calças brancas",
+      "whiteSneakers": "Ténis de pele brancos",
+      "watch": "Relógio prateado",
+      "blueShirt": "Camisa azul-clara",
+      "stoneTrousers": "Calças cor de areia",
+      "creamSneakers": "Ténis cor de creme",
+      "creamPolo": "Polo de malha cor de creme",
+      "lightJeans": "Calças de ganga claras",
+      "paleBlueSneakers": "Ténis azul-claros",
+      "inLook": "{piece}, no conjunto de hoje"
+    },
+    "how": {
+      "kicker": "Como funciona",
+      "title": "Fotografa a tua roupa uma vez. Escolhe o conjunto todos os dias.",
+      "steps": {
+        "add": {
+          "title": "Adiciona a tua roupa",
+          "body": "Fotografa cada peça. O fundo é removido no telemóvel, e o Fitcheck sugere características que podes confirmar ou corrigir."
+        },
+        "looks": {
+          "title": "Vê os conjuntos de hoje",
+          "body": "Escolhe trabalho, dia a dia, fim de semana ou noite. O Fitcheck combina três conjuntos com a roupa do teu roupeiro, tendo em conta a previsão de hoje."
+        },
+        "wear": {
+          "title": "Guarda ou veste o conjunto",
+          "body": "Guarda os conjuntos de que gostas e assinala o que vestes. Fica no teu diário, para veres o que realmente escolhes."
+        }
+      },
+      "effortLead": "Começa com algumas fotos.",
+      "effortBody": "O Fitcheck só pode combinar peças que já conhece. Começa por adicionar {count} peças: algumas partes de cima, umas calças e sapatos. Quanto mais adicionares, melhores serão os conjuntos."
+    },
+    "example": {
+      "kicker": "Um exemplo",
+      "title": "Nove peças num roupeiro. Um conjunto para o dia.",
+      "body": "O Fitcheck verifica o tempo e a ocasião, compara cores, tecidos e formalidade em tudo o que tens e escolhe o que combina.",
+      "tags": "Características",
+      "tagsLabel": "Características de {piece}",
+      "subcategory": "Camisola de gola redonda",
+      "upTo": "até {temperature}",
+      "caption": "Exemplo de resultado. Os teus conjuntos são criados com a roupa do teu roupeiro, e a frase é escrita para o conjunto que vais usar nesse dia."
+    },
+    "features": {
+      "kicker": "O que recebes",
+      "title": "Um stylist que já conhece o teu roupeiro.",
+      "daily": {
+        "title": "Três conjuntos todos os dias",
+        "body": "Todas as manhãs há novos conjuntos para cada ocasião. Podes mudar de ocasião sem custos e sem limites."
+      },
+      "weather": {
+        "title": "Conjuntos para a previsão do tempo",
+        "body": "Os conjuntos têm em conta a hora mais quente do dia onde estás, para sugerir camisolas e casacos quando são precisos."
+      },
+      "occasion": {
+        "title": "Para onde vais",
+        "body": "Trabalho, dia a dia, fim de semana ou noite, de acordo com o código de vestuário que defines no início."
+      },
+      "wardrobe": {
+        "title": "Mais possibilidades com o que já tens",
+        "body": "Combinações em que talvez não tivesses pensado, com peças que já tens no roupeiro."
+      },
+      "proKicker": "Fitcheck Pro",
+      "pro": "Pro",
+      "free": "Grátis",
+      "share": {
+        "title": "Partilha um conjunto",
+        "body": "Uma imagem do teu conjunto para uma story ou publicação, ou uma ligação não listada que expira ao fim de 30 dias."
+      }
+    },
+    "plans": {
+      "kicker": "Grátis e Pro",
+      "title": "Tudo o que precisas para te vestires é grátis.",
+      "body": "O Pro dá-te mais possibilidades para todo o roupeiro: regenerações e peças ilimitadas, viagens, conjuntos criados a partir de uma peça e o custo real da tua roupa.",
+      "free": "Grátis",
+      "forever": "para sempre",
+      "freeDaily": "Três conjuntos por dia para cada ocasião",
+      "freeRerolls": "Volta a gerar {count, plural, one {uma vez} other {# vezes}} por dia",
+      "freeCloset": "Até {count} peças no roupeiro",
+      "freeDiary": "Diário de conjuntos usados e partilha",
+      "pro": "Pro",
+      "perMonth": "por mês ou {yearly} por ano",
+      "everythingFree": "Tudo o que está incluído no plano gratuito",
+      "proNote": "Impostos incluídos. Podes aderir ao Pro na app quando quiseres e cancelar a qualquer momento, também na app."
+    },
+    "trust": {
+      "kicker": "As tuas fotos",
+      "title": "O teu roupeiro fica privado.",
+      "body": "Isto é o que acontece a uma foto depois de a tirares.",
+      "device": {
+        "title": "O fundo é removido no teu telemóvel",
+        "body": "A remoção do fundo corre no teu dispositivo, antes de qualquer envio."
+      },
+      "storage": {
+        "title": "Armazenadas em privado na UE",
+        "body": "As fotos ficam num armazenamento privado e só tu as podes ver, através de ligações que expiram passado pouco tempo, a menos que partilhes um conjunto."
+      },
+      "ai": {
+        "title": "A IA analisa cada foto uma só vez",
+        "body": "A imagem recortada é enviada uma só vez para sugerir as características da peça. Depois, os conjuntos são escolhidos com base nessas informações em texto, nunca a partir das tuas fotos."
+      },
+      "cookies": {
+        "title": "Sem cookies de rastreio. Os dados são mesmo eliminados.",
+        "body": "As visitas são contabilizadas sem cookies. Ao eliminares a conta nas Definições, eliminas também as tuas fotos e os teus dados."
+      }
+    },
+    "final": {
+      "kicker": "Começa gratuitamente",
+      "title": "Cria conjuntos com a roupa do teu roupeiro.",
+      "line": "Bastam algumas fotos e um minuto para confirmares as características: o conjunto de amanhã já está à tua espera.",
+      "note": "Inicia sessão com o Google ou por e-mail"
+    },
+    "footer": {
+      "legal": "Informação legal",
+      "copyright": "© Fitcheck"
+    }
+  },
   "auth": {
+    "signInFailed": "Não foi possível iniciar sessão. Tenta novamente: uma ligação recebida por e-mail só funciona uma vez e expira ao fim de algum tempo.",
     "deleted": "A tua conta e os teus dados ativos foram eliminados.",
     "checkInbox": "Vê o teu e-mail",
     "sentBody": "Enviámos uma ligação de início de sessão para {email}.",
     "emailPlaceholder": "tu@email.pt",
     "sending": "A enviar…",
-    "emailLink": "Enviar-me uma ligação de acesso",
+    "emailLink": "Enviar ligação de acesso por e-mail",
     "google": "Continuar com o Google",
     "failed": "Não foi possível iniciar sessão. Tenta novamente."
   },
@@ -589,7 +752,7 @@
     }
   },
   "weather": {
-    "feels": "sensação {temperature}",
+    "feels": "sensação de {temperature}",
     "now": "Agora",
     "later": "Mais tarde",
     "locating": "A localizar…",
@@ -870,11 +1033,11 @@
     "proPlan": "Pro · {plan}",
     "benefits": {
       "rerolls": {
-        "label": "Gerar de novo sem limites",
+        "label": "Gerações ilimitadas",
         "description": "Qualquer ocasião, sempre que quiseres"
       },
       "styled": {
-        "label": "Look à volta de qualquer peça",
+        "label": "Cria conjuntos a partir de qualquer peça",
         "description": "Cria um look a partir de uma peça"
       },
       "closet": {
@@ -890,7 +1053,7 @@
         "description": "Quanto te custa realmente o roupeiro"
       },
       "gap": {
-        "label": "Análise de lacunas",
+        "label": "Peças em falta",
         "description": "A peça que desbloqueia mais"
       },
       "saved": {

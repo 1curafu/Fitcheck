@@ -27,6 +27,12 @@ test.each([["Українська", "uk"], ["English (UK)", "en-GB"], ["Deutsch"
   expect(mock.close).toHaveBeenCalled();
 });
 
+test("an end-aligned menu opens from the button's right edge, so a top-right button stays on screen", () => {
+  render(<LanguageSheet open current="en-US" align="end" onClose={mock.close} />);
+  expect(screen.getByRole("dialog")).toHaveClass("right-0");
+  expect(screen.getByRole("dialog")).not.toHaveClass("left-0");
+});
+
 test("Escape closes the sheet", async () => {
   render(<LanguageSheet open current="en-US" onClose={mock.close} />);
   await userEvent.keyboard("{Escape}");

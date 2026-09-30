@@ -23,7 +23,7 @@ async function CaptureBody() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return redirect({ href: "/", locale: await getLocale() });
+  if (!user) return redirect({ href: "/sign-in", locale: await getLocale() });
 
   // Seed the five saved slots with the user's latest items, including after a reload.
   // Removed (archived) pieces have left the closet, so they neither count nor show.

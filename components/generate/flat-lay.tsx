@@ -15,7 +15,7 @@ function usePrefersReducedMotion(): boolean {
   return reduce;
 }
 
-export function FlatLay({ look }: { look: Look }) {
+export function FlatLay({ look }: { look: Pick<Look, "pieces"> }) {
   const label = useVocab();
   const reduce = usePrefersReducedMotion();
   const order = staggerOrder(look.pieces.map((p) => p.slot)); // anchor-first indices

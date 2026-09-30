@@ -77,7 +77,7 @@ export async function deleteAccount(
     // Hard deletion completed; a cookie-clearing failure must not report a false failure.
   }
 
-  return redirect({ href: "/?account=deleted", locale: await getActionLocale() }, RedirectType.replace);
+  return redirect({ href: "/sign-in?account=deleted", locale: await getActionLocale() }, RedirectType.replace);
 }
 
 /**

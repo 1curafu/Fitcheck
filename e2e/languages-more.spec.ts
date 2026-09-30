@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { devices, expect, test } from "@playwright/test";
 import { admin, readOwnedOutfit, testUserId } from "./helpers";
+import en from "../messages/en-US.json";
 import de from "../messages/de.json";
 import ru from "../messages/ru.json";
 import fr from "../messages/fr.json";
@@ -20,18 +21,19 @@ test.describe("seven more languages, signed out", () => {
     test(`${locale} landing and privacy render in ${locale}`, async ({ page }) => {
       await page.goto(`/${locale}`);
       await expect(page.locator("html")).toHaveAttribute("lang", locale);
-      await expect(page.getByText(messages.landing.kicker, { exact: true }).first()).toBeVisible();
+      await expect(page.getByText(messages.home.hero.kicker, { exact: true }).first()).toBeVisible();
       await page.goto(`/${locale}/privacy`);
       await expect(page.getByText(PREVAILS[locale], { exact: false }).first()).toBeVisible();
     });
   }
 
   for (const [locale, width, height] of [["", 393, 852], ["fr", 393, 852], ["de", 375, 667]] as const) {
-    test(`landing keeps a clear gap between the tagline and sign-in (${locale || "en-US"} ${width}×${height})`, async ({ page }) => {
+    test(`sign-in keeps a clear gap between the tagline and the sign-in buttons (${locale || "en-US"} ${width}×${height})`, async ({ page }) => {
       await page.setViewportSize({ width, height });
-      await page.goto(`/${locale}`);
+      await page.goto(`${locale ? `/${locale}` : ""}/sign-in`);
       const tagline = page.locator("main p.font-serif.italic").first();
-      const google = page.locator("main button").first();
+      // The language button is now the first button in <main>; find Google by its name.
+      const google = page.getByRole("button", { name: (locale ? MORE[locale as keyof typeof MORE] : en).auth.google });
       const [t, g] = [(await tagline.boundingBox())!, (await google.boundingBox())!];
       expect(g.y - (t.y + t.height)).toBeGreaterThanOrEqual(24);
     });
@@ -74,8 +76,10 @@ test.describe("seven more languages, signed in", () => {
   });
 
   /** The picker is a small dropdown beside its button: on screen, compact, and scrollable for all ten languages. */
-  async function expectCompactScrollableMenu(page: import("@playwright/test").Page, trigger: string, centered = false) {
-    const button = page.getByRole("button", { name: trigger, exact: true });
+  async function expectCompactScrollableMenu(page: import("@playwright/test").Page, trigger: string, centered = false,
+    scope?: import("@playwright/test").Locator) {
+    // The landing has two buttons with the same name (top bar and footer); a scope picks one.
+    const button = (scope ?? page).getByRole("button", { name: trigger, exact: true });
     await button.scrollIntoViewIfNeeded();
     const anchor = (await button.boundingBox())!;
     await button.click();
@@ -119,14 +123,20 @@ test.describe("seven more languages, signed in", () => {
     });
   }
 
-  test("the landing dropdown opens upward from the bottom button and stays on screen", async ({ browser }) => {
-    const ctx = await browser.newContext({ ...devices["iPhone 15"], storageState: { cookies: [], origins: [] } });
-    try {
-      const page = await ctx.newPage();
-      await page.goto("/");
-      await expectCompactScrollableMenu(page, "English (US)", true);
-    } finally { await ctx.close(); }
-  });
+  for (const [name, path, scope] of [
+    ["the landing footer button opens upward and stays on screen", "/", (p: import("@playwright/test").Page) => p.getByRole("contentinfo")],
+    ["the landing top-bar button opens downward and stays inside the right edge", "/", (p: import("@playwright/test").Page) => p.getByRole("banner")],
+    ["the sign-in top button opens downward and stays inside the right edge", "/sign-in", undefined],
+  ] as const) {
+    test(name, async ({ browser }) => {
+      const ctx = await browser.newContext({ ...devices["iPhone 15"], storageState: { cookies: [], origins: [] } });
+      try {
+        const page = await ctx.newPage();
+        await page.goto(path);
+        await expectCompactScrollableMenu(page, "English (US)", false, scope?.(page));
+      } finally { await ctx.close(); }
+    });
+  }
 
   test("a historical English look is shown in German and its original stays saved", async ({ page }) => {
     const db = admin(), userId = await testUserId(), id = randomUUID();

@@ -73,3 +73,8 @@ test("🔴 reduced-motion: every piece img is VISIBLE (opacity 1), never gated o
     expect(img.style.transform).toContain("rotate");
   }
 });
+
+test("renders from pieces alone, so the public landing can show an example set", () => {
+  render(<FlatLay look={{ pieces: look.pieces }} />);
+  expect(screen.getAllByRole("img")).toHaveLength(4);
+});

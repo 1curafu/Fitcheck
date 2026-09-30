@@ -39,7 +39,170 @@
     "and": "et la",
     "privacy": "Politique de confidentialité"
   },
+  "home": {
+    "metadata": {
+      "title": "Fitcheck — des tenues avec les vêtements que tu as déjà",
+      "description": "Ajoute ta garde-robe une seule fois. Chaque jour, découvre trois tenues avec tes vêtements, adaptées à la météo et à l’occasion, chacune accompagnée d’une phrase qui explique pourquoi elle fonctionne. Gratuit pour commencer."
+    },
+    "signInMetadata": {
+      "title": "Connexion"
+    },
+    "nav": {
+      "label": "Compte",
+      "signIn": "Se connecter",
+      "home": "Accueil Fitcheck"
+    },
+    "hero": {
+      "kicker": "Ton styliste IA",
+      "titleLead": "Des tenues avec les vêtements",
+      "titleEmphasis": "que tu as déjà.",
+      "lede": "Ajoute ta garde-robe une seule fois. Chaque jour, tu reçois trois tenues adaptées à la météo et à tes projets, chacune avec une phrase qui explique pourquoi elle fonctionne.",
+      "cta": "Essayer Fitcheck gratuitement",
+      "noCard": "Aucune carte requise",
+      "proofBrowser": "Fonctionne dans le navigateur de ton téléphone",
+      "proofStart": "Commence avec {count} pièces",
+      "proofLanguages": "{count} langues"
+    },
+    "preview": {
+      "label": "Écran du styliste Fitcheck avec un exemple de trois tenues",
+      "example": "Exemple",
+      "city": "Zurich",
+      "later": "Jusqu’à {temperature} vers 15 h,",
+      "advice": "donc une maille suffit."
+    },
+    "looks": {
+      "quietNavy": {
+        "name": "Bleu marine tout en douceur",
+        "why": "Le pull bleu marine contraste avec le pantalon blanc, et les baskets en cuir blanc apportent de la légèreté pour un après-midi doux."
+      },
+      "blueStone": {
+        "name": "Bleu clair & pierre",
+        "why": "La chemise bleu clair s’accorde avec le pantalon couleur pierre, et les baskets crème adoucissent la tenue pour une journée décontractée."
+      },
+      "creamDenim": {
+        "name": "Crème & denim",
+        "why": "Le polo en maille crème adoucit le jean clair, et les baskets bleu pâle reprennent le denim pour une journée facile."
+      }
+    },
+    "pieces": {
+      "navySweater": "Pull marine à col rond",
+      "whiteTrousers": "Pantalon blanc",
+      "whiteSneakers": "Baskets en cuir blanc",
+      "watch": "Montre argentée",
+      "blueShirt": "Chemise bleu clair",
+      "stoneTrousers": "Pantalon couleur pierre",
+      "creamSneakers": "Baskets crème",
+      "creamPolo": "Polo en maille crème",
+      "lightJeans": "Jean clair",
+      "paleBlueSneakers": "Baskets bleu pâle",
+      "inLook": "{piece}, dans le look du jour"
+    },
+    "how": {
+      "kicker": "Comment ça marche",
+      "title": "Photographie tes vêtements une fois. Choisis ta tenue chaque jour.",
+      "steps": {
+        "add": {
+          "title": "Ajoute tes vêtements",
+          "body": "Photographie chaque pièce. Le fond est retiré sur ton téléphone, et Fitcheck suggère des caractéristiques que tu peux vérifier ou corriger."
+        },
+        "looks": {
+          "title": "Reçois les looks du jour",
+          "body": "Choisis travail, quotidien, week-end ou soirée. Fitcheck compose trois tenues avec ta garde-robe, adaptées aux prévisions du jour."
+        },
+        "wear": {
+          "title": "Enregistre ou porte la tenue",
+          "body": "Garde les tenues qui te plaisent et indique celle que tu portes. Elle apparaîtra dans ton journal, où tu verras ce que tu choisis vraiment."
+        }
+      },
+      "effortLead": "Tout commence par quelques photos.",
+      "effortBody": "Fitcheck ne peut composer des tenues qu’avec les vêtements qu’il connaît. Commence par ajouter {count} pièces : quelques hauts, un pantalon et des chaussures. Plus tu en ajoutes, plus les tenues sont réussies."
+    },
+    "example": {
+      "kicker": "Un exemple",
+      "title": "Neuf pièces dans une garde-robe. Un look pour la journée.",
+      "body": "Fitcheck regarde la météo et l’occasion, compare couleurs, matières et formalité parmi tout ce que tu possèdes, et choisit ce qui va ensemble.",
+      "tags": "Caractéristiques",
+      "tagsLabel": "Caractéristiques de {piece}",
+      "subcategory": "Pull à col rond",
+      "upTo": "jusqu’à {temperature}",
+      "caption": "Exemple de résultat. Tes looks sont composés avec ta propre garde-robe, et la phrase est écrite pour ta tenue du jour."
+    },
+    "features": {
+      "kicker": "Ce que tu obtiens",
+      "title": "Un styliste qui connaît déjà ta garde-robe.",
+      "daily": {
+        "title": "Trois looks chaque jour",
+        "body": "De nouvelles tenues chaque matin pour chaque occasion. Tu peux changer d’occasion gratuitement, sans limite."
+      },
+      "weather": {
+        "title": "Des tenues adaptées à la météo",
+        "body": "Les tenues sont choisies en fonction du moment le plus chaud de ta journée et de ton lieu. Tu as ainsi la maille et la veste qu’il te faut."
+      },
+      "occasion": {
+        "title": "Pour ce que tu as prévu",
+        "body": "Travail, quotidien, week-end ou soirée, selon les codes vestimentaires que tu définis au départ."
+      },
+      "wardrobe": {
+        "title": "Tirer le meilleur de ta garde-robe",
+        "body": "Des associations auxquelles tu n’aurais peut-être pas pensé, avec les pièces déjà dans ta garde-robe."
+      },
+      "proKicker": "Fitcheck Pro",
+      "pro": "Pro",
+      "free": "Gratuit",
+      "share": {
+        "title": "Partager un look",
+        "body": "Une image de ta tenue pour une story ou une publication, ou un lien non répertorié qui expire au bout de 30 jours."
+      }
+    },
+    "plans": {
+      "kicker": "Gratuit et Pro",
+      "title": "Tout ce qu’il te faut pour t’habiller est gratuit.",
+      "body": "Pro t’aide à tirer davantage parti de toute ta garde-robe : régénérations et pièces illimitées, voyages, tenues composées autour d’une pièce et coût réel de tes vêtements.",
+      "free": "Gratuit",
+      "forever": "sans limite de durée",
+      "freeDaily": "Trois looks par jour pour chaque occasion",
+      "freeRerolls": "Régénérer {count, plural, one {une fois} other {# fois}} par jour",
+      "freeCloset": "Jusqu’à {count} pièces dans ta garde-robe",
+      "freeDiary": "Journal des tenues portées et partage",
+      "pro": "Pro",
+      "perMonth": "par mois, ou {yearly} par an",
+      "everythingFree": "Tout ce qui est inclus dans l’offre gratuite",
+      "proNote": "Taxes incluses. Tu peux passer à Pro depuis l’app quand tu veux et résilier à tout moment depuis l’app."
+    },
+    "trust": {
+      "kicker": "Tes photos",
+      "title": "Ta garde-robe reste privée.",
+      "body": "Voici ce qui arrive à une photo après que tu l’as prise.",
+      "device": {
+        "title": "Le détourage se fait sur ton téléphone",
+        "body": "Le fond est retiré sur ton appareil avant tout envoi."
+      },
+      "storage": {
+        "title": "Stockées en privé dans l’UE",
+        "body": "Les photos sont conservées dans un espace de stockage privé et ne sont visibles que par toi via des liens qui expirent rapidement, sauf si tu partages une tenue."
+      },
+      "ai": {
+        "title": "L’IA ne voit chaque photo qu’une fois",
+        "body": "Une image détourée est envoyée une seule fois pour suggérer les caractéristiques du vêtement. Les tenues sont ensuite choisies à partir de ces indications textuelles, jamais à partir de tes photos."
+      },
+      "cookies": {
+        "title": "Pas de cookies de suivi. Suppression effective.",
+        "body": "Les visites sont comptabilisées sans cookies. La suppression de ton compte dans les réglages efface tes photos et tes données."
+      }
+    },
+    "final": {
+      "kicker": "Gratuit pour commencer",
+      "title": "Compose tes tenues avec ta propre garde-robe.",
+      "line": "Quelques photos et une minute pour vérifier les caractéristiques : la tenue de demain t’attend déjà.",
+      "note": "Connexion avec Google ou par e-mail"
+    },
+    "footer": {
+      "legal": "Mentions légales",
+      "copyright": "© Fitcheck"
+    }
+  },
   "auth": {
+    "signInFailed": "La connexion n’a pas abouti. Réessaie : un lien reçu par e-mail ne fonctionne qu’une fois et expire au bout d’un moment.",
     "deleted": "Ton compte et tes données actives ont été supprimés.",
     "checkInbox": "Consulte ta boîte mail",
     "sentBody": "Nous avons envoyé un lien de connexion à {email}.",
@@ -874,7 +1037,7 @@
         "description": "Toute occasion, autant de fois que tu veux"
       },
       "styled": {
-        "label": "Un look autour de toute pièce",
+        "label": "Créer un look avec n’importe quelle pièce",
         "description": "Construis un look à partir d’un vêtement"
       },
       "closet": {
@@ -890,7 +1053,7 @@
         "description": "Ce que ta garde-robe coûte vraiment"
       },
       "gap": {
-        "label": "Analyse des manques",
+        "label": "Pièces manquantes",
         "description": "La pièce qui débloque le plus"
       },
       "saved": {

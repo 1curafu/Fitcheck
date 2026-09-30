@@ -54,7 +54,7 @@ async function OutfitBody({ params }: { params: Promise<{ id: string }> }) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return redirect({ href: "/", locale: await getLocale() });
+  if (!user) return redirect({ href: "/sign-in", locale: await getLocale() });
 
   // RLS scopes this to the owner — another user's id simply returns no row.
   const { data: outfit } = await supabase

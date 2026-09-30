@@ -5,5 +5,10 @@
         "sub": "Pick the one you gravitate towards."
       }
     }
+  },
+  "home": {
+    "example": {
+      "body": "Fitcheck checks the weather and the occasion, compares colours, fabrics and formality across everything you own, and picks what goes together."
+    }
   }
 }

@@ -222,7 +222,7 @@ test("a disposable user can delete their account without leaving rows, objects, 
       .upload(account.paths[3], ONE_PIXEL_PNG, { contentType: "image/png" });
 
     await submit.click();
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/sign-in$/);
     await expect(page.getByRole("status")).toHaveText("Your account and live data have been deleted.");
     await concurrentUpload;
     await context.close();

@@ -2,7 +2,11 @@
 export const SITE_URL = "https://fitcheck.space";
 
 /** The pages a search engine may index. Everything else is behind sign-in. */
-export const PUBLIC_PATHS = ["/", "/privacy", "/terms"] as const;
+export const PUBLIC_PATHS = ["/", "/sign-in", "/privacy", "/terms"] as const;
+
+/** Public and crawlable (robots allow, alternates), but never a search result: kept out of the sitemap and marked
+ *  noindex in the page metadata. A login form is not something a searcher is looking for. */
+export const NOINDEX_PATHS = ["/sign-in"] as const satisfies readonly (typeof PUBLIC_PATHS)[number][];
 
 /** App surfaces — they redirect signed-out visitors, so indexing them yields nothing. */
 export const PRIVATE_PREFIXES = [

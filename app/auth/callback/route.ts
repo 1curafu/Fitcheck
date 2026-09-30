@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const browsing = request.cookies.get("NEXT_LOCALE")?.value ?? searchParams.get("locale") ?? undefined;
   const browsingLocale = isShippedLocale(browsing) ? browsing : DEFAULT_LOCALE;
-  const failed = () => NextResponse.redirect(new URL(localizedPath(browsingLocale, "/?error=auth"), origin));
+  const failed = () => NextResponse.redirect(new URL(localizedPath(browsingLocale, "/sign-in?error=auth"), origin));
 
   // Validate the parsed origin too: URL parsing strips tabs/newlines, which can turn "/\n/evil" into "//evil".
   const rawNext = searchParams.get("next") ?? "/onboarding";

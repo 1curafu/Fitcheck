@@ -7,8 +7,8 @@ import { usePathname } from "@/lib/i18n/navigation";
 import { LOCALE_NAMES } from "@/lib/i18n/locales";
 import { LanguageSheet, MENU_MAX_HEIGHT } from "./language-sheet";
 
-/** `align="center"` for a centered trigger (landing); Settings' left-aligned row keeps the menu on its start edge. */
-export function LanguageButton({ align = "start" }: { align?: "start" | "center" }) {
+/** `align="center"` for a centered trigger, `"end"` for a trigger at the right edge (landing/sign-in top bar); Settings' left-aligned row keeps the menu on its start edge. */
+export function LanguageButton({ align = "start" }: { align?: "start" | "center" | "end" }) {
   const locale = useLocale();
   const pathname = usePathname();
   const anchor = useRef<HTMLSpanElement>(null);
