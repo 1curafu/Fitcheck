@@ -28,3 +28,30 @@ export async function trimStoredCutout(
   }
   return { cutout, thumb };
 }
+
+/** Uploads one object; resolves to an error message, or null on success. Injected so the write ORDER is testable. */
+export type Upload = (path: string, body: Buffer, contentType: string) => Promise<{ message: string } | null>;
+
+const contentType = (path: string) => (path.endsWith(".png") ? "image/png" : "image/webp");
+
+/**
+ * Write a trimmed cutout and its thumbnail — THUMBNAIL FIRST.
+ *
+ * ⚠️ The order is the point (reviewer finding on #129). Closet and calendar tiles prefer `thumb_url` over the cutout,
+ * and a rerun decides "already trimmed?" from the CUTOUT alone. Cutout-first meant a stop between the two writes left a
+ * tight cutout with the old padded thumbnail: a rerun saw the tight cutout, skipped the row, and the tile stayed
+ * mis-scaled for good. Thumbnail-first means the worst interrupted state is a tight thumbnail beside a still-padded
+ * cutout, which a rerun detects and simply redoes.
+ */
+export async function storeTrimmed(
+  upload: Upload,
+  paths: { cutout: string; thumb: string | null },
+  out: { cutout: Buffer; thumb: Buffer | null },
+): Promise<void> {
+  if (paths.thumb && out.thumb) {
+    const t = await upload(paths.thumb, out.thumb, contentType(paths.thumb));
+    if (t) throw new Error(`uploading ${paths.thumb} failed: ${t.message}`);
+  }
+  const c = await upload(paths.cutout, out.cutout, contentType(paths.cutout));
+  if (c) throw new Error(`uploading ${paths.cutout} failed: ${c.message}`);
+}
