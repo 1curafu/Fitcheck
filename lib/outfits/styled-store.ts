@@ -1,6 +1,7 @@
 import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/locales";
 import { createClient } from "@/lib/supabase/server";
 import type { LookDraft, WeatherPayload } from "@/lib/generator/types";
+import { storedLooksBlocked, type NoGo, type NoGoItem } from "@/lib/generator/nogos";
 
 /**
  * The cache read for "Style an outfit with this".
@@ -135,4 +136,29 @@ async function saveOne(
   if (links.length) await supabase.from("outfit_items").insert(links);
 
   return row.id;
+}
+
+/**
+ * Does a CACHED styled set break the user's no-gos? A cached set is served without rebuilding, so a companion retagged
+ * Ripped/Large/Fitted after styling would otherwise stay in the look all day. The styled piece itself is exempt (the
+ * user chose it); a blocked companion, or double denim, is not.
+ *
+ * ⚠️ FAIL CLOSED: a failed read of the cached pieces THROWS. It must never read as "nothing to check" — with the error
+ * dropped, every cached look looked empty, the check passed, and unchecked looks were served (review finding on the
+ * 0.6.0 release PR). The caller's catch turns the throw into the ordinary "couldn't style this" state.
+ */
+export async function styledCacheBreaksNogo(
+  outfitIds: readonly string[],
+  items: readonly (NoGoItem & { id: string })[],
+  nogos: readonly NoGo[],
+  styledItemId: string,
+): Promise<boolean> {
+  if (!outfitIds.length || !nogos.length) return false;
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("outfit_items").select("outfit_id, item_id").in("outfit_id", [...outfitIds]);
+  if (error) throw new Error(error.message);
+  const looks = outfitIds.map((id) => ({
+    pieces: (data ?? []).filter((r) => r.outfit_id === id).map((r) => ({ itemId: r.item_id as string })),
+  }));
+  return storedLooksBlocked(looks, new Map(items.map((i) => [i.id, i])), nogos, [styledItemId]);
 }

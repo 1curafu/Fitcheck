@@ -91,7 +91,8 @@ test("the styled-look action re-checks its CACHED looks and explains a no-go emp
   // after styling stayed in the look all day; and a piece whose companions were all ruled out was told
   // "add more pieces" (thinCloset) although the closet was fine.
   const styled = FILES.find(({ path }) => path.endsWith("style-actions.ts"))!.text;
-  expect(styled).toMatch(/cachedBreaksNogo = [^;]*storedLooksBlocked\(/);
+  // the shared, fail-closed check (a failed read throws) — not an inline query that can drop its error
+  expect(styled).toMatch(/cachedBreaksNogo = await styledCacheBreaksNogo\(/);
   expect(styled).toMatch(/if \(cached\.length && !cachedBreaksNogo\)/);
   expect(styled).toMatch(/emptiedByNogos\(/);
   expect(styled).toContain("item.style.nogos");
