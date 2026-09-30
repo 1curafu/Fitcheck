@@ -365,9 +365,6 @@
           "skinny": {
             "label": "Skinny fit"
           },
-          "bright": {
-            "label": "Felle kleuren"
-          },
           "shorts": {
             "label": "Korte broeken"
           },
@@ -379,9 +376,6 @@
           },
           "graphic": {
             "label": "Printshirts"
-          },
-          "square_toe": {
-            "label": "Vierkante neuzen"
           }
         }
       }

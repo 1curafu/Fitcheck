@@ -365,9 +365,6 @@
           "skinny": {
             "label": "Corte skinny"
           },
-          "bright": {
-            "label": "Cores vivas"
-          },
           "shorts": {
             "label": "Calções"
           },
@@ -379,9 +376,6 @@
           },
           "graphic": {
             "label": "T-shirts estampadas"
-          },
-          "square_toe": {
-            "label": "Biqueira quadrada"
           }
         }
       }

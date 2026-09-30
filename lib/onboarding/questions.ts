@@ -1,3 +1,5 @@
+import { NOGO_VALUES } from "@/lib/generator/nogos";
+
 export type Choice = { value: string; swatch?: string };
 
 export type Question = {
@@ -7,6 +9,7 @@ export type Question = {
   optional?: boolean;
   options: Choice[];
 };
+export type QuestionId = Question["id"];
 
 // Stored values remain stable across every display language.
 export const QUESTIONS: Question[] = [
@@ -70,15 +73,7 @@ export const QUESTIONS: Question[] = [
     kind: "chips",
     multi: true,
     optional: true,
-    options: [
-      { value: "logos" },
-      { value: "skinny" },
-      { value: "bright" },
-      { value: "shorts" },
-      { value: "ripped" },
-      { value: "double_denim" },
-      { value: "graphic" },
-      { value: "square_toe" },
-    ],
+    // The generator's own list: a chip here is a rule there (lib/generator/nogos.ts).
+    options: NOGO_VALUES.map((value) => ({ value })),
   },
 ];

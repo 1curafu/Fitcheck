@@ -365,9 +365,6 @@
           "skinny": {
             "label": "Taglio skinny"
           },
-          "bright": {
-            "label": "Colori accesi"
-          },
           "shorts": {
             "label": "Pantaloncini"
           },
@@ -379,9 +376,6 @@
           },
           "graphic": {
             "label": "T-shirt con stampa"
-          },
-          "square_toe": {
-            "label": "Punta quadrata"
           }
         }
       }

@@ -311,9 +311,6 @@
           "skinny": {
             "label": "Skinny fit"
           },
-          "bright": {
-            "label": "Bright colours"
-          },
           "shorts": {
             "label": "Shorts"
           },
@@ -325,9 +322,6 @@
           },
           "graphic": {
             "label": "Graphic tees"
-          },
-          "square_toe": {
-            "label": "Square-toe shoes"
           }
         }
       }

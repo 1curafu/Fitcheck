@@ -365,9 +365,6 @@
           "skinny": {
             "label": "Skinny Fit"
           },
-          "bright": {
-            "label": "Knallige Farben"
-          },
           "shorts": {
             "label": "Kurze Hosen"
           },
@@ -379,9 +376,6 @@
           },
           "graphic": {
             "label": "Print-Shirts"
-          },
-          "square_toe": {
-            "label": "Eckige Schuhspitzen"
           }
         }
       }

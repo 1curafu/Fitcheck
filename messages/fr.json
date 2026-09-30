@@ -365,9 +365,6 @@
           "skinny": {
             "label": "Coupe skinny"
           },
-          "bright": {
-            "label": "Couleurs vives"
-          },
           "shorts": {
             "label": "Shorts"
           },
@@ -379,9 +376,6 @@
           },
           "graphic": {
             "label": "T-shirts imprimés"
-          },
-          "square_toe": {
-            "label": "Bouts carrés"
           }
         }
       }

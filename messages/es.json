@@ -365,9 +365,6 @@
           "skinny": {
             "label": "Corte pitillo"
           },
-          "bright": {
-            "label": "Colores vivos"
-          },
           "shorts": {
             "label": "Pantalones cortos"
           },
@@ -379,9 +376,6 @@
           },
           "graphic": {
             "label": "Camisetas estampadas"
-          },
-          "square_toe": {
-            "label": "Puntera cuadrada"
           }
         }
       }
