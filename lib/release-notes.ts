@@ -42,6 +42,18 @@ export type LocalizedNote = { headline: string; added: string[]; fixed: string[]
 
 const BASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.6.0",
+    date: "2026-09-30",
+    releasedAt: "2026-09-30T18:07:00Z", // when this release was cut; accountPredatesRelease reads it
+    headline: "Your style answers now shape your looks.",
+    added: ["Your no-gos are kept out of every look, trip and styled outfit", "Change your style answers any time in Settings, under Style profile", "New pieces are cropped to the garment, so they appear larger in looks"],
+    fixed: ["Changing your occasions refreshes today's looks right away"],
+    i18n: {
+      "en-GB": { headline: "Your style answers now shape your looks.", added: ["Your no-gos are kept out of every look, trip and styled outfit", "Change your style answers any time in Settings, under Style profile", "New pieces are cropped to the garment, so they appear larger in looks"], fixed: ["Changing your occasions refreshes today's looks right away"] },
+      uk: { headline: "Твої відповіді про стиль тепер формують образи.", added: ["Твої табу враховуються в усіх образах, подорожах і стилізаціях", "Змінюй відповіді про стиль будь-коли: Налаштування, Профіль стилю", "Нові речі обрізаються по контуру, тож в образах виглядають більшими"], fixed: ["Після зміни приводів образи на сьогодні оновлюються одразу"] },
+    },
+  },
+  {
     version: "0.5.1",
     date: "2026-09-30",
     releasedAt: "2026-09-30T05:31:34Z", // #127 merged
