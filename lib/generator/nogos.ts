@@ -27,16 +27,21 @@ export type NoGoItem = {
  * singular "short" turns up in "Short skirt" and "Short-length trousers", which the user did not rule out.
  */
 const SHORTS = /\b(shorts|bermudas?)\b/i;
+/** "Graphic tees" means tee-like tops with a print — not a floral blouse or a Hawaiian shirt. */
+const TEE_LIKE = /\b(t-?shirts?|tees?|sweatshirts?|hoodies?)\b/i;
+/** "Skinny fit" is a trouser cut; a fitted pencil skirt is not what the user ruled out. */
+const SKIRT = /\bskirts?\b/i;
 /** Garments worn on the body; denim shoes or a denim bag do not make "double denim". */
 const GARMENTS = new Set(["Tops", "Bottoms", "One-piece", "Outerwear"]);
 
 const ITEM_RULES: Record<Exclude<NoGo, "double_denim">, (i: NoGoItem) => boolean> = {
   // "Big logos" in the quiz: a small embroidered mark is not what the user ruled out.
   logos: (i) => i.branding === "Large",
-  skinny: (i) => i.category === "Bottoms" && i.fit === "Fitted",
+  skinny: (i) => i.category === "Bottoms" && i.fit === "Fitted" && !SKIRT.test(i.subcategory ?? ""),
   shorts: (i) => i.category === "Bottoms" && SHORTS.test(i.subcategory ?? ""),
   ripped: (i) => i.distressing === "Ripped",
-  graphic: (i) => i.category === "Tops" && i.pattern === "print",
+  // A print with no known kind is not evidence of a graphic tee — silence never blocks a piece.
+  graphic: (i) => i.category === "Tops" && i.pattern === "print" && TEE_LIKE.test(i.subcategory ?? ""),
 };
 
 export function itemBlocked(item: NoGoItem, nogos: readonly NoGo[]): boolean {
@@ -53,16 +58,21 @@ export function comboBlocked(items: readonly NoGoItem[], nogos: readonly NoGo[])
  * Would any look already STORED for today break a no-go? True when a stored piece is now blocked (its tags were
  * edited, or the no-go was added by a path that does not clear the drop) or a stored look is double denim.
  *
+ * Only UNWORN looks count: a worn look is history the user already chose, and rebuilds keep it.
+ *
  * The daily action treats `true` like a closet change: the stored set is not served and today's looks are rebuilt
  * for free. A piece that has left the closet is not this function's concern — `reassembleLooks` returns null for it.
  */
 export function storedLooksBlocked(
-  looks: readonly { pieces: readonly { itemId: string }[] }[],
+  looks: readonly { worn?: boolean; pieces: readonly { itemId: string }[] }[],
   itemsById: ReadonlyMap<string, NoGoItem>,
   nogos: readonly NoGo[],
 ): boolean {
   if (!nogos.length) return false;
+  // ⚠️ Worn looks are skipped. They are pinned across rebuilds (`saveDailyLooks` keeps them), so a rebuild
+  // cannot remove them — counting them made every later visit rebuild again, spending an AI call each time.
   return looks.some((look) => {
+    if (look.worn) return false;
     const items = look.pieces.flatMap((p) => {
       const item = itemsById.get(p.itemId);
       return item ? [item] : [];

@@ -19,8 +19,11 @@ describe("item rules", () => {
     ["shorts", bottom({ subcategory: "Bermuda shorts" })],
     ["shorts", bottom({ subcategory: "Shorts" })],
     ["shorts", bottom({ subcategory: "Bermudas" })],
-    ["graphic", top({ pattern: "print" })],
     ["logos", top({ branding: "Large" })],
+    ["graphic", top({ pattern: "print", subcategory: "Graphic T-shirt" })],
+    ["graphic", top({ pattern: "print", subcategory: "Tee" })],
+    ["graphic", top({ pattern: "print", subcategory: "Printed sweatshirt" })],
+    ["skinny", bottom({ fit: "Fitted", subcategory: "Skinny jeans" })],
   ] as const)("%s blocks its garment", (nogo, item) => {
     expect(itemBlocked(item, [nogo])).toBe(true);
   });
@@ -34,6 +37,11 @@ describe("item rules", () => {
     ["shorts", top({ subcategory: "Short-sleeve shirt" })],
     ["graphic", bottom({ pattern: "print" })],
     ["logos", top({ branding: "Small" })],
+    // Found in the Opus review: the chips say "Skinny fit" and "Graphic tees", not "anything fitted" / "any print".
+    ["skinny", bottom({ fit: "Fitted", subcategory: "Pencil skirt" })],
+    ["graphic", top({ pattern: "print", subcategory: "Floral blouse" })],
+    ["graphic", top({ pattern: "print", subcategory: "Hawaiian shirt" })],
+    ["graphic", top({ pattern: "print", subcategory: null })],
   ] as const)("%s leaves this one alone", (nogo, item) => {
     expect(itemBlocked(item, [nogo])).toBe(false);
   });
@@ -78,7 +86,7 @@ describe("storedLooksBlocked (a look stored BEFORE the item was retagged or the 
     ["denimShirt", top({ material: "Denim" })],
     ["jeans", bottom({ material: "Denim" })],
   ]);
-  const look = (...ids: string[]) => ({ pieces: ids.map((itemId) => ({ itemId })) });
+  const look = (...ids: string[]) => ({ worn: false, pieces: ids.map((itemId) => ({ itemId })) });
 
   test("a stored look holding an item a no-go now blocks is blocked", () => {
     expect(storedLooksBlocked([look("tee", "ripped")], items, ["ripped"])).toBe(true);
@@ -93,6 +101,10 @@ describe("storedLooksBlocked (a look stored BEFORE the item was retagged or the 
     expect(storedLooksBlocked([look("tee", "chino")], items, ["ripped", "double_denim"])).toBe(false);
     expect(storedLooksBlocked([look("tee", "ripped")], items, [])).toBe(false);
   });
+  test("a WORN look is ignored: it is pinned across rebuilds, so rebuilding cannot fix it and would loop every visit", () => {
+    expect(storedLooksBlocked([{ ...look("tee", "ripped"), worn: true }, look("tee", "chino")], items, ["ripped"])).toBe(false);
+  });
+
   test("a piece that left the closet is the reassemble path's problem, not this one's", () => {
     expect(storedLooksBlocked([look("tee", "gone")], items, ["ripped"])).toBe(false);
   });
