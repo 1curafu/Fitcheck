@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import { storeTrimmed, trimStoredCutout } from "../trim-cutouts-core";
+import { storeTrimmed, trimStoredCutout, verifyTrimmed } from "../trim-cutouts-core";
 
 /** A w×h transparent image with an opaque box, encoded as the given format. */
 async function image(w: number, h: number, box: { x: number; y: number; w: number; h: number }, format: "webp" | "png") {
@@ -69,5 +69,30 @@ describe("storeTrimmed — the write order decides whether an interrupted run ca
     const calls: [string, string][] = [];
     await storeTrimmed(async (p, _b, type) => { calls.push([p, type]); return null; }, { cutout: "u/i/cutout.png", thumb: null }, { cutout: Buffer.from("c"), thumb: null });
     expect(calls).toEqual([["u/i/cutout.png", "image/png"]]);
+  });
+});
+
+describe("verifyTrimmed — what the stored object actually is after the upload", () => {
+  const before = { width: 400, height: 800 };
+
+  test("a cropped object verifies", async () => {
+    const tight = await image(176, 416, { x: 8, y: 8, w: 160, h: 400 }, "webp");
+    expect(await verifyTrimmed(async () => tight, "u/i/cutout.webp", before)).toMatchObject({ status: "ok", width: 176, height: 416 });
+  });
+
+  test("the OLD padded object still being served is reported as 'unchanged' (a stale CDN read), not as a failed crop", async () => {
+    // ⚠️ Found on the first production --apply: the read-back right after an overwrite returned the pre-upload bytes, so the
+    // script aborted with "still has its margin" although the upload had landed. The verdict must tell the two apart.
+    const padded = await image(400, 800, { x: 120, y: 200, w: 160, h: 400 }, "webp");
+    expect(await verifyTrimmed(async () => padded, "u/i/cutout.webp", before)).toMatchObject({ status: "unchanged", width: 400, height: 800 });
+  });
+
+  test("an object that changed but is still padded is reported as 'padded'", async () => {
+    const stillPadded = await image(300, 600, { x: 90, y: 150, w: 120, h: 300 }, "webp");
+    expect(await verifyTrimmed(async () => stillPadded, "u/i/cutout.webp", before)).toMatchObject({ status: "padded", width: 300, height: 600 });
+  });
+
+  test("a missing object is 'unreadable'", async () => {
+    expect((await verifyTrimmed(async () => null, "u/i/cutout.webp", before)).status).toBe("unreadable");
   });
 });

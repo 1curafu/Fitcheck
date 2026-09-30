@@ -55,3 +55,26 @@ export async function storeTrimmed(
   const c = await upload(paths.cutout, out.cutout, contentType(paths.cutout));
   if (c) throw new Error(`uploading ${paths.cutout} failed: ${c.message}`);
 }
+
+export type Verdict = { status: "ok" | "unchanged" | "padded" | "unreadable"; width?: number; height?: number };
+
+/**
+ * What is the STORED cutout after the upload?
+ *
+ * Reads through the injected `read` (the script passes a fresh-signed-URL reader, because the authenticated `download()`
+ * can be served from Supabase's CDN cache right after an overwrite). Distinguishes the outcomes the owner needs to tell
+ * apart: `ok` (cropped), `unchanged` (the stored object still has the pre-upload dimensions — the upload has not become
+ * visible, a stale read or a failed write), `padded` (changed but still carrying its margin) and `unreadable`.
+ */
+export async function verifyTrimmed(
+  read: (path: string) => Promise<Buffer | null>,
+  path: string,
+  before: { width: number; height: number },
+): Promise<Verdict> {
+  const stored = await read(path);
+  if (!stored) return { status: "unreadable" };
+  const { data, info } = await sharp(stored).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const dims = { width: info.width, height: info.height };
+  if (!needsTrim({ data: new Uint8ClampedArray(data.buffer, data.byteOffset, data.length), ...dims })) return { status: "ok", ...dims };
+  return { status: dims.width === before.width && dims.height === before.height ? "unchanged" : "padded", ...dims };
+}
