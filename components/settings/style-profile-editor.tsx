@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { QUESTIONS, type Question, type QuestionId } from "@/lib/onboarding/questions";
 import { toStyleProfileInput, type StyleProfileDraft } from "@/lib/onboarding/style-profile";
@@ -41,6 +41,12 @@ export function StyleProfileEditor({
   const [status, setStatus] = useState<"idle" | "saved" | "error">("idle");
   const [pending, startTransition] = useTransition();
 
+  // What the user has NOW, read when a save resolves — a save that finishes after a newer edit must not claim "Saved".
+  const latest = useRef(answers);
+  useEffect(() => {
+    latest.current = answers;
+  }, [answers]);
+
   const dirty = signature(answers) !== signature(baseline);
   const complete = QUESTIONS.every((q) => q.optional || answers[q.id].length > 0);
 
@@ -55,7 +61,7 @@ export function StyleProfileEditor({
       try {
         await onSaveAction(toStyleProfileInput(sent));
         setBaseline(sent);
-        setStatus("saved");
+        setStatus(signature(latest.current) === signature(sent) ? "saved" : "idle");
       } catch {
         setStatus("error");
       }
@@ -76,15 +82,20 @@ export function StyleProfileEditor({
         </section>
       ))}
 
-      {status !== "idle" && (
-        <p role="status" className={`mt-6 text-center text-[13px] ${status === "error" ? "text-brand-high" : "text-muted-foreground"}`}>
-          {status === "saved" ? t("saved") : tSettings("saveFailed")}
+      {/* Always rendered: a live region inserted together with its text is not reliably announced. */}
+      <p role="status" className={`mt-6 min-h-[1.25rem] text-center text-[13px] ${status === "error" ? "text-brand-high" : "text-muted-foreground"}`}>
+        {status === "saved" ? t("saved") : status === "error" ? tSettings("saveFailed") : null}
+      </p>
+      {!complete && (
+        <p id="style-incomplete" className="mt-2 text-center text-[12.5px] text-muted-foreground">
+          {t("incomplete")}
         </p>
       )}
       <button
         type="button"
         onClick={save}
         disabled={!dirty || !complete || pending}
+        aria-describedby={complete ? undefined : "style-incomplete"}
         className={`mt-4 w-full rounded-[12px] py-[17px] text-center font-semibold transition-opacity ${
           dirty && complete ? "bg-foreground text-canvas" : "bg-foreground/10 text-muted-dim"
         }`}
