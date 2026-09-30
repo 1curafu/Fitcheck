@@ -24,11 +24,11 @@ import {
   saveStyledLooks,
   clearStyledLooks,
   loadStyledPieceIds,
+  styledCacheBreaksNogo,
 } from "@/lib/outfits/styled-store";
 import { resolveLocation } from "@/lib/weather/location";
 import type { LookDraft, LookPiece, WeatherPayload } from "@/lib/generator/types";
 import { stylistInputFor, toCandidateItem } from "@/lib/generator/from-row";
-import { storedLooksBlocked } from "@/lib/generator/nogos";
 import { readNogos } from "@/lib/onboarding/style-profile";
 import type { MessageKey } from "@/lib/i18n/keys";
 
@@ -102,14 +102,7 @@ export async function styleWithItem(
     // stay in the look all day. Re-check it; the styled piece itself is exempt (the user chose it). A set that now
     // breaks a no-go is rebuilt exactly as a regenerate would (the flat Pro gate below still applies).
     const userNogos = readNogos(profile?.nogos);
-    let cachedBreaksNogo = false;
-    if (cached.length && userNogos.length) {
-      const { data: pieceRows } = await supabase.from("outfit_items").select("outfit_id, item_id").in("outfit_id", cached);
-      const cachedLooks = cached.map((id) => ({
-        pieces: (pieceRows ?? []).filter((r) => r.outfit_id === id).map((r) => ({ itemId: r.item_id as string })),
-      }));
-      cachedBreaksNogo = storedLooksBlocked(cachedLooks, new Map(items.map((i) => [i.id, i])), userNogos, [itemId]);
-    }
+    const cachedBreaksNogo = await styledCacheBreaksNogo(cached, items, userNogos, itemId);
     if (cached.length && !cachedBreaksNogo) return { status: "ok", outfitIds: cached };
 
     // Checked before the forecast fetch below: a free user is turned away
