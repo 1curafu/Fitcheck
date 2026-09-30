@@ -26,8 +26,9 @@ test("Save waits for a change, then sends the full answer set", async () => {
   expect(save()).toBeEnabled();
   await userEvent.click(save());
   expect(onSave).toHaveBeenCalledWith({ ...complete, archetype: "Old Money", nogos: ["shorts"] });
-  expect(await screen.findByRole("status")).toHaveTextContent(/saved/i);
-  expect(save()).toBeDisabled(); // the saved state is the new baseline
+  // The status region is always present, so wait for its TEXT; and the button reads "Saving…" until the save settles.
+  await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(/saved/i));
+  await waitFor(() => expect(save()).toBeDisabled()); // the saved state is the new baseline
 });
 
 test("undoing a change disables Save again", async () => {
@@ -47,9 +48,9 @@ test("a failed save says so and keeps the edit", async () => {
   render(<StyleProfileEditor profile={complete} onSaveAction={vi.fn().mockRejectedValue(new Error("x"))} />);
   await userEvent.click(screen.getByRole("button", { name: "Shorts" }));
   await userEvent.click(save());
-  expect(await screen.findByRole("status")).toHaveTextContent(/couldn.t save/i);
+  await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(/couldn.t save/i));
   expect(screen.getByRole("button", { name: "Shorts" })).toHaveAttribute("aria-pressed", "true");
-  expect(save()).toBeEnabled();
+  await waitFor(() => expect(save()).toBeEnabled());
 });
 
 test("the status region exists before anything is saved, so the first result is announced", () => {
@@ -102,7 +103,7 @@ describe("the route stays mounted (React Activity), so the editor follows fresh 
     const { rerender } = render(<StyleProfileEditor profile={complete} onSaveAction={onSave} />);
     await userEvent.click(screen.getByRole("button", { name: "Shorts" }));
     await userEvent.click(save());
-    expect(await screen.findByRole("status")).toHaveTextContent(/saved/i);
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(/saved/i));
     rerender(<StyleProfileEditor profile={{ ...complete, nogos: ["shorts"] }} onSaveAction={onSave} />);
     expect(screen.getByRole("status")).toHaveTextContent(/saved/i);
   });
@@ -112,4 +113,29 @@ test("the intro promises only what changes today's looks now (no-gos, style, dre
   render(<StyleProfileEditor profile={complete} onSaveAction={vi.fn()} />);
   expect(screen.getByText(/no-gos, style and dress codes/i)).toBeInTheDocument();
   expect(screen.queryByText(/new looks follow it/i)).toBeNull();
+});
+
+describe("a save that takes time (a slow network, a slow CI runner)", () => {
+  // ⚠️ These pin the race that failed the post-merge run on `develop`: the save result lands AFTER the click resolves,
+  // the status region is always in the DOM (so `findByRole("status")` returns at once, before any text), and the button
+  // reads "Saving…" — not "Save changes" — until the pending state clears. Assertions must wait for the settled state.
+  const later = <T,>(ms: number, run: () => T) => new Promise<T>((resolve, reject) => setTimeout(() => { try { resolve(run()); } catch (e) { reject(e); } }, ms));
+
+  test("success: waits for 'Saved', then Save is off (the saved answers are the new baseline)", async () => {
+    render(<StyleProfileEditor profile={complete} onSaveAction={() => later(60, () => undefined)} />);
+    await userEvent.click(screen.getByRole("button", { name: "Shorts" }));
+    await userEvent.click(save());
+    expect(screen.getByRole("button", { name: /saving/i })).toBeDisabled();
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(/saved/i));
+    await waitFor(() => expect(save()).toBeDisabled());
+  });
+
+  test("failure: waits for the message, keeps the edit, and Save comes back", async () => {
+    render(<StyleProfileEditor profile={complete} onSaveAction={() => later(60, () => { throw new Error("x"); })} />);
+    await userEvent.click(screen.getByRole("button", { name: "Shorts" }));
+    await userEvent.click(save());
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(/couldn.t save/i));
+    await waitFor(() => expect(save()).toBeEnabled());
+    expect(screen.getByRole("button", { name: "Shorts" })).toHaveAttribute("aria-pressed", "true");
+  });
 });
