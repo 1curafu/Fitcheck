@@ -1,4 +1,4 @@
-import { NOGO_VALUES, comboBlocked, itemBlocked, type NoGoItem } from "../nogos";
+import { NOGO_VALUES, comboBlocked, itemBlocked, storedLooksBlocked, type NoGoItem } from "../nogos";
 
 const top = (x: Partial<NoGoItem> = {}): NoGoItem => ({ category: "Tops", pattern: "solid", branding: "None", ...x });
 const bottom = (x: Partial<NoGoItem> = {}): NoGoItem => ({ category: "Bottoms", subcategory: "Chinos", fit: "Regular", ...x });
@@ -67,5 +67,33 @@ describe("double denim", () => {
 
   test("material is matched without case", () => {
     expect(comboBlocked([top({ material: "denim" }), jeans], ["double_denim"])).toBe(true);
+  });
+});
+
+describe("storedLooksBlocked (a look stored BEFORE the item was retagged or the no-go added)", () => {
+  const items = new Map<string, NoGoItem>([
+    ["tee", top()],
+    ["chino", bottom()],
+    ["ripped", bottom({ distressing: "Ripped" })],
+    ["denimShirt", top({ material: "Denim" })],
+    ["jeans", bottom({ material: "Denim" })],
+  ]);
+  const look = (...ids: string[]) => ({ pieces: ids.map((itemId) => ({ itemId })) });
+
+  test("a stored look holding an item a no-go now blocks is blocked", () => {
+    expect(storedLooksBlocked([look("tee", "ripped")], items, ["ripped"])).toBe(true);
+  });
+  test("a stored double-denim look is blocked", () => {
+    expect(storedLooksBlocked([look("denimShirt", "jeans")], items, ["double_denim"])).toBe(true);
+  });
+  test("one blocked look among fine ones blocks the set", () => {
+    expect(storedLooksBlocked([look("tee", "chino"), look("tee", "ripped")], items, ["ripped"])).toBe(true);
+  });
+  test("clean looks, or no no-gos, are not blocked", () => {
+    expect(storedLooksBlocked([look("tee", "chino")], items, ["ripped", "double_denim"])).toBe(false);
+    expect(storedLooksBlocked([look("tee", "ripped")], items, [])).toBe(false);
+  });
+  test("a piece that left the closet is the reassemble path's problem, not this one's", () => {
+    expect(storedLooksBlocked([look("tee", "gone")], items, ["ripped"])).toBe(false);
   });
 });

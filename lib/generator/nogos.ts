@@ -48,3 +48,25 @@ export function comboBlocked(items: readonly NoGoItem[], nogos: readonly NoGo[])
   const denim = items.filter((i) => GARMENTS.has(i.category) && i.material?.toLowerCase() === "denim");
   return denim.length >= 2;
 }
+
+/**
+ * Would any look already STORED for today break a no-go? True when a stored piece is now blocked (its tags were
+ * edited, or the no-go was added by a path that does not clear the drop) or a stored look is double denim.
+ *
+ * The daily action treats `true` like a closet change: the stored set is not served and today's looks are rebuilt
+ * for free. A piece that has left the closet is not this function's concern — `reassembleLooks` returns null for it.
+ */
+export function storedLooksBlocked(
+  looks: readonly { pieces: readonly { itemId: string }[] }[],
+  itemsById: ReadonlyMap<string, NoGoItem>,
+  nogos: readonly NoGo[],
+): boolean {
+  if (!nogos.length) return false;
+  return looks.some((look) => {
+    const items = look.pieces.flatMap((p) => {
+      const item = itemsById.get(p.itemId);
+      return item ? [item] : [];
+    });
+    return items.some((i) => itemBlocked(i, nogos)) || comboBlocked(items, nogos);
+  });
+}

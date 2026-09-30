@@ -76,3 +76,10 @@ test("the styled-look producer exempts the piece the user asked to style from th
   const styled = FILES.find(({ path }) => path.endsWith("style-actions.ts"));
   expect(styled?.text).toMatch(/keepItemIds:\s*\[itemId\]/);
 });
+
+test("the daily action re-checks the STORED set against the no-gos before serving it", () => {
+  // ⚠️ Source-level: a stored look is served without rebuilding, so a piece retagged Ripped/Large/Fitted after the
+  // drop was generated would otherwise stay in today's look until midnight.
+  const daily = FILES.find(({ path }) => path.endsWith("generate/actions.ts"));
+  expect(daily?.text).toMatch(/storedLooksBlocked\(/);
+});

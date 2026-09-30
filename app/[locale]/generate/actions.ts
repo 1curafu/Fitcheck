@@ -45,6 +45,7 @@ import type {
 } from "@/lib/generator/types";
 import { stylistInputFor, toCandidateItem } from "@/lib/generator/from-row";
 import { FREE } from "@/lib/billing/tiers";
+import { storedLooksBlocked } from "@/lib/generator/nogos";
 import { readNogos } from "@/lib/onboarding/style-profile";
 import type { MessageKey } from "@/lib/i18n/keys";
 
@@ -144,7 +145,12 @@ export async function generate(input: {
       ? invalidatesDrop(input.city, resolveLocation({ profile }))
       : false;
 
-    if (!input.regenerate && !movedAway && stored?.length) {
+    // A stored set that now breaks a no-go (an item retagged Ripped/Large/Fitted after the drop was made) is not
+    // served: it falls through to the same free rebuild a closet change gets.
+    const userNogos = readNogos(profile?.nogos);
+    const storedBreaksNogo = stored?.length ? storedLooksBlocked(stored, byId, userNogos) : false;
+
+    if (!input.regenerate && !movedAway && stored?.length && !storedBreaksNogo) {
       const paths = Array.from(
         new Set(
           stored
@@ -221,7 +227,7 @@ export async function generate(input: {
       maxBags: 1,
       rainGuard: prefs.rainGuard,
       // The quiz's no-gos: hard, never relieved (lib/generator/nogos.ts).
-      nogos: readNogos(profile?.nogos),
+      nogos: userNogos,
     };
     const combos = buildCandidates(candItems, candidateArgs);
     if (combos.length === 0) {
