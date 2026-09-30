@@ -616,3 +616,55 @@ test("missingCategory does not tell a dress wardrobe it has no trousers", () => 
   // A separates closet still reports its own gap.
   expect(missingCategory(items.filter((i) => i.category !== "Bottoms"), base)).toBe("Bottoms");
 });
+
+// --- no-gos (quiz part 1) — hard, never relieved ---
+describe("no-gos", () => {
+  const top = { id: "nt", category: "Tops", colors: ["white"], formality: 3, seasons: ["spring"], material: "Cotton", texture: null, pattern: "solid" };
+  const chinos = { id: "nc", category: "Bottoms", colors: ["beige"], formality: 3, seasons: ["spring"], material: "Cotton", texture: null, pattern: "solid", subcategory: "Chinos" };
+  const ripped = { ...chinos, id: "nr", material: "Denim", distressing: "Ripped" };
+  const jeans = { ...chinos, id: "nj", material: "Denim" };
+  const denimShirt = { ...top, id: "nds", material: "Denim" };
+  const shoe = { id: "ns", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["spring"], material: "Leather", texture: null, pattern: null };
+  // ⚠️ Mild weather (base is 18°) on purpose: below 15° every base gains the closet's coat, and a single
+  // denim coat would make every jeans look double denim — the test could then never see jeans at all.
+
+  test("a blocked piece appears in no combo", () => {
+    const combos = buildCandidates([top, chinos, ripped, shoe], { ...base, nogos: ["ripped"] });
+    expect(combos.length).toBeGreaterThan(0);
+    expect(combos.flat().some((i) => i.id === "nr")).toBe(false);
+  });
+
+  test("without nogos the same closet still uses it (unchanged behaviour)", () => {
+    expect(buildCandidates([top, chinos, ripped, shoe], base).flat().some((i) => i.id === "nr")).toBe(true);
+  });
+
+  test("double denim never reaches a look, but each denim piece still can", () => {
+    // Two tops × two bottoms: the walk visits all four pairings; only denim shirt + jeans is refused.
+    const combos = buildCandidates([top, denimShirt, jeans, chinos, shoe], { ...base, nogos: ["double_denim"] });
+    const denimCount = (c: typeof combos[number]) => c.filter((i) => i.material === "Denim").length;
+    expect(combos.length).toBeGreaterThan(0);
+    expect(combos.every((c) => denimCount(c) < 2)).toBe(true);
+    expect(combos.flat().some((i) => i.id === "nj")).toBe(true);
+    expect(combos.flat().some((i) => i.id === "nds")).toBe(true);
+  });
+
+  test("without the no-go, denim on denim is still offered", () => {
+    const combos = buildCandidates([top, denimShirt, jeans, chinos, shoe], base);
+    expect(combos.some((c) => c.some((i) => i.id === "nds") && c.some((i) => i.id === "nj"))).toBe(true);
+  });
+
+  test("weather relief cannot bring a blocked piece back when it empties a slot", () => {
+    // The only bottom is blocked: the slot is empty and STAYS empty — relief is for weather bars only.
+    const args = { ...base, nogos: ["ripped"] as const };
+    expect(buildCandidates([top, ripped, shoe], args)).toEqual([]);
+    expect(missingCategory([top, ripped, shoe], args)).toBe("Bottoms");
+  });
+
+  test("a kept piece survives its own no-go, and its companions still obey the look rule", () => {
+    const args = { ...base, nogos: ["ripped", "double_denim"] as const, keepItemIds: ["nr"] };
+    const combos = buildCandidates([top, denimShirt, ripped, shoe], args);
+    expect(combos.flat().some((i) => i.id === "nr")).toBe(true);
+    // the ripped pair is denim: the denim shirt may never join it
+    expect(combos.every((c) => !(c.some((i) => i.id === "nr") && c.some((i) => i.id === "nds")))).toBe(true);
+  });
+});

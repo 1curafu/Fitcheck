@@ -1,3 +1,4 @@
+import { comboBlocked, itemBlocked, type NoGo } from "./nogos";
 import { weatherRules, type Weather } from "./rules";
 import { inSeason } from "./season";
 import { itemWarmth } from "./texture";
@@ -47,6 +48,8 @@ export type CandidateItem = {
   /** Branding prominence and visible wear, carried through for the rule registry. */
   branding?: string | null;
   distressing?: string | null;
+  /** How the garment is cut (`FITS`). Read by the `skinny` no-go; part 2 of the quiz work scores it. */
+  fit?: string | null;
 };
 
 export type CandidateArgs = {
@@ -84,6 +87,15 @@ export type CandidateArgs = {
    * the temperature unit.
    */
   rainGuard?: boolean;
+  /**
+   * The user's no-gos (`lib/generator/nogos.ts`). Optional: absent means none, so every existing caller and
+   * fixture keeps its behaviour.
+   *
+   * ⚠️ HARD and never relieved — checked inside `isEligible`, which BOTH the barred and the relief pass call.
+   */
+  nogos?: readonly NoGo[];
+  /** Ids exempt from the ITEM no-go check — the piece a user asked to style. The look rule still applies. */
+  keepItemIds?: readonly string[];
 };
 
 /**
@@ -171,6 +183,7 @@ function isEligible(i: CandidateItem, a: CandidateArgs, bars: WeatherBars): bool
   const [lo, hi] = a.band;
   if (i.category === "Fragrance") return false; // D11: fragrances are never slotted
   if (a.excludeItemIds.includes(i.id)) return false;
+  if (a.nogos?.length && !a.keepItemIds?.includes(i.id) && itemBlocked(i, a.nogos)) return false;
   if (materialExcluded(i.material, bars.excludeMaterials)) return false;
   // On a genuinely sweltering day warmth stops being a preference. Reads the
   // wearer's season tags, so a cable knit they wear in July survives and one
@@ -418,6 +431,10 @@ function walkShape(
       // cold day and every other coat was unreachable.
       const base =
         needsOuterwear && outer.length ? [...core, outer[(t + d) % outer.length]] : core;
+
+      // Accessories and bags never count toward a look-level no-go, so judging the base judges every
+      // variant built on it — and a skipped base never spends the CAP.
+      if (a.nogos?.length && comboBlocked(base, a.nogos)) continue;
 
       combos.push(base);
       if (combos.length >= cap) break build;
