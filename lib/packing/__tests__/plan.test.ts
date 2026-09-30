@@ -102,6 +102,22 @@ describe("realBuilder", () => {
     expect(out!.score).toBeLessThanOrEqual(1);
   });
 
+  test("a trip look never pairs two denim garments when double denim is a no-go", () => {
+    const denim = [
+      item("jacket", "Outerwear", { material: "Denim" }),
+      item("jeans", "Bottoms", { material: "Denim" }),
+      item("tee", "Tops"),
+      item("loafer", "Shoes"),
+    ];
+    const chilly: Weather = { tempC: 8, rain: false, highC: 9, lowC: 4 };
+    const build = (nogos: ("double_denim")[]) =>
+      realBuilder(denim, () => chilly, { nogos })({ date: "2026-05-12", occasion: "everyday" }, denim);
+    const free = build([]);
+    expect(free?.itemIds).toEqual(expect.arrayContaining(["jacket", "jeans"]));
+    const ruled = build(["double_denim"]);
+    expect(ruled === null || !(ruled.itemIds.includes("jacket") && ruled.itemIds.includes("jeans"))).toBe(true);
+  });
+
   // The solve narrows `available` as wear limits bite; the builder must honour
   // that rather than reaching back into the full closet behind its back.
   test("only uses what it was offered", () => {

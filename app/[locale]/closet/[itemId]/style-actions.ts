@@ -28,6 +28,7 @@ import {
 import { resolveLocation } from "@/lib/weather/location";
 import type { LookDraft, LookPiece, WeatherPayload } from "@/lib/generator/types";
 import { stylistInputFor, toCandidateItem } from "@/lib/generator/from-row";
+import { readNogos } from "@/lib/onboarding/style-profile";
 import type { MessageKey } from "@/lib/i18n/keys";
 
 export type StyleResult =
@@ -65,7 +66,7 @@ export async function styleWithItem(
     const { data: profile } = await supabase
       .from("profiles")
       .select(
-        "archetype, formality_min, formality_max, occasions, location_lat, location_lon, location_label, location_source, location_timezone, preferences",
+        "archetype, formality_min, formality_max, nogos, occasions, location_lat, location_lon, location_label, location_source, location_timezone, preferences",
       )
       .eq("id", user.id)
       .single();
@@ -165,6 +166,9 @@ export async function styleWithItem(
       maxAccessories: 2,
       maxBags: 1,
       rainGuard: prefs.rainGuard,
+      nogos: readNogos(profile?.nogos),
+      // The piece the user asked to style is never removed by their own no-gos; its companions are.
+      keepItemIds: [itemId],
     };
     const aesthetic = profile?.archetype ? [profile.archetype] : [];
 

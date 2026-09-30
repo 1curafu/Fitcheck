@@ -45,6 +45,7 @@ import type {
 } from "@/lib/generator/types";
 import { stylistInputFor, toCandidateItem } from "@/lib/generator/from-row";
 import { FREE } from "@/lib/billing/tiers";
+import { readNogos } from "@/lib/onboarding/style-profile";
 import type { MessageKey } from "@/lib/i18n/keys";
 
 export async function generate(input: {
@@ -66,7 +67,7 @@ export async function generate(input: {
     const { data: profile } = await supabase
       .from("profiles")
       .select(
-        "archetype, formality_min, formality_max, location_lat, location_lon, location_label, location_source, preferences",
+        "archetype, formality_min, formality_max, nogos, location_lat, location_lon, location_label, location_source, preferences",
       )
       .eq("id", user.id)
       .single();
@@ -219,6 +220,8 @@ export async function generate(input: {
       maxAccessories: 2,
       maxBags: 1,
       rainGuard: prefs.rainGuard,
+      // The quiz's no-gos: hard, never relieved (lib/generator/nogos.ts).
+      nogos: readNogos(profile?.nogos),
     };
     const combos = buildCandidates(candItems, candidateArgs);
     if (combos.length === 0) {

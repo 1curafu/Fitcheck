@@ -59,3 +59,13 @@ test("the guard can actually see a violation", () => {
   expect([...bad.matchAll(/:\s*CandidateItem\[\]\s*=\s*([\s\S]*?);/g)].length).toBe(1);
   expect(FILES.some(({ text }) => /:\s*CandidateItem\[\]\s*=/.test(text))).toBe(true);
 });
+
+test("every caller of buildCandidates hands it the user's no-gos", () => {
+  // ⚠️ Source-level for the same reason as above: `nogos` is optional, so a producer that forgets it
+  // compiles and silently ignores the quiz — the exact defect this feature exists to fix.
+  const callers = FILES.filter(({ path, text }) => /buildCandidates\(/.test(text) && !path.endsWith("candidates.ts"));
+  expect(callers.length).toBeGreaterThanOrEqual(3);
+  // `nogos:` as a PROPERTY — the daily action also names the column in its select string, which a bare
+  // word match would accept even with the argument deleted.
+  expect(callers.filter(({ text }) => !/\bnogos\s*:/.test(text)).map(({ path }) => path)).toEqual([]);
+});

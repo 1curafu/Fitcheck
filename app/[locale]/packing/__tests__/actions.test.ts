@@ -1,10 +1,11 @@
 import { beforeEach, expect, it, vi } from "vitest";
-const mock = vi.hoisted(() => ({ narrate: vi.fn(), save: vi.fn(), solve: vi.fn(), entitlements: vi.fn(), locale: vi.fn() }));
+const mock = vi.hoisted(() => ({ narrate: vi.fn(), save: vi.fn(), solve: vi.fn(), entitlements: vi.fn(), locale: vi.fn(),
+  closet: [] as unknown[], profile: {} as Record<string, unknown> }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({
   auth: { getUser: async () => ({ data: { user: { id: "owner" } } }) },
   from: () => { const q = { select: () => q, eq: () => q,
-    maybeSingle: async () => ({ data: {}, error: null }),
-    then: (resolve: (value: unknown) => unknown) => Promise.resolve({ data: [], error: null }).then(resolve) }; return q; },
+    maybeSingle: async () => ({ data: mock.profile, error: null }),
+    then: (resolve: (value: unknown) => unknown) => Promise.resolve({ data: mock.closet, error: null }).then(resolve) }; return q; },
 }) }));
 vi.mock("@/lib/i18n/action-locale", () => ({ getActionLocale: mock.locale }));
 vi.mock("@/lib/i18n/revalidate", () => ({ revalidateEverywhere: vi.fn() }));
@@ -23,7 +24,7 @@ import { planTrip, editCapsule } from "../actions";
 const input = { destinationLabel: "Zurich", lat: 47.37, lon: 8.54, timezone: "Europe/Zurich",
   startDate: "2026-09-28", endDate: "2026-09-28", occasionMix: { everyday: 1 }, rewearLevel: 2 };
 beforeEach(() => {
-  vi.clearAllMocks(); mock.locale.mockResolvedValue("uk");
+  vi.clearAllMocks(); mock.closet = []; mock.profile = {}; mock.locale.mockResolvedValue("uk");
   mock.entitlements.mockResolvedValue({ packingMode: true });
   mock.solve.mockReturnValue({ itemIds: [] });
   mock.narrate.mockResolvedValue({ capsule_why: "Капсула", days: [{ name: "День 1", why: "Образ" }] });
@@ -40,4 +41,12 @@ it("the paid tier gate runs before locale or narration work", async () => {
   await expect(planTrip(input)).rejects.toThrow();
   expect(mock.locale).not.toHaveBeenCalled();
   expect(mock.narrate).not.toHaveBeenCalled();
+});
+it("a piece the user ruled out is never offered to the capsule solve", async () => {
+  const row = (id: string, category: string, extra: Record<string, unknown> = {}) =>
+    ({ id, category, colors: [], formality: 3, seasons: [], material: "Cotton", texture: null, pattern: "solid", ...extra });
+  mock.closet = [row("tee", "Tops"), row("ripped", "Bottoms", { distressing: "Ripped" }), row("chino", "Bottoms")];
+  mock.profile = { nogos: ["ripped"] };
+  await planTrip(input);
+  expect(mock.solve.mock.calls[0][0].closet.map((c: { id: string }) => c.id)).toEqual(["tee", "chino"]);
 });

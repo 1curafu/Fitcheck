@@ -1,4 +1,5 @@
 import { buildCandidates, type CandidateItem } from "@/lib/generator/candidates";
+import type { NoGo } from "@/lib/generator/nogos";
 import { rankTopN } from "@/lib/generator/rank";
 import { scoreCombo, type ScoreItem } from "@/lib/generator/score";
 import { occasionBand, type Weather } from "@/lib/generator/rules";
@@ -70,7 +71,7 @@ function datesBetween(start: string, end: string): string[] {
 export function realBuilder(
   closet: CandidateItem[],
   forecastFor: (date: string) => Weather,
-  opts?: { aesthetic?: string[]; rainGuard?: boolean },
+  opts?: { aesthetic?: string[]; rainGuard?: boolean; nogos?: readonly NoGo[]; keepItemIds?: readonly string[] },
 ): OutfitBuilder {
   const byId = new Map(closet.map((i) => [i.id, i]));
 
@@ -91,6 +92,8 @@ export function realBuilder(
       maxAccessories: 1,
       maxBags: 1,
       rainGuard: opts?.rainGuard,
+      nogos: opts?.nogos,
+      keepItemIds: opts?.keepItemIds,
     });
     if (combos.length === 0) return null;
 
