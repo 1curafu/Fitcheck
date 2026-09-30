@@ -18,7 +18,9 @@ test("deletes today's looks and their pieces, keyed on the given timezone", asyn
   await clearTodaysDrop(supabase as never, "u1", "Europe/Zurich");
   vi.useRealTimers();
   expect(eqs).toEqual([["user_id", "u1"], ["generated_on", "2026-10-01"]]);
-  expect(calls).toEqual(["outfit_items:o1,o2", "outfits:o1,o2"]);
+  // outfit_items.outfit_id is ON DELETE CASCADE: deleting the outfits removes their pieces in one statement, so
+  // there is no window where an outfit survives without its items.
+  expect(calls).toEqual(["outfits:o1,o2"]);
 });
 
 const clientWith = (o: { read?: { data: { id: string }[] | null; error: unknown }; delItems?: unknown; delOutfits?: unknown }) => ({
@@ -36,6 +38,5 @@ test("a failed read of today's looks is an error, not a silent no-op", async () 
 });
 
 test("a failed delete is an error, so the caller never reports a rebuild that did not happen", async () => {
-  await expect(clearTodaysDrop(clientWith({ delItems: { error: new Error("items") } }) as never, "u1", "UTC")).rejects.toThrow("items");
   await expect(clearTodaysDrop(clientWith({ delOutfits: { error: new Error("outfits") } }) as never, "u1", "UTC")).rejects.toThrow("outfits");
 });

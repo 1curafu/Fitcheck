@@ -38,8 +38,9 @@ export async function clearTodaysDrop(supabase: ServerClient, userId: string, ti
 
   // ⚠️ Errors are surfaced, not swallowed: a caller that reports "saved" while yesterday's looks survive has
   // told the user something false. `setLocation` keeps its old best-effort behaviour by catching this itself.
-  const items = await supabase.from("outfit_items").delete().in("outfit_id", ids);
-  if (items.error) throw new Error(items.error.message);
+  //
+  // Only `outfits` is deleted: `outfit_items.outfit_id` is ON DELETE CASCADE, so one statement removes the pieces
+  // too. A separate `outfit_items` delete first left a window where an outfit survived WITHOUT its pieces.
   const outfits = await supabase.from("outfits").delete().in("id", ids);
   if (outfits.error) throw new Error(outfits.error.message);
 }

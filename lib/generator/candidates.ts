@@ -433,13 +433,15 @@ function walkShape(
       // ⚠️ A coat that would break a look-level no-go (a denim jacket over jeans) is passed over for the next
       // one, and with none left the look goes coatless: outerwear is a preference, so a no-go must never turn
       // "the only coat is denim" into "no looks at all" on a cold day.
-      const start = outer.length ? (t + d) % outer.length : 0;
-      const coat =
-        needsOuterwear && outer.length
-          ? outer
-              .map((_, k) => [...core, outer[(start + k) % outer.length]])
-              .find((c) => !a.nogos?.length || !comboBlocked(c, a.nogos))
-          : undefined;
+      let coat: CandidateItem[] | undefined;
+      if (needsOuterwear && outer.length) {
+        // Lazy: the first coat that keeps the look legal, rotating from (t + d). With no no-gos that is always the
+        // first candidate, so no array is built for the coats that are never tried.
+        for (let k = 0; k < outer.length && !coat; k++) {
+          const tryCoat = [...core, outer[(t + d + k) % outer.length]];
+          if (!a.nogos?.length || !comboBlocked(tryCoat, a.nogos)) coat = tryCoat;
+        }
+      }
       const base = coat ?? core;
 
       // Accessories and bags never count toward a look-level no-go, so judging the base judges every
@@ -500,10 +502,13 @@ export function buildCandidates(items: CandidateItem[], a: CandidateArgs): Candi
 /**
  * True when the user's no-gos are the reason there is nothing to show: the closet WOULD dress them without the
  * no-gos and cannot with them. Lets the stylist say so instead of telling someone with eight pairs of trousers to
- * "add a pair". Only called once a build has already come up empty, so the second build is off the hot path.
+ * "add a pair".
+ *
+ * ⚠️ PRECONDITION: the caller has ALREADY built with `a` and got nothing — this does not re-check that (it used to,
+ * which repeated a whole build). Called on a closet that does have looks it answers "would it dress them without
+ * the no-gos", i.e. true, which is only meaningful after an empty result.
  */
 export function emptiedByNogos(items: CandidateItem[], a: CandidateArgs): boolean {
   if (!a.nogos?.length) return false;
-  if (buildCandidates(items, a).length > 0) return false;
   return buildCandidates(items, { ...a, nogos: undefined, keepItemIds: undefined }).length > 0;
 }

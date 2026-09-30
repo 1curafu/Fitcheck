@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { buildCandidates, eligibility, emptiedByNogos, missingCategory } from "../candidates";
 
 const items = [
@@ -704,8 +705,13 @@ describe("emptiedByNogos (why the stylist came up empty)", () => {
   test("false when the closet is short of a piece regardless of the no-gos", () => {
     expect(emptiedByNogos([top, shoe], { ...base, nogos: ["shorts"] })).toBe(false);
   });
-  test("false when the user has no no-gos, or when looks exist", () => {
+  test("false when the user has no no-gos", () => {
     expect(emptiedByNogos([top, shorts, shoe], base)).toBe(false);
-    expect(emptiedByNogos([top, shorts, shoe], { ...base, nogos: ["logos"] })).toBe(false);
+    expect(emptiedByNogos([top, shorts, shoe], { ...base, nogos: [] })).toBe(false);
+  });
+  test("its precondition is an EMPTY build — pinned so a caller cannot forget it", () => {
+    // The function trusts the caller; the daily action only reaches it inside `combos.length === 0`.
+    const daily = readFileSync("app/[locale]/generate/actions.ts", "utf8");
+    expect(daily).toMatch(/combos\.length === 0\)\s*\{[\s\S]{0,400}emptiedByNogos\(/);
   });
 });

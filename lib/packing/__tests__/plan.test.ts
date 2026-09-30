@@ -115,7 +115,11 @@ describe("realBuilder", () => {
     const free = build([]);
     expect(free?.itemIds).toEqual(expect.arrayContaining(["jacket", "jeans"]));
     const ruled = build(["double_denim"]);
-    expect(ruled === null || !(ruled.itemIds.includes("jacket") && ruled.itemIds.includes("jeans"))).toBe(true);
+    // Non-null: the cold-day zero-looks bug (a no-go turning "the only coat is denim" into no look at all) came back
+    // as `null` and this test used to accept it. The day is dressed, just without the jacket.
+    expect(ruled).not.toBeNull();
+    expect(ruled!.itemIds).toEqual(expect.arrayContaining(["jeans", "tee", "loafer"]));
+    expect(ruled!.itemIds).not.toContain("jacket");
   });
 
   // The solve narrows `available` as wear limits bite; the builder must honour
