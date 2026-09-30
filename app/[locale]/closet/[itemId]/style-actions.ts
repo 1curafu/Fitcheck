@@ -10,7 +10,7 @@ import { planningTempFor, rainAheadFor } from "@/lib/weather/planning";
 import { readPreferences } from "@/lib/profile/preferences";
 import { conditionKey } from "@/lib/weather/condition";
 import { personalBand, planningTemp } from "@/lib/generator/rules";
-import { buildCandidates, type CandidateItem } from "@/lib/generator/candidates";
+import { buildCandidates, emptiedByNogos, type CandidateItem } from "@/lib/generator/candidates";
 import { rankTopN } from "@/lib/generator/rank";
 import { currentSeason } from "@/lib/generator/season";
 import { rerank } from "@/lib/generator/rerank";
@@ -24,10 +24,12 @@ import {
   saveStyledLooks,
   clearStyledLooks,
   loadStyledPieceIds,
+  styledCacheBreaksNogo,
 } from "@/lib/outfits/styled-store";
 import { resolveLocation } from "@/lib/weather/location";
 import type { LookDraft, LookPiece, WeatherPayload } from "@/lib/generator/types";
 import { stylistInputFor, toCandidateItem } from "@/lib/generator/from-row";
+import { readNogos } from "@/lib/onboarding/style-profile";
 import type { MessageKey } from "@/lib/i18n/keys";
 
 export type StyleResult =
@@ -65,7 +67,7 @@ export async function styleWithItem(
     const { data: profile } = await supabase
       .from("profiles")
       .select(
-        "archetype, formality_min, formality_max, occasions, location_lat, location_lon, location_label, location_source, location_timezone, preferences",
+        "archetype, formality_min, formality_max, nogos, occasions, location_lat, location_lon, location_label, location_source, location_timezone, preferences",
       )
       .eq("id", user.id)
       .single();
@@ -96,7 +98,12 @@ export async function styleWithItem(
     // A regenerate deliberately skips the cache — that is the whole point of
     // the control. Everything else is a free read, per Decision 5.
     const cached = opts?.regenerate ? [] : await loadStyledLooks(user.id, itemId, today);
-    if (cached.length) return { status: "ok", outfitIds: cached };
+    // A cached set is served without rebuilding, so a companion retagged Ripped/Large/Fitted after styling would
+    // stay in the look all day. Re-check it; the styled piece itself is exempt (the user chose it). A set that now
+    // breaks a no-go is rebuilt exactly as a regenerate would (the flat Pro gate below still applies).
+    const userNogos = readNogos(profile?.nogos);
+    const cachedBreaksNogo = await styledCacheBreaksNogo(cached, items, userNogos, itemId);
+    if (cached.length && !cachedBreaksNogo) return { status: "ok", outfitIds: cached };
 
     // Checked before the forecast fetch below: a free user is turned away
     // without us paying for I/O they will never see. The occasion is not needed
@@ -165,6 +172,9 @@ export async function styleWithItem(
       maxAccessories: 2,
       maxBags: 1,
       rainGuard: prefs.rainGuard,
+      nogos: userNogos,
+      // The piece the user asked to style is never removed by their own no-gos; its companions are.
+      keepItemIds: [itemId],
     };
     const aesthetic = profile?.archetype ? [profile.archetype] : [];
 
@@ -206,7 +216,8 @@ export async function styleWithItem(
     if (!pinned.length) {
       return {
         status: "empty",
-        message: "item.style.thinCloset",
+        // "Add more pieces" is wrong advice when the user's own no-gos removed the companions they already own.
+        message: emptiedByNogos(candItems, { ...args, band: [1, 5] }) ? "item.style.nogos" : "item.style.thinCloset",
       };
     }
 
@@ -272,7 +283,7 @@ export async function styleWithItem(
     // Delete-then-insert, exactly as saveDailyLooks does it: a fresh run may
     // return a different number of looks, and leftovers must not survive
     // beside the new set.
-    if (opts?.regenerate) await clearStyledLooks(user.id, itemId, today);
+    if (opts?.regenerate || cachedBreaksNogo) await clearStyledLooks(user.id, itemId, today);
 
     const outfitIds = await saveStyledLooks(user.id, itemId, occasion, today, weather, drafts, locale);
     if (!outfitIds.length) return { status: "error", message: "item.style.saveFailed" };

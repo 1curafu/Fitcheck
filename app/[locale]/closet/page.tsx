@@ -10,7 +10,7 @@ import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { MobileNav } from "@/components/shell/mobile-nav";
 import { ClosetGrid } from "@/components/closet/closet-grid";
 import { WhatsNew } from "@/components/shell/whats-new";
-import { CURRENT_RELEASE } from "@/lib/release-notes";
+import { CURRENT_RELEASE, accountPredatesRelease } from "@/lib/release-notes";
 
 /**
  * The Closet, split into a prerendered SHELL and a streamed body.
@@ -84,7 +84,7 @@ async function ClosetBody() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return redirect({ href: "/", locale: await getLocale() });
+  if (!user) return redirect({ href: "/sign-in", locale: await getLocale() });
 
   const { data: items } = await supabase
     .from("items")
@@ -119,7 +119,7 @@ async function ClosetBody() {
 
   // Storage cannot tell a returning user from a new one (a home-screen app and
   // Safari keep separate storage); the account's creation date can.
-  const returning = new Date(user.created_at) < new Date(CURRENT_RELEASE.date);
+  const returning = accountPredatesRelease(user.created_at, CURRENT_RELEASE);
 
   return (
     <>

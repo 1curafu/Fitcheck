@@ -9,6 +9,7 @@ const row = {
   id: "i1", category: "Tops", colors: ["navy"], formality: 3, seasons: ["Autumn"],
   material: "Wool", texture: "Flat", pattern: "solid", accent_color: "rust",
   subcategory: "Oxford shirt", bulk: "Regular", branding: "Large", distressing: "Faded",
+  fit: "Fitted",
 };
 
 test("every column the generator reads survives the mapping", () => {

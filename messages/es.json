@@ -39,13 +39,176 @@
     "and": "y la",
     "privacy": "Política de privacidad"
   },
+  "home": {
+    "metadata": {
+      "title": "Fitcheck — conjuntos con la ropa que ya tienes",
+      "description": "Añade tu armario una sola vez. Cada día recibe tres conjuntos con tu ropa, adecuados al tiempo y a la ocasión, cada uno con una frase que explica por qué funciona. Empieza gratis."
+    },
+    "signInMetadata": {
+      "title": "Iniciar sesión"
+    },
+    "nav": {
+      "label": "Cuenta",
+      "signIn": "Iniciar sesión",
+      "home": "Inicio de Fitcheck"
+    },
+    "hero": {
+      "kicker": "Tu estilista con IA",
+      "titleLead": "Conjuntos con la ropa",
+      "titleEmphasis": "que ya tienes.",
+      "lede": "Añade tu armario una sola vez. Cada día recibes tres conjuntos adecuados al tiempo y a tus planes, cada uno con una frase que explica por qué funciona.",
+      "cta": "Prueba Fitcheck gratis",
+      "noCard": "Sin tarjeta",
+      "proofBrowser": "Funciona en el navegador del móvil",
+      "proofStart": "Empieza con {count} prendas",
+      "proofLanguages": "{count} idiomas"
+    },
+    "preview": {
+      "label": "Pantalla del estilista Fitcheck con un ejemplo de tres conjuntos",
+      "example": "Ejemplo",
+      "city": "Zúrich",
+      "later": "Hasta {temperature} hacia las 15:00,",
+      "advice": "así que basta con un jersey."
+    },
+    "looks": {
+      "quietNavy": {
+        "name": "Azul marino discreto",
+        "why": "El jersey azul marino contrasta con el pantalón blanco, y las zapatillas blancas de piel dan ligereza al conjunto para una tarde templada."
+      },
+      "blueStone": {
+        "name": "Azul claro y arena",
+        "why": "La camisa azul claro combina con el pantalón color arena, y las zapatillas color crema suavizan el conjunto para un día relajado."
+      },
+      "creamDenim": {
+        "name": "Crema y vaquero",
+        "why": "El polo de punto color crema suaviza los vaqueros claros, y las zapatillas azul claro recogen el tono del denim para un día fácil."
+      }
+    },
+    "pieces": {
+      "navySweater": "Jersey azul marino de cuello redondo",
+      "whiteTrousers": "Pantalón blanco",
+      "whiteSneakers": "Zapatillas blancas de piel",
+      "watch": "Reloj plateado",
+      "blueShirt": "Camisa azul claro",
+      "stoneTrousers": "Pantalón color arena",
+      "creamSneakers": "Zapatillas color crema",
+      "creamPolo": "Polo de punto color crema",
+      "lightJeans": "Vaqueros claros",
+      "paleBlueSneakers": "Zapatillas azul claro",
+      "inLook": "{piece}, en el conjunto de hoy"
+    },
+    "how": {
+      "kicker": "Cómo funciona",
+      "title": "Fotografía tu ropa una vez. Elige el conjunto cada día.",
+      "steps": {
+        "add": {
+          "title": "Añade tu ropa",
+          "body": "Haz una foto de cada prenda. El fondo se elimina en el móvil y Fitcheck sugiere características que puedes revisar o corregir."
+        },
+        "looks": {
+          "title": "Mira los conjuntos de hoy",
+          "body": "Elige trabajo, diario, fin de semana o noche. Fitcheck combina tres conjuntos de tu armario teniendo en cuenta el tiempo de hoy."
+        },
+        "wear": {
+          "title": "Guárdalo o póntelo",
+          "body": "Guarda los conjuntos que te gusten y marca el que te pongas. Aparecerá en tu diario, donde podrás ver qué eliges de verdad."
+        }
+      },
+      "effortLead": "Empieza con unas pocas fotos.",
+      "effortBody": "Fitcheck solo puede combinar prendas que ya conoce. Empieza por añadir {count} prendas: un par de partes de arriba, unos pantalones y zapatos. Cuantas más añadas, mejores serán los conjuntos."
+    },
+    "example": {
+      "kicker": "Un ejemplo",
+      "title": "Nueve prendas en un armario. Un conjunto para el día.",
+      "body": "Fitcheck consulta el tiempo y la ocasión, compara colores, tejidos y formalidad entre todo lo que tienes, y elige lo que combina.",
+      "tags": "Características",
+      "tagsLabel": "Características de {piece}",
+      "subcategory": "Jersey de cuello redondo",
+      "upTo": "hasta {temperature}",
+      "caption": "Ejemplo de resultado. Tus conjuntos se crean con la ropa de tu armario, y la frase se redacta para el conjunto que lleves ese día."
+    },
+    "features": {
+      "kicker": "Qué obtienes",
+      "title": "Un estilista que ya conoce tu armario.",
+      "daily": {
+        "title": "Tres conjuntos cada día",
+        "body": "Cada mañana tienes nuevos conjuntos para cada ocasión. Puedes cambiar de ocasión gratis y todas las veces que quieras."
+      },
+      "weather": {
+        "title": "Conjuntos según el tiempo",
+        "body": "Los conjuntos tienen en cuenta la hora más cálida del día donde estás, para incluir el jersey y la chaqueta cuando los necesites."
+      },
+      "occasion": {
+        "title": "Para tus planes",
+        "body": "Trabajo, diario, fin de semana o noche, según el código de vestimenta que definas al empezar."
+      },
+      "wardrobe": {
+        "title": "Más posibilidades con lo que ya tienes",
+        "body": "Combinaciones que quizá no se te habrían ocurrido, con prendas que ya tienes en el armario."
+      },
+      "proKicker": "Fitcheck Pro",
+      "pro": "Pro",
+      "free": "Gratis",
+      "share": {
+        "title": "Comparte un conjunto",
+        "body": "Una imagen de tu conjunto para una historia o publicación, o un enlace no listado que caduca a los 30 días."
+      }
+    },
+    "plans": {
+      "kicker": "Gratis y Pro",
+      "title": "Todo lo que necesitas para vestirte es gratis.",
+      "body": "Pro te permite aprovechar mejor todo el armario: regeneraciones y prendas ilimitadas, viajes, conjuntos creados a partir de una prenda y el coste real de tu ropa.",
+      "free": "Gratis",
+      "forever": "para siempre",
+      "freeDaily": "Tres conjuntos al día para cada ocasión",
+      "freeRerolls": "Regenera {count, plural, one {una vez} other {# veces}} al día",
+      "freeCloset": "Hasta {count} prendas en el armario",
+      "freeDiary": "Diario de conjuntos y opción para compartirlos",
+      "pro": "Pro",
+      "perMonth": "al mes, o {yearly} al año",
+      "everythingFree": "Todo lo incluido en el plan gratuito",
+      "proNote": "Impuestos incluidos. Puedes pasarte a Pro desde la app cuando quieras y cancelar en cualquier momento, también desde la app."
+    },
+    "trust": {
+      "kicker": "Tus fotos",
+      "title": "Tu armario sigue siendo privado.",
+      "body": "Esto es lo que pasa con una foto después de hacerla.",
+      "device": {
+        "title": "El fondo se elimina en tu móvil",
+        "body": "La eliminación del fondo se ejecuta en tu dispositivo, antes de subir nada."
+      },
+      "storage": {
+        "title": "Almacenadas de forma privada en la UE",
+        "body": "Las fotos se guardan en un espacio privado y solo tú puedes verlas mediante enlaces que caducan al poco tiempo, salvo que compartas un conjunto."
+      },
+      "ai": {
+        "title": "La IA analiza cada foto una sola vez",
+        "body": "La imagen recortada se envía una sola vez para sugerir las características de la prenda. Después, los conjuntos se eligen a partir de esa información en texto, nunca de tus fotos."
+      },
+      "cookies": {
+        "title": "Sin cookies de seguimiento. Eliminación real de los datos.",
+        "body": "Las visitas se cuentan sin cookies. Al eliminar tu cuenta en Ajustes, también se eliminan tus fotos y tus datos."
+      }
+    },
+    "final": {
+      "kicker": "Empieza gratis",
+      "title": "Crea conjuntos con la ropa de tu armario.",
+      "line": "Unas fotos y un minuto para revisar las características, y el conjunto de mañana ya te espera.",
+      "note": "Inicia sesión con Google o por correo electrónico"
+    },
+    "footer": {
+      "legal": "Aviso legal",
+      "copyright": "© Fitcheck"
+    }
+  },
   "auth": {
+    "signInFailed": "No se ha podido iniciar sesión. Vuelve a intentarlo: un enlace recibido por correo solo funciona una vez y caduca al cabo de un tiempo.",
     "deleted": "Tu cuenta y tus datos activos se han eliminado.",
     "checkInbox": "Revisa tu correo",
     "sentBody": "Hemos enviado un enlace de acceso a {email}.",
     "emailPlaceholder": "tu@correo.es",
     "sending": "Enviando…",
-    "emailLink": "Envíame un enlace de acceso",
+    "emailLink": "Recibir enlace de acceso por correo",
     "google": "Continuar con Google",
     "failed": "No se ha podido iniciar sesión. Inténtalo de nuevo."
   },
@@ -202,9 +365,6 @@
           "skinny": {
             "label": "Corte pitillo"
           },
-          "bright": {
-            "label": "Colores vivos"
-          },
           "shorts": {
             "label": "Pantalones cortos"
           },
@@ -216,13 +376,18 @@
           },
           "graphic": {
             "label": "Camisetas estampadas"
-          },
-          "square_toe": {
-            "label": "Puntera cuadrada"
           }
         }
       }
     }
+  },
+  "styleProfile": {
+    "title": "Perfil de estilo",
+    "intro": "Puedes cambiar cualquier respuesta. Lo que quieres evitar, tu estilo y tus códigos de vestimenta se aplican de inmediato a los looks de hoy.",
+    "save": "Guardar cambios",
+    "saving": "Guardando…",
+    "saved": "Guardado",
+    "incomplete": "Para guardar, elige al menos una respuesta en cada pregunta."
   },
   "closet": {
     "title": "El armario",
@@ -273,6 +438,7 @@
       "notSignedIn": "No has iniciado sesión",
       "pieceNotFound": "Prenda no encontrada",
       "fragrance": "Un perfume remata un look, no lo construye.",
+      "nogos": "Lo que quieres evitar descarta todas las prendas que combinarían con esta. Puedes cambiar estas opciones en el perfil de estilo.",
       "thinCloset": "Aún no hay suficientes prendas para crear un look alrededor de esta.",
       "failed": "No se ha podido crear el look",
       "saveFailed": "No se ha podido guardar el look",
@@ -563,11 +729,13 @@
     "emptyTops": "No hay partes de arriba para {occasion} — añade una o prueba otra ocasión.",
     "emptyBottoms": "No hay partes de abajo para {occasion} — añade una o prueba otra ocasión.",
     "emptyOnePiece": "No hay vestidos para {occasion} — añade uno o prueba otra ocasión.",
+    "emptyNogos": "Lo que quieres evitar descarta aquí todas las opciones. Puedes cambiarlo cuando quieras.",
+    "emptyNogosLink": "Abrir perfil de estilo",
     "emptyGeneric": "Añade algunas prendas más para desbloquear conjuntos",
     "limitTitle": "Estos son los looks de hoy",
     "error": "No se ha podido contactar con el estilista.",
     "retry": "Reintentar",
-    "wornToday": "Llevado hoy",
+    "wornToday": "Puesto hoy",
     "seeFullLook": "Ver el look completo",
     "regenerate": "Regenerar los looks de hoy",
     "upgradeTitle": "Regenera tantas veces como quieras",
@@ -635,7 +803,7 @@
     "inLook": "En este look",
     "favourite": "Favorito",
     "wearThisToday": "Ponérmelo hoy",
-    "wornToday": "Llevado hoy",
+    "wornToday": "Puesto hoy",
     "todayLook": "El look de hoy",
     "tryAnother": "Probar otro look",
     "styling": "Creando el look…",
@@ -790,6 +958,9 @@
     }
   },
   "settings": {
+    "styleProfile": "Perfil de estilo",
+    "styleProfileRow": "Tus respuestas sobre tu estilo",
+    "styleProfileRowDescription": "Estilo, paleta, corte, códigos de vestimenta, ocasiones, cosas a evitar",
     "title": "Ajustes",
     "back": "Atrás",
     "preferences": "Preferencias",
@@ -874,7 +1045,7 @@
         "description": "Cualquier ocasión, tantas veces como quieras"
       },
       "styled": {
-        "label": "Un look con cualquier prenda",
+        "label": "Crea conjuntos con cualquier prenda",
         "description": "Crea un look a partir de una prenda"
       },
       "closet": {
@@ -890,7 +1061,7 @@
         "description": "Lo que de verdad te cuesta tu armario"
       },
       "gap": {
-        "label": "Análisis de carencias",
+        "label": "Prendas que faltan",
         "description": "La prenda que más desbloquea"
       },
       "saved": {

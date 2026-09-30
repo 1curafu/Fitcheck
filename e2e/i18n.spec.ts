@@ -27,7 +27,7 @@ test.describe("signed out", () => {
       await expect(page).toHaveURL(/\/uk$/);
       await expect(page.locator("html")).toHaveAttribute("lang", "uk");
       await expect(page.locator('meta[property="og:image"]')).toHaveAttribute("content", "https://fitcheck.space/opengraph-image");
-      await page.getByRole("button", { name: "Українська", exact: true }).click();
+      await page.getByRole("button", { name: "Українська", exact: true }).first().click();
       await page.getByRole("dialog").getByRole("button", { name: "English (UK)", exact: true }).click();
       await expect(page).toHaveURL(/\/en-gb$/);
       await page.goto("/privacy");

@@ -31,7 +31,7 @@ export default async function SharedLookPage({ params }: Params) {
     <div className="flex min-h-dvh flex-1 flex-col">
       <header className="flex items-center justify-between px-[22px] screen-top">
         <Link href="/" className="font-serif text-[22px] text-foreground">{tLanding("wordmark")}</Link>
-        <Link href="/" className="grid min-h-[44px] place-items-center text-[13px] text-muted-foreground">{t("signIn")}</Link>
+        <Link href="/sign-in" className="grid min-h-[44px] place-items-center text-[13px] text-muted-foreground">{t("signIn")}</Link>
       </header>
       <Suspense fallback={<div className="mx-[22px] mt-4 aspect-[4/5] animate-pulse rounded-[18px] bg-surface-1" />}>
         <SharedBody params={params} />

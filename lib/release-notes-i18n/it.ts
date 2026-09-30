@@ -2,6 +2,11 @@ import type { LocalizedNote } from "@/lib/release-notes";
 
 /** Keyed by version; one entry for every RELEASE_NOTES version, same line counts. */
 export const IT_NOTES: Record<string, LocalizedNote> = {
+  "0.6.0": {
+    headline: "Le tue risposte di stile ora danno forma ai look.",
+    added: ["Ciò che vuoi evitare resta fuori da ogni look e da ogni viaggio", "Cambia le risposte di stile quando vuoi: Impostazioni, Profilo di stile", "I nuovi capi vengono ritagliati e nei look appaiono più grandi"],
+    fixed: ["Cambiando le occasioni, i look di oggi si aggiornano subito"],
+  },
   "0.5.1": {
     headline: "Piccole correzioni e miglioramenti.",
     added: [],

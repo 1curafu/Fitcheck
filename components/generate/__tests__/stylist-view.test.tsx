@@ -211,3 +211,14 @@ test("the predicted occasion's reason is shown above the looks", () => {
   render(<StylistView {...base} status="ok" looks={[look]} reason="Styled for your work day" />);
   expect(screen.getByText("Styled for your work day")).toBeInTheDocument();
 });
+
+test("empty because of the user's no-gos: says so and links to the Style profile", () => {
+  render(<StylistView {...base} status="empty" missing="Bottoms" byNogos />);
+  expect(screen.getByTestId("empty-copy").textContent).toMatch(/no-gos/i);
+  expect(screen.getByRole("link", { name: /style profile/i })).toHaveAttribute("href", "/settings/style");
+});
+
+test("empty for any other reason keeps the plain nudge, with no Style profile link", () => {
+  render(<StylistView {...base} status="empty" missing="Bottoms" />);
+  expect(screen.queryByRole("link", { name: /style profile/i })).toBeNull();
+});

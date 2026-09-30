@@ -39,13 +39,176 @@
     "and": "en het",
     "privacy": "Privacybeleid"
   },
+  "home": {
+    "metadata": {
+      "title": "Fitcheck — outfits met de kleding die je al hebt",
+      "description": "Voeg je kledingkast één keer toe. Elke dag krijg je drie outfits met je eigen kleding, afgestemd op het weer en de gelegenheid, met bij elke outfit een zin over waarom die werkt. Begin gratis."
+    },
+    "signInMetadata": {
+      "title": "Inloggen"
+    },
+    "nav": {
+      "label": "Je account",
+      "signIn": "Inloggen",
+      "home": "Fitcheck startpagina"
+    },
+    "hero": {
+      "kicker": "Je AI-stylist",
+      "titleLead": "Outfits met de kleding",
+      "titleEmphasis": "die je al hebt.",
+      "lede": "Voeg je kledingkast één keer toe. Elke dag krijg je drie outfits die passen bij het weer en je plannen, met bij elke outfit een zin over waarom die werkt.",
+      "cta": "Probeer Fitcheck gratis",
+      "noCard": "Geen kaart nodig",
+      "proofBrowser": "Werkt in de browser op je telefoon",
+      "proofStart": "Begin met {count} stuks",
+      "proofLanguages": "{count} talen"
+    },
+    "preview": {
+      "label": "Het Fitcheck-stylisten-scherm met een voorbeeld van drie outfits",
+      "example": "Voorbeeld",
+      "city": "Zürich",
+      "later": "Rond 15.00 uur wordt het {temperature},",
+      "advice": "dus een trui is genoeg."
+    },
+    "looks": {
+      "quietNavy": {
+        "name": "Rustig marineblauw",
+        "why": "De marineblauwe trui steekt af tegen de witte broek. Witte leren sneakers maken de outfit luchtig voor een zachte middag."
+      },
+      "blueStone": {
+        "name": "Lichtblauw & zand",
+        "why": "Het lichtblauwe overhemd past bij de zandkleurige broek. Crèmekleurige sneakers maken de outfit zachter voor een ontspannen dag."
+      },
+      "creamDenim": {
+        "name": "Crème & denim",
+        "why": "De crèmekleurige gebreide polo verzacht de lichte jeans, en lichtblauwe sneakers pakken de denimtint op voor een makkelijke dag."
+      }
+    },
+    "pieces": {
+      "navySweater": "Marineblauwe trui met ronde hals",
+      "whiteTrousers": "Witte broek",
+      "whiteSneakers": "Witte leren sneakers",
+      "watch": "Zilverkleurig horloge",
+      "blueShirt": "Lichtblauw overhemd",
+      "stoneTrousers": "Zandkleurige broek",
+      "creamSneakers": "Crèmekleurige sneakers",
+      "creamPolo": "Crèmekleurige gebreide polo",
+      "lightJeans": "Lichte jeans",
+      "paleBlueSneakers": "Lichtblauwe sneakers",
+      "inLook": "{piece}, in de look van vandaag"
+    },
+    "how": {
+      "kicker": "Zo werkt het",
+      "title": "Fotografeer je kleding één keer. Kies elke dag een outfit.",
+      "steps": {
+        "add": {
+          "title": "Voeg je kleding toe",
+          "body": "Maak van elk kledingstuk een foto. De achtergrond wordt op je telefoon verwijderd. Fitcheck stelt kenmerken voor die je kunt controleren of aanpassen."
+        },
+        "looks": {
+          "title": "Ontvang de looks van vandaag",
+          "body": "Kies werk, dagelijks, weekend of avond. Fitcheck stelt drie outfits uit je kledingkast samen, afgestemd op de weersverwachting van vandaag."
+        },
+        "wear": {
+          "title": "Bewaar of draag de outfit",
+          "body": "Bewaar de outfits die je mooi vindt en markeer welke je draagt. Die komt in je dagboek, zodat je ziet waar je echt naar grijpt."
+        }
+      },
+      "effortLead": "Het begint met een paar foto’s.",
+      "effortBody": "Fitcheck kan alleen kleding combineren die het kent. Voeg daarom eerst {count} stuks toe: een paar tops, een broek en schoenen. Hoe meer je toevoegt, hoe beter de outfits."
+    },
+    "example": {
+      "kicker": "Een voorbeeld",
+      "title": "Negen stuks in een kast. Eén look voor de dag.",
+      "body": "Fitcheck kijkt naar het weer en de gelegenheid, vergelijkt kleuren, stoffen en formaliteit binnen alles wat je bezit, en kiest wat bij elkaar past.",
+      "tags": "Kenmerken",
+      "tagsLabel": "Kenmerken van {piece}",
+      "subcategory": "Trui met ronde hals",
+      "upTo": "tot {temperature}",
+      "caption": "Voorbeelduitkomst. Je looks worden samengesteld uit je eigen kast, en de zin wordt geschreven voor je outfit van die dag."
+    },
+    "features": {
+      "kicker": "Wat je krijgt",
+      "title": "Een stylist die je kledingkast al kent.",
+      "daily": {
+        "title": "Drie looks per dag",
+        "body": "Elke ochtend een nieuwe set voor elke gelegenheid. Je kunt gratis en onbeperkt tussen gelegenheden wisselen."
+      },
+      "weather": {
+        "title": "Gekleed op het weer",
+        "body": "De outfits zijn afgestemd op het warmste moment van de dag op jouw locatie, zodat je een trui of jasje krijgt wanneer je dat nodig hebt."
+      },
+      "occasion": {
+        "title": "Voor waar je naartoe gaat",
+        "body": "Werk, dagelijks, weekend of avond, binnen de kledingvoorschriften die je aan het begin instelt."
+      },
+      "wardrobe": {
+        "title": "Meer uit je eigen kleding halen",
+        "body": "Combinaties waar je misschien niet aan had gedacht, met kleding die je al hebt."
+      },
+      "proKicker": "Fitcheck Pro",
+      "pro": "Pro",
+      "free": "Gratis",
+      "share": {
+        "title": "Deel een look",
+        "body": "Een afbeelding van je outfit voor een story of bericht, of een niet-vermelde link die na 30 dagen verloopt."
+      }
+    },
+    "plans": {
+      "kicker": "Gratis en Pro",
+      "title": "Alles wat je nodig hebt om je aan te kleden, is gratis.",
+      "body": "Met Pro haal je meer uit je hele kledingkast: onbeperkt outfits opnieuw samenstellen en kledingstukken toevoegen, reizen, outfits rond één kledingstuk en zien wat je kleding echt kost.",
+      "free": "Gratis",
+      "forever": "voor altijd",
+      "freeDaily": "Drie looks per dag voor elke gelegenheid",
+      "freeRerolls": "Per dag {count, plural, one {één keer} other {# keer}} opnieuw genereren",
+      "freeCloset": "Tot {count} kledingstukken in je kledingkast",
+      "freeDiary": "Dagboek en outfits delen",
+      "pro": "Pro",
+      "perMonth": "per maand, of {yearly} per jaar",
+      "everythingFree": "Alles uit het gratis abonnement",
+      "proNote": "Belastingen inbegrepen. Je kunt op elk moment in de app upgraden en je abonnement daar ook op elk moment opzeggen."
+    },
+    "trust": {
+      "kicker": "Je foto’s",
+      "title": "Je kledingkast blijft privé.",
+      "body": "Dit gebeurt er met een foto nadat je hem hebt gemaakt.",
+      "device": {
+        "title": "De achtergrond wordt op je telefoon verwijderd",
+        "body": "Het verwijderen van de achtergrond draait op je apparaat, voordat er iets wordt geüpload."
+      },
+      "storage": {
+        "title": "Privé opgeslagen in de EU",
+        "body": "Foto’s worden privé opgeslagen en zijn alleen voor jou zichtbaar via links die na korte tijd verlopen, tenzij je een outfit deelt."
+      },
+      "ai": {
+        "title": "De AI verwerkt elke foto maar één keer",
+        "body": "Een vrijstaand beeld wordt één keer verstuurd om kenmerken van het kledingstuk voor te stellen. Daarna worden outfits gekozen op basis van die tekstkenmerken, nooit op basis van je foto’s."
+      },
+      "cookies": {
+        "title": "Geen trackingcookies. Je gegevens worden echt verwijderd.",
+        "body": "Bezoeken worden zonder cookies geteld. Als je je account in Instellingen verwijdert, worden ook je foto’s en gegevens verwijderd."
+      }
+    },
+    "final": {
+      "kicker": "Gratis starten",
+      "title": "Stel outfits samen met je eigen kleding.",
+      "line": "Een paar foto’s en een minuut om de kenmerken te controleren, en je outfit voor morgen staat al klaar.",
+      "note": "Inloggen met Google of e-mail"
+    },
+    "footer": {
+      "legal": "Juridisch",
+      "copyright": "© Fitcheck"
+    }
+  },
   "auth": {
+    "signInFailed": "Inloggen is niet gelukt. Probeer het opnieuw: een link uit de e-mail werkt maar één keer en verloopt na een tijdje.",
     "deleted": "Je account en actuele gegevens zijn verwijderd.",
     "checkInbox": "Kijk in je inbox",
     "sentBody": "We hebben een inloglink gestuurd naar {email}.",
     "emailPlaceholder": "jij@email.nl",
     "sending": "Versturen…",
-    "emailLink": "Stuur me een inloglink",
+    "emailLink": "Ontvang een inloglink per e-mail",
     "google": "Doorgaan met Google",
     "failed": "Inloggen is niet gelukt. Probeer het opnieuw."
   },
@@ -202,9 +365,6 @@
           "skinny": {
             "label": "Skinny fit"
           },
-          "bright": {
-            "label": "Felle kleuren"
-          },
           "shorts": {
             "label": "Korte broeken"
           },
@@ -216,13 +376,18 @@
           },
           "graphic": {
             "label": "Printshirts"
-          },
-          "square_toe": {
-            "label": "Vierkante neuzen"
           }
         }
       }
     }
+  },
+  "styleProfile": {
+    "title": "Stijlprofiel",
+    "intro": "Je kunt elk antwoord aanpassen. Je no-go’s, stijl en dresscodes gelden meteen voor de looks van vandaag.",
+    "save": "Wijzigingen opslaan",
+    "saving": "Opslaan…",
+    "saved": "Opgeslagen",
+    "incomplete": "Kies minstens één antwoord per vraag om op te slaan."
   },
   "closet": {
     "title": "De kledingkast",
@@ -273,6 +438,7 @@
       "notSignedIn": "Niet ingelogd",
       "pieceNotFound": "Kledingstuk niet gevonden",
       "fragrance": "Een geur maakt een look af, maar bouwt hem niet.",
+      "nogos": "Je no-go’s sluiten alle kledingstukken uit die hierbij zouden passen. Je kunt ze aanpassen in je stijlprofiel.",
       "thinCloset": "Nog niet genoeg andere stukken om hier een look omheen te bouwen.",
       "failed": "Kon deze look niet stylen",
       "saveFailed": "Kon de look niet opslaan",
@@ -563,6 +729,8 @@
     "emptyTops": "Geen bovenstukken die passen bij {occasion} — voeg er een toe of probeer een andere gelegenheid.",
     "emptyBottoms": "Geen onderstukken die passen bij {occasion} — voeg er een toe of probeer een andere gelegenheid.",
     "emptyOnePiece": "Geen jurken die passen bij {occasion} — voeg er een toe of probeer een andere gelegenheid.",
+    "emptyNogos": "Je no-go’s sluiten hier alle opties uit. Je kunt ze altijd aanpassen.",
+    "emptyNogosLink": "Stijlprofiel openen",
     "emptyGeneric": "Voeg nog een paar stukken toe om outfits te ontgrendelen",
     "limitTitle": "Dat waren de looks van vandaag",
     "error": "De stylist is niet bereikbaar.",
@@ -583,7 +751,7 @@
     }
   },
   "weather": {
-    "feels": "voelt als {temperature}",
+    "feels": "voelt aan als {temperature}",
     "now": "Nu",
     "later": "Straks",
     "locating": "Locatie bepalen…",
@@ -784,6 +952,9 @@
     }
   },
   "settings": {
+    "styleProfile": "Stijlprofiel",
+    "styleProfileRow": "Je antwoorden over je stijl",
+    "styleProfileRowDescription": "Stijl, palet, pasvorm, dresscodes, gelegenheden, no-go’s",
     "title": "Instellingen",
     "back": "Terug",
     "preferences": "Voorkeuren",
@@ -864,11 +1035,11 @@
     "proPlan": "Pro · {plan}",
     "benefits": {
       "rerolls": {
-        "label": "Onbeperkt opnieuw maken",
+        "label": "Onbeperkt opnieuw genereren",
         "description": "Elke gelegenheid, zo vaak je wilt"
       },
       "styled": {
-        "label": "Style rond elk stuk",
+        "label": "Looks maken met elk kledingstuk",
         "description": "Bouw een look vanuit één kledingstuk"
       },
       "closet": {
@@ -884,7 +1055,7 @@
         "description": "Wat je kledingkast echt kost"
       },
       "gap": {
-        "label": "Gatenanalyse",
+        "label": "Ontbrekende stukken",
         "description": "Het ene stuk dat het meest ontgrendelt"
       },
       "saved": {

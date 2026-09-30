@@ -38,6 +38,7 @@ export const CANDIDATE_COLUMNS = [
   "bulk",
   "branding",
   "distressing",
+  "fit",
 ] as const;
 
 /** The column list for a Supabase `.select()`, so a query cannot drift from the mapping. */
@@ -57,6 +58,7 @@ type ItemRow = {
   bulk?: string | null;
   branding?: string | null;
   distressing?: string | null;
+  fit?: string | null;
 };
 
 export function toCandidateItem(row: ItemRow): CandidateItem {
@@ -75,6 +77,7 @@ export function toCandidateItem(row: ItemRow): CandidateItem {
     bulk: row.bulk,
     branding: row.branding,
     distressing: row.distressing,
+    fit: row.fit,
   };
 }
 

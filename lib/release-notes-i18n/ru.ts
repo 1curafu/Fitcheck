@@ -2,6 +2,11 @@ import type { LocalizedNote } from "@/lib/release-notes";
 
 /** Keyed by version; one entry for every RELEASE_NOTES version, same line counts. */
 export const RU_NOTES: Record<string, LocalizedNote> = {
+  "0.6.0": {
+    headline: "Твои ответы о стиле теперь формируют образы.",
+    added: ["Твои табу учитываются во всех образах, поездках и стилизациях", "Меняй ответы о стиле в любой момент: Настройки, Профиль стиля", "Новые вещи обрезаются по контуру, поэтому в образах выглядят крупнее"],
+    fixed: ["После смены поводов образы на сегодня обновляются сразу"],
+  },
   "0.5.1": {
     headline: "Небольшие исправления и улучшения.",
     added: [],

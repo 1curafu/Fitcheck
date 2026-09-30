@@ -25,6 +25,12 @@ export type ReleaseNote = {
   version: string;
   /** ISO date, for ordering. Not shown. */
   date: string;
+  /**
+   * When the release actually went out (ISO timestamp, e.g. the release PR's merge time). Optional: with only `date`,
+   * "released" means midnight UTC of that day — which classifies every account created EARLIER that day as new and
+   * permanently suppresses the note for them. Set it on each release; see `accountPredatesRelease`.
+   */
+  releasedAt?: string;
   /** One line, the reason to care about this release. */
   headline: string;
   added: string[];
@@ -36,8 +42,21 @@ export type LocalizedNote = { headline: string; added: string[]; fixed: string[]
 
 const BASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.6.0",
+    date: "2026-09-30",
+    releasedAt: "2026-09-30T18:07:00Z", // when this release was cut; accountPredatesRelease reads it
+    headline: "Your style answers now shape your looks.",
+    added: ["Your no-gos are kept out of every look, trip and styled outfit", "Change your style answers any time in Settings, under Style profile", "New pieces are cropped to the garment, so they appear larger in looks"],
+    fixed: ["Changing your occasions refreshes today's looks right away"],
+    i18n: {
+      "en-GB": { headline: "Your style answers now shape your looks.", added: ["Your no-gos are kept out of every look, trip and styled outfit", "Change your style answers any time in Settings, under Style profile", "New pieces are cropped to the garment, so they appear larger in looks"], fixed: ["Changing your occasions refreshes today's looks right away"] },
+      uk: { headline: "Твої відповіді про стиль тепер формують образи.", added: ["Твої табу враховуються в усіх образах, подорожах і стилізаціях", "Змінюй відповіді про стиль будь-коли: Налаштування, Профіль стилю", "Нові речі обрізаються по контуру, тож в образах виглядають більшими"], fixed: ["Після зміни приводів образи на сьогодні оновлюються одразу"] },
+    },
+  },
+  {
     version: "0.5.1",
     date: "2026-09-30",
+    releasedAt: "2026-09-30T05:31:34Z", // #127 merged
     headline: "Small fixes and improvements.",
     added: [],
     fixed: ["A few small fixes to keep things running smoothly"],
@@ -400,4 +419,17 @@ export const CURRENT_RELEASE = RELEASE_NOTES[0];
 export function noteFor(note: ReleaseNote, locale: Locale): ReleaseNote {
   const translated = locale === "en-US" ? undefined : note.i18n?.[locale];
   return translated ? { ...note, ...translated } : note;
+}
+
+/**
+ * Was this account created before the release went out? Decides "returning" for the What's new card: storage cannot tell
+ * a returning user from a new one (a home-screen app and Safari keep separate storage), the creation time can.
+ *
+ * Uses `releasedAt` when the note has one, else midnight UTC of its `date`. An unparseable creation time is NOT
+ * returning — never show a release note to someone we cannot place.
+ */
+export function accountPredatesRelease(createdAt: string | undefined | null, release: Pick<ReleaseNote, "date" | "releasedAt">): boolean {
+  const created = createdAt ? new Date(createdAt).getTime() : NaN;
+  const released = new Date(release.releasedAt ?? release.date).getTime();
+  return Number.isFinite(created) && Number.isFinite(released) && created < released;
 }

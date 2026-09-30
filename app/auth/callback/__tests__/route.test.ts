@@ -111,7 +111,7 @@ it.each(["/\n/evil.com", "/\t/evil.com"])("rejects next paths that URL parsing t
 it("localizes failed authentication without any preference writes", async () => {
   mock.exchangeCodeForSession.mockResolvedValue({ error: new Error("exchange failed") });
   const response = await GET(request());
-  expect(response.headers.get("location")).toBe("https://fitcheck.space/uk?error=auth");
+  expect(response.headers.get("location")).toBe("https://fitcheck.space/uk/sign-in?error=auth");
   expect(mock.read).not.toHaveBeenCalled();
   expect(mock.update).not.toHaveBeenCalled();
 });
@@ -119,7 +119,7 @@ it("localizes failed authentication without any preference writes", async () => 
 it("does not use profile authority without an authenticated user", async () => {
   mock.getUser.mockResolvedValue({ data: { user: null }, error: null });
   const response = await GET(request());
-  expect(response.headers.get("location")).toBe("https://fitcheck.space/uk?error=auth");
+  expect(response.headers.get("location")).toBe("https://fitcheck.space/uk/sign-in?error=auth");
   expect(mock.read).not.toHaveBeenCalled();
 });
 

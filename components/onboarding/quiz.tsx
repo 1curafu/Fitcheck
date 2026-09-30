@@ -6,7 +6,8 @@ import { Link } from "@/lib/i18n/navigation";
 import { useState, useTransition } from "react";
 import { QUESTIONS } from "@/lib/onboarding/questions";
 import { saveStyleProfile } from "@/app/[locale]/onboarding/actions";
-import { Chip } from "@/components/ui-fitcheck/chip";
+import { QuestionOptions, nextSelection } from "./question-options";
+import { toStyleProfileInput } from "@/lib/onboarding/style-profile";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 
 type Answers = Record<string, string[]>;
@@ -27,24 +28,9 @@ export function Quiz() {
   const canNext = q.optional ? true : selected.length > 0;
   const questionKey = (field: "kicker" | "title" | "sub" | "cta") =>
     `questions.${q.id}.${field}` as never;
-  const optionLabel = (value: string) =>
-    t(`questions.${q.id}.options.${value}.label` as never);
-  const optionDescription = (value: string) => {
-    const key = `questions.${q.id}.options.${value}.desc` as never;
-    return t.has(key) ? t(key) : null;
-  };
 
   function toggle(value: string) {
-    setAnswers((prev) => {
-      const cur = prev[q.id] ?? [];
-      if (!q.multi) return { ...prev, [q.id]: [value] }; // single-select replaces
-      return {
-        ...prev,
-        [q.id]: cur.includes(value)
-          ? cur.filter((v) => v !== value)
-          : [...cur, value],
-      };
-    });
+    setAnswers((prev) => ({ ...prev, [q.id]: nextSelection(q, prev[q.id] ?? [], value) }));
   }
 
   function next() {
@@ -56,14 +42,7 @@ export function Quiz() {
     setError(null);
     startTransition(async () => {
       try {
-        await saveStyleProfile({
-          archetype: (answers.archetype ?? [""])[0],
-          palette: (answers.palette ?? [""])[0],
-          fit: (answers.fit ?? [""])[0],
-          dress_codes: answers.dress_codes ?? [],
-          occasions: answers.occasions ?? [],
-          nogos: answers.nogos ?? [],
-        });
+        await saveStyleProfile(toStyleProfileInput(answers));
       } catch {
         setError(t("saveFailed"));
       }
@@ -99,92 +78,7 @@ export function Quiz() {
       </h1>
       <p className="mb-6 text-sm text-muted-foreground">{t(questionKey("sub"))}</p>
 
-      {q.kind === "grid" && (
-        <div className="grid grid-cols-2 gap-3">
-          {q.options.map((opt) => {
-            const on = selected.includes(opt.value);
-            return (
-              <button
-                key={opt.value}
-                onClick={() => toggle(opt.value)}
-                className={`relative aspect-[0.86] rounded-[14px] border p-4 text-left transition-colors ${
-                  on ? "border-brand bg-surface-2" : "border-[--input] bg-surface-1"
-                }`}
-              >
-                <p className="font-serif text-[19px] text-foreground-strong">
-                  {optionLabel(opt.value)}
-                </p>
-                {optionDescription(opt.value) && (
-                  <p className="mt-1 max-w-[100px] text-[11px] leading-snug text-muted-foreground">
-                    {optionDescription(opt.value)}
-                  </p>
-                )}
-                {on && (
-                  <span className="absolute right-3 top-3 grid size-[22px] place-items-center rounded-full bg-brand text-[13px] font-bold text-canvas">
-                    ✓
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {(q.kind === "list" || q.kind === "multi") && (
-        <div className="flex flex-col gap-[10px]">
-          {q.options.map((opt) => {
-            const on = selected.includes(opt.value);
-            return (
-              <button
-                key={opt.value}
-                onClick={() => toggle(opt.value)}
-                className={`flex items-center gap-[14px] rounded-[12px] border px-[18px] py-[17px] text-left transition-colors ${
-                  on ? "border-brand bg-surface-2" : "border-[--input] bg-surface-1"
-                }`}
-              >
-                {opt.swatch && (
-                  <span
-                    className="size-[30px] shrink-0 rounded-[8px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.07)]"
-                    style={{ background: opt.swatch }}
-                  />
-                )}
-                <span className="flex-1">
-                  <span className="block font-medium text-foreground">
-                    {optionLabel(opt.value)}
-                  </span>
-                  {optionDescription(opt.value) && (
-                    <span className="mt-[1px] block text-[12.5px] text-muted-foreground">
-                      {optionDescription(opt.value)}
-                    </span>
-                  )}
-                </span>
-                <span
-                  className={`grid size-5 place-items-center rounded-full border ${
-                    on ? "border-brand" : "border-muted-dim"
-                  }`}
-                >
-                  {on && <span className="size-[10px] rounded-full bg-brand" />}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {q.kind === "chips" && (
-        <div className="flex flex-wrap gap-[10px]">
-          {q.options.map((opt) => (
-            <Chip
-              key={opt.value}
-              variant="select"
-              active={selected.includes(opt.value)}
-              onClick={() => toggle(opt.value)}
-            >
-              {optionLabel(opt.value)}
-            </Chip>
-          ))}
-        </div>
-      )}
+      <QuestionOptions question={q} selected={selected} onToggle={toggle} />
 
       <div className="flex-1" />
       {error && <p className="mt-4 text-center text-sm text-brand">{error}</p>}

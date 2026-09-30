@@ -1,4 +1,5 @@
-import { buildCandidates, eligibility, missingCategory } from "../candidates";
+import { readFileSync } from "node:fs";
+import { buildCandidates, eligibility, emptiedByNogos, missingCategory } from "../candidates";
 
 const items = [
   { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["spring"], material: "cotton", texture: null, pattern: null },
@@ -615,4 +616,102 @@ test("missingCategory does not tell a dress wardrobe it has no trousers", () => 
   expect(missingCategory([dress], base)).toBe("Shoes");
   // A separates closet still reports its own gap.
   expect(missingCategory(items.filter((i) => i.category !== "Bottoms"), base)).toBe("Bottoms");
+});
+
+// --- no-gos (quiz part 1) — hard, never relieved ---
+describe("no-gos", () => {
+  const top = { id: "nt", category: "Tops", colors: ["white"], formality: 3, seasons: ["spring"], material: "Cotton", texture: null, pattern: "solid" };
+  const chinos = { id: "nc", category: "Bottoms", colors: ["beige"], formality: 3, seasons: ["spring"], material: "Cotton", texture: null, pattern: "solid", subcategory: "Chinos" };
+  const ripped = { ...chinos, id: "nr", material: "Denim", distressing: "Ripped" };
+  const jeans = { ...chinos, id: "nj", material: "Denim" };
+  const denimShirt = { ...top, id: "nds", material: "Denim" };
+  const shoe = { id: "ns", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["spring"], material: "Leather", texture: null, pattern: null };
+  // ⚠️ Mild weather (base is 18°) on purpose: below 15° every base gains the closet's coat, and a single
+  // denim coat would make every jeans look double denim — the test could then never see jeans at all.
+
+  test("a blocked piece appears in no combo", () => {
+    const combos = buildCandidates([top, chinos, ripped, shoe], { ...base, nogos: ["ripped"] });
+    expect(combos.length).toBeGreaterThan(0);
+    expect(combos.flat().some((i) => i.id === "nr")).toBe(false);
+  });
+
+  test("without nogos the same closet still uses it (unchanged behaviour)", () => {
+    expect(buildCandidates([top, chinos, ripped, shoe], base).flat().some((i) => i.id === "nr")).toBe(true);
+  });
+
+  test("double denim never reaches a look, but each denim piece still can", () => {
+    // Two tops × two bottoms: the walk visits all four pairings; only denim shirt + jeans is refused.
+    const combos = buildCandidates([top, denimShirt, jeans, chinos, shoe], { ...base, nogos: ["double_denim"] });
+    const denimCount = (c: typeof combos[number]) => c.filter((i) => i.material === "Denim").length;
+    expect(combos.length).toBeGreaterThan(0);
+    expect(combos.every((c) => denimCount(c) < 2)).toBe(true);
+    expect(combos.flat().some((i) => i.id === "nj")).toBe(true);
+    expect(combos.flat().some((i) => i.id === "nds")).toBe(true);
+  });
+
+  test("without the no-go, denim on denim is still offered", () => {
+    const combos = buildCandidates([top, denimShirt, jeans, chinos, shoe], base);
+    expect(combos.some((c) => c.some((i) => i.id === "nds") && c.some((i) => i.id === "nj"))).toBe(true);
+  });
+
+  test("a cold day with only a denim coat and all-denim bottoms still dresses the user, just without the coat", () => {
+    // ⚠️ Outerwear is a preference, not a slot: when the only coat would make double denim, the look drops the
+    // coat rather than the whole closet (found in the whole-branch review — it returned zero looks).
+    const top2 = { ...top, id: "nt2" };
+    const denimCoat = { id: "ndc", category: "Outerwear", colors: ["denim"], formality: 3, seasons: ["spring"], material: "Denim", texture: null, pattern: "solid" };
+    const cold = { ...base, weather: { tempC: 5, rain: false } };
+    const closet = [top, top2, jeans, denimCoat, shoe];
+    expect(buildCandidates(closet, cold).length).toBeGreaterThan(0);
+    const combos = buildCandidates(closet, { ...cold, nogos: ["double_denim"] });
+    expect(combos.length).toBeGreaterThan(0);
+    expect(combos.every((c) => !(c.some((i) => i.id === "nj") && c.some((i) => i.id === "ndc")))).toBe(true);
+    expect(missingCategory(closet, { ...cold, nogos: ["double_denim"] })).toBeNull();
+  });
+
+  test("a cold day prefers a coat that does not make double denim over dropping the coat", () => {
+    const denimCoat = { id: "ndc", category: "Outerwear", colors: ["denim"], formality: 3, seasons: ["spring"], material: "Denim", texture: null, pattern: "solid" };
+    const woolCoat = { id: "nwc", category: "Outerwear", colors: ["camel"], formality: 3, seasons: ["spring"], material: "Wool", texture: null, pattern: "solid" };
+    const combos = buildCandidates([top, jeans, denimCoat, woolCoat, shoe], { ...base, weather: { tempC: 5, rain: false }, nogos: ["double_denim"] });
+    expect(combos.length).toBeGreaterThan(0);
+    expect(combos.every((c) => c.some((i) => i.id === "nwc"))).toBe(true);
+  });
+
+  test("weather relief cannot bring a blocked piece back when it empties a slot", () => {
+    // The only bottom is blocked: the slot is empty and STAYS empty — relief is for weather bars only.
+    const args = { ...base, nogos: ["ripped"] as const };
+    expect(buildCandidates([top, ripped, shoe], args)).toEqual([]);
+    expect(missingCategory([top, ripped, shoe], args)).toBe("Bottoms");
+  });
+
+  test("a kept piece survives its own no-go, and its companions still obey the look rule", () => {
+    const args = { ...base, nogos: ["ripped", "double_denim"] as const, keepItemIds: ["nr"] };
+    const combos = buildCandidates([top, denimShirt, ripped, shoe], args);
+    expect(combos.flat().some((i) => i.id === "nr")).toBe(true);
+    // the ripped pair is denim: the denim shirt may never join it
+    expect(combos.every((c) => !(c.some((i) => i.id === "nr") && c.some((i) => i.id === "nds")))).toBe(true);
+  });
+});
+
+describe("emptiedByNogos (why the stylist came up empty)", () => {
+  const top = { id: "et", category: "Tops", colors: ["white"], formality: 3, seasons: ["spring"], material: "Cotton", texture: null, pattern: "solid" };
+  const shorts = { id: "es", category: "Bottoms", colors: ["beige"], formality: 3, seasons: ["spring"], material: "Cotton", texture: null, pattern: "solid", subcategory: "Shorts" };
+  const shoe = { id: "eh", category: "Shoes", colors: ["brown"], formality: 3, seasons: ["spring"], material: "Leather", texture: null, pattern: null };
+
+  test("true when the closet could dress the user without the no-gos", () => {
+    const args = { ...base, nogos: ["shorts"] as const };
+    expect(buildCandidates([top, shorts, shoe], args)).toEqual([]);
+    expect(emptiedByNogos([top, shorts, shoe], args)).toBe(true);
+  });
+  test("false when the closet is short of a piece regardless of the no-gos", () => {
+    expect(emptiedByNogos([top, shoe], { ...base, nogos: ["shorts"] })).toBe(false);
+  });
+  test("false when the user has no no-gos", () => {
+    expect(emptiedByNogos([top, shorts, shoe], base)).toBe(false);
+    expect(emptiedByNogos([top, shorts, shoe], { ...base, nogos: [] })).toBe(false);
+  });
+  test("its precondition is an EMPTY build — pinned so a caller cannot forget it", () => {
+    // The function trusts the caller; the daily action only reaches it inside `combos.length === 0`.
+    const daily = readFileSync("app/[locale]/generate/actions.ts", "utf8");
+    expect(daily).toMatch(/combos\.length === 0\)\s*\{[\s\S]{0,400}emptiedByNogos\(/);
+  });
 });

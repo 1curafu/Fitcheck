@@ -32,6 +32,12 @@ export const DEFAULT_LOCATION: ResolvedLocation = {
 };
 
 /**
+ * The IANA timezone of `DEFAULT_LOCATION`. A profile with no saved location generates its daily drop against
+ * Berlin's forecast, so that drop is keyed on Berlin's local date — not UTC.
+ */
+export const DEFAULT_TIMEZONE = "Europe/Berlin";
+
+/**
  * 2dp ≈ 1.1km. Raw GPS precision would make every user's forecast URL unique,
  * defeating the 30-minute fetch cache in fetchForecast and burning the
  * Open-Meteo daily request budget. Also stores less precise personal data.

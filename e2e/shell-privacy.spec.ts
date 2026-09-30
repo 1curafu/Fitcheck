@@ -23,7 +23,7 @@ import { admin, testUserId } from "./helpers";
  * and it must contain nothing that belongs to anybody.
  */
 
-const ROUTES = ["/closet", "/closet/removed", "/generate", "/stats", "/profile", "/calendar", "/settings", "/l/AAAAAAAAAAAAAAAAAAAAAA"];
+const ROUTES = ["/closet", "/closet/removed", "/generate", "/stats", "/profile", "/calendar", "/settings", "/settings/style", "/sign-in", "/l/AAAAAAAAAAAAAAAAAAAAAA"];
 const privateOutfitId = randomUUID();
 const originalMarker = "Private shell original prose";
 const translatedMarker = "Private shell translated prose";
@@ -80,7 +80,7 @@ test("no route's unauthenticated response contains another user's data", async (
     baseURL: process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000",
   });
 
-  for (const route of ["", "/uk"].flatMap(prefix => ROUTES.map(route => prefix + route))) {
+  for (const route of [...["", "/uk"].flatMap(prefix => ROUTES.map(route => prefix + route)), "/", "/uk"]) {
     const response = await api.get(route, { maxRedirects: 0 });
     const html = await response.text();
 

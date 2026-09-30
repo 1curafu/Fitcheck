@@ -12,8 +12,9 @@ import { DeletionFailure } from "@/lib/account-deletion/types";
 import { createClient } from "@/lib/supabase/server";
 import { PreferencesSchema, mergePreferencesForSave } from "@/lib/profile/preferences";
 import { fetchForecast } from "@/lib/weather/forecast";
-import { locationColumns, invalidatesDrop, resolveLocation } from "@/lib/weather/location";
-import { localDateFor } from "@/lib/outfits/local-date";
+import { DEFAULT_TIMEZONE, locationColumns, invalidatesDrop, resolveLocation } from "@/lib/weather/location";
+import { clearTodaysDrop } from "@/lib/outfits/clear-today";
+import { StyleProfileSchema, affectsLooks, formalityRange, readNogos, readStyleProfile } from "@/lib/onboarding/style-profile";
 import { isShareToken } from "@/lib/share/snapshot";
 import { stop } from "@/lib/share/store";
 import type { MessageKey } from "@/lib/i18n/keys";
@@ -77,7 +78,7 @@ export async function deleteAccount(
     // Hard deletion completed; a cookie-clearing failure must not report a false failure.
   }
 
-  return redirect({ href: "/?account=deleted", locale: await getActionLocale() }, RedirectType.replace);
+  return redirect({ href: "/sign-in?account=deleted", locale: await getActionLocale() }, RedirectType.replace);
 }
 
 /**
@@ -174,47 +175,105 @@ export async function setLocation(input: unknown): Promise<void> {
     .eq("id", user.id);
   if (error) throw new Error(error.message);
 
-  if (moved) await clearTodaysDrop(supabase, user.id, forecast.timezone);
+  if (moved) {
+    // Best-effort, as before `clearTodaysDrop` started reporting errors: the location IS saved, and the
+    // settings screen has no honest way to say "moved, but the old looks survive".
+    try {
+      await clearTodaysDrop(supabase, user.id, forecast.timezone);
+    } catch {
+      // the looks age out at midnight or on Regenerate
+    }
+  }
 
   revalidateEverywhere("/settings");
   revalidateEverywhere("/generate");
 }
 
 /**
- * Today's looks were composed for the OLD city's weather, so a move invalidates
- * them. Decision 5 caches the drop; it does not make it correct for a different
- * climate — without this you land in Reykjavik and see outfits built for 26°C
- * Manila rain under a strip reading 12°C overcast.
+ * Save the six quiz answers from the Style profile editor.
  *
- * The rebuild is FREE, and that is not incidental: `generation_events` records
- * `kind` by whether a stored set already exists, so deleting the set is exactly
- * what makes the next call a `drop`. MONETISATION §2 — drops are never metered,
- * on any tier. The user changed a setting; they did not ask for a reroll.
- *
- * ⚠️ Keyed on the NEW timezone. Crossing zones can change what "today" is, and
- * deleting under the old key would destroy a past day's history while leaving
- * the row that is actually stale untouched — both intentions inverted.
+ * STRICT schema, as onboarding: an unknown value is rejected, never stored. A change that would have built
+ * today's looks differently (band, no-gos, archetype — `affectsLooks`) clears today's drop so the next visit
+ * rebuilds it for free, exactly as a city change does; worn looks included (owner decision, 2026-09-30).
  */
-async function clearTodaysDrop(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string,
-  timezone: string,
-): Promise<void> {
-  const today = localDateFor(new Date(), timezone);
+export async function updateStyleProfile(input: unknown): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in");
 
-  // Styled looks carry a weather snapshot too, and are cached per
-  // (user, item, local day) — a look styled for Manila is as wrong as a drop is.
-  const { data: rows } = await supabase
-    .from("outfits")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("generated_on", today);
+  const data = StyleProfileSchema.parse(input);
 
-  const ids = (rows ?? []).map((r) => r.id);
-  if (!ids.length) return;
+  const { data: row, error: readError } = await supabase
+    .from("profiles")
+    .select("archetype, palette, fit, dress_codes, occasions, nogos, formality_min, formality_max, location_timezone")
+    .eq("id", user.id)
+    .single();
+  if (readError) throw readError;
 
-  await supabase.from("outfit_items").delete().in("outfit_id", ids);
-  await supabase.from("outfits").delete().in("id", ids);
+  const range = formalityRange(data.dress_codes);
+  const { error } = await supabase
+    .from("profiles")
+    .update({ ...data, ...range })
+    .eq("id", user.id);
+  if (error) throw new Error(error.message);
+
+  const changed = affectsLooks(
+    {
+      archetype: row?.archetype ?? null,
+      nogos: readNogos(row?.nogos),
+      // Lenient read: a legacy/unknown stored occasion must not read as a change.
+      occasions: readStyleProfile(row).occasions,
+      formality_min: row?.formality_min ?? null,
+      formality_max: row?.formality_max ?? null,
+    },
+    { archetype: data.archetype, nogos: data.nogos, occasions: data.occasions, ...range },
+  );
+
+  if (changed) {
+    // A profile with no timezone has looks under two keys: styled looks use UTC, the daily drop uses the
+    // default city's forecast timezone. Clear both, or a save near midnight leaves the stale set.
+    const zones = row?.location_timezone ? [row.location_timezone] : ["UTC", DEFAULT_TIMEZONE];
+    const clearAll = async () => {
+      for (const zone of zones) await clearTodaysDrop(supabase, user.id, zone);
+    };
+    try {
+      try {
+        await clearAll();
+      } catch {
+        // Most failures are a transient network blip: one retry keeps the save instead of undoing it.
+        await clearAll();
+      }
+    } catch (e) {
+      // Put the previous answers back and report the failure. Leaving the new answers saved would make a retry
+      // see "nothing changed" and never clear the stale looks — a permanent "Saved" that is false.
+      // ⚠️ Known window: a save from ANOTHER tab/device in the same second is overwritten by this rollback. A
+      // conditional (compare-and-set) rollback needs a version column; not worth a migration for this window.
+      const { error: rollbackError } = await supabase
+        .from("profiles")
+        .update({
+          archetype: row?.archetype ?? null,
+          palette: row?.palette ?? null,
+          fit: row?.fit ?? null,
+          dress_codes: row?.dress_codes ?? null,
+          occasions: row?.occasions ?? null,
+          nogos: row?.nogos ?? null,
+          formality_min: row?.formality_min ?? null,
+          formality_max: row?.formality_max ?? null,
+        })
+        .eq("id", user.id);
+      // A failed rollback leaves the new answers saved with today's old looks in place: alert, and still report
+      // the ORIGINAL failure to the caller.
+      if (rollbackError) Sentry.captureException(new Error(rollbackError.message), { tags: { style_profile: "rollback-failed" } });
+      throw e;
+    }
+  }
+
+  revalidateEverywhere("/settings");
+  revalidateEverywhere("/settings/style");
+  revalidateEverywhere("/profile");
+  revalidateEverywhere("/generate");
 }
 
 /** Stops a shared look's public link from Settings — the only place to reach a link whose look has since gone (a

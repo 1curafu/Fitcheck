@@ -11,7 +11,7 @@ import { planningTempFor, rainAheadFor } from "@/lib/weather/planning";
 import { readPreferences } from "@/lib/profile/preferences";
 import { conditionKey } from "@/lib/weather/condition";
 import { personalBand, applyFormalityOverride, planningTemp } from "@/lib/generator/rules";
-import { buildCandidates, missingCategory, type CandidateItem } from "@/lib/generator/candidates";
+import { buildCandidates, emptiedByNogos, missingCategory, type CandidateItem } from "@/lib/generator/candidates";
 import { rankTopN } from "@/lib/generator/rank";
 import { diversify } from "@/lib/generator/diversity";
 import { currentSeason } from "@/lib/generator/season";
@@ -45,6 +45,8 @@ import type {
 } from "@/lib/generator/types";
 import { stylistInputFor, toCandidateItem } from "@/lib/generator/from-row";
 import { FREE } from "@/lib/billing/tiers";
+import { storedLooksBlocked } from "@/lib/generator/nogos";
+import { readNogos } from "@/lib/onboarding/style-profile";
 import type { MessageKey } from "@/lib/i18n/keys";
 
 export async function generate(input: {
@@ -66,7 +68,7 @@ export async function generate(input: {
     const { data: profile } = await supabase
       .from("profiles")
       .select(
-        "archetype, formality_min, formality_max, location_lat, location_lon, location_label, location_source, preferences",
+        "archetype, formality_min, formality_max, nogos, location_lat, location_lon, location_label, location_source, preferences",
       )
       .eq("id", user.id)
       .single();
@@ -143,7 +145,12 @@ export async function generate(input: {
       ? invalidatesDrop(input.city, resolveLocation({ profile }))
       : false;
 
-    if (!input.regenerate && !movedAway && stored?.length) {
+    // A stored set that now breaks a no-go (an item retagged Ripped/Large/Fitted after the drop was made) is not
+    // served: it falls through to the same free rebuild a closet change gets.
+    const userNogos = readNogos(profile?.nogos);
+    const storedBreaksNogo = stored?.length ? storedLooksBlocked(stored, byId, userNogos) : false;
+
+    if (!input.regenerate && !movedAway && stored?.length && !storedBreaksNogo) {
       const paths = Array.from(
         new Set(
           stored
@@ -219,10 +226,18 @@ export async function generate(input: {
       maxAccessories: 2,
       maxBags: 1,
       rainGuard: prefs.rainGuard,
+      // The quiz's no-gos: hard, never relieved (lib/generator/nogos.ts).
+      nogos: userNogos,
     };
     const combos = buildCandidates(candItems, candidateArgs);
     if (combos.length === 0) {
-      return { status: "empty", weather, missing: missingCategory(candItems, candidateArgs) };
+      return {
+        status: "empty",
+        weather,
+        missing: missingCategory(candItems, candidateArgs),
+        // "add a pair" is wrong advice when the user's own no-gos removed the pairs they have.
+        byNogos: emptiedByNogos(candItems, candidateArgs),
+      };
     }
 
     const aesthetic = profile?.archetype ? [profile.archetype] : [];
