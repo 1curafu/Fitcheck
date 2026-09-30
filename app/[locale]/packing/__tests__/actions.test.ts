@@ -50,3 +50,11 @@ it("a piece the user ruled out is never offered to the capsule solve", async () 
   await planTrip(input);
   expect(mock.solve.mock.calls[0][0].closet.map((c: { id: string }) => c.id)).toEqual(["tee", "chino"]);
 });
+it("a piece the user pinned in the trip editor stays even when a no-go would remove it", async () => {
+  const row = (id: string, category: string, extra: Record<string, unknown> = {}) =>
+    ({ id, category, colors: [], formality: 3, seasons: [], material: "Cotton", texture: null, pattern: "solid", ...extra });
+  mock.closet = [row("tee", "Tops"), row("ripped", "Bottoms", { distressing: "Ripped" }), row("chino", "Bottoms")];
+  mock.profile = { nogos: ["ripped"] };
+  await editCapsule("trip", { pin: "ripped" });
+  expect(mock.solve.mock.calls[0][0].closet.map((c: { id: string }) => c.id)).toEqual(["tee", "ripped", "chino"]);
+});

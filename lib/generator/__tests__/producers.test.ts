@@ -69,3 +69,10 @@ test("every caller of buildCandidates hands it the user's no-gos", () => {
   // word match would accept even with the argument deleted.
   expect(callers.filter(({ text }) => !/\bnogos\s*:/.test(text)).map(({ path }) => path)).toEqual([]);
 });
+
+test("the styled-look producer exempts the piece the user asked to style from their own no-gos", () => {
+  // ⚠️ Source-level, as above: a server action with no unit coverage. Without the exemption, styling a piece
+  // the user later ruled out would find no look containing it and answer "thin closet" for a piece they own.
+  const styled = FILES.find(({ path }) => path.endsWith("style-actions.ts"));
+  expect(styled?.text).toMatch(/keepItemIds:\s*\[itemId\]/);
+});
