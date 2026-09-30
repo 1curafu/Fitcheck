@@ -19,7 +19,7 @@ test("a no-go ticked in the Style profile never reaches today's looks", async ({
   /**
    * ⚠️ Deterministic by construction: the ripped pair is the ONLY bottom (the wool pair is archived for this
    * test). Before the no-go every look must wear it; after it, nothing can — so the stylist has to show the
-   * missing-bottoms state. With two bottoms, ranking could skip the ripped pair by chance and the test would
+   * no-go empty state. With two bottoms, ranking could skip the ripped pair by chance and the test would
    * pass even with the filter deleted.
    */
   const profile = await db.from("profiles")
@@ -57,7 +57,9 @@ test("a no-go ticked in the Style profile never reaches today's looks", async ({
   expect(cleared.data).toEqual([]);
 
   await page.goto("/generate?occasion=work");
-  await expect(page.getByText(/No bottoms that suit/i).first()).toBeVisible({ timeout: 30_000 });
+  // The no-go emptied the only bottom slot: the stylist says the no-gos did it (not "add a pair") and links back.
+  await expect(page.getByText(/no-gos rule out every option/i).first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("link", { name: /open style profile/i })).toHaveAttribute("href", /\/settings\/style$/);
   const after = await db.from("outfits").select("id").eq("user_id", userId).eq("generated_on", today);
   expect(after.data).toEqual([]);
 });
