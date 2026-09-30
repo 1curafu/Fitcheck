@@ -381,6 +381,13 @@
       }
     }
   },
+  "styleProfile": {
+    "title": "Profil de style",
+    "intro": "Modifie n’importe quelle réponse : les nouveaux looks en tiennent compte dès aujourd’hui.",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "saved": "Enregistré"
+  },
   "closet": {
     "title": "La garde-robe",
     "pieces": "{count} pièces",
@@ -947,6 +954,9 @@
     }
   },
   "settings": {
+    "styleProfile": "Profil de style",
+    "styleProfileRow": "Tes réponses de style",
+    "styleProfileRowDescription": "Style, palette, coupe, dress codes, occasions, interdits",
     "title": "Réglages",
     "back": "Retour",
     "preferences": "Préférences",

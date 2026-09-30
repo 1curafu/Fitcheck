@@ -327,6 +327,13 @@
       }
     }
   },
+  "styleProfile": {
+    "title": "Style profile",
+    "intro": "Change any answer. New looks follow it from today.",
+    "save": "Save changes",
+    "saving": "Saving…",
+    "saved": "Saved"
+  },
   "closet": {
     "title": "The Closet",
     "pieces": "{count} Pieces",
@@ -887,6 +894,9 @@
     }
   },
   "settings": {
+    "styleProfile": "Style profile",
+    "styleProfileRow": "Your style answers",
+    "styleProfileRowDescription": "Style, palette, fit, dress codes, occasions, no-gos",
     "title": "Settings",
     "back": "Back",
     "preferences": "Preferences",

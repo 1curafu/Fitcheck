@@ -381,6 +381,13 @@
       }
     }
   },
+  "styleProfile": {
+    "title": "Stilprofil",
+    "intro": "Ändere jede Antwort – neue Looks richten sich ab heute danach.",
+    "save": "Änderungen speichern",
+    "saving": "Wird gespeichert…",
+    "saved": "Gespeichert"
+  },
   "closet": {
     "title": "Der Kleiderschrank",
     "pieces": "{count} Teile",
@@ -947,6 +954,9 @@
     }
   },
   "settings": {
+    "styleProfile": "Stilprofil",
+    "styleProfileRow": "Deine Stilantworten",
+    "styleProfileRowDescription": "Stil, Farbpalette, Passform, Dresscodes, Anlässe, No-Gos",
     "title": "Einstellungen",
     "back": "Zurück",
     "preferences": "Vorlieben",

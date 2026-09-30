@@ -381,6 +381,13 @@
       }
     }
   },
+  "styleProfile": {
+    "title": "Perfil de estilo",
+    "intro": "Muda qualquer resposta: os novos looks seguem-na a partir de hoje.",
+    "save": "Guardar alterações",
+    "saving": "A guardar…",
+    "saved": "Guardado"
+  },
   "closet": {
     "title": "O roupeiro",
     "pieces": "{count} peças",
@@ -947,6 +954,9 @@
     }
   },
   "settings": {
+    "styleProfile": "Perfil de estilo",
+    "styleProfileRow": "As tuas respostas de estilo",
+    "styleProfileRowDescription": "Estilo, paleta, corte, dress codes, ocasiões, proibições",
     "title": "Definições",
     "back": "Voltar",
     "preferences": "Preferências",

@@ -381,6 +381,13 @@
       }
     }
   },
+  "styleProfile": {
+    "title": "Profilo di stile",
+    "intro": "Cambia qualsiasi risposta: i nuovi look ne terranno conto da oggi.",
+    "save": "Salva modifiche",
+    "saving": "Salvataggio…",
+    "saved": "Salvato"
+  },
   "closet": {
     "title": "L’armadio",
     "pieces": "{count} capi",
@@ -947,6 +954,9 @@
     }
   },
   "settings": {
+    "styleProfile": "Profilo di stile",
+    "styleProfileRow": "Le tue risposte sullo stile",
+    "styleProfileRowDescription": "Stile, palette, vestibilità, dress code, occasioni, no-go",
     "title": "Impostazioni",
     "back": "Indietro",
     "preferences": "Preferenze",

@@ -381,6 +381,13 @@
       }
     }
   },
+  "styleProfile": {
+    "title": "Stijlprofiel",
+    "intro": "Pas elk antwoord aan: nieuwe looks volgen het vanaf vandaag.",
+    "save": "Wijzigingen opslaan",
+    "saving": "Opslaan…",
+    "saved": "Opgeslagen"
+  },
   "closet": {
     "title": "De kledingkast",
     "pieces": "{count} stuks",
@@ -941,6 +948,9 @@
     }
   },
   "settings": {
+    "styleProfile": "Stijlprofiel",
+    "styleProfileRow": "Je stijlantwoorden",
+    "styleProfileRowDescription": "Stijl, palet, pasvorm, dresscodes, gelegenheden, no-go’s",
     "title": "Instellingen",
     "back": "Terug",
     "preferences": "Voorkeuren",
