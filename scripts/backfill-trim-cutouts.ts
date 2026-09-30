@@ -44,12 +44,14 @@ async function download(path: string): Promise<Buffer | null> {
 }
 
 /**
- * A read that cannot be served from a CDN cache of the PREVIOUS object: a freshly minted signed URL carries a new token,
- * so it is a new cache key. The authenticated `download()` used above can return the pre-overwrite bytes for a while,
- * which made the first production --apply abort on an upload that had actually landed.
+ * A read that cannot be served from a CDN cache of the PREVIOUS object. A new signed token is NOT documented to bypass
+ * that cache (review finding on #138); the SDK's `cacheNonce` option appends a unique query parameter for exactly this, so
+ * every attempt passes a fresh one. The authenticated `download()` used for the source read can return pre-overwrite bytes
+ * for a while, which made the first production --apply abort on an upload that had actually landed.
  */
 async function readFresh(path: string): Promise<Buffer | null> {
-  const { data, error } = await db.storage.from("wardrobe").createSignedUrl(path, 120);
+  const cacheNonce = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const { data, error } = await db.storage.from("wardrobe").createSignedUrl(path, 120, { cacheNonce });
   if (error || !data) return null;
   const res = await fetch(data.signedUrl);
   return res.ok ? Buffer.from(await res.arrayBuffer()) : null;
@@ -76,22 +78,28 @@ async function main() {
     trimmed++;
     if (!apply) continue;
 
-    // Thumbnail first, then the cutout (see `storeTrimmed`): an interrupted run must stay detectable as padded.
-    await storeTrimmed(
-      async (path, body, contentType) => (await db.storage.from("wardrobe").upload(path, body, { contentType, upsert: true })).error ?? null,
-      { cutout: item.cutout_url, thumb: item.thumb_url },
-      out,
-    );
-    // Verify what is actually stored, not what was sent — through a fresh read, retried while the new object becomes
-    // visible. One bad row never aborts the run: every upload is idempotent, so the rest can still be done.
-    let verdict = await verifyTrimmed(readFresh, item.cutout_url, { width: before.width!, height: before.height! });
-    for (let attempt = 1; verdict.status !== "ok" && attempt <= 3; attempt++) {
-      await sleep(2000 * attempt);
-      verdict = await verifyTrimmed(readFresh, item.cutout_url, { width: before.width!, height: before.height! });
-    }
-    if (verdict.status !== "ok") {
-      const why = `${verdict.status}${verdict.width ? ` (${verdict.width}×${verdict.height}, expected ${size.width}×${size.height})` : ""}`;
-      console.log(`  ${item.id}: VERIFY FAILED — ${item.cutout_url} is ${why}`);
+    try {
+      // Thumbnail first, then the cutout (see `storeTrimmed`): an interrupted run must stay detectable as padded.
+      await storeTrimmed(
+        async (path, body, contentType) => (await db.storage.from("wardrobe").upload(path, body, { contentType, upsert: true })).error ?? null,
+        { cutout: item.cutout_url, thumb: item.thumb_url },
+        out,
+      );
+      // Verify what is actually stored, not what was sent — through a fresh read, retried while the new object becomes
+      // visible. One bad row never aborts the run: every upload is idempotent, so the rest can still be done.
+      let verdict = await verifyTrimmed(readFresh, item.cutout_url, { width: before.width!, height: before.height! });
+      for (let attempt = 1; verdict.status !== "ok" && attempt <= 3; attempt++) {
+        await sleep(2000 * attempt);
+        verdict = await verifyTrimmed(readFresh, item.cutout_url, { width: before.width!, height: before.height! });
+      }
+      if (verdict.status !== "ok") {
+        const why = `${verdict.status}${verdict.width ? ` (${verdict.width}×${verdict.height}, expected ${size.width}×${size.height})` : ""}`;
+        console.log(`  ${item.id}: VERIFY FAILED — ${item.cutout_url} is ${why}`);
+        failures.push(item.id);
+      }
+    } catch (e) {
+      // A failed write or read for ONE row must not abort the rest: uploads are idempotent, so report it and carry on.
+      console.log(`  ${item.id}: FAILED — ${e instanceof Error ? e.message : String(e)}`);
       failures.push(item.id);
     }
   }

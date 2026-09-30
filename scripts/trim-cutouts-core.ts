@@ -71,9 +71,17 @@ export async function verifyTrimmed(
   path: string,
   before: { width: number; height: number },
 ): Promise<Verdict> {
-  const stored = await read(path);
-  if (!stored) return { status: "unreadable" };
-  const { data, info } = await sharp(stored).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  // ⚠️ Never throws: a rejected network read or a body that is not an image (an error page, a truncated response) is
+  // "unreadable" — a per-row outcome the retry loop and the failure list handle — not an exception that aborts the run.
+  let decoded: { data: Buffer; info: { width: number; height: number } };
+  try {
+    const stored = await read(path);
+    if (!stored) return { status: "unreadable" };
+    decoded = await sharp(stored).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  } catch {
+    return { status: "unreadable" };
+  }
+  const { data, info } = decoded;
   const dims = { width: info.width, height: info.height };
   if (!needsTrim({ data: new Uint8ClampedArray(data.buffer, data.byteOffset, data.length), ...dims })) return { status: "ok", ...dims };
   return { status: dims.width === before.width && dims.height === before.height ? "unchanged" : "padded", ...dims };

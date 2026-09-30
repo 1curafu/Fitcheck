@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import sharp from "sharp";
 import { storeTrimmed, trimStoredCutout, verifyTrimmed } from "../trim-cutouts-core";
 
@@ -94,5 +95,29 @@ describe("verifyTrimmed — what the stored object actually is after the upload"
 
   test("a missing object is 'unreadable'", async () => {
     expect((await verifyTrimmed(async () => null, "u/i/cutout.webp", before)).status).toBe("unreadable");
+  });
+
+  test("a read that THROWS (a transient network failure) is 'unreadable', never an exception that aborts the run", async () => {
+    // ⚠️ Review finding on #138: a rejected fetch escaped to main().catch, bypassing both the retry loop and every later row.
+    const flaky = async (): Promise<Buffer | null> => { throw new Error("ECONNRESET"); };
+    expect((await verifyTrimmed(flaky, "u/i/cutout.webp", before)).status).toBe("unreadable");
+  });
+
+  test("bytes that are not an image (an error page, a truncated body) are 'unreadable', not a decode exception", async () => {
+    const garbage = Buffer.from("<html>502 Bad Gateway</html>");
+    expect((await verifyTrimmed(async () => garbage, "u/i/cutout.webp", before)).status).toBe("unreadable");
+  });
+});
+
+describe("scripts/backfill-trim-cutouts.ts (source guards — the script is a CLI with no unit coverage)", () => {
+  const script = readFileSync("scripts/backfill-trim-cutouts.ts", "utf8");
+
+  test("every verification read passes a unique cacheNonce, instead of relying on a new token being a new cache key", () => {
+    expect(script).toMatch(/createSignedUrl\(path, \d+, \{ cacheNonce \}\)/);
+    expect(script).toMatch(/const cacheNonce = `\$\{Date\.now\(\)\}-\$\{Math\.random\(\)/);
+  });
+
+  test("a failure while writing or verifying one row is caught and listed, so it cannot abort the remaining rows", () => {
+    expect(script).toMatch(/try \{[\s\S]*storeTrimmed\([\s\S]*verifyTrimmed\([\s\S]*\} catch \(e\) \{[\s\S]*failures\.push\(item\.id\)/);
   });
 });
