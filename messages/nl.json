@@ -383,7 +383,7 @@
   },
   "styleProfile": {
     "title": "Stijlprofiel",
-    "intro": "Pas elk antwoord aan. Je no-go’s, stijl en dresscode gelden meteen voor de looks van vandaag.",
+    "intro": "Je kunt elk antwoord aanpassen. Je no-go’s, stijl en dresscodes gelden meteen voor de looks van vandaag.",
     "save": "Wijzigingen opslaan",
     "saving": "Opslaan…",
     "saved": "Opgeslagen",
@@ -438,7 +438,7 @@
       "notSignedIn": "Niet ingelogd",
       "pieceNotFound": "Kledingstuk niet gevonden",
       "fragrance": "Een geur maakt een look af, maar bouwt hem niet.",
-      "nogos": "Je no-go’s sluiten alle stukken uit die hierbij zouden passen. Je kunt ze aanpassen in je stijlprofiel.",
+      "nogos": "Je no-go’s sluiten alle kledingstukken uit die hierbij zouden passen. Je kunt ze aanpassen in je stijlprofiel.",
       "thinCloset": "Nog niet genoeg andere stukken om hier een look omheen te bouwen.",
       "failed": "Kon deze look niet stylen",
       "saveFailed": "Kon de look niet opslaan",

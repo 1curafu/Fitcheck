@@ -383,7 +383,7 @@
   },
   "styleProfile": {
     "title": "Profil de style",
-    "intro": "Modifie n’importe quelle réponse. Ce que tu veux éviter, ton style et ton code vestimentaire s’appliquent tout de suite aux looks du jour.",
+    "intro": "Tu peux modifier n’importe quelle réponse. Ce que tu veux éviter, ton style et tes codes vestimentaires s’appliquent immédiatement aux looks du jour.",
     "save": "Enregistrer",
     "saving": "Enregistrement…",
     "saved": "Enregistré",
@@ -438,7 +438,7 @@
       "notSignedIn": "Non connecté",
       "pieceNotFound": "Pièce introuvable",
       "fragrance": "Un parfum complète un look, il ne le construit pas.",
-      "nogos": "Ce que tu as choisi d’éviter exclut toutes les pièces qui iraient avec celle-ci. Tu peux le modifier dans le profil de style.",
+      "nogos": "Ce que tu veux éviter exclut toutes les pièces qui iraient avec celle-ci. Tu peux modifier ces choix dans ton profil de style.",
       "thinCloset": "Pas encore assez d’autres pièces pour créer un look autour de celle-ci.",
       "failed": "Impossible de créer ce look",
       "saveFailed": "Impossible d’enregistrer le look",
