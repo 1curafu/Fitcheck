@@ -3,6 +3,7 @@ import { directSegmentCutout, type SegmentCutout } from "./worker-client";
 import { compressionOptions, THUMB_MAX_PX } from "./options";
 import { encodeCutout, type CutoutMediaType } from "./encode";
 import { encodeThumb, type ThumbMediaType } from "./thumb";
+import { trimCutout } from "./trim";
 
 /**
  * Browser-only: compress, cut out the background on-device, compress the
@@ -44,7 +45,9 @@ export async function processImage(
   const raw = await segmentCutout(modelSource, original); // same ONNX pipeline, on-device
   // segment() hands back an uncompressed PNG. It is the blob users actually see
   // (displayPath prefers the cutout), so it gets compressed too.
-  const { blob: cutout, mediaType: cutoutMediaType } = await encodeCutout(raw);
+  // Crop to the garment first: the segmenter's canvas is the whole photo, and its empty margin would make the
+  // piece render small everywhere (see trim.ts). The thumbnail and the tagging image inherit the crop.
+  const { blob: cutout, mediaType: cutoutMediaType } = await encodeCutout(await trimCutout(raw));
 
   // `null` when the engine could not produce a materially smaller image. The
   // upload proceeds without one and readers fall through to the cutout.

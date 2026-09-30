@@ -1,5 +1,6 @@
 import { processImage } from "../process";
 import { encodeCutout } from "../encode";
+import { trimCutout } from "../trim";
 
 const segment = vi.fn(async () => new Blob(["png"]));
 const getExifOrientation = vi.fn(async (_f: File) => 1);
@@ -17,6 +18,9 @@ vi.mock("../segment", () => ({
 }));
 vi.mock("../encode", () => ({ encodeCutout: vi.fn(async (b: Blob) => ({ blob: b, mediaType: "image/png" })) }));
 vi.mock("../thumb", () => ({ encodeThumb: vi.fn(async () => null) }));
+// Trimming is its own unit (trim.test.ts); here it only has to sit between segmentation and encoding.
+const trimmed = new Blob(["trimmed"], { type: "image/png" });
+vi.mock("../trim", () => ({ trimCutout: vi.fn(async () => trimmed) }));
 
 const file = new File(["jpeg"], "x.jpg", { type: "image/jpeg" });
 
@@ -52,7 +56,10 @@ test("an injected worker segmenter sees the same source and passes its PNG to th
   const injected = vi.fn(async () => png);
   await processImage(file, injected);
   expect(injected).toHaveBeenCalledWith(file, expect.any(Blob));
-  expect(vi.mocked(encodeCutout)).toHaveBeenLastCalledWith(png);
+  // The segmenter's PNG is trimmed to the garment before it is encoded, so the stored cutout,
+  // its thumbnail and the image sent for tagging all show the garment at full size.
+  expect(vi.mocked(trimCutout)).toHaveBeenLastCalledWith(png);
+  expect(vi.mocked(encodeCutout)).toHaveBeenLastCalledWith(trimmed);
 });
 
 test("an injected worker gets the upright compressed blob for a rotated phone photo", async () => {

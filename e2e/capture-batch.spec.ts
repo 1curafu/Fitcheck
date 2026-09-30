@@ -1,3 +1,4 @@
+import sharp from "sharp";
 import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { expect, test, type Page } from "@playwright/test";
@@ -5,6 +6,23 @@ import { admin, disposableSessionCookies, reseed, testUserId, setCaptureFiles } 
 import uk from "../messages/uk.json";
 
 const garment = readFileSync("e2e/fixtures/garment.jpg");
+
+/** The largest transparent margin of a stored cutout, as a share of its longer side. */
+async function widestMargin(path: string): Promise<number> {
+  const { data: file, error } = await admin().storage.from("wardrobe").download(path);
+  if (error || !file) throw error ?? new Error("cutout missing");
+  const { data, info } = await sharp(Buffer.from(await file.arrayBuffer())).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  let top = info.height, left = info.width, right = -1, bottom = -1;
+  for (let y = 0; y < info.height; y++) for (let x = 0; x < info.width; x++) {
+    if (data[(y * info.width + x) * 4 + 3] > 24) {
+      if (y < top) top = y;
+      if (y > bottom) bottom = y;
+      if (x < left) left = x;
+      if (x > right) right = x;
+    }
+  }
+  return Math.max(top, left, info.width - 1 - right, info.height - 1 - bottom) / Math.max(info.width, info.height);
+}
 
 function photos(count: number) {
   return Array.from({ length: count }, (_, index) => ({
@@ -148,6 +166,8 @@ test.describe("batch capture", () => {
         expect(row.image_url).toBe(`${userId}/${row.id}/original.jpg`);
         expect(row.cutout_url).toMatch(new RegExp(`^${userId}/${row.id}/cutout\\.(webp|png)$`));
         expect(row.thumb_url).toMatch(new RegExp(`^${userId}/${row.id}/thumb\\.(webp|png)$`));
+        // The real WebKit pipeline stores the cutout cropped to the garment, not the photo's whole canvas.
+        expect(await widestMargin(row.cutout_url)).toBeLessThanOrEqual(0.03);
       }
       expect(fetched).toContain("/models/u2netp.onnx");
       expect(fetched.some((path) => path.endsWith(".wasm"))).toBe(true);
