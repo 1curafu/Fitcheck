@@ -42,10 +42,25 @@ it("a new no-go clears today's looks in the profile's timezone", async () => {
   expect(mock.clear).toHaveBeenCalledWith(expect.anything(), "user", "Europe/Zurich");
 });
 
-it("a profile without a timezone clears on the UTC day the stylist reads", async () => {
+it("a profile without a timezone clears BOTH days it may be stored under", async () => {
+  // Styled looks key on the profile timezone, else UTC; the daily drop keys on the forecast timezone, which for
+  // a profile with no saved location is the default city's (Berlin). Clearing only UTC left a 00:00-02:00 hole.
   mock.read.mockResolvedValue({ data: { ...stored, location_timezone: null }, error: null });
   await updateStyleProfile({ ...answers, dress_codes: ["Business"] });
   expect(mock.clear).toHaveBeenCalledWith(expect.anything(), "user", "UTC");
+  expect(mock.clear).toHaveBeenCalledWith(expect.anything(), "user", "Europe/Berlin");
+  expect(mock.clear).toHaveBeenCalledTimes(2);
+});
+
+it("a failed clear puts the previous answers back and reports the failure, so a retry still rebuilds", async () => {
+  mock.read.mockResolvedValue({ data: { ...stored, palette: "Earth", fit: "Relaxed", dress_codes: ["Smart casual"], occasions: ["Weekend"] }, error: null });
+  mock.clear.mockRejectedValue(new Error("clear failed"));
+  await expect(updateStyleProfile({ ...answers, nogos: ["ripped", "shorts"] })).rejects.toThrow("clear failed");
+  expect(mock.update).toHaveBeenCalledTimes(2);
+  expect(mock.update.mock.calls[1][0]).toEqual({
+    archetype: "Old Money", palette: "Earth", fit: "Relaxed", dress_codes: ["Smart casual"], occasions: ["Weekend"],
+    nogos: ["ripped"], formality_min: 3, formality_max: 3,
+  });
 });
 
 it("a legacy stored no-go is not a change on its own", async () => {

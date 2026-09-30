@@ -26,15 +26,20 @@ export async function clearTodaysDrop(supabase: ServerClient, userId: string, ti
 
   // Styled looks carry a weather snapshot too, and are cached per
   // (user, item, local day) — a look styled for Manila is as wrong as a drop is.
-  const { data: rows } = await supabase
+  const { data: rows, error: readError } = await supabase
     .from("outfits")
     .select("id")
     .eq("user_id", userId)
     .eq("generated_on", today);
+  if (readError) throw new Error(readError.message);
 
   const ids = (rows ?? []).map((r) => r.id);
   if (!ids.length) return;
 
-  await supabase.from("outfit_items").delete().in("outfit_id", ids);
-  await supabase.from("outfits").delete().in("id", ids);
+  // ⚠️ Errors are surfaced, not swallowed: a caller that reports "saved" while yesterday's looks survive has
+  // told the user something false. `setLocation` keeps its old best-effort behaviour by catching this itself.
+  const items = await supabase.from("outfit_items").delete().in("outfit_id", ids);
+  if (items.error) throw new Error(items.error.message);
+  const outfits = await supabase.from("outfits").delete().in("id", ids);
+  if (outfits.error) throw new Error(outfits.error.message);
 }

@@ -12,7 +12,7 @@ import { DeletionFailure } from "@/lib/account-deletion/types";
 import { createClient } from "@/lib/supabase/server";
 import { PreferencesSchema, mergePreferencesForSave } from "@/lib/profile/preferences";
 import { fetchForecast } from "@/lib/weather/forecast";
-import { locationColumns, invalidatesDrop, resolveLocation } from "@/lib/weather/location";
+import { DEFAULT_TIMEZONE, locationColumns, invalidatesDrop, resolveLocation } from "@/lib/weather/location";
 import { clearTodaysDrop } from "@/lib/outfits/clear-today";
 import { StyleProfileSchema, affectsLooks, formalityRange, readNogos } from "@/lib/onboarding/style-profile";
 import { isShareToken } from "@/lib/share/snapshot";
@@ -175,7 +175,15 @@ export async function setLocation(input: unknown): Promise<void> {
     .eq("id", user.id);
   if (error) throw new Error(error.message);
 
-  if (moved) await clearTodaysDrop(supabase, user.id, forecast.timezone);
+  if (moved) {
+    // Best-effort, as before `clearTodaysDrop` started reporting errors: the location IS saved, and the
+    // settings screen has no honest way to say "moved, but the old looks survive".
+    try {
+      await clearTodaysDrop(supabase, user.id, forecast.timezone);
+    } catch {
+      // the looks age out at midnight or on Regenerate
+    }
+  }
 
   revalidateEverywhere("/settings");
   revalidateEverywhere("/generate");
@@ -199,7 +207,7 @@ export async function updateStyleProfile(input: unknown): Promise<void> {
 
   const { data: row, error: readError } = await supabase
     .from("profiles")
-    .select("archetype, nogos, formality_min, formality_max, location_timezone")
+    .select("archetype, palette, fit, dress_codes, occasions, nogos, formality_min, formality_max, location_timezone")
     .eq("id", user.id)
     .single();
   if (readError) throw readError;
@@ -220,8 +228,32 @@ export async function updateStyleProfile(input: unknown): Promise<void> {
     },
     { archetype: data.archetype, nogos: data.nogos, ...range },
   );
-  // "UTC" is the same fallback the stylist's read paths use, so this clears the day they would show.
-  if (changed) await clearTodaysDrop(supabase, user.id, row?.location_timezone ?? "UTC");
+
+  if (changed) {
+    // A profile with no timezone has looks under two keys: styled looks use UTC, the daily drop uses the
+    // default city's forecast timezone. Clear both, or a save near midnight leaves the stale set.
+    const zones = row?.location_timezone ? [row.location_timezone] : ["UTC", DEFAULT_TIMEZONE];
+    try {
+      for (const zone of zones) await clearTodaysDrop(supabase, user.id, zone);
+    } catch (e) {
+      // Put the previous answers back and report the failure. Leaving the new answers saved would make a retry
+      // see "nothing changed" and never clear the stale looks — a permanent "Saved" that is false.
+      await supabase
+        .from("profiles")
+        .update({
+          archetype: row?.archetype ?? null,
+          palette: row?.palette ?? null,
+          fit: row?.fit ?? null,
+          dress_codes: row?.dress_codes ?? null,
+          occasions: row?.occasions ?? null,
+          nogos: row?.nogos ?? null,
+          formality_min: row?.formality_min ?? null,
+          formality_max: row?.formality_max ?? null,
+        })
+        .eq("id", user.id);
+      throw e;
+    }
+  }
 
   revalidateEverywhere("/settings");
   revalidateEverywhere("/settings/style");
