@@ -181,11 +181,15 @@ const WEIGHTS = {
   bag: 0.12,
   /**
    * The quiz's palette and fit answers (quiz part 2). VERY soft on purpose — owner 2026-10-01: "it should be really soft,
-   * I like neutrals but have good red items too". At 0.1 (the metal-coordination weight) they break ties between
-   * otherwise similar looks and cannot carry a worse one; a test pins that a formality clash still loses.
+   * I like neutrals but have good red items too".
+   *
+   * ⚠️ 0.04 each, NOT 0.1: scores are normalised over the weight that claimed (~1.5 for a typical look), so at 0.1 + 0.1 the
+   * two terms together swung a score by up to ~0.13 — enough to put a clearly worse look (formality 2/4/3, base 0.721) above a
+   * coherent one (3/3/3, base 0.850). At 0.04 the swing is ~0.05: a tie-break between near-equal looks, which is what the
+   * owner asked for. A test pins the realistic gap. Raise it only with that test in front of you.
    */
-  palette: 0.1,
-  fit: 0.1,
+  palette: 0.04,
+  fit: 0.04,
 } as const;
 
 /**

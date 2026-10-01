@@ -913,6 +913,23 @@ describe("quiz part 2: palette and fit (very soft)", () => {
     expect(scoreCombo(l, { ...base, fitPref: "Relaxed" })).toBeGreaterThan(scoreCombo(l, { ...base, fitPref: "Tailored" }));
   });
 
+  test("soft means soft at REALISTIC gaps: a one-to-two-step formality gap still beats both preferences together", () => {
+    // ⚠️ Opus review: the extreme 1/5/1 clash below passes at any weight; at 0.1 + 0.1 this ordinary pair flipped
+    // (the worse look scored 0.754 against 0.749). Palette and fit are tie-breaks between near-equal looks.
+    const inPref = [
+      { category: "Tops", colors: ["black"], formality: 2, fit: "Tailored" },
+      { category: "Bottoms", colors: ["grey"], formality: 4, fit: "Tailored" },
+      { category: "Shoes", colors: ["white"], formality: 3 },
+    ];
+    const coherent = [
+      { category: "Tops", colors: ["navy"], formality: 3, fit: "Relaxed" },
+      { category: "Bottoms", colors: ["camel"], formality: 3, fit: "Relaxed" },
+      { category: "Shoes", colors: ["brown"], formality: 3 },
+    ];
+    const ctx = { ...base, palette: "Mono", fitPref: "Tailored" };
+    expect(scoreCombo(coherent, ctx)).toBeGreaterThan(scoreCombo(inPref, ctx));
+  });
+
   test("soft means soft: an in-palette, in-fit look that clashes on formality still loses to a coherent one", () => {
     const clash = [
       { category: "Tops", colors: ["black"], formality: 1, fit: "Relaxed" },

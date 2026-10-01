@@ -122,6 +122,22 @@ describe("realBuilder", () => {
     expect(ruled!.itemIds).not.toContain("jacket");
   });
 
+  test("the quality-floor score ignores palette and fit — a soft preference must not push a good look under the hard floor", () => {
+    // ⚠️ Opus review: the floor (QUALITY_FLOOR 0.7) was calibrated without these terms; including them cost a coherent look
+    // up to ~12% of its score, so Mono + Oversized users saw 12.5% of good outfits fall under it. Rank WITH the
+    // preferences, but report the floor score WITHOUT them — the same way recency is excluded.
+    const off = [
+      item("shirt", "Tops", { colors: ["red"], fit: "Regular" }),
+      item("trouser", "Bottoms", { colors: ["olive"], fit: "Regular" }),
+      item("loafer", "Shoes", { colors: ["tan"] }),
+    ];
+    const day = { date: "2026-05-12", occasion: "work" };
+    const plain = realBuilder(off, () => mild)(day, off);
+    const steered = realBuilder(off, () => mild, { palette: "Mono", fitPref: "Oversized" })(day, off);
+    expect(plain).not.toBeNull();
+    expect(steered!.score).toBe(plain!.score);
+  });
+
   // The solve narrows `available` as wear limits bite; the builder must honour
   // that rather than reaching back into the full closet behind its back.
   test("only uses what it was offered", () => {

@@ -144,7 +144,9 @@ export function realBuilder(
      */
     return {
       itemIds: top.items.map((i) => i.id),
-      score: scoreCombo(top.items as unknown as ScoreItem[], ctx),
+      // The floor score WITHOUT the quiz preferences: they steer which look wins, but QUALITY_FLOOR was calibrated
+      // without them, so a soft preference must never be able to push a good look under it (Opus review).
+      score: scoreCombo(top.items as unknown as ScoreItem[], { ...ctx, palette: null, fitPref: null }),
     };
   };
 }
