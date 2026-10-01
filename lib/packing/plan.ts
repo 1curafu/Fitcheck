@@ -3,7 +3,7 @@ import type { NoGo } from "@/lib/generator/nogos";
 import { rankTopN } from "@/lib/generator/rank";
 import { scoreCombo, type ScoreItem } from "@/lib/generator/score";
 import { occasionBand, type Weather } from "@/lib/generator/rules";
-import type { OutfitBuilder, TripDay } from "./capsule";
+import { QUALITY_FLOOR, type OutfitBuilder, type TripDay } from "./capsule";
 
 /** The occasion given to a day the mix does not reach. */
 const FILLER_OCCASION = "everyday";
@@ -126,8 +126,12 @@ export function realBuilder(
     const ranked = rankTopN(combos as unknown as (ScoreItem & { id: string })[][], {
       ...ctx,
       recentlyShown: recent,
-    }, 1);
-    const top = ranked[0];
+    }, combos.length);
+    const floorCtx = { ...ctx, palette: null, fitPref: null };
+    // Ranking preferences can lift a sub-floor look above a qualifying one.
+    // Choose the first qualifying survivor of the registry in preference order;
+    // retain the best candidate when none qualifies so the solve rejects it.
+    const top = ranked.find(({ items }) => scoreCombo(items, floorCtx) >= QUALITY_FLOOR) ?? ranked[0];
     if (!top) return null;
 
     /**
@@ -146,7 +150,7 @@ export function realBuilder(
       itemIds: top.items.map((i) => i.id),
       // The floor score WITHOUT the quiz preferences: they steer which look wins, but QUALITY_FLOOR was calibrated
       // without them, so a soft preference must never be able to push a good look under it (Opus review).
-      score: scoreCombo(top.items as unknown as ScoreItem[], { ...ctx, palette: null, fitPref: null }),
+      score: scoreCombo(top.items, floorCtx),
     };
   };
 }

@@ -4,7 +4,7 @@ type Fit = (typeof FITS)[number];
 
 /**
  * The quiz's fit answer (quiz part 2): which garment cuts suit the user's chosen silhouette. Soft only — read by
- * `fitScore` at weight 0.1, and reused by the upcoming wardrobe advisor to choose what cut to recommend.
+ * `fitScore` at weight 0.04, and reused by the upcoming wardrobe advisor to choose what cut to recommend.
  */
 export type FitPreference = "Tailored" | "Relaxed" | "Oversized";
 

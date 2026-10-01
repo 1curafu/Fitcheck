@@ -5,7 +5,7 @@ import type { ColorName } from "@/lib/closet/vocab";
  * closest colours the tagger can write, because a closet rarely holds the exact three words.
  *
  * ⚠️ A SOFT preference, never a fence (owner 2026-10-01: "I like neutrals, but I also have good red pieces"). It reaches
- * looks through `paletteScore` at weight 0.1, and the upcoming wardrobe advisor reuses `inPalette` — it must still be free
+ * looks through `paletteScore` at weight 0.04, and the upcoming wardrobe advisor reuses `inPalette` — it must still be free
  * to recommend a red piece to an all-black-and-white closet.
  */
 export type PaletteId = "Neutrals" | "Earth" | "Navy" | "Mono";

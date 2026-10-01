@@ -253,7 +253,7 @@ export async function generate(input: {
     // Season rides along as a ranking preference — in-season combos float to the
     // top of the shortlist the re-ranker sees, but an off-season one is still
     // offered rather than the screen going empty.
-    // Quiz part 2: palette and fit are VERY soft (0.1 each) — a tie-break between similar looks, never a filter.
+    // Quiz part 2: palette and fit are VERY soft (0.04 each) — a tie-break between similar looks, never a filter.
     const quiz = readStyleProfile(profile);
     const ranked = rankTopN(
       combos,
