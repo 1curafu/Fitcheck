@@ -39,6 +39,12 @@ describe("paletteScore", () => {
     expect(paletteScore([p("Tops", "red"), p("Bottoms", "black"), p("Shoes", "white")], "Mono")).toBe(1);
   });
 
+  test("a single piece, in or out of the palette, is never NaN — one statement piece is free even when it is all there is", () => {
+    // ⚠️ Found by mutating `out <= 1` to `out < 1`: the share formula divides by (pieces - 1), which is 0 for one piece.
+    expect(paletteScore([p("One-piece", "red")], "Mono")).toBe(1);
+    expect(paletteScore([p("One-piece", "black")], "Mono")).toBe(1);
+  });
+
   test("each further out-of-palette piece costs a share", () => {
     // 4 pieces, 2 out: 1 - (2-1)/(4-1)
     expect(paletteScore([p("Tops", "red"), p("Bottoms", "olive"), p("Shoes", "black"), p("Outerwear", "grey")], "Mono")).toBeCloseTo(2 / 3);
