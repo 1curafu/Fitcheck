@@ -4,7 +4,7 @@ import {
   type CandidateItem,
 } from "@/lib/generator/candidates";
 import { itemBlocked, type NoGo } from "@/lib/generator/nogos";
-import { personalBand, weatherRules, type Weather } from "@/lib/generator/rules";
+import { occasionBand, personalBand, weatherRules, type Weather } from "@/lib/generator/rules";
 import type { UiOccasion } from "@/lib/generator/types";
 
 /**
@@ -30,6 +30,30 @@ export type GapCandidate = {
   material?: string;
   branding?: string;
 };
+
+/**
+ * The occasions worth simulating for THIS wardrobe: those whose band the user's dress codes can reach. `personalBand`
+ * falls back to the occasion's FULL band when there is no overlap (a Business-only wardrobe asking about Everyday), which
+ * let the advice suggest pieces outside the user's own dress codes. No prefs, or nothing reachable at all, keeps every
+ * occasion — better a broad answer than an empty one.
+ */
+export function relevantOccasions(occasions: UiOccasion[], prefs?: GapPrefs): UiOccasion[] {
+  const min = prefs?.formality_min;
+  const max = prefs?.formality_max;
+  if (min == null || max == null) return occasions;
+  const reachable = occasions.filter((o) => {
+    const [olo, ohi] = occasionBand(o);
+    return Math.max(olo, Math.max(1, min - 0.5)) <= Math.min(ohi, Math.min(5, max + 0.5));
+  });
+  return reachable.length ? reachable : occasions;
+}
+
+/** How many owned pieces the user's no-gos hide, per slot — so the advice can say "your no-gos" instead of "0 bottoms". */
+export function hiddenByNogos(closet: CandidateItem[], occasions: UiOccasion[], prefs?: GapPrefs): Record<string, number> {
+  const all = slotCounts(closet, occasions, { ...prefs, nogos: [] });
+  const kept = slotCounts(closet, occasions, prefs);
+  return Object.fromEntries(Object.keys(all).map((c) => [c, all[c] - (kept[c] ?? 0)]));
+}
 
 /** The quiz answers the advice honours (quiz part 2). Absent = today's behaviour. */
 export type GapPrefs = { formality_min?: number | null; formality_max?: number | null; nogos?: readonly NoGo[] };
@@ -209,7 +233,7 @@ export function slotCounts(
   occasions: UiOccasion[],
   prefs?: GapPrefs,
 ): Record<string, number> {
-  const by = eligibleByCategory(closet, argsFor(occasions[0] ?? "everyday", SIMULATED_CONDITIONS[0], prefs));
+  const by = eligibleByCategory(closet, argsFor(relevantOccasions(occasions, prefs)[0] ?? "everyday", SIMULATED_CONDITIONS[0], prefs));
   const out: Record<string, number> = {};
   for (const c of [...REQUIRED_CATEGORIES, "Outerwear"]) out[c] = (by[c] ?? []).length;
   return out;
@@ -242,6 +266,8 @@ export function biggestGap(
 ): { candidate: GapCandidate; unlocks: number; share: number | null } | null {
   if (!closet.length) return null;
 
+  // Only the occasions the user's dress codes can reach (quiz part 2).
+  occasions = relevantOccasions(occasions, prefs);
   const before = countCombos(closet, occasions, prefs);
   let best: { candidate: GapCandidate; unlocks: number; share: number | null } | null = null;
 

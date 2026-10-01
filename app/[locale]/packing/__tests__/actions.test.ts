@@ -65,3 +65,10 @@ it("a trip is styled with the user's palette and fit answers", async () => {
   await planTrip(input);
   expect(vi.mocked(realBuilder).mock.calls[0][2]).toEqual(expect.objectContaining({ palette: "Mono", fitPref: "Relaxed" }));
 });
+
+it("editing a trip also uses the palette and fit answers", async () => {
+  mock.profile = { palette: "Navy", fit: "Tailored" };
+  await editCapsule("trip", {});
+  const calls = vi.mocked(realBuilder).mock.calls;
+  expect(calls[calls.length - 1][2]).toEqual(expect.objectContaining({ palette: "Navy", fitPref: "Tailored" }));
+});

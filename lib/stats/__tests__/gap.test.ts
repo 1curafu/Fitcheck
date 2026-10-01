@@ -1,6 +1,6 @@
 import { SEPARATES_SHAPE, ONE_PIECE_SHAPE } from "@/lib/generator/candidates";
 import { readFileSync } from "node:fs";
-import { biggestGap, slotCounts, GAP_CANDIDATES, candidatesFor, denimSafeCount, type GapCandidate } from "../gap";
+import { biggestGap, slotCounts, GAP_CANDIDATES, candidatesFor, denimSafeCount, hiddenByNogos, relevantOccasions, type GapCandidate } from "../gap";
 import type { CandidateItem } from "@/lib/generator/candidates";
 
 const base = { occasions: ["everyday", "work"] as const };
@@ -348,5 +348,66 @@ describe("quiz part 2: the advice honours the quiz", () => {
     const page = readFileSync("app/[locale]/stats/page.tsx", "utf8");
     expect(page).toMatch(/biggestGap\(closet, ALL_OCCASIONS, gapPrefs\)/);
     expect(page).toMatch(/slotCounts\(closet, ALL_OCCASIONS, gapPrefs\)/);
+  });
+});
+
+describe("an OLD-implementation oracle (captured from e4d02619:lib/stats/gap.ts before quiz part 2)", () => {
+  // ⚠️ The earlier "without prefs" test compared the new code with itself. These expected values were produced by the
+  // implementation that shipped in 0.6.0, on fixed closets, so a change to the no-prefs advice cannot slip through.
+  const shoe = (id: string, f = 3) => piece(id, "Shoes", { colors: ["brown"], material: "Leather", formality: f });
+  const closets: Record<string, CandidateItem[]> = {
+    noBottoms: [piece("t1", "Tops"), shoe("s1")],
+    starter: [piece("t1", "Tops"), piece("t2", "Tops"), piece("b1", "Bottoms"), shoe("s1")],
+    withCoat: [piece("t1", "Tops"), piece("b1", "Bottoms"), shoe("s1"), piece("o1", "Outerwear", { material: "Wool" })],
+    denimMix: [piece("t1", "Tops", { material: "Denim" }), piece("t2", "Tops"), piece("b1", "Bottoms", { material: "Denim" }), piece("b2", "Bottoms"), shoe("s1"), shoe("s2", 4)],
+    dressesOnly: [piece("d1", "One-piece"), piece("d2", "One-piece"), shoe("s1")],
+    formalOnly: [piece("t1", "Tops", { formality: 5 }), piece("b1", "Bottoms", { formality: 5 }), shoe("s1", 5)],
+  };
+  const expected: Record<string, unknown> = {"noBottoms": {"gap": {"label": "darkDenim", "unlocks": 2, "share": null}, "slots": {"Tops": 1, "Bottoms": 0, "Shoes": 1, "Outerwear": 0}}, "starter": {"gap": {"label": "darkDenim", "unlocks": 4, "share": 1}, "slots": {"Tops": 2, "Bottoms": 1, "Shoes": 1, "Outerwear": 0}}, "withCoat": {"gap": {"label": "navyKnit", "unlocks": 4, "share": 1}, "slots": {"Tops": 1, "Bottoms": 1, "Shoes": 1, "Outerwear": 1}}, "denimMix": {"gap": {"label": "camelCoat", "unlocks": 8, "share": 0.6666666666666666}, "slots": {"Tops": 2, "Bottoms": 2, "Shoes": 1, "Outerwear": 0}}, "dressesOnly": {"gap": null, "slots": {"Tops": 0, "Bottoms": 0, "Shoes": 1, "Outerwear": 0}}, "formalOnly": {"gap": {"label": "navyKnit", "unlocks": 1, "share": 1}, "slots": {"Tops": 0, "Bottoms": 0, "Shoes": 0, "Outerwear": 0}}};
+
+  test.each(Object.keys(closets))("%s: advice and slot counts equal the shipped implementation's", (name) => {
+    const g = biggestGap(closets[name], ["everyday", "work"]);
+    expect({ gap: g ? { label: g.candidate.label, unlocks: g.unlocks, share: g.share } : null, slots: slotCounts(closets[name], ["everyday", "work"]) })
+      .toEqual(expected[name]);
+  });
+});
+
+describe("quiz part 2 review follow-ups", () => {
+  test("denim SHOES never make double denim: a denim-shoe closet counts the same with the no-go as without", () => {
+    const closet = [piece("t1", "Tops"), piece("b1", "Bottoms", { material: "Denim" }), piece("s1", "Shoes", { colors: ["blue"], material: "Denim" })];
+    const plain = biggestGap(closet, ["everyday"]);
+    const ruled = biggestGap(closet, ["everyday"], { nogos: ["double_denim"] });
+    expect(ruled?.unlocks).toBe(plain?.unlocks);
+    expect(denimSafeCount([{ garment: true, n: 1, d: 1 }, { garment: false, n: 1, d: 1 }])).toBe(1);
+  });
+
+  test("hiddenByNogos reports how many owned pieces the no-gos hide, per slot", () => {
+    const closet = [piece("t1", "Tops"), piece("b1", "Bottoms", { subcategory: "Shorts" }), piece("b2", "Bottoms", { subcategory: "Shorts" }), piece("s1", "Shoes", { colors: ["brown"], material: "Leather" })];
+    expect(hiddenByNogos(closet, ["everyday"], { nogos: ["shorts"] })).toMatchObject({ Bottoms: 2, Tops: 0, Shoes: 0 });
+    expect(hiddenByNogos(closet, ["everyday"], {})).toMatchObject({ Bottoms: 0 });
+  });
+
+  test("occasions whose band the user's dress codes cannot reach are skipped, so the advice stays inside their codes", () => {
+    // Business-only (4–4) widens to 3.5–4.5: Everyday [1.5, 3] cannot reach it; Weekend [1, 3.5] only touches it (kept).
+    expect(relevantOccasions(["everyday", "weekend", "work", "evening"], { formality_min: 4, formality_max: 4 })).toEqual(["weekend", "work", "evening"]);
+    // No prefs: every occasion. Nothing reachable at all: keep every occasion rather than empty the advice.
+    expect(relevantOccasions(["everyday", "weekend"], {})).toEqual(["everyday", "weekend"]);
+    expect(relevantOccasions(["everyday"], { formality_min: 5, formality_max: 5 })).toEqual(["everyday"]);
+  });
+
+  test("the advice for a Business-only wardrobe ignores occasions its dress codes cannot reach (behaviour, not just the helper)", () => {
+    const biz = { formality_min: 4, formality_max: 4 };
+    // formality 3 pieces: eligible for Everyday only through personalBand's FALLBACK to the full band — exactly what the skip removes.
+    const closet = [piece("t1", "Tops"), piece("b1", "Bottoms"), piece("s1", "Shoes", { colors: ["brown"], material: "Leather" })];
+    const both = biggestGap(closet, ["everyday", "work"], biz);
+    const workOnly = biggestGap(closet, ["work"], biz);
+    expect(both?.unlocks).toBe(workOnly?.unlocks);
+    expect(biggestGap(closet, ["everyday", "work"])?.unlocks).not.toBe(workOnly?.unlocks); // without prefs Everyday counts
+  });
+
+  test("the stats page explains a no-go emptied slot with its own sentence", () => {
+    const page = readFileSync("app/[locale]/stats/page.tsx", "utf8");
+    expect(page).toMatch(/hiddenByNogos\(closet, ALL_OCCASIONS, gapPrefs\)/);
+    expect(page).toContain('t("reasonNogos"');
   });
 });

@@ -901,6 +901,7 @@
     "wornTimes": "Usada {n} vezes",
     "thatPiece": "Essa peça",
     "reasonPairs": "Combina com mais do teu roupeiro do que qualquer outra coisa que te falte.",
+    "reasonNogos": "O que queres evitar exclui {hidden} que tens — é isso que trava o resto.",
     "reasonCounts": "Tens {mine} contra {deepest} — é isso que trava o resto.",
     "slot": {
       "Tops": "{n, plural, one {# parte de cima} other {# partes de cima}}",

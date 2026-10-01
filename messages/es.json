@@ -901,6 +901,7 @@
     "wornTimes": "Usada {n} veces",
     "thatPiece": "Esa prenda",
     "reasonPairs": "Combina con más de tu armario que cualquier otra cosa que te falte.",
+    "reasonNogos": "Lo que quieres evitar descarta {hidden} que tienes — eso es lo que frena al resto.",
     "reasonCounts": "Tienes {mine} frente a {deepest} — eso es lo que frena al resto.",
     "slot": {
       "Tops": "{n, plural, one {# parte de arriba} other {# partes de arriba}}",
