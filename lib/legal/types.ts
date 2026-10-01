@@ -23,5 +23,5 @@ export const OPERATOR = {
 } as const;
 
 /** One date per document; every translation shows the English document's date. */
-export const PRIVACY_UPDATED = "2026-10-01";
+export const PRIVACY_UPDATED = "2026-10-02";
 export const TERMS_UPDATED = "2026-09-26";

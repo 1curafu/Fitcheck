@@ -13,7 +13,7 @@ export function readSupportRuntime(env: NodeJS.ProcessEnv = process.env): Suppor
     return onVercel ? { mode: "off" } : { mode: "stub", siteKey: STUB_SITE_KEY, hostname: SUPPORT_HOSTNAME };
   }
   if (onVercel && env.VERCEL_ENV !== "production") return { mode: "off" };
-  const resendKey = env.RESEND_API_KEY?.trim();
+  const resendKey = env.SUPPORT_RESEND_API_KEY?.trim();
   const turnstileSecret = env.TURNSTILE_SECRET_KEY?.trim();
   const siteKey = env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim();
   if (env.SUPPORT_ENABLED !== "1" || !resendKey || !turnstileSecret || !siteKey) return { mode: "off" };

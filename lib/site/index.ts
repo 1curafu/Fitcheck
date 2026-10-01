@@ -1,6 +1,15 @@
 /** The canonical origin — absolute URLs in metadata, sitemap and robots come from here. */
 export const SITE_URL = "https://fitcheck.space";
 
+/** www serves the same app on another host: separate session cookies, and Turnstile verifies the exact hostname.
+ *  One canonical host, path kept (`next.config.ts` redirects()). */
+export const HOST_REDIRECTS = [{
+  source: "/:path*",
+  has: [{ type: "host" as const, value: "www.fitcheck.space" }],
+  destination: `${SITE_URL}/:path*`,
+  permanent: true,
+}];
+
 /** Public pages, including help for people who cannot sign in. */
 export const PUBLIC_PATHS = ["/", "/sign-in", "/privacy", "/terms", "/support"] as const;
 

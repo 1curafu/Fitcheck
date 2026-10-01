@@ -2,11 +2,11 @@ import { expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { getSupportPageConfig, readSupportRuntime } from "../config";
 
-const liveEnv = { NODE_ENV: "test" as const, SUPPORT_ENABLED: "1", RESEND_API_KEY: "sending-secret", TURNSTILE_SECRET_KEY: "challenge-secret", NEXT_PUBLIC_TURNSTILE_SITE_KEY: "public-key", VERCEL: "1", VERCEL_ENV: "production" };
+const liveEnv = { NODE_ENV: "test" as const, SUPPORT_ENABLED: "1", SUPPORT_RESEND_API_KEY: "sending-secret", TURNSTILE_SECRET_KEY: "challenge-secret", NEXT_PUBLIC_TURNSTILE_SITE_KEY: "public-key", VERCEL: "1", VERCEL_ENV: "production" };
 it("passes only public form configuration to the browser", () => {
   expect(getSupportPageConfig(readSupportRuntime(liveEnv))).toEqual({ enabled: true, siteKey: "public-key" });
 });
-it.each(["SUPPORT_ENABLED", "RESEND_API_KEY", "TURNSTILE_SECRET_KEY", "NEXT_PUBLIC_TURNSTILE_SITE_KEY"])("fails closed without %s", name => {
+it.each(["SUPPORT_ENABLED", "SUPPORT_RESEND_API_KEY", "TURNSTILE_SECRET_KEY", "NEXT_PUBLIC_TURNSTILE_SITE_KEY"])("fails closed without %s", name => {
   expect(readSupportRuntime({ ...liveEnv, [name]: " " })).toEqual({ mode: "off" });
 });
 it.each([
@@ -25,5 +25,5 @@ it("permits only the local stub without credentials", () => {
 });
 it("trims credential configuration and requires exact activation", () => {
   expect(readSupportRuntime({ ...liveEnv, SUPPORT_ENABLED: "true" })).toEqual({ mode: "off" });
-  expect(readSupportRuntime({ ...liveEnv, RESEND_API_KEY: " sending-secret " })).toMatchObject({ mode: "live", resendKey: "sending-secret" });
+  expect(readSupportRuntime({ ...liveEnv, SUPPORT_RESEND_API_KEY: " sending-secret " })).toMatchObject({ mode: "live", resendKey: "sending-secret" });
 });

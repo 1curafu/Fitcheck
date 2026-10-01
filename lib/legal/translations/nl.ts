@@ -41,7 +41,7 @@ export const PRIVACY_NL: LegalDocument = {
       heading: "Contact met support",
       paragraphs: [
         "Als je contact opneemt met support@fitcheck.space, gebruiken we je antwoordadres, gekozen onderwerp en bericht om je te helpen. Het formulier voegt je garderobe, account of locatie niet toe. Het opgegeven adres is een antwoordadres en bewijst niet dat het account van jou is.",
-        "Resend bezorgt berichten in onze supportmailbox. Cloudflare Turnstile controleert browsersignalen op spam; we sturen je bericht of antwoordadres er niet naartoe. De app voegt je IP-adres niet toe aan de servercontrole, maar de widget kan het verwerken. Cloudflare is verwerker voor websitebeveiliging en verwerkingsverantwoordelijke bij het verbeteren van botdetectie.",
+        "Resend bezorgt berichten in onze supportmailbox: Namecheap stuurt mail voor support@fitcheck.space door naar een Gmail-mailbox van Google. Cloudflare Turnstile controleert browsersignalen op spam; we sturen je bericht of antwoordadres er niet naartoe. De app voegt je IP-adres niet toe aan de servercontrole, maar de widget kan het verwerken. Cloudflare is verwerker voor websitebeveiliging en verwerkingsverantwoordelijke bij het verbeteren van botdetectie.",
         "We verwijderen afgesloten correspondentie en de prullenbak van de mailbox binnen 90 dagen na het laatste antwoord. Accountverwijdering verwijdert supportmails niet automatisch. Schrijf naar legal@fitcheck.space om verwijdering te vragen. Bezorgingslogboeken van providers volgen hun eigen bewaarbeleid.",
       ],
     },
@@ -66,8 +66,9 @@ export const PRIVACY_NL: LegalDocument = {
         "Supabase (EU, Frankfurt) — bewaart je account, je foto's en alles hierboven. Je gegevens blijven in de EU.",
         "Anthropic (VS) — de AI die je kleding tagt. Het krijgt de uitgesneden foto van een kledingstuk om het te beschrijven, en korte tekstbeschrijvingen van stukken — nooit foto's — om over outfits na te denken. Anthropic traint zijn modellen niet met gegevens die via zijn API worden verstuurd.",
         "OpenWeather — krijgt je coördinaten om een verwachting terug te geven. Verder niets.",
-        "Google — alleen als je ervoor kiest in te loggen met Google.",
+        "Google — inloggen met Google als je daarvoor kiest, en Gmail, waar onze supportmailbox staat en je supportberichten worden bewaard.",
         "Resend (VS) — verstuurt aanmeldmails en bezorgt supportberichten met je antwoordadres, onderwerp en bericht in onze mailbox.",
+        "Namecheap (VS) — stuurt mail aan support@fitcheck.space, inclusief je antwoordadres en bericht, door naar die Gmail-mailbox.",
         "Cloudflare Turnstile — ontvangt beveiligingssignalen van de browser op de supportpagina om spam te controleren; we sturen je bericht of antwoordadres er niet naartoe.",
         "Stripe — verwerkt de betaling voor Pro; samen met Link de enigen die kaartgegevens zien.",
         "Link (Stripe) — verkoopt je Fitcheck Pro als officiële verkoper (merchant of record): ontvangt je betaling, rekent btw en stuurt bonnen, onder eigen voorwaarden en een eigen privacybeleid. Als je je Fitcheck-account verwijdert, wordt je abonnement opgezegd; Link en Stripe bewaren de betaalgegevens die de wet vereist.",
@@ -79,7 +80,7 @@ export const PRIVACY_NL: LegalDocument = {
       id: "data-leaving-europe",
       heading: "Gegevens die Europa verlaten",
       paragraphs: [
-        "Anthropic, Resend, Cloudflare, Google en Stripe zijn gevestigd in de Verenigde Staten of verwerken daar gegevens. Doorgifte aan hen berust op het EU-VS Data Privacy Framework waar de aanbieder gecertificeerd is, en anders op de standaardcontractbepalingen van de Europese Commissie, die Zwitserland met een eigen aanvulling erkent. Waar ze dat aanbieden, bedienen Google en Stripe gebruikers in Zwitserland en de EU via hun Europese vestigingen.",
+        "Anthropic, Resend, Cloudflare, Namecheap, Google en Stripe zijn gevestigd in de Verenigde Staten of verwerken daar gegevens. Doorgifte aan hen berust op het EU-VS Data Privacy Framework waar de aanbieder gecertificeerd is, en anders op de standaardcontractbepalingen van de Europese Commissie, die Zwitserland met een eigen aanvulling erkent. Waar ze dat aanbieden, bedienen Google en Stripe gebruikers in Zwitserland en de EU via hun Europese vestigingen.",
       ],
     },
     {

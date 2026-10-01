@@ -59,7 +59,7 @@ const PRIVACY_EN: LegalDocument = {
       heading: "Contacting support",
       paragraphs: [
         "If you contact support@fitcheck.space, we use your reply email, chosen topic and message to answer you. The form does not attach your wardrobe, account or location. Your supplied email is a reply address, not proof of account ownership.",
-        "Resend delivers support messages to our support inbox. Cloudflare Turnstile checks browser signals for spam; we do not send your message or reply email to Turnstile. Our application does not add your IP address to server verification, though the widget may process it. Cloudflare acts as processor for website security and as controller when improving bot detection.",
+        "Resend delivers support messages to our support inbox: Namecheap forwards mail for support@fitcheck.space to a Gmail mailbox hosted by Google. Cloudflare Turnstile checks browser signals for spam; we do not send your message or reply email to Turnstile. Our application does not add your IP address to server verification, though the widget may process it. Cloudflare acts as processor for website security and as controller when improving bot detection.",
         "We remove closed support correspondence and mailbox Trash within 90 days of the last reply. Account deletion does not automatically remove support emails from the inbox. Write to legal@fitcheck.space to request erasure. Provider delivery records follow their own retention policy.",
       ],
     },
@@ -84,8 +84,9 @@ const PRIVACY_EN: LegalDocument = {
         "Supabase (EU, Frankfurt) — stores your account, photos and everything above. Your data lives in the EU.",
         "Anthropic (USA) — the AI that tags your clothes. It receives the cut-out photo of a garment to describe it, and short text descriptions of pieces — never photos — to reason about outfits. Anthropic does not train its models on data sent through its API.",
         "OpenWeather — receives your coordinates to return a forecast. Nothing else.",
-        "Google — only if you choose to sign in with Google.",
+        "Google — sign-in with Google if you choose it, and Gmail, which hosts our support mailbox and keeps the support messages you send.",
         "Resend (USA) — sends sign-in emails and delivers support messages, including your reply email, topic and message, to our support inbox.",
+        "Namecheap (USA) — forwards mail sent to support@fitcheck.space, including your reply email and message, to that Gmail mailbox.",
         "Cloudflare Turnstile — receives browser security signals on Support to check for spam; we do not send it your support message or reply email.",
         "Stripe — handles payment for Pro; with Link, the only parties that see card details.",
         "Link (Stripe) — sells Fitcheck Pro to you as merchant of record: it takes your payment, charges VAT and sends receipts, under its own terms and privacy policy. Deleting your Fitcheck account cancels your subscription; Link and Stripe keep the payment records the law requires.",
@@ -97,7 +98,7 @@ const PRIVACY_EN: LegalDocument = {
       id: "data-leaving-europe",
       heading: "Data leaving Europe",
       paragraphs: [
-        "Anthropic, Resend, Cloudflare, Google and Stripe are based in, or process data through, the United States. Transfers to them rest on the EU–US Data Privacy Framework where the provider is certified, and on the European Commission's Standard Contractual Clauses otherwise, which Switzerland recognises with its own addendum. Where they offer it, Google and Stripe handle Swiss and EU users through their European entities.",
+        "Anthropic, Resend, Cloudflare, Namecheap, Google and Stripe are based in, or process data through, the United States. Transfers to them rest on the EU–US Data Privacy Framework where the provider is certified, and on the European Commission's Standard Contractual Clauses otherwise, which Switzerland recognises with its own addendum. Where they offer it, Google and Stripe handle Swiss and EU users through their European entities.",
       ],
     },
     {
@@ -183,7 +184,7 @@ const PRIVACY_UK: LegalDocument = {
       heading: "Звернення до підтримки",
       paragraphs: [
         "Якщо ти пишеш на support@fitcheck.space, ми використовуємо твою адресу для відповіді, обрану тему та повідомлення, щоб допомогти. Форма не додає твій гардероб, акаунт чи місцезнаходження. Вказана адреса призначена для відповіді й не підтверджує володіння акаунтом.",
-        "Resend доставляє звернення до нашої скриньки підтримки. Cloudflare Turnstile перевіряє сигнали браузера на спам; ми не передаємо йому повідомлення чи адресу для відповіді. Застосунок не додає IP-адресу до серверної перевірки, хоча віджет може її обробляти. Cloudflare є обробником для захисту сайту й контролером, коли вдосконалює виявлення ботів.",
+        "Resend доставляє звернення до нашої скриньки підтримки: Namecheap пересилає листи для support@fitcheck.space до скриньки Gmail, яку обслуговує Google. Cloudflare Turnstile перевіряє сигнали браузера на спам; ми не передаємо йому повідомлення чи адресу для відповіді. Застосунок не додає IP-адресу до серверної перевірки, хоча віджет може її обробляти. Cloudflare є обробником для захисту сайту й контролером, коли вдосконалює виявлення ботів.",
         "Ми видаляємо закриті звернення й листи з кошика протягом 90 днів після останньої відповіді. Видалення акаунта не видаляє автоматично листи підтримки. Для їх видалення напиши на legal@fitcheck.space. Записи постачальників про доставку мають власні строки зберігання.",
       ],
     },
@@ -206,8 +207,9 @@ const PRIVACY_UK: LegalDocument = {
         "Supabase (ЄС, Франкфурт) — зберігає твій акаунт, фото й усі перелічені вище дані. Твої дані зберігаються в ЄС.",
         "Anthropic (США) — ШІ, що визначає теги одягу. Отримує вирізане фото речі для її опису та короткі текстові описи речей — ніколи не фото — для міркувань про образи. Anthropic не навчає свої моделі на даних, надісланих через його API.",
         "OpenWeather — отримує координати, щоб повернути прогноз. Більше нічого.",
-        "Google — лише якщо ти обираєш вхід через Google.",
+        "Google — вхід через Google, якщо ти його обираєш, і Gmail, де розміщена наша скринька підтримки та зберігаються твої звернення.",
         "Resend (США) — надсилає листи для входу й доставляє звернення до підтримки, зокрема адресу для відповіді, тему та повідомлення, до нашої скриньки.",
+        "Namecheap (США) — пересилає листи, надіслані на support@fitcheck.space, зокрема адресу для відповіді й повідомлення, до цієї скриньки Gmail.",
         "Cloudflare Turnstile — отримує сигнали безпеки браузера на сторінці підтримки для перевірки на спам; ми не надсилаємо йому повідомлення чи адресу для відповіді.",
         "Stripe — обробляє оплату Pro; разом із Link це єдині сторони, які бачать дані картки.",
         "Link (Stripe) — продає тобі Fitcheck Pro як офіційний продавець (merchant of record): приймає оплату, нараховує ПДВ і надсилає квитанції за власними умовами й політикою конфіденційності. Видалення акаунта Fitcheck скасовує підписку; Link і Stripe зберігають платіжні записи, яких вимагає закон.",
@@ -218,7 +220,7 @@ const PRIVACY_UK: LegalDocument = {
     {
       id: "data-leaving-europe",
       heading: "Передача даних за межі Європи",
-      paragraphs: ["Anthropic, Resend, Cloudflare, Google і Stripe розташовані у США або обробляють там дані. Передача їм ґрунтується на EU–US Data Privacy Framework, якщо постачальник сертифікований, а в інших випадках — на стандартних договірних положеннях Європейської комісії, які Швейцарія визнає зі своїм доповненням. Де це доступно, Google і Stripe обслуговують користувачів зі Швейцарії та ЄС через свої європейські юридичні особи."],
+      paragraphs: ["Anthropic, Resend, Cloudflare, Namecheap, Google і Stripe розташовані у США або обробляють там дані. Передача їм ґрунтується на EU–US Data Privacy Framework, якщо постачальник сертифікований, а в інших випадках — на стандартних договірних положеннях Європейської комісії, які Швейцарія визнає зі своїм доповненням. Де це доступно, Google і Stripe обслуговують користувачів зі Швейцарії та ЄС через свої європейські юридичні особи."],
     },
     {
       id: "how-long-we-keep-it",

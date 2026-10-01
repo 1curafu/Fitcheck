@@ -193,12 +193,15 @@ test.each(CONTENT_LOCALES)("%s explains support correspondence separately from a
   const section = doc.sections.find(part => part.id === "contacting-support");
   expect(section, locale).toBeDefined();
   const body = JSON.stringify(section);
-  for (const fact of ["support@fitcheck.space", "Resend", "Cloudflare Turnstile", "90", "legal@fitcheck.space"]) expect(body).toContain(fact);
-  expect(doc.updated).toBe("2026-10-01");
+  for (const fact of ["support@fitcheck.space", "Resend", "Namecheap", "Gmail", "Cloudflare Turnstile", "90", "legal@fitcheck.space"]) expect(body).toContain(fact);
+  expect(doc.updated).toBe("2026-10-02");
 });
 test("direct support processors explain their data and the retention promise", () => {
   expect(processorsSection()).toMatch(/Resend.*support messages/i);
   expect(processorsSection()).toMatch(/Cloudflare Turnstile.*browser.*spam/i);
+  // The support mailbox is Namecheap forwarding into Gmail (MX: registrar-servers.com eforward), owner 2026-10-02.
+  expect(processorsSection()).toMatch(/Namecheap.*forwards.*support@fitcheck\.space/i);
+  expect(processorsSection()).toMatch(/Google.*Gmail.*support/i);
   const body = JSON.stringify(PRIVACY.sections.find(part => part.id === "contacting-support"));
   expect(body).toMatch(/reply email.*topic.*message/i);
   expect(body).toMatch(/account deletion does not automatically/i);
@@ -209,4 +212,5 @@ test("direct support processors explain their data and the retention promise", (
 test.each(CONTENT_LOCALES)("%s discloses Cloudflare in cross-border transfers", locale => {
   const section = PRIVACY_BY_LOCALE[locale].sections.find(part => part.id === "data-leaving-europe");
   expect(section?.paragraphs.join(" ")).toContain("Cloudflare");
+  expect(section?.paragraphs.join(" ")).toContain("Namecheap");
 });

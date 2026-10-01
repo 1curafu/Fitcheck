@@ -41,7 +41,7 @@ export const PRIVACY_FR: LegalDocument = {
       heading: "Contacter le support",
       paragraphs: [
         "Si tu contactes support@fitcheck.space, nous utilisons ton adresse de réponse, le sujet choisi et ton message pour t’aider. Le formulaire ne joint ni ta garde-robe, ni ton compte, ni ta localisation. L’adresse fournie sert à répondre et ne prouve pas que le compte t’appartient.",
-        "Resend livre les messages à notre boîte de support. Cloudflare Turnstile vérifie les signaux du navigateur contre le spam ; nous ne lui envoyons ni ton message ni ton adresse de réponse. L’application n’ajoute pas ton adresse IP à la vérification serveur, mais le widget peut la traiter. Cloudflare est sous-traitant pour la sécurité du site et responsable du traitement pour l’amélioration de la détection des bots.",
+        "Resend livre les messages à notre boîte de support : Namecheap transfère les e-mails adressés à support@fitcheck.space vers une boîte Gmail hébergée par Google. Cloudflare Turnstile vérifie les signaux du navigateur contre le spam ; nous ne lui envoyons ni ton message ni ton adresse de réponse. L’application n’ajoute pas ton adresse IP à la vérification serveur, mais le widget peut la traiter. Cloudflare est sous-traitant pour la sécurité du site et responsable du traitement pour l’amélioration de la détection des bots.",
         "Nous supprimons les échanges clos et la corbeille de la boîte sous 90 jours après la dernière réponse. La suppression du compte ne supprime pas automatiquement les e-mails de support. Écris à legal@fitcheck.space pour demander leur effacement. Les journaux de livraison des prestataires suivent leurs propres règles de conservation.",
       ],
     },
@@ -66,8 +66,9 @@ export const PRIVACY_FR: LegalDocument = {
         "Supabase (UE, Francfort) — stocke ton compte, tes photos et tout ce qui précède. Tes données restent dans l’UE.",
         "Anthropic (USA) — l’IA qui tague tes vêtements. Elle reçoit la photo détourée d’un vêtement pour le décrire, et de courtes descriptions textuelles des pièces — jamais de photos — pour réfléchir aux tenues. Anthropic n’entraîne pas ses modèles sur les données envoyées via son API.",
         "OpenWeather — reçoit tes coordonnées pour renvoyer une prévision. Rien d’autre.",
-        "Google — uniquement si tu choisis de te connecter avec Google.",
+        "Google — la connexion avec Google si tu la choisis, et Gmail, qui héberge notre boîte de support et conserve les messages que tu nous envoies.",
         "Resend (USA) — envoie les e-mails de connexion et livre à notre boîte les messages de support, avec ton adresse de réponse, le sujet et le message.",
+        "Namecheap (USA) — transfère les e-mails envoyés à support@fitcheck.space, y compris ton adresse de réponse et ton message, vers cette boîte Gmail.",
         "Cloudflare Turnstile — reçoit les signaux de sécurité du navigateur sur la page de support pour vérifier le spam ; nous ne lui envoyons ni ton message ni ton adresse de réponse.",
         "Stripe — gère le paiement de Pro ; avec Link, les seuls à voir les données de carte.",
         "Link (Stripe) — te vend Fitcheck Pro en tant que vendeur officiel (merchant of record) : il encaisse ton paiement, facture la TVA et envoie les reçus, selon ses propres conditions et sa propre politique de confidentialité. Supprimer ton compte Fitcheck résilie ton abonnement ; Link et Stripe conservent les données de paiement exigées par la loi.",
@@ -79,7 +80,7 @@ export const PRIVACY_FR: LegalDocument = {
       id: "data-leaving-europe",
       heading: "Données hors d’Europe",
       paragraphs: [
-        "Anthropic, Resend, Cloudflare, Google et Stripe sont établis aux États-Unis ou y traitent des données. Les transferts vers eux reposent sur le Data Privacy Framework UE–États-Unis lorsque le prestataire est certifié, et sinon sur les clauses contractuelles types de la Commission européenne, que la Suisse reconnaît avec son propre avenant. Lorsqu’ils le proposent, Google et Stripe servent les utilisateurs suisses et européens via leurs entités européennes.",
+        "Anthropic, Resend, Cloudflare, Namecheap, Google et Stripe sont établis aux États-Unis ou y traitent des données. Les transferts vers eux reposent sur le Data Privacy Framework UE–États-Unis lorsque le prestataire est certifié, et sinon sur les clauses contractuelles types de la Commission européenne, que la Suisse reconnaît avec son propre avenant. Lorsqu’ils le proposent, Google et Stripe servent les utilisateurs suisses et européens via leurs entités européennes.",
       ],
     },
     {
