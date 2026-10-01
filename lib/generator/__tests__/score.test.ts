@@ -887,3 +887,44 @@ test("a bag that echoes the trousers beats no bag, and beats an unrelated bag", 
   expect(camel).toBeGreaterThan(bare);
   expect(camel).toBeGreaterThan(black);
 });
+
+describe("quiz part 2: palette and fit (very soft)", () => {
+  const look = (top: string, bottom: string, shoe: string, f = 3) => [
+    { category: "Tops", colors: [top], formality: f, fit: "Relaxed" },
+    { category: "Bottoms", colors: [bottom], formality: f, fit: "Relaxed" },
+    { category: "Shoes", colors: [shoe], formality: f },
+  ];
+  const base = { aesthetic: [], band: [1, 5] as [number, number] };
+
+  test("without palette or fit answers a look scores exactly as it does today", () => {
+    const l = look("navy", "stone", "brown");
+    const today = scoreCombo(l, base);
+    expect(scoreCombo(l, { ...base, palette: null, fitPref: null })).toBe(today);
+    expect(scoreCombo(l, { ...base, palette: "Pastel", fitPref: "Boxy" })).toBe(today); // unknown answers = no opinion
+  });
+
+  test("the same look scores higher under a palette it sits in", () => {
+    const mono = look("black", "grey", "white");
+    expect(scoreCombo(mono, { ...base, palette: "Mono" })).toBeGreaterThan(scoreCombo(mono, { ...base, palette: "Earth" }));
+  });
+
+  test("the same look scores higher under the fit it suits", () => {
+    const l = look("navy", "stone", "brown");
+    expect(scoreCombo(l, { ...base, fitPref: "Relaxed" })).toBeGreaterThan(scoreCombo(l, { ...base, fitPref: "Tailored" }));
+  });
+
+  test("soft means soft: an in-palette, in-fit look that clashes on formality still loses to a coherent one", () => {
+    const clash = [
+      { category: "Tops", colors: ["black"], formality: 1, fit: "Relaxed" },
+      { category: "Bottoms", colors: ["grey"], formality: 5, fit: "Relaxed" },
+      { category: "Shoes", colors: ["white"], formality: 1 },
+    ];
+    const coherent = [
+      { category: "Tops", colors: ["rust"], formality: 3, fit: "Fitted" },
+      { category: "Bottoms", colors: ["olive"], formality: 3, fit: "Fitted" },
+      { category: "Shoes", colors: ["tan"], formality: 3 },
+    ];
+    const ctx = { ...base, palette: "Mono", fitPref: "Relaxed" };
+    expect(scoreCombo(coherent, ctx)).toBeGreaterThan(scoreCombo(clash, ctx));
+  });
+});

@@ -1,4 +1,6 @@
 import { leanScore } from "./color";
+import { fitScore } from "./fit-pref";
+import { paletteScore } from "./palette";
 import { seasonFit } from "./season";
 import { accentMetalTone, isHardware, metalCoordination } from "./styling/metal";
 import { warmthFit } from "./texture";
@@ -55,6 +57,8 @@ export type ScoreItem = {
    */
   branding?: string | null;
   distressing?: string | null;
+  /** The garment's cut (FITS). Read by the quiz fit term alone (quiz part 2). */
+  fit?: string | null;
 };
 export type Ctx = {
   aesthetic: string[];
@@ -76,6 +80,10 @@ export type Ctx = {
    * already fetches.
    */
   tempC?: number;
+  /** The quiz palette answer ("Neutrals" | "Earth" | "Navy" | "Mono"). Absent/unknown = no opinion. */
+  palette?: string | null;
+  /** The quiz fit answer ("Tailored" | "Relaxed" | "Oversized"). Absent/unknown = no opinion. */
+  fitPref?: string | null;
 };
 
 /**
@@ -171,6 +179,13 @@ const WEIGHTS = {
    * Drops out when there is no bag.
    */
   bag: 0.12,
+  /**
+   * The quiz's palette and fit answers (quiz part 2). VERY soft on purpose — owner 2026-10-01: "it should be really soft,
+   * I like neutrals but have good red items too". At 0.1 (the metal-coordination weight) they break ties between
+   * otherwise similar looks and cannot carry a worse one; a test pins that a formality clash still loses.
+   */
+  palette: 0.1,
+  fit: 0.1,
 } as const;
 
 /**
@@ -439,6 +454,8 @@ export function scoreCombo(items: ScoreItem[], ctx: Ctx): number {
     },
     { weight: WEIGHTS.lean, value: ctx.lean?.length ? leanScore(colors, ctx.lean) : null },
     { weight: WEIGHTS.climate, value: climateFit(items, ctx) },
+    { weight: WEIGHTS.palette, value: paletteScore(items, ctx.palette) },
+    { weight: WEIGHTS.fit, value: fitScore(items, ctx.fitPref) },
   ];
 
   const claimed = terms.filter((t): t is Term & { value: number } => t.value != null);
