@@ -225,10 +225,12 @@ export async function updateStyleProfile(input: unknown): Promise<void> {
       nogos: readNogos(row?.nogos),
       // Lenient read: a legacy/unknown stored occasion must not read as a change.
       occasions: readStyleProfile(row).occasions,
+      palette: readStyleProfile(row).palette,
+      fit: readStyleProfile(row).fit,
       formality_min: row?.formality_min ?? null,
       formality_max: row?.formality_max ?? null,
     },
-    { archetype: data.archetype, nogos: data.nogos, occasions: data.occasions, ...range },
+    { archetype: data.archetype, nogos: data.nogos, occasions: data.occasions, palette: data.palette, fit: data.fit, ...range },
   );
 
   if (changed) {

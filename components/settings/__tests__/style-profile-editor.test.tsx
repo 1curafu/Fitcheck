@@ -109,10 +109,9 @@ describe("the route stays mounted (React Activity), so the editor follows fresh 
   });
 });
 
-test("the intro promises only what changes today's looks now (no-gos, style, dress codes), not palette or fit", () => {
+test("the intro says every answer shapes today's looks", () => {
   render(<StyleProfileEditor profile={complete} onSaveAction={vi.fn()} />);
-  expect(screen.getByText(/no-gos, style and dress codes/i)).toBeInTheDocument();
-  expect(screen.queryByText(/new looks follow it/i)).toBeNull();
+  expect(screen.getByText(/looks follow every answer/i)).toBeInTheDocument();
 });
 
 describe("a save that takes time (a slow network, a slow CI runner)", () => {
