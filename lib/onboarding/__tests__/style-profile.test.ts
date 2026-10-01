@@ -53,7 +53,7 @@ test("formalityRange spans the chosen dress codes", () => {
 });
 
 describe("affectsLooks", () => {
-  const before = { archetype: "Old Money", nogos: ["ripped"], formality_min: 3, formality_max: 4, occasions: ["Work"] };
+  const before = { archetype: "Old Money", nogos: ["ripped"], formality_min: 3, formality_max: 4, occasions: ["Work"], palette: "Mono", fit: "Relaxed" };
   test("an unchanged set does not", () => {
     expect(affectsLooks(before, { ...before, nogos: ["ripped"] })).toBe(false);
   });
@@ -68,6 +68,9 @@ describe("affectsLooks", () => {
     ["a removed no-go", { nogos: [] }],
     ["a new archetype", { archetype: "Streetwear" }],
     ["a different band", { formality_max: 5 }],
+    // Quiz part 2: palette and fit steer scoring, so a change rebuilds today's looks.
+    ["a different palette", { palette: "Earth" }],
+    ["a different fit", { fit: "Tailored" }],
     // "Style with this piece" derives its occasion from these and serves an item/day cache, so a look generated and
     // narrated for Work stays Work after the user switches to Evening unless the drop is cleared.
     ["a different occasion", { occasions: ["Evening"] }],

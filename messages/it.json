@@ -383,7 +383,7 @@
   },
   "styleProfile": {
     "title": "Profilo di stile",
-    "intro": "Puoi cambiare qualsiasi risposta. Le cose che vuoi evitare, il tuo stile e i dress code si applicano subito ai look di oggi.",
+    "intro": "Puoi cambiare qualsiasi risposta. Da oggi, i tuoi look tengono conto di tutte le tue risposte.",
     "save": "Salva modifiche",
     "saving": "Salvataggio…",
     "saved": "Salvato",
@@ -901,6 +901,7 @@
     "wornTimes": "Indossato {n} volte",
     "thatPiece": "Quel capo",
     "reasonPairs": "Si abbina a più capi del tuo armadio di qualsiasi altra cosa ti manchi.",
+    "reasonNogos": "Le cose che vuoi evitare escludono {hidden} che possiedi — ed è questo che blocca il resto.",
     "reasonCounts": "Hai {mine} contro {deepest} — è questo che frena il resto.",
     "slot": {
       "Tops": "{n, plural, one {# capo sopra} other {# capi sopra}}",

@@ -1,4 +1,6 @@
 import { leanScore } from "./color";
+import { fitScore } from "./fit-pref";
+import { paletteScore } from "./palette";
 import { seasonFit } from "./season";
 import { accentMetalTone, isHardware, metalCoordination } from "./styling/metal";
 import { warmthFit } from "./texture";
@@ -55,6 +57,8 @@ export type ScoreItem = {
    */
   branding?: string | null;
   distressing?: string | null;
+  /** The garment's cut (FITS). Read by the quiz fit term alone (quiz part 2). */
+  fit?: string | null;
 };
 export type Ctx = {
   aesthetic: string[];
@@ -76,6 +80,10 @@ export type Ctx = {
    * already fetches.
    */
   tempC?: number;
+  /** The quiz palette answer ("Neutrals" | "Earth" | "Navy" | "Mono"). Absent/unknown = no opinion. */
+  palette?: string | null;
+  /** The quiz fit answer ("Tailored" | "Relaxed" | "Oversized"). Absent/unknown = no opinion. */
+  fitPref?: string | null;
 };
 
 /**
@@ -171,6 +179,17 @@ const WEIGHTS = {
    * Drops out when there is no bag.
    */
   bag: 0.12,
+  /**
+   * The quiz's palette and fit answers (quiz part 2). VERY soft on purpose — owner 2026-10-01: "it should be really soft,
+   * I like neutrals but have good red items too".
+   *
+   * ⚠️ 0.04 each, NOT 0.1: scores are normalised over the weight that claimed (~1.5 for a typical look), so at 0.1 + 0.1 the
+   * two terms together swung a score by up to ~0.13 — enough to put a clearly worse look (formality 2/4/3, base 0.721) above a
+   * coherent one (3/3/3, base 0.850). At 0.04 the swing is ~0.05: a tie-break between near-equal looks, which is what the
+   * owner asked for. A test pins the realistic gap. Raise it only with that test in front of you.
+   */
+  palette: 0.04,
+  fit: 0.04,
 } as const;
 
 /**
@@ -439,6 +458,8 @@ export function scoreCombo(items: ScoreItem[], ctx: Ctx): number {
     },
     { weight: WEIGHTS.lean, value: ctx.lean?.length ? leanScore(colors, ctx.lean) : null },
     { weight: WEIGHTS.climate, value: climateFit(items, ctx) },
+    { weight: WEIGHTS.palette, value: paletteScore(items, ctx.palette) },
+    { weight: WEIGHTS.fit, value: fitScore(items, ctx.fitPref) },
   ];
 
   const claimed = terms.filter((t): t is Term & { value: number } => t.value != null);

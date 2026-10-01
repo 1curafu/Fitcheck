@@ -329,7 +329,7 @@
   },
   "styleProfile": {
     "title": "Style profile",
-    "intro": "Change any answer. Your no-gos, style and dress codes apply to today's looks right away.",
+    "intro": "Change any answer. Your looks follow every answer from today.",
     "save": "Save changes",
     "saving": "Saving…",
     "saved": "Saved",
@@ -841,6 +841,7 @@
     "wornTimes": "Worn {n} times",
     "thatPiece": "That piece",
     "reasonPairs": "It pairs with more of your closet than anything else you're missing.",
+    "reasonNogos": "Your no-gos rule out the {hidden} you own — that's what's holding the rest back.",
     "reasonCounts": "You have {mine} against {deepest} — that's what's holding the rest back.",
     "slot": {
       "Tops": "{n, plural, one {# top} other {# tops}}",

@@ -223,8 +223,10 @@ export async function seedTestUser(cfg: { url: string; service: string }): Promi
       location_source: "city",
       location_timezone: "Europe/Zurich",
       // The quiz answers, reset so `reseed()` undoes a spec that edited the Style profile.
-      palette: null,
-      fit: null,
+      // Quiz part 2: palette and fit are VERY soft score terms, and every onboarded user has both — so the seeded user does too,
+      // or the browser suite never runs the scoring path real users get. (Untagged seed pieces have no `fit`, so only palette bites.)
+      palette: "Neutrals",
+      fit: "Tailored",
       dress_codes: null,
       occasions: null,
       nogos: null,

@@ -193,7 +193,7 @@ export async function setLocation(input: unknown): Promise<void> {
  * Save the six quiz answers from the Style profile editor.
  *
  * STRICT schema, as onboarding: an unknown value is rejected, never stored. A change that would have built
- * today's looks differently (band, no-gos, archetype — `affectsLooks`) clears today's drop so the next visit
+ * today's looks differently (band, no-gos, archetype, occasions, palette, fit — `affectsLooks`) clears today's drop so the next visit
  * rebuilds it for free, exactly as a city change does; worn looks included (owner decision, 2026-09-30).
  */
 export async function updateStyleProfile(input: unknown): Promise<void> {
@@ -225,10 +225,12 @@ export async function updateStyleProfile(input: unknown): Promise<void> {
       nogos: readNogos(row?.nogos),
       // Lenient read: a legacy/unknown stored occasion must not read as a change.
       occasions: readStyleProfile(row).occasions,
+      palette: readStyleProfile(row).palette,
+      fit: readStyleProfile(row).fit,
       formality_min: row?.formality_min ?? null,
       formality_max: row?.formality_max ?? null,
     },
-    { archetype: data.archetype, nogos: data.nogos, occasions: data.occasions, ...range },
+    { archetype: data.archetype, nogos: data.nogos, occasions: data.occasions, palette: data.palette, fit: data.fit, ...range },
   );
 
   if (changed) {

@@ -3,7 +3,7 @@ import type { NoGo } from "@/lib/generator/nogos";
 import { rankTopN } from "@/lib/generator/rank";
 import { scoreCombo, type ScoreItem } from "@/lib/generator/score";
 import { occasionBand, type Weather } from "@/lib/generator/rules";
-import type { OutfitBuilder, TripDay } from "./capsule";
+import { QUALITY_FLOOR, type OutfitBuilder, type TripDay } from "./capsule";
 
 /** The occasion given to a day the mix does not reach. */
 const FILLER_OCCASION = "everyday";
@@ -71,7 +71,15 @@ function datesBetween(start: string, end: string): string[] {
 export function realBuilder(
   closet: CandidateItem[],
   forecastFor: (date: string) => Weather,
-  opts?: { aesthetic?: string[]; rainGuard?: boolean; nogos?: readonly NoGo[]; keepItemIds?: readonly string[] },
+  opts?: {
+    aesthetic?: string[];
+    rainGuard?: boolean;
+    nogos?: readonly NoGo[];
+    keepItemIds?: readonly string[];
+    /** The quiz palette and fit answers (quiz part 2) — very soft score terms. */
+    palette?: string | null;
+    fitPref?: string | null;
+  },
 ): OutfitBuilder {
   const byId = new Map(closet.map((i) => [i.id, i]));
 
@@ -110,13 +118,20 @@ export function realBuilder(
       aesthetic: opts?.aesthetic ?? [],
       band,
       tempC: weather.highC ?? weather.tempC,
+      // Quiz part 2 — the same very soft preferences the daily stylist uses.
+      palette: opts?.palette ?? null,
+      fitPref: opts?.fitPref ?? null,
     };
 
     const ranked = rankTopN(combos as unknown as (ScoreItem & { id: string })[][], {
       ...ctx,
       recentlyShown: recent,
-    }, 1);
-    const top = ranked[0];
+    }, combos.length);
+    const floorCtx = { ...ctx, palette: null, fitPref: null };
+    // Ranking preferences can lift a sub-floor look above a qualifying one.
+    // Choose the first qualifying survivor of the registry in preference order;
+    // retain the best candidate when none qualifies so the solve rejects it.
+    const top = ranked.find(({ items }) => scoreCombo(items, floorCtx) >= QUALITY_FLOOR) ?? ranked[0];
     if (!top) return null;
 
     /**
@@ -133,7 +148,9 @@ export function realBuilder(
      */
     return {
       itemIds: top.items.map((i) => i.id),
-      score: scoreCombo(top.items as unknown as ScoreItem[], ctx),
+      // The floor score WITHOUT the quiz preferences: they steer which look wins, but QUALITY_FLOOR was calibrated
+      // without them, so a soft preference must never be able to push a good look under it (Opus review).
+      score: scoreCombo(top.items, floorCtx),
     };
   };
 }

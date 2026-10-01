@@ -46,7 +46,7 @@ import type {
 import { stylistInputFor, toCandidateItem } from "@/lib/generator/from-row";
 import { FREE } from "@/lib/billing/tiers";
 import { storedLooksBlocked } from "@/lib/generator/nogos";
-import { readNogos } from "@/lib/onboarding/style-profile";
+import { readNogos, readStyleProfile } from "@/lib/onboarding/style-profile";
 import type { MessageKey } from "@/lib/i18n/keys";
 
 export async function generate(input: {
@@ -68,7 +68,7 @@ export async function generate(input: {
     const { data: profile } = await supabase
       .from("profiles")
       .select(
-        "archetype, formality_min, formality_max, nogos, location_lat, location_lon, location_label, location_source, preferences",
+        "archetype, formality_min, formality_max, nogos, palette, fit, location_lat, location_lon, location_label, location_source, preferences",
       )
       .eq("id", user.id)
       .single();
@@ -253,6 +253,8 @@ export async function generate(input: {
     // Season rides along as a ranking preference — in-season combos float to the
     // top of the shortlist the re-ranker sees, but an off-season one is still
     // offered rather than the screen going empty.
+    // Quiz part 2: palette and fit are VERY soft (0.04 each) — a tie-break between similar looks, never a filter.
+    const quiz = readStyleProfile(profile);
     const ranked = rankTopN(
       combos,
       {
@@ -264,6 +266,8 @@ export async function generate(input: {
         // The day's high, not the current reading — the drop is generated once
         // and worn all day. `planningTemp` is the single definition of that.
         tempC: planningTemp(candidateArgs.weather),
+        palette: quiz.palette,
+        fitPref: quiz.fit,
       },
       combos.length,
     );

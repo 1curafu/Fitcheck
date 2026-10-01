@@ -383,7 +383,7 @@
   },
   "styleProfile": {
     "title": "Stilprofil",
-    "intro": "Du kannst jede Antwort ändern. Deine No-Gos, dein Stil und deine Dresscodes wirken sich sofort auf die heutigen Looks aus.",
+    "intro": "Du kannst jede Antwort ändern. Ab heute richten sich deine Looks nach all deinen Antworten.",
     "save": "Änderungen speichern",
     "saving": "Wird gespeichert…",
     "saved": "Gespeichert",
@@ -901,6 +901,7 @@
     "wornTimes": "{n}-mal getragen",
     "thatPiece": "Dieses Teil",
     "reasonPairs": "Es passt zu mehr Teilen deines Schranks als alles andere, was dir fehlt.",
+    "reasonNogos": "Deine No-Gos schließen {hidden} aus, die du besitzt – deshalb fällt auch der Rest weg.",
     "reasonCounts": "Du hast {mine} gegenüber {deepest} — das bremst den Rest.",
     "slot": {
       "Tops": "{n, plural, one {# Oberteil} other {# Oberteile}}",
