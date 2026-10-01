@@ -29,7 +29,7 @@ import {
 import { resolveLocation } from "@/lib/weather/location";
 import type { LookDraft, LookPiece, WeatherPayload } from "@/lib/generator/types";
 import { stylistInputFor, toCandidateItem } from "@/lib/generator/from-row";
-import { readNogos } from "@/lib/onboarding/style-profile";
+import { readNogos, readStyleProfile } from "@/lib/onboarding/style-profile";
 import type { MessageKey } from "@/lib/i18n/keys";
 
 export type StyleResult =
@@ -67,7 +67,7 @@ export async function styleWithItem(
     const { data: profile } = await supabase
       .from("profiles")
       .select(
-        "archetype, formality_min, formality_max, nogos, occasions, location_lat, location_lon, location_label, location_source, location_timezone, preferences",
+        "archetype, formality_min, formality_max, nogos, palette, fit, occasions, location_lat, location_lon, location_label, location_source, location_timezone, preferences",
       )
       .eq("id", user.id)
       .single();
@@ -198,6 +198,8 @@ export async function styleWithItem(
         )
       : [];
 
+    // Quiz part 2: the same very soft palette and fit preferences the daily stylist uses.
+    const quiz = readStyleProfile(profile);
     let pinned: ReturnType<typeof rankTopN> = [];
     for (const band of [personalBand(occasion, profile), [1, 5] as [number, number]]) {
       const combos = buildCandidates(candItems, { ...args, band });
@@ -206,7 +208,7 @@ export async function styleWithItem(
         // Styling a chosen piece is weather-aware too: the plan only names the
         // daily path, but a look built around your favourite jumper still has
         // to be wearable at today's temperature.
-        { aesthetic, band, lean: [], recentlyShown, season: args.season, tempC: planningTemp(args.weather) },
+        { aesthetic, band, lean: [], recentlyShown, season: args.season, tempC: planningTemp(args.weather), palette: quiz.palette, fitPref: quiz.fit },
         combos.length,
       );
       pinned = pinItem(ranked, itemId);

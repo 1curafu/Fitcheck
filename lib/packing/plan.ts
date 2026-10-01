@@ -71,7 +71,15 @@ function datesBetween(start: string, end: string): string[] {
 export function realBuilder(
   closet: CandidateItem[],
   forecastFor: (date: string) => Weather,
-  opts?: { aesthetic?: string[]; rainGuard?: boolean; nogos?: readonly NoGo[]; keepItemIds?: readonly string[] },
+  opts?: {
+    aesthetic?: string[];
+    rainGuard?: boolean;
+    nogos?: readonly NoGo[];
+    keepItemIds?: readonly string[];
+    /** The quiz palette and fit answers (quiz part 2) — very soft score terms. */
+    palette?: string | null;
+    fitPref?: string | null;
+  },
 ): OutfitBuilder {
   const byId = new Map(closet.map((i) => [i.id, i]));
 
@@ -110,6 +118,9 @@ export function realBuilder(
       aesthetic: opts?.aesthetic ?? [],
       band,
       tempC: weather.highC ?? weather.tempC,
+      // Quiz part 2 — the same very soft preferences the daily stylist uses.
+      palette: opts?.palette ?? null,
+      fitPref: opts?.fitPref ?? null,
     };
 
     const ranked = rankTopN(combos as unknown as (ScoreItem & { id: string })[][], {
