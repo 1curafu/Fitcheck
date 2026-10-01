@@ -37,7 +37,8 @@
     "legalLead": "Ao continuar, aceitas os",
     "terms": "Termos",
     "and": "e a",
-    "privacy": "Política de Privacidade"
+    "privacy": "Política de Privacidade",
+    "support": "Precisas de ajuda?"
   },
   "home": {
     "metadata": {
@@ -1003,7 +1004,9 @@
       "stop": "Deixar de partilhar",
       "stopFailed": "Não foi possível deixar de partilhar. Tenta novamente."
     },
-    "language": "Idioma"
+    "language": "Idioma",
+    "support": "Apoio",
+    "supportDescription": "Escreve à equipa Fitcheck"
   },
   "billing": {
     "pro": "Pro",
@@ -1202,5 +1205,45 @@
     "title": "Idioma",
     "close": "Fechar a escolha de idioma",
     "saveFailed": "Não foi possível mudar o idioma. Tenta novamente."
+  },
+  "support": {
+    "title": "Apoio",
+    "description": "Tens problemas com o Fitcheck? Escreve-nos.",
+    "metadataDescription": "Contacta a equipa Fitcheck para obter ajuda com a tua conta, os pagamentos ou a aplicação.",
+    "replyEmail": "E-mail para a resposta",
+    "topic": "Assunto",
+    "message": "Mensagem",
+    "messageHint": "Explica o que aconteceu e o que esperavas. Usa entre 10 e 4 000 caracteres.",
+    "sensitiveHint": "Não incluas palavras-passe, dados de cartões de pagamento nem códigos de início de sessão.",
+    "send": "Enviar mensagem",
+    "sending": "A enviar…",
+    "sentTitle": "Mensagem enviada",
+    "sentBody": "Responderemos por e-mail.",
+    "anotherMessage": "Escrever outra mensagem",
+    "emailFallback": "Enviar-nos um e-mail",
+    "unavailableBody": "O formulário está indisponível de momento. Podes continuar a escrever-nos por e-mail.",
+    "verificationLabel": "Proteção contra mensagens indesejadas",
+    "verificationRetry": "Repetir a verificação",
+    "privacyHint": "Lê como tratamos a tua mensagem na nossa Política de Privacidade.",
+    "backHome": "Voltar ao Fitcheck",
+    "topics": {
+      "account": "Conta",
+      "billing": "Pagamentos",
+      "technical": "Problema técnico",
+      "feedback": "Opinião",
+      "other": "Outro"
+    },
+    "validation": {
+      "replyEmail": "Introduz um endereço de e-mail válido, com até 254 caracteres.",
+      "topic": "Escolhe um assunto da lista.",
+      "message": "Escreve uma mensagem com 10 a 4 000 caracteres.",
+      "general": "Verifica o formulário e tenta novamente."
+    },
+    "results": {
+      "sent": "Mensagem enviada. Responderemos por e-mail.",
+      "verificationFailed": "Não foi possível confirmar a verificação contra mensagens indesejadas. Tenta novamente ou escreve-nos por e-mail.",
+      "unavailable": "O formulário está indisponível de momento. Podes continuar a escrever-nos por e-mail.",
+      "failed": "Não foi possível confirmar o envio da tua mensagem. Tenta novamente ou escreve-nos por e-mail."
+    }
   }
 }

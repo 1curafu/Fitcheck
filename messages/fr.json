@@ -37,7 +37,8 @@
     "legalLead": "En continuant, tu acceptes les",
     "terms": "Conditions",
     "and": "et la",
-    "privacy": "Politique de confidentialité"
+    "privacy": "Politique de confidentialité",
+    "support": "Besoin d’aide ?"
   },
   "home": {
     "metadata": {
@@ -1003,7 +1004,9 @@
       "stop": "Arrêter le partage",
       "stopFailed": "Impossible d’arrêter le partage. Réessaie."
     },
-    "language": "Langue"
+    "language": "Langue",
+    "support": "Assistance",
+    "supportDescription": "Écris à l’équipe Fitcheck"
   },
   "billing": {
     "pro": "Pro",
@@ -1202,5 +1205,45 @@
     "title": "Langue",
     "close": "Fermer le choix de la langue",
     "saveFailed": "Impossible de changer la langue. Réessaie."
+  },
+  "support": {
+    "title": "Assistance",
+    "description": "Un problème avec Fitcheck ? Écris-nous.",
+    "metadataDescription": "Contacte l’équipe Fitcheck pour obtenir de l’aide avec ton compte, les paiements ou l’application.",
+    "replyEmail": "E-mail pour la réponse",
+    "topic": "Sujet",
+    "message": "Message",
+    "messageHint": "Explique ce qui s’est passé et ce que tu attendais. Utilise 10 à 4 000 caractères.",
+    "sensitiveHint": "N’inclus pas de mot de passe, de données de carte bancaire ni de code de connexion.",
+    "send": "Envoyer le message",
+    "sending": "Envoi…",
+    "sentTitle": "Message envoyé",
+    "sentBody": "Nous répondrons par e-mail.",
+    "anotherMessage": "Écrire un autre message",
+    "emailFallback": "Nous écrire par e-mail",
+    "unavailableBody": "Le formulaire est indisponible pour le moment. Tu peux toujours nous écrire par e-mail.",
+    "verificationLabel": "Protection contre les indésirables",
+    "verificationRetry": "Réessayer la vérification",
+    "privacyHint": "Consulte notre Politique de confidentialité pour savoir comment nous traitons ton message.",
+    "backHome": "Retour à Fitcheck",
+    "topics": {
+      "account": "Compte",
+      "billing": "Paiement",
+      "technical": "Problème technique",
+      "feedback": "Avis",
+      "other": "Autre"
+    },
+    "validation": {
+      "replyEmail": "Saisis une adresse e-mail valide de 254 caractères maximum.",
+      "topic": "Choisis un sujet dans la liste.",
+      "message": "Écris un message de 10 à 4 000 caractères.",
+      "general": "Vérifie le formulaire et réessaie."
+    },
+    "results": {
+      "sent": "Message envoyé. Nous répondrons par e-mail.",
+      "verificationFailed": "La vérification anti-indésirables n’a pas pu être confirmée. Réessaie ou écris-nous par e-mail.",
+      "unavailable": "Le formulaire est indisponible pour le moment. Tu peux toujours nous écrire par e-mail.",
+      "failed": "Nous n’avons pas pu confirmer l’envoi de ton message. Réessaie ou écris-nous par e-mail."
+    }
   }
 }

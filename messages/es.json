@@ -37,7 +37,8 @@
     "legalLead": "Al continuar, aceptas los",
     "terms": "Términos",
     "and": "y la",
-    "privacy": "Política de privacidad"
+    "privacy": "Política de privacidad",
+    "support": "¿Necesitas ayuda?"
   },
   "home": {
     "metadata": {
@@ -1003,7 +1004,9 @@
       "stop": "Dejar de compartir",
       "stopFailed": "No se ha podido dejar de compartir. Inténtalo de nuevo."
     },
-    "language": "Idioma"
+    "language": "Idioma",
+    "support": "Ayuda",
+    "supportDescription": "Escribe al equipo Fitcheck"
   },
   "billing": {
     "pro": "Pro",
@@ -1202,5 +1205,45 @@
     "title": "Idioma",
     "close": "Cerrar la selección de idioma",
     "saveFailed": "No se ha podido cambiar el idioma. Inténtalo de nuevo."
+  },
+  "support": {
+    "title": "Ayuda",
+    "description": "¿Tienes problemas con Fitcheck? Escríbenos.",
+    "metadataDescription": "Contacta con el equipo Fitcheck para obtener ayuda con tu cuenta, los pagos o la aplicación.",
+    "replyEmail": "Correo para la respuesta",
+    "topic": "Tema",
+    "message": "Mensaje",
+    "messageHint": "Explica qué pasó y qué esperabas. Usa entre 10 y 4.000 caracteres.",
+    "sensitiveHint": "No incluyas contraseñas, datos de tarjetas de pago ni códigos de acceso.",
+    "send": "Enviar mensaje",
+    "sending": "Enviando…",
+    "sentTitle": "Mensaje enviado",
+    "sentBody": "Responderemos por correo.",
+    "anotherMessage": "Escribir otro mensaje",
+    "emailFallback": "Escribirnos por correo",
+    "unavailableBody": "El formulario no está disponible ahora. Puedes seguir escribiéndonos por correo.",
+    "verificationLabel": "Protección contra correo no deseado",
+    "verificationRetry": "Repetir la verificación",
+    "privacyHint": "Lee cómo tratamos tu mensaje en nuestra Política de privacidad.",
+    "backHome": "Volver a Fitcheck",
+    "topics": {
+      "account": "Cuenta",
+      "billing": "Pagos",
+      "technical": "Problema técnico",
+      "feedback": "Opinión",
+      "other": "Otro"
+    },
+    "validation": {
+      "replyEmail": "Introduce una dirección de correo válida, de hasta 254 caracteres.",
+      "topic": "Elige un tema de la lista.",
+      "message": "Escribe un mensaje de entre 10 y 4.000 caracteres.",
+      "general": "Revisa el formulario e inténtalo de nuevo."
+    },
+    "results": {
+      "sent": "Mensaje enviado. Responderemos por correo.",
+      "verificationFailed": "No se pudo confirmar la verificación contra correo no deseado. Inténtalo de nuevo o escríbenos por correo.",
+      "unavailable": "El formulario no está disponible ahora. Puedes seguir escribiéndonos por correo.",
+      "failed": "No se pudo confirmar el envío de tu mensaje. Inténtalo de nuevo o escríbenos por correo."
+    }
   }
 }
