@@ -901,7 +901,7 @@
     "wornTimes": "Portée {n} fois",
     "thatPiece": "Cette pièce",
     "reasonPairs": "Elle s’accorde avec plus de ta garde-robe que tout ce qui te manque.",
-    "reasonNogos": "Ce que tu veux éviter exclut {hidden} que tu possèdes — c’est ce qui freine le reste.",
+    "reasonNogos": "Ce que tu veux éviter exclut {hidden} que tu possèdes — c’est ce qui bloque le reste.",
     "reasonCounts": "Tu as {mine} contre {deepest} — c’est ce qui freine le reste.",
     "slot": {
       "Tops": "{n, plural, one {# haut} other {# hauts}}",

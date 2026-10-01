@@ -895,7 +895,7 @@
     "wornTimes": "{n} keer gedragen",
     "thatPiece": "Dat stuk",
     "reasonPairs": "Het past bij meer van je kast dan al het andere dat je mist.",
-    "reasonNogos": "Je no-go’s sluiten {hidden} uit die je hebt — dat remt de rest.",
+    "reasonNogos": "Je no-go’s sluiten {hidden} uit die je hebt — daardoor valt de rest ook af.",
     "reasonCounts": "Je hebt {mine} tegenover {deepest} — dat houdt de rest tegen.",
     "slot": {
       "Tops": "{n, plural, one {# bovenstuk} other {# bovenstukken}}",
