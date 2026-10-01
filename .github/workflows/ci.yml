@@ -118,6 +118,7 @@ jobs:
       - name: Build
         env:
           NEXT_PUBLIC_BILLING_ENABLED: "1"
+          FITCHECK_STUB_SUPPORT: "1"
         run: npm run build
 
       - name: End-to-end tests
