@@ -44,3 +44,13 @@ it("reports invalid JSON and thrown exceptions without leaking them", async () =
   vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("sending-secret")));
   expect(await sendSupportEmail(email, validInput.submissionId, runtime)).toEqual({ status: "failed", reason: "network" });
 });
+
+it("aborts a rejected transport without reading its private response body", async () => {
+  let signal: AbortSignal | undefined;
+  const response = new Response("private provider body", { status: 429 });
+  const parse = vi.spyOn(response, "json");
+  vi.stubGlobal("fetch", vi.fn((_url, options) => { signal = options.signal; return Promise.resolve(response); }));
+  expect(await sendSupportEmail(email, validInput.submissionId, runtime)).toEqual({ status: "failed", reason: "http", httpClass: "4xx" });
+  expect(parse).not.toHaveBeenCalled();
+  expect(signal?.aborted).toBe(true);
+});

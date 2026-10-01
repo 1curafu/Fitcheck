@@ -21,6 +21,8 @@ export async function requestSupportJson(
       (async (): Promise<{ status: "ok"; body: unknown } | ProviderFailure> => {
         const response = await request(controller.signal);
         if (!response.ok) {
+          // Stop the unread error body as well as returning a bounded failure.
+          controller.abort();
           const httpClass = response.status >= 400 && response.status < 500 ? "4xx"
             : response.status >= 500 && response.status < 600 ? "5xx" : "other";
           return { status: "failed", reason: "http", httpClass };

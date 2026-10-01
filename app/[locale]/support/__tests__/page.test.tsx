@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { messagesFor } from "@/lib/i18n/messages";
-const form = vi.hoisted(() => vi.fn((_props: Record<string, unknown>) => <div>Form</div>));
+const form = vi.hoisted(() => vi.fn((props: Record<string, unknown>) => <div>{props.enabled ? "Form" : "Fallback"}</div>));
 vi.mock("@/components/support/support-form", () => ({ SupportForm: form }));
 vi.mock("@/lib/support/config", () => ({ getSupportPageConfig: () => ({ enabled: true, siteKey: "public-key" }) }));
 vi.mock("../actions", () => ({ sendSupportMessage: vi.fn() }));

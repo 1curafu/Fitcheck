@@ -82,7 +82,7 @@ export function SupportForm({ enabled, siteKey, onSendAction }: {
     });
   }
   const errors = result?.status === "invalid" ? result.fieldErrors : {};
-  const error = (field: SupportField) => errors[field] && <p id={`support-${field}-error`} className="mt-2 text-sm text-destructive">{errors[field]}</p>;
+  const error = (field: SupportField) => errors[field] && <p id={`support-${field}-error`} className="mt-2 text-sm text-brand-high">{errors[field]}</p>;
   const fallback = <div className="mt-6 space-y-2 text-sm">
     <a href={`mailto:${SUPPORT_EMAIL}`} className="inline-flex min-h-11 items-center text-brand underline underline-offset-4">{t("emailFallback")}</a>
     <p><Link href="/privacy" className="inline-flex min-h-11 items-center text-muted-foreground underline underline-offset-4">{t("privacyHint")}</Link></p>
@@ -114,11 +114,19 @@ export function SupportForm({ enabled, siteKey, onSendAction }: {
         <textarea id="support-message" ref={node => { if (node) fields.current.message = node; }} name="message" rows={6} minLength={10} maxLength={4000} required value={message} disabled={isPending}
           aria-invalid={!!errors.message} aria-describedby={`support-message-hint${errors.message ? " support-message-error" : ""}`}
           onChange={event => { edit(); setMessage(event.target.value); }} className={`${INPUT} resize-y`} />
-        <p id="support-message-hint" className="mt-2 text-xs leading-relaxed text-muted-dim">{t("messageHint")} {t("sensitiveHint")}</p>{error("message")}
+        <p id="support-message-hint" className="mt-2 text-xs leading-relaxed text-muted-foreground">{t("messageHint")} {t("sensitiveHint")}</p>{error("message")}
       </div>
       <SupportTurnstile siteKey={siteKey} refreshKey={refreshKey} onToken={onToken} onUnavailable={onUnavailable} />
-      {verificationUnavailable && <div className="text-sm text-muted-foreground"><p>{t("results.verificationFailed")}</p><button type="button" disabled={isPending} onClick={refresh} className="min-h-11 text-brand underline underline-offset-4">{t("verificationRetry")}</button></div>}
-      {result && <div ref={status} role="status" tabIndex={-1} className="text-sm text-muted-foreground outline-none">{result.message}</div>}
+      {(result || verificationUnavailable) && (
+        <div ref={status} role="status" tabIndex={-1} className="text-sm text-muted-foreground outline-none">
+          {result?.message ?? t("results.verificationFailed")}
+          {verificationUnavailable && (
+            <button type="button" disabled={isPending} onClick={refresh} className="block min-h-11 text-brand underline underline-offset-4">
+              {t("verificationRetry")}
+            </button>
+          )}
+        </div>
+      )}
       <button type="submit" disabled={isPending || !token} className={BUTTON}>{t(isPending ? "sending" : "send")}</button>
     </form>{fallback}
   </section>;

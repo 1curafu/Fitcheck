@@ -747,13 +747,7 @@
       "description": "Gekleed voor {occasion} — stel de rest bij.",
       "formality": "Formaliteit",
       "leanInto": "Meer richting",
-      "palette": {
-        "neutral": "neutraal",
-        "camel": "camel",
-        "navy": "marine",
-        "olive": "olijf",
-        "dark": "donker"
-      },
+      "palette": { "neutral": "neutraal", "camel": "camel", "navy": "marine", "olive": "olijf", "dark": "donker" },
       "showLooks": "Toon 3 looks"
     }
   },

@@ -111,9 +111,19 @@ it("clears expired challenges and recreates verification on explicit retry", () 
   fireEvent.click(screen.getByText("Load challenge")); act(() => captured[0].callback("solved"));
   expect(screen.getByRole("button", { name: "Send message" })).toBeEnabled();
   act(() => captured[0]["expired-callback"]()); submit(); expect(action).not.toHaveBeenCalled();
-  act(() => captured[0]["error-callback"]()); fireEvent.click(screen.getByRole("button", { name: "Try verification again" }));
+  act(() => captured[0]["error-callback"]());
+  expect(screen.getAllByRole("status")).toHaveLength(1);
+  expect(screen.getByRole("status")).toHaveTextContent("couldn't verify");
+  fireEvent.click(screen.getByRole("button", { name: "Try verification again" }));
   expect(captured).toHaveLength(2); act(() => captured[0].callback("stale"));
   expect(screen.getByRole("button", { name: "Send message" })).toBeDisabled();
   act(() => captured[1].callback("fresh")); expect(screen.getByRole("button", { name: "Send message" })).toBeEnabled();
   expect(screen.getByLabelText("Message")).toHaveValue(validInput.message);
+});
+
+it("guards two submits within the same browser event batch", async () => {
+  const pending = deferred(); const action = vi.fn().mockReturnValue(pending.promise); mount(action); fill();
+  const form = screen.getByRole("button", { name: "Send message" }).closest("form")!;
+  act(() => { fireEvent.submit(form); fireEvent.submit(form); });
+  expect(action).toHaveBeenCalledTimes(1); await act(async () => pending.resolve(failure));
 });

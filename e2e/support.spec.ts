@@ -92,3 +92,19 @@ test.describe("signed-in support", () => {
     await expect(page.getByLabel(t.replyEmail)).toHaveValue("");
   });
 });
+
+test.describe("public support server validation", () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+  test("a whitespace-only draft stays editable and focuses the server field error", async ({ page }) => {
+    await page.goto("/support");
+    await page.getByLabel("Reply email").fill("reader@example.com");
+    await page.getByLabel("Message", { exact: true }).fill("          ");
+    await page.getByRole("button", { name: "Send message", exact: true }).click();
+    await expect(page.getByRole("status")).toContainText("Check the form and try again.");
+    await expect(page.getByLabel("Message", { exact: true })).toBeFocused();
+    await expect(page.getByLabel("Message", { exact: true })).toHaveValue("          ");
+    await expect(page.getByLabel("Message", { exact: true })).toHaveAttribute("aria-invalid", "true");
+    await expect(page.getByRole("button", { name: "Send message", exact: true })).toBeEnabled();
+    await page.screenshot({ path: ".superpowers/sdd/2026-10-01-support-page/support-field-error.png", fullPage: true });
+  });
+});

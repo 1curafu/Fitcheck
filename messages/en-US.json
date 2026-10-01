@@ -45,14 +45,8 @@
       "title": "Fitcheck — outfits from the clothes you already own",
       "description": "Add your wardrobe once. Every day, three looks from your own clothes for the weather and the occasion, each with one line on why it works. Free to start."
     },
-    "signInMetadata": {
-      "title": "Sign in"
-    },
-    "nav": {
-      "label": "Account",
-      "signIn": "Sign in",
-      "home": "Fitcheck home"
-    },
+    "signInMetadata": { "title": "Sign in" },
+    "nav": { "label": "Account", "signIn": "Sign in", "home": "Fitcheck home" },
     "hero": {
       "kicker": "Your AI stylist",
       "titleLead": "Outfits from the clothes",
@@ -72,18 +66,9 @@
       "advice": "so a knit is enough."
     },
     "looks": {
-      "quietNavy": {
-        "name": "The Quiet Navy",
-        "why": "The navy sweater stands out against the white trousers, and white leather sneakers keep it light for a mild afternoon."
-      },
-      "blueStone": {
-        "name": "Blue & Stone",
-        "why": "The light blue shirt keeps the stone trousers crisp, and cream sneakers soften it for a relaxed day."
-      },
-      "creamDenim": {
-        "name": "Cream & Denim",
-        "why": "The cream knit polo softens the light-wash jeans, and pale blue sneakers pick up the denim for an easy day."
-      }
+      "quietNavy": { "name": "The Quiet Navy", "why": "The navy sweater stands out against the white trousers, and white leather sneakers keep it light for a mild afternoon." },
+      "blueStone": { "name": "Blue & Stone", "why": "The light blue shirt keeps the stone trousers crisp, and cream sneakers soften it for a relaxed day." },
+      "creamDenim": { "name": "Cream & Denim", "why": "The cream knit polo softens the light-wash jeans, and pale blue sneakers pick up the denim for an easy day." }
     },
     "pieces": {
       "navySweater": "Navy crew-neck sweater",
@@ -102,18 +87,9 @@
       "kicker": "How it works",
       "title": "Photograph your clothes once. Get dressed every day after.",
       "steps": {
-        "add": {
-          "title": "Add your clothes",
-          "body": "Take a photo of each piece. The background is removed on your phone, and Fitcheck suggests the tags for you to check or correct."
-        },
-        "looks": {
-          "title": "Get today's looks",
-          "body": "Choose work, everyday, weekend or evening. Fitcheck builds three outfits from your closet for today's forecast."
-        },
-        "wear": {
-          "title": "Save it or wear it",
-          "body": "Keep the looks you like and mark the one you wear. It goes into your diary, so you can see what you actually reach for."
-        }
+        "add": { "title": "Add your clothes", "body": "Take a photo of each piece. The background is removed on your phone, and Fitcheck suggests the tags for you to check or correct." },
+        "looks": { "title": "Get today's looks", "body": "Choose work, everyday, weekend or evening. Fitcheck builds three outfits from your closet for today's forecast." },
+        "wear": { "title": "Save it or wear it", "body": "Keep the looks you like and mark the one you wear. It goes into your diary, so you can see what you actually reach for." }
       },
       "effortLead": "It starts with a few photos.",
       "effortBody": "Fitcheck can only style what it has seen, so the first step is adding {count} pieces: a couple of tops, a pair of trousers and shoes. The more you add, the better the looks get."
@@ -131,29 +107,14 @@
     "features": {
       "kicker": "What you get",
       "title": "A stylist that already knows your wardrobe.",
-      "daily": {
-        "title": "Three looks every day",
-        "body": "A fresh set each morning for every occasion. Switching between occasions costs nothing and never runs out."
-      },
-      "weather": {
-        "title": "Dressed for the forecast",
-        "body": "Looks are chosen for the warmest part of your day where you are, so the knit and the jacket show up when you need them."
-      },
-      "occasion": {
-        "title": "Right for where you're going",
-        "body": "Work, everyday, weekend or evening, kept inside the dress codes you set when you start."
-      },
-      "wardrobe": {
-        "title": "More from what you own",
-        "body": "Combinations you might not have thought of, built from pieces already in your closet."
-      },
+      "daily": { "title": "Three looks every day", "body": "A fresh set each morning for every occasion. Switching between occasions costs nothing and never runs out." },
+      "weather": { "title": "Dressed for the forecast", "body": "Looks are chosen for the warmest part of your day where you are, so the knit and the jacket show up when you need them." },
+      "occasion": { "title": "Right for where you're going", "body": "Work, everyday, weekend or evening, kept inside the dress codes you set when you start." },
+      "wardrobe": { "title": "More from what you own", "body": "Combinations you might not have thought of, built from pieces already in your closet." },
       "proKicker": "Fitcheck Pro",
       "pro": "Pro",
       "free": "Free",
-      "share": {
-        "title": "Share a look",
-        "body": "A story or post image of your outfit, or an unlisted link that expires after 30 days."
-      }
+      "share": { "title": "Share a look", "body": "A story or post image of your outfit, or an unlisted link that expires after 30 days." }
     },
     "plans": {
       "kicker": "Free and Pro",
@@ -174,22 +135,10 @@
       "kicker": "Your photos",
       "title": "Your closet stays private.",
       "body": "Here is what happens to a photo after you take it.",
-      "device": {
-        "title": "The cut-out is made on your phone",
-        "body": "Background removal runs on your device, before anything is uploaded."
-      },
-      "storage": {
-        "title": "Stored privately in the EU",
-        "body": "Photos sit in private storage and are shown only to you, through links that expire after a short time, unless you share a look."
-      },
-      "ai": {
-        "title": "The AI sees each photo once",
-        "body": "A cut-out is sent once to suggest its tags. Outfits are then chosen from those tags as text, never from your photos."
-      },
-      "cookies": {
-        "title": "No tracking cookies, real deletion",
-        "body": "Visits are counted without cookies. Deleting your account in Settings removes your photos and data."
-      }
+      "device": { "title": "The cut-out is made on your phone", "body": "Background removal runs on your device, before anything is uploaded." },
+      "storage": { "title": "Stored privately in the EU", "body": "Photos sit in private storage and are shown only to you, through links that expire after a short time, unless you share a look." },
+      "ai": { "title": "The AI sees each photo once", "body": "A cut-out is sent once to suggest its tags. Outfits are then chosen from those tags as text, never from your photos." },
+      "cookies": { "title": "No tracking cookies, real deletion", "body": "Visits are counted without cookies. Deleting your account in Settings removes your photos and data." }
     },
     "final": {
       "kicker": "Free to start",
@@ -197,10 +146,7 @@
       "line": "A few photos and a minute of tagging, and tomorrow's outfit is already waiting.",
       "note": "Sign in with Google or email"
     },
-    "footer": {
-      "legal": "Legal",
-      "copyright": "© Fitcheck"
-    }
+    "footer": { "legal": "Legal", "copyright": "© Fitcheck" }
   },
   "auth": {
     "signInFailed": "Sign-in didn’t go through. Try again — an email link works once and expires after a while.",
@@ -747,13 +693,7 @@
       "description": "Dressing for {occasion} — nudge the rest.",
       "formality": "Formality",
       "leanInto": "Lean into",
-      "palette": {
-        "neutral": "neutral",
-        "camel": "camel",
-        "navy": "navy",
-        "olive": "olive",
-        "dark": "dark"
-      },
+      "palette": { "neutral": "neutral", "camel": "camel", "navy": "navy", "olive": "olive", "dark": "dark" },
       "showLooks": "Show 3 looks"
     }
   },
