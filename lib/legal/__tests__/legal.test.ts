@@ -52,7 +52,7 @@ test("every data-handling dependency in package.json is disclosed, in the proces
 test("the services the code calls directly are named too", () => {
   // Not npm packages, so the check above cannot see them.
   const policy = text(PRIVACY);
-  for (const name of ["OpenWeather", "Google", "Resend"]) expect(policy).toContain(name);
+  for (const name of ["OpenWeather", "Google", "Resend", "Cloudflare"]) expect(policy).toContain(name);
 });
 
 test("what the AI receives is stated precisely — photos for tagging, text for reasoning", () => {
@@ -187,3 +187,26 @@ for (const [name, documents] of [["privacy", PRIVACY_BY_LOCALE], ["terms", TERMS
     expect(intro.search(rule)).toBeLessThan(120);
   });
 }
+
+test.each(CONTENT_LOCALES)("%s explains support correspondence separately from account deletion", locale => {
+  const doc = PRIVACY_BY_LOCALE[locale];
+  const section = doc.sections.find(part => part.id === "contacting-support");
+  expect(section, locale).toBeDefined();
+  const body = JSON.stringify(section);
+  for (const fact of ["support@fitcheck.space", "Resend", "Cloudflare Turnstile", "90", "legal@fitcheck.space"]) expect(body).toContain(fact);
+  expect(doc.updated).toBe("2026-10-01");
+});
+test("direct support processors explain their data and the retention promise", () => {
+  expect(processorsSection()).toMatch(/Resend.*support messages/i);
+  expect(processorsSection()).toMatch(/Cloudflare Turnstile.*browser.*spam/i);
+  const body = JSON.stringify(PRIVACY.sections.find(part => part.id === "contacting-support"));
+  expect(body).toMatch(/reply email.*topic.*message/i);
+  expect(body).toMatch(/account deletion does not automatically/i);
+  expect(body).toMatch(/90 days.*last reply/i);
+  expect(body).toMatch(/controller.*bot detection/i);
+});
+
+test.each(CONTENT_LOCALES)("%s discloses Cloudflare in cross-border transfers", locale => {
+  const section = PRIVACY_BY_LOCALE[locale].sections.find(part => part.id === "data-leaving-europe");
+  expect(section?.paragraphs.join(" ")).toContain("Cloudflare");
+});

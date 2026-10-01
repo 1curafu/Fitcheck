@@ -37,9 +37,19 @@ export const PRIVACY_DE: LegalDocument = {
       ],
     },
     {
+      id: "contacting-support",
+      heading: "Kontakt mit dem Support",
+      paragraphs: [
+        "Wenn du support@fitcheck.space kontaktierst, verwenden wir deine Antwortadresse, das gewählte Thema und deine Nachricht, um dir zu helfen. Das Formular fügt weder deinen Kleiderschrank noch dein Konto oder deinen Standort hinzu. Die angegebene Adresse ist eine Antwortadresse und kein Nachweis der Kontoinhaberschaft.",
+        "Resend stellt Supportnachrichten in unserem Postfach zu. Cloudflare Turnstile prüft Browsersignale auf Spam; wir senden ihm weder deine Nachricht noch deine Antwortadresse. Die App fügt der serverseitigen Prüfung keine IP-Adresse hinzu, das Widget kann sie jedoch verarbeiten. Cloudflare ist Auftragsverarbeiter für die Sicherheit der Website und Verantwortlicher bei der Verbesserung der Bot-Erkennung.",
+        "Wir löschen abgeschlossene Supportkorrespondenz und den Papierkorb des Postfachs innerhalb von 90 Tagen nach der letzten Antwort. Die Kontolöschung entfernt Support-E-Mails nicht automatisch. Schreibe für deren Löschung an legal@fitcheck.space. Zustellungsprotokolle der Anbieter unterliegen deren eigenen Aufbewahrungsregeln.",
+      ],
+    },
+    {
       id: "why-we-use-it",
       heading: "Wozu wir sie nutzen",
       paragraphs: [
+        "Um Supportanfragen zu beantworten und das Formular vor Spam zu schützen. Nach der DSGVO ist dies unser berechtigtes Interesse, Menschen zu helfen und den Dienst sicher zu halten.",
         "Um den Dienst zu betreiben, für den du dich angemeldet hast — deine Kleidung taggen, Looks bauen, dir merken, was du getragen hast. Nach der DSGVO ist das die Erfüllung eines Vertrags.",
         "Um die App am Laufen zu halten und Fehler zu finden. Nach der DSGVO ist das unser berechtigtes Interesse, und es beschränkt sich auf Fehlerberichte.",
         "Um dir Pro zu verkaufen und es eingeschaltet zu lassen, solange du dafür zahlst. Wieder ein Vertrag, dazu die Buchhaltung, die das Gesetz verlangt.",
@@ -57,7 +67,8 @@ export const PRIVACY_DE: LegalDocument = {
         "Anthropic (USA) — die KI, die deine Kleidung taggt. Sie erhält das freigestellte Foto eines Kleidungsstücks, um es zu beschreiben, und kurze Textbeschreibungen von Teilen — nie Fotos —, um über Outfits nachzudenken. Anthropic trainiert seine Modelle nicht mit Daten, die über seine API gesendet werden.",
         "OpenWeather — erhält deine Koordinaten, um eine Vorhersage zu liefern. Sonst nichts.",
         "Google — nur wenn du dich mit Google anmeldest.",
-        "Resend (USA) — versendet die Anmelde-E-Mail.",
+        "Resend (USA) — sendet Anmelde-E-Mails und stellt Supportnachrichten mit deiner Antwortadresse, dem Thema und der Nachricht in unserem Postfach zu.",
+        "Cloudflare Turnstile — erhält auf der Supportseite Sicherheitssignale des Browsers zur Spamprüfung; wir senden ihm weder deine Nachricht noch deine Antwortadresse.",
         "Stripe — wickelt die Zahlung für Pro ab; zusammen mit Link die einzigen, die Kartendaten sehen.",
         "Link (Stripe) — verkauft dir Fitcheck Pro als Händler (Merchant of Record): nimmt deine Zahlung entgegen, berechnet die Mehrwertsteuer und schickt Quittungen, nach eigenen Bedingungen und eigener Datenschutzerklärung. Wenn du dein Fitcheck-Konto löschst, wird dein Abo gekündigt; Link und Stripe behalten die gesetzlich vorgeschriebenen Zahlungsbelege.",
         "Sentry (EU) — erhält Fehlerberichte, damit wir beheben können, was kaputtgegangen ist.",
@@ -68,7 +79,7 @@ export const PRIVACY_DE: LegalDocument = {
       id: "data-leaving-europe",
       heading: "Daten, die Europa verlassen",
       paragraphs: [
-        "Anthropic, Resend, Google und Stripe haben ihren Sitz in den USA oder verarbeiten Daten dort. Übermittlungen an sie stützen sich auf das EU-US Data Privacy Framework, wo der Anbieter zertifiziert ist, und sonst auf die Standardvertragsklauseln der Europäischen Kommission, die die Schweiz mit einem eigenen Zusatz anerkennt. Wo sie es anbieten, betreuen Google und Stripe Nutzer aus der Schweiz und der EU über ihre europäischen Gesellschaften.",
+        "Anthropic, Resend, Cloudflare, Google und Stripe haben ihren Sitz in den USA oder verarbeiten Daten dort. Übermittlungen an sie stützen sich auf das EU-US Data Privacy Framework, wo der Anbieter zertifiziert ist, und sonst auf die Standardvertragsklauseln der Europäischen Kommission, die die Schweiz mit einem eigenen Zusatz anerkennt. Wo sie es anbieten, betreuen Google und Stripe Nutzer aus der Schweiz und der EU über ihre europäischen Gesellschaften.",
       ],
     },
     {
