@@ -342,6 +342,14 @@ export function SettingsView({
           <SharedLinks links={sharedLinks} stop={onStopSharedLinkAction} />
         </div>
 
+        <Link href="/support" className={`${CARD} mt-6 flex min-h-11 items-center gap-[14px] px-4 py-[15px]`}>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[14.5px] text-foreground">{t("support")}</span>
+            <span className="mt-[2px] block text-[12px] text-muted-foreground">{t("supportDescription")}</span>
+          </span>
+          <span aria-hidden className="text-[20px] text-muted-dim">›</span>
+        </Link>
+
         <Kicker>{t("dangerZone")}</Kicker>
         <div className={CARD}>
           <button

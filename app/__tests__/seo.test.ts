@@ -80,3 +80,13 @@ test("public alternates use canonical locale URLs and an English x-default", asy
     pt: `${SITE_URL}/pt/privacy`, es: `${SITE_URL}/es/privacy`, nl: `${SITE_URL}/nl/privacy`, "x-default": `${SITE_URL}/privacy`,
   } });
 });
+
+test("support is public and crawlable, with no indexed locale variants", () => {
+  expect(PUBLIC_PATHS).toContain("/support");
+  expect(NOINDEX_PATHS).toContain("/support");
+  const entry = robots().rules;
+  const rule = Array.isArray(entry) ? entry[0] : entry;
+  expect(rule.allow).toContain("/support");
+  expect(rule.disallow).not.toContain("/support/");
+  expect(sitemap().filter(item => /\/support(?:$|\/)/.test(item.url))).toEqual([]);
+});

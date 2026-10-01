@@ -90,6 +90,7 @@ async function SignInBody({
           {" "}{t("and")}{" "}
           <Link href="/privacy" className="text-muted-foreground underline underline-offset-2">{t("privacy")}</Link>.
         </p>
+        <Link href="/support" className="inline-flex min-h-11 items-center justify-center text-sm text-muted-foreground underline underline-offset-4">{t("support")}</Link>
       </div>
     </main>
   );
