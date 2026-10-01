@@ -1,5 +1,6 @@
 import { SEPARATES_SHAPE, ONE_PIECE_SHAPE } from "@/lib/generator/candidates";
-import { biggestGap, slotCounts, GAP_CANDIDATES, candidatesFor } from "../gap";
+import { readFileSync } from "node:fs";
+import { biggestGap, slotCounts, GAP_CANDIDATES, candidatesFor, denimSafeCount, type GapCandidate } from "../gap";
 import type { CandidateItem } from "@/lib/generator/candidates";
 
 const base = { occasions: ["everyday", "work"] as const };
@@ -275,4 +276,77 @@ test("biggestGap only ever proposes a candidate the closet's shape allows", () =
     if (!best) continue;
     expect(candidatesFor(closet as never).map((c) => c.label)).toContain(best.candidate.label);
   }
+});
+
+describe("quiz part 2: the advice honours the quiz", () => {
+  test("pieces the user's no-gos hide are not counted as owned", () => {
+    const closet = [piece("t1", "Tops"), piece("b1", "Bottoms", { subcategory: "Shorts" }), piece("s1", "Shoes", { colors: ["brown"], material: "Leather" })];
+    expect(slotCounts(closet, ["everyday"]).Bottoms).toBe(1);
+    expect(slotCounts(closet, ["everyday"], { nogos: ["shorts"] }).Bottoms).toBe(0);
+  });
+
+  test("a closet whose only bottoms are ruled out is told to get bottoms — from nothing, so no share", () => {
+    const closet = [piece("t1", "Tops"), piece("b1", "Bottoms", { subcategory: "Shorts" }), piece("s1", "Shoes", { colors: ["brown"], material: "Leather" })];
+    const gap = biggestGap(closet, ["everyday"], { nogos: ["shorts"] });
+    expect(gap?.candidate.category).toBe("Bottoms");
+    expect(gap?.share).toBeNull();
+  });
+
+  test("the user's dress codes narrow what counts: suit trousers are not 'owned' for a smart-casual-only wardrobe", () => {
+    const closet = [piece("t1", "Tops"), piece("b1", "Bottoms", { formality: 5 }), piece("s1", "Shoes", { colors: ["brown"], material: "Leather" })];
+    expect(slotCounts(closet, ["work"]).Bottoms).toBe(1);
+    expect(slotCounts(closet, ["work"], { formality_min: 3, formality_max: 3 }).Bottoms).toBe(0);
+  });
+
+  test("a suggestion the user's no-gos rule out is never made", () => {
+    const loud: GapCandidate = { label: "navyKnit", category: "Tops", colors: ["navy"], formality: 3, branding: "Large" };
+    expect(candidatesFor([piece("t1", "Tops")], { nogos: ["logos"] }, [loud])).toEqual([]);
+    expect(candidatesFor([piece("t1", "Tops")], {}, [loud])).toEqual([loud]);
+  });
+
+  test("dark denim is tagged denim, so the double-denim rule can see it", () => {
+    expect(GAP_CANDIDATES.find((c) => c.label === "darkDenim")?.material).toBe("Denim");
+  });
+
+  test("double denim is counted exactly — equal to brute force on random closets", () => {
+    const rnd = (seed: number) => () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const r = rnd(42);
+    for (let run = 0; run < 200; run++) {
+      const slots = [true, true, false, true].map((garment) => {
+        const n = Math.floor(r() * 4);
+        return { garment, n, d: garment ? Math.floor(r() * (n + 1)) : 0 };
+      });
+      // brute force: every combination, count those with at most one denim garment
+      let brute = 0;
+      const walk = (i: number, denim: number) => {
+        if (i === slots.length) { if (denim <= 1) brute++; return; }
+        for (let k = 0; k < slots[i].n; k++) walk(i + 1, denim + (k < slots[i].d ? 1 : 0));
+      };
+      walk(0, 0);
+      expect(denimSafeCount(slots), JSON.stringify(slots)).toBe(brute);
+    }
+  });
+
+  test("with double denim ruled out, a denim-heavy closet counts fewer buildable outfits", () => {
+    const closet = [
+      piece("t1", "Tops", { material: "Denim" }), piece("t2", "Tops"),
+      piece("b1", "Bottoms", { material: "Denim" }), piece("b2", "Bottoms"),
+      piece("s1", "Shoes", { colors: ["brown"], material: "Leather" }),
+    ];
+    const plain = biggestGap(closet, ["everyday"]);
+    const ruled = biggestGap(closet, ["everyday"], { nogos: ["double_denim"] });
+    expect(plain && ruled).toBeTruthy();
+    expect(ruled!.unlocks / (ruled!.share ?? 1)).toBeLessThan(plain!.unlocks / (plain!.share ?? 1)); // "before" shrank
+  });
+
+  test("without prefs the advice is exactly what it was", () => {
+    const closet = [piece("t1", "Tops"), piece("s1", "Shoes", { colors: ["brown"], material: "Leather" })];
+    expect(biggestGap(closet, ["everyday"], {})).toEqual(biggestGap(closet, ["everyday"]));
+  });
+
+  test("the stats page passes the user's prefs to both calls", () => {
+    const page = readFileSync("app/[locale]/stats/page.tsx", "utf8");
+    expect(page).toMatch(/biggestGap\(closet, ALL_OCCASIONS, gapPrefs\)/);
+    expect(page).toMatch(/slotCounts\(closet, ALL_OCCASIONS, gapPrefs\)/);
+  });
 });
