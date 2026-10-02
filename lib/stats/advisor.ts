@@ -1,10 +1,12 @@
 import { COLORS, COLOR_NAMES, type ColorName } from "@/lib/closet/vocab";
-import type { CandidateItem } from "@/lib/generator/candidates";
+import { buildCandidates, type CandidateItem } from "@/lib/generator/candidates";
+import { scoreCombo } from "@/lib/generator/score";
+import { QUALITY_FLOOR } from "@/lib/packing/capsule";
 import { itemBlocked } from "@/lib/generator/nogos";
 import { personalBand } from "@/lib/generator/rules";
 import type { UiOccasion } from "@/lib/generator/types";
 import { pairingRating } from "@/lib/generator/styling/pairing-ratings";
-import { candidatesFor, relevantOccasions, type GapPrefs } from "./gap";
+import { candidatesFor, relevantOccasions, SIMULATED_CONDITIONS, type GapPrefs } from "./gap";
 
 export type AdvisorPrefs = GapPrefs & { palette?: string | null; fitPref?: string | null; aesthetic?: string[] };
 export const ADVISOR_ARCHETYPES = [
@@ -76,4 +78,95 @@ export function purchaseCandidates(closet: CandidateItem[], prefs?: AdvisorPrefs
     }
   }
   return [...candidates.values()];
+}
+
+export type Ranked = { purchase: Purchase; pairsWith: number; partners: string[]; best: number };
+type ScoredLook = { score: number; ids: string[]; key: string };
+const compareLooks = (a: ScoredLook, b: ScoredLook) => b.score - a.score || a.key.localeCompare(b.key);
+
+export function rankPurchases(closet: CandidateItem[], prefs?: AdvisorPrefs, limit = 3): Ranked[] {
+  if (limit <= 0) return [];
+  const ordered = closet.slice().sort((a, b) => a.id.localeCompare(b.id));
+  const ranked: Ranked[] = [];
+  const signatures = new Map<CandidateItem, number>();
+  const tagIds = new Map<string, number>();
+  const scores = new Map<string, { floor: number; full: number }>();
+  const signature = (item: CandidateItem) => {
+    let value = signatures.get(item);
+    if (value === undefined) {
+      const tags = JSON.stringify(item, (key, value) => key === "id" ? undefined : value);
+      value = tagIds.get(tags);
+      if (value === undefined) {
+        value = tagIds.size;
+        tagIds.set(tags, value);
+      }
+      signatures.set(item, value);
+    }
+    return value;
+  };
+  for (const purchase of purchaseCandidates(ordered, prefs)) {
+    const hypothetical: CandidateItem = {
+      id: "__buy__", category: purchase.category, colors: [purchase.color], formality: purchase.formality,
+      subcategory: purchase.subcategory, material: purchase.material, texture: purchase.texture, pattern: "solid", seasons: [],
+    };
+    const pool = [...ordered.filter(item => item.category !== purchase.category), hypothetical];
+    const partners = new Set<string>();
+    const good: ScoredLook[] = [];
+    for (const occasion of relevantOccasions(ALL_OCCASIONS, prefs)) {
+      const band = personalBand(occasion, prefs ?? null);
+      for (const weather of SIMULATED_CONDITIONS) {
+        const combos = buildCandidates(pool, { band, weather, excludeItemIds: [], maxAccessories: 0, maxBags: 0, nogos: prefs?.nogos });
+        for (const items of combos) {
+          if (!items.some(item => item.id === "__buy__")) continue;
+          // Scores depend on tags, not ids; identical pieces still count as distinct partners.
+          const key = `${band.join(",")}/${weather.tempC}/${items.map(signature).join(",")}`;
+          let values = scores.get(key);
+          if (!values) {
+            const floor = scoreCombo(items, { aesthetic: [], band, tempC: weather.tempC });
+            const full = scoreCombo(items, { aesthetic: prefs?.aesthetic ?? [], band, tempC: weather.tempC, palette: prefs?.palette, fitPref: prefs?.fitPref });
+            values = { floor, full };
+            scores.set(key, values);
+          }
+          const { floor, full } = values;
+          if (floor < QUALITY_FLOOR) continue;
+          const ids = items.filter(item => item.id !== "__buy__").map(item => item.id);
+          for (const id of ids) partners.add(id);
+          const look = { score: full, ids, key: ids.join("|") };
+          if (good.length < 5 || compareLooks(look, good[good.length - 1]) < 0) {
+            good.push(look);
+            good.sort(compareLooks);
+            if (good.length > 5) good.pop();
+          }
+        }
+      }
+    }
+    if (!partners.size) continue;
+    ranked.push({ purchase, pairsWith: partners.size, partners: good[0].ids.slice(0, 2), best: good.reduce((sum, look) => sum + look.score, 0) / good.length });
+  }
+  ranked.sort((a, b) => b.pairsWith - a.pairsWith || b.best - a.best || a.purchase.key.localeCompare(b.purchase.key));
+  const counts = new Map<string, number>();
+  const selected = ranked.filter(row => {
+    const count = counts.get(row.purchase.category) ?? 0;
+    if (count >= 2) return false;
+    counts.set(row.purchase.category, count + 1);
+    return true;
+  }).slice(0, limit);
+  if (selected.length === 3 && closetRead(ordered).kind !== "colourful"
+    && selected.slice(0, 3).every(row => NEUTRALS.includes(row.purchase.color))) {
+    const firstTwo = selected.slice(0, 2);
+    const accent = ranked.find(row => !NEUTRALS.includes(row.purchase.color)
+      && firstTwo.filter(other => other.purchase.category === row.purchase.category).length < 2);
+    if (accent) selected[2] = accent;
+  }
+  return selected;
+}
+
+export type ClosetRead = { kind: "neutral" | "mixed" | "colourful"; top: ColorName[] };
+const READ_NEUTRALS = new Set<string>([...NEUTRALS, "stone", "sand", "taupe", "khaki", "ivory", "tan", "chocolate", "denim"]);
+const GARMENTS = new Set(["Tops", "Bottoms", "One-piece", "Outerwear", "Shoes"]);
+
+export function closetRead(closet: CandidateItem[]): ClosetRead {
+  const garments = closet.filter(item => GARMENTS.has(item.category));
+  const neutralShare = garments.length ? garments.filter(item => READ_NEUTRALS.has(item.colors[0])).length / garments.length : 1;
+  return { kind: neutralShare >= 0.8 ? "neutral" : neutralShare <= 0.6 ? "colourful" : "mixed", top: frequentColours(garments) };
 }
