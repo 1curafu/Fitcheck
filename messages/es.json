@@ -1121,7 +1121,7 @@
     "changePiece": "Cambiar: {name}",
     "tapPiece": "Toca una prenda para cambiarla o dejarla en casa.",
     "capsuleWhy": "{days} días · {pieces} prendas",
-    "coldNights": "Por la noche baja a {temp}: lleva algo de abrigo para la noche.",
+    "coldNights": "Las temperaturas nocturnas bajarán hasta {temp}; lleva algo de abrigo para la noche.",
     "forecastEstimate": "Parte de este viaje queda fuera de la previsión, así que su tiempo es una estimación.",
     "doneCloset": "Listo — volver al armario",
     "seeDays": "Ver los días",

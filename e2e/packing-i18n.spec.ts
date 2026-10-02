@@ -53,10 +53,10 @@ test("historical trip looks translate on visit without changing originals, piece
     expect(unitChange.error).toBeNull();
     await page.goto(`/uk/packing/${tripId}`);
     await expect(page.getByText(cached.data!.why!)).toBeVisible();
-    await expect(page.getByText("Уночі до 37° — візьми щось тепле на вечір.", { exact: true })).toBeVisible();
+    await expect(page.getByText("Уночі температура опуститься до 37° — візьми щось тепле на вечір.", { exact: true })).toBeVisible();
     expect((await db.from("outfits").select(columns).eq("trip_id", tripId).order("trip_day")).data).toEqual(before.data);
     expect((await db.from("generation_events").select("id", { count: "exact", head: true }).eq("user_id", userId)).count).toBe(usage.count);
-    const note = page.getByText("Уночі до 37° — візьми щось тепле на вечір.", { exact: true });
+    const note = page.getByText("Уночі температура опуститься до 37° — візьми щось тепле на вечір.", { exact: true });
     // WebKit's scrollIntoViewIfNeeded ignores sticky occlusion when text is inside the viewport.
     // On a short phone the capsule scrolls; its existing clearance must make all note text reachable.
     await note.evaluate(el => el.scrollIntoView({ block: "center" }));
