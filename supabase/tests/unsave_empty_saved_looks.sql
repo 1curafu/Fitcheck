@@ -1,6 +1,6 @@
 -- PR #148 review: a saved look whose last piece is permanently deleted stops counting as saved.
 begin;
-select plan(4);
+select plan(5);
 
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values ('d1000000-0000-4000-8000-000000000001', 'authenticated', 'authenticated', 'empty-saved@example.test', 'x', now(), '{}', '{}', now(), now());
@@ -25,6 +25,11 @@ select is((select count(*)::int from public.outfits where id = 'd2000000-0000-40
   'the look row itself is kept (wear and share history)');
 reset role;
 select ok(not has_function_privilege('anon', 'public.outfits_unsave_when_empty()', 'execute'), 'the trigger function is not public');
+
+-- Account deletion runs as supabase_auth_admin, which may not write public.outfits: the cascade-time trigger must
+-- run as its owner (PR #148 e2e: "permission denied for table outfits").
+select ok((select prosecdef from pg_proc where oid = 'public.outfits_unsave_when_empty()'::regprocedure),
+  'the unsave trigger runs as its owner, so Auth can delete users');
 
 select * from finish();
 rollback;
