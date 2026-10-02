@@ -4,6 +4,7 @@ import { revalidateEverywhere } from "@/lib/i18n/revalidate";
 import { createClient } from "@/lib/supabase/server";
 import { localDateFor } from "@/lib/outfits/local-date";
 import { readPreferences } from "@/lib/profile/preferences";
+import { z } from "zod";
 
 /**
  * Log or unlog "I wore this today".
@@ -68,6 +69,35 @@ export async function toggleWear(outfitId: string): Promise<{ worn: boolean }> {
   revalidateEverywhere(`/outfits/${outfitId}`);
   revalidateEverywhere("/generate");
   return { worn: true };
+}
+
+export type SaveResult = { status: "saved" | "unsaved" | "limit" | "missing" };
+
+export async function setSaved(outfitId: string, saved: boolean): Promise<SaveResult> {
+  if (!z.string().uuid().safeParse(outfitId).success || typeof saved !== "boolean") return { status: "missing" };
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in");
+
+  // Guarding null preserves the original date when a save is retried.
+  const query = supabase.from("outfits")
+    .update({ saved_at: saved ? new Date().toISOString() : null })
+    .eq("id", outfitId).eq("user_id", user.id);
+  const { data, error } = await (saved ? query.is("saved_at", null) : query).select("id");
+  if (error) {
+    if (error.message.includes("saved_outfits_limit")) return { status: "limit" };
+    throw new Error(error.message);
+  }
+  if (!data?.length) {
+    if (!saved) return { status: "missing" };
+    const { data: row, error: readError } = await supabase.from("outfits").select("saved_at")
+      .eq("id", outfitId).eq("user_id", user.id).maybeSingle();
+    if (readError) throw new Error(readError.message);
+    if (!row?.saved_at) return { status: "missing" };
+  }
+  revalidateEverywhere(`/outfits/${outfitId}`);
+  revalidateEverywhere("/outfits");
+  return { status: saved ? "saved" : "unsaved" };
 }
 
 export async function toggleFavorite(outfitId: string): Promise<{ favorite: boolean }> {
