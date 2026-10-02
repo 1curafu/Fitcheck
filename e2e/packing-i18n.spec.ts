@@ -10,6 +10,9 @@ test("historical trip looks translate on visit without changing originals, piece
   const dates = ["2026-09-20", "2026-09-21"];
   const weatherDates = [...dates, "2026-09-22"];
   const lat = 0.12, lon = 0.34;
+  const prefs = await db.from("profiles").select("preferences").eq("id", userId).single();
+  expect(prefs.error).toBeNull();
+  const originalPreferences = prefs.data!.preferences;
   let tripId: string | undefined;
   try {
     const pieces = await db.from("items").select("id,name").eq("user_id", userId).order("id").limit(3);
@@ -18,7 +21,7 @@ test("historical trip looks translate on visit without changing originals, piece
     // Dedicated local coordinates keep this fixture independent of live weather and other tests.
     const weather = await db.from("weather_cache").upsert(weatherDates.map(day => ({ lat, lon, day, fetched_at: new Date().toISOString(),
       payload: { timezone: "UTC", timezoneOffset: 0, hourly: [], daily: {
-        dt: Date.parse(`${day}T12:00:00Z`) / 1000, max: 20, min: 12, conditionId: 800,
+        dt: Date.parse(`${day}T12:00:00Z`) / 1000, max: 20, min: 3, conditionId: 800,
       } } })), { onConflict: "lat,lon,day" });
     expect(weather.error).toBeNull();
     const trip = await db.from("trips").insert({ user_id: userId, destination_label: "E2E Historical Trip", lat, lon,
@@ -46,8 +49,20 @@ test("historical trip looks translate on visit without changing originals, piece
 
     const cached = await db.from("outfit_text_translations").select("why").eq("outfit_id", looks.data![0].id).eq("target_locale", "uk").single();
     expect(cached.error).toBeNull();
+    const unitChange = await db.from("profiles").update({ preferences: { ...originalPreferences, tempUnit: "F" } }).eq("id", userId);
+    expect(unitChange.error).toBeNull();
     await page.goto(`/uk/packing/${tripId}`);
     await expect(page.getByText(cached.data!.why!)).toBeVisible();
+    await expect(page.getByText("Уночі до 37° — візьми щось тепле на вечір.", { exact: true })).toBeVisible();
+    expect((await db.from("outfits").select(columns).eq("trip_id", tripId).order("trip_day")).data).toEqual(before.data);
+    expect((await db.from("generation_events").select("id", { count: "exact", head: true }).eq("user_id", userId)).count).toBe(usage.count);
+    const note = page.getByText("Уночі до 37° — візьми щось тепле на вечір.", { exact: true });
+    // WebKit's scrollIntoViewIfNeeded ignores sticky occlusion when text is inside the viewport.
+    // On a short phone the capsule scrolls; its existing clearance must make all note text reachable.
+    await note.evaluate(el => el.scrollIntoView({ block: "center" }));
+    const noteBox = await note.boundingBox();
+    const actionBox = await page.getByRole("link", { name: uk.packing.seeDays, exact: true }).boundingBox();
+    expect(noteBox!.y + noteBox!.height).toBeLessThanOrEqual(actionBox!.y);
     // Partial trips display this same saved reasoning.
     const partial = await db.from("trips").update({ end_date: "2026-09-22", occasion_mix: { everyday: 3 } }).eq("id", tripId);
     expect(partial.error).toBeNull();
@@ -55,6 +70,7 @@ test("historical trip looks translate on visit without changing originals, piece
     await expect(page.getByRole("heading", { name: uk.packing.shortfall.title, exact: true })).toBeVisible();
     await expect(page.getByText(cached.data!.why!)).toBeVisible();
   } finally {
+    await db.from("profiles").update({ preferences: originalPreferences }).eq("id", userId);
     if (tripId) {
       await db.from("outfits").delete().eq("trip_id", tripId);
       await db.from("trips").delete().eq("id", tripId);

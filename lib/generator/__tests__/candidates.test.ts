@@ -759,3 +759,11 @@ describe("a warm coat below 5 °C (trip-comfort §7)", () => {
     expect(coats).toEqual(expect.arrayContaining(["o-wool", "o-linen"]));
   });
 });
+
+
+test("a warm jacket qualifies below 5 °C as well as a coat — outerwear is judged by warmth", () => {
+  const jacket = { ...items[4], id: "puffer", subcategory: "Puffer jacket", material: "Down", texture: "Quilted" };
+  const thin = { ...items[4], id: "thin", material: "Linen", texture: "Flat" };
+  const by = eligibleByCategory([...items.slice(0, 4), thin, jacket], { ...base, weather: { tempC: 2, rain: false } });
+  expect(by.Outerwear.map(i => i.id)).toEqual(["puffer"]);
+});

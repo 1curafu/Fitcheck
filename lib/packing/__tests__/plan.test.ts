@@ -341,3 +341,39 @@ test("trips follow the user's dress codes, and fall back to the occasion's band 
   const everyday = { date: "2026-05-12", occasion: "everyday" };
   expect(tripPlanner(ref, () => mild, { dressCodes: { formality_min: 5, formality_max: 5 } }).usableToday(everyday, "tee", ref)).toBe(true);
 });
+
+
+describe("reference boundary guards", () => {
+  const knit = item("knit", "Tops", { texture: "Cable knit", seasons: ["Winter", "Autumn"] });
+  const linen = item("linen", "Tops", { material: "Linen", seasons: ["Summer"], colors: ["white"] });
+  const pool = [knit, linen, item("bottom-a", "Bottoms"), item("bottom-b", "Bottoms"),
+    item("shoe", "Shoes", { material: "Leather", colors: ["brown"] })];
+  const hot: Weather = { tempC: 32, highC: 32, rain: false };
+  const days = [{ date: "2026-05-12", occasion: "everyday" }, { date: "2026-05-13", occasion: "everyday" }];
+
+  test("the solver removes an exhausted linen top from the reference so the hot day still gets dressed", () => {
+    const planner = tripPlanner(pool, () => hot);
+    const result = solveCapsule({ closet: pool, days, level: 1, floor: QUALITY_FLOOR, ...planner });
+    expect(result.uncovered).toEqual([]);
+    expect(result.covered[0].itemIds).toContain("linen");
+    expect(result.covered[1].itemIds).toContain("knit");
+  });
+
+  test("an excluded lighter top cannot block relief for the remaining knit", () => {
+    const planner = tripPlanner(pool, () => hot);
+    const result = solveCapsule({ closet: pool, days: days.slice(0, 1), level: 5, floor: QUALITY_FLOOR,
+      excluded: ["linen"], ...planner });
+    expect(result.uncovered).toEqual([]);
+    expect(result.itemIds).toContain("knit");
+    expect(result.itemIds).not.toContain("linen");
+  });
+
+  test("memo eligibility changes with the occasion on the same date", () => {
+    const tee = item("casual-tee", "Tops", { formality: 1 });
+    const shirt = item("shirt", "Tops", { formality: 4 });
+    const ref = [tee, shirt, ...pool.slice(2)];
+    const planner = tripPlanner(ref, () => mild);
+    expect(planner.usableToday(days[0], tee.id, ref)).toBe(true);
+    expect(planner.usableToday({ ...days[0], occasion: "work" }, tee.id, ref)).toBe(false);
+  });
+});
