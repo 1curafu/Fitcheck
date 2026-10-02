@@ -16,7 +16,7 @@ function client(rows: Record<string, unknown>[], error?: string) {
         filters.push(r => String(r.saved_at) < match[1] || (r.saved_at === match[2] && String(r.id) < match[3]));
         return q;
       },
-      order: (key: string, options: { ascending: boolean }) => { orders.push({ key, ascending: options.ascending }); return q; },
+      order: (key: string, options: { ascending: boolean }) => { orders.push({ key, ascending: options.ascending ?? true }); return q; },
       limit: (limit: number) => { size = limit; return q; },
       then: (resolve: (value: unknown) => unknown) => {
         const matched = rows.filter(r => filters.every(f => f(r)));
@@ -75,4 +75,9 @@ test("equal save timestamps page without losing boundary looks", async () => {
   const second = await listSaved(db, "owner", last.savedAt, last.id);
   expect([...first.looks, ...second.looks].map(r => r.id)).toEqual([...rows].reverse().map(r => r.id));
   expect(second.more).toBe(false);
+});
+
+test("exactly thirty saves do not offer an empty next page", async () => {
+  const rows = Array.from({ length: 30 }, (_, i) => row(String(i), "2026-10-02T12:00:00Z"));
+  expect((await listSaved(client(rows), "owner")).more).toBe(false);
 });

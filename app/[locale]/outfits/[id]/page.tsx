@@ -138,7 +138,7 @@ async function OutfitBody({ params }: { params: Promise<{ id: string }> }) {
           ? `${formatTemp(weather.tempC ?? 0, prefs.tempUnit, locale)} ${tWeather(`conditions.${conditionKey(weather.conditionId ?? weather.condition)}`)}`
           : "",
         reasoning: text.why,
-        // The share card's kicker date: the daily drop's local date, else the row's created day. Never weather (A3).
+        // Share date uses the daily/trip date, then creation day; never weather.
         lookDate,
       }}
       pieces={pieces}
