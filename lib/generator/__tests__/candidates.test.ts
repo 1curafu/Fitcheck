@@ -767,3 +767,27 @@ test("a warm jacket qualifies below 5 °C as well as a coat — outerwear is jud
   const by = eligibleByCategory([...items.slice(0, 4), thin, jacket], { ...base, weather: { tempC: 2, rain: false } });
   expect(by.Outerwear.map(i => i.id)).toEqual(["puffer"]);
 });
+
+describe("comfort rules never beat a look-level no-go (PR #144 review)", () => {
+  const piece = (id: string, category: string, extra: Record<string, unknown> = {}) =>
+    ({ id, category, colors: ["navy"], formality: 3, seasons: [], material: "Cotton", texture: "Flat", pattern: "solid", ...extra });
+  const jeans = piece("jeans", "Bottoms", { material: "Denim" });
+  const shoes = piece("shoes", "Shoes", { material: "Leather" });
+
+  test("below 5 °C a thin jacket is the fallback when the only warm coat breaks double denim", () => {
+    const freezing = { ...base, weather: { tempC: -5, rain: false, highC: -2, lowC: -8 }, nogos: ["double_denim"] as const };
+    const denimCoat = piece("denim-coat", "Outerwear", { material: "Denim", seasons: ["Winter"] });
+    const linen = piece("linen-jacket", "Outerwear", { material: "Linen" });
+    const combos = buildCandidates([piece("tee", "Tops"), jeans, shoes, denimCoat, linen], freezing);
+    expect(combos.length).toBeGreaterThan(0);
+    expect(combos.every((c) => c.some((i) => i.id === "linen-jacket"))).toBe(true);
+  });
+
+  test("at 27 °C a barred knit comes back when every lighter look is ruled out by a no-go", () => {
+    const warm = { ...base, weather: { tempC: 24, rain: false, highC: 27, lowC: 18 }, nogos: ["double_denim"] as const };
+    const knit = piece("knit", "Tops", { texture: "Cable knit" });
+    const denimTop = piece("denim-top", "Tops", { material: "Denim" });
+    const combos = buildCandidates([knit, denimTop, jeans, shoes], warm);
+    expect(combos.map((c) => c.map((i) => i.id))).toContainEqual(expect.arrayContaining(["knit", "jeans"]));
+  });
+});

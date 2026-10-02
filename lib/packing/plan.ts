@@ -1,4 +1,4 @@
-import { buildCandidates, eligibleByCategory, type CandidateItem } from "@/lib/generator/candidates";
+import { buildCandidates, lookPieces, type CandidateItem } from "@/lib/generator/candidates";
 import type { NoGo } from "@/lib/generator/nogos";
 import { rankTopN } from "@/lib/generator/rank";
 import { scoreCombo, type ScoreItem } from "@/lib/generator/score";
@@ -109,12 +109,12 @@ export function tripPlanner(
     nogos: opts?.nogos,
     keepItemIds: opts?.keepItemIds,
   });
-  const memo = new Map<string, Set<string>>();
-  const allowed = (day: TripDay, reference: CapsuleItem[], args?: ReturnType<typeof argsFor>) => {
+  const memo = new Map<string, ReturnType<typeof lookPieces>>();
+  const pieces = (day: TripDay, reference: CapsuleItem[], args?: ReturnType<typeof argsFor>) => {
     const key = `${day.date}|${day.occasion}|${reference.map((r) => r.id).sort().join(",")}`;
     let hit = memo.get(key);
     if (!hit) {
-      hit = new Set(Object.values(eligibleByCategory(resolve(reference), args ?? argsFor(day))).flat().map((i) => i.id));
+      hit = lookPieces(resolve(reference), args ?? argsFor(day));
       memo.set(key, hit);
     }
     return hit;
@@ -122,7 +122,7 @@ export function tripPlanner(
 
   const build: OutfitBuilder = (day, available, recent, dayContext?: DayContext) => {
     const args = argsFor(day);
-    const ok = allowed(day, dayContext?.reference ?? available, args);
+    const ok = pieces(day, dayContext?.reference ?? available, args).allowed;
     const pool = resolve(available).filter((i) => ok.has(i.id));
     if (pool.length === 0) return null;
 
@@ -181,10 +181,10 @@ export function tripPlanner(
 
   return {
     build,
-    usableToday: (day, itemId, reference) => allowed(day, reference).has(itemId),
+    usableToday: (day, itemId, reference) => pieces(day, reference).preferred.has(itemId),
     requiredToday: (day, reference) =>
       planningTemp(forecastFor(day.date)) < OUTERWEAR_C &&
-      [...allowed(day, reference)].some((id) => byId.get(id)?.category === "Outerwear")
+      [...pieces(day, reference).preferred].some((id) => byId.get(id)?.category === "Outerwear")
         ? ["Outerwear"]
         : [],
   };

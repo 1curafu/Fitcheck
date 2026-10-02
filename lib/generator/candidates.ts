@@ -328,8 +328,20 @@ export function eligibleByCategory(
   items: CandidateItem[],
   a: CandidateArgs,
 ): Record<string, CandidateItem[]> {
+  return eligibleLists(items, a, "category").by;
+}
+
+/** `thinOuter`: outerwear set aside by the cold-day warmth preference, tried only when no warm coat keeps a look legal. */
+type Eligible = { by: Record<string, CandidateItem[]>; thinOuter: CandidateItem[] };
+
+/**
+ * "category" relief keeps a required slot non-empty; "look" lifts the weather bars entirely, used only when
+ * no legal look exists otherwise (look-level no-gos run after category relief).
+ */
+function eligibleLists(items: CandidateItem[], a: CandidateArgs, relief: "category" | "look"): Eligible {
   const { excludeMaterials, maxWarmth, minOuterwearWarmth } = weatherRules(a.weather, { rainGuard: a.rainGuard });
-  const bars: WeatherBars = { excludeMaterials, maxWarmth };
+  const bars: WeatherBars = relief === "look" ? NO_BARS : { excludeMaterials, maxWarmth };
+  let thinOuter: Eligible["thinOuter"] = [];
   const cats = new Set<string>(items.map((i) => i.category));
   for (const c of REQUIRED_CATEGORIES) cats.add(c);
   cats.add("Outerwear");
@@ -342,11 +354,14 @@ export function eligibleByCategory(
     // Below 5 °C prefer a warm coat, but keep thin outerwear when the closet cannot do better (D3).
     if (c === "Outerwear" && minOuterwearWarmth != null) {
       const warm = list.filter((i) => itemWarmth(i.material, i.texture, i.seasons) >= minOuterwearWarmth);
-      if (warm.length) list = warm;
+      if (warm.length) {
+        thinOuter = bySeasonFirst(list.filter((i) => !warm.includes(i)), a.season);
+        list = warm;
+      }
     }
     out[c] = bySeasonFirst(list, a.season);
   }
-  return out;
+  return { by: out, thinOuter };
 }
 
 /** Per-category counts of what survived filtering — lets an empty result explain itself. */
@@ -410,7 +425,7 @@ function walkShape(
   uppers: CandidateItem[],
   lowers: CandidateItem[],
   shoes: CandidateItem[],
-  outer: CandidateItem[],
+  outerTiers: CandidateItem[][],
   needsOuterwear: boolean,
   accessories: CandidateItem[],
   bags: CandidateItem[],
@@ -439,13 +454,13 @@ function walkShape(
       // one, and with none left the look goes coatless: outerwear is a preference, so a no-go must never turn
       // "the only coat is denim" into "no looks at all" on a cold day.
       let coat: CandidateItem[] | undefined;
-      if (needsOuterwear && outer.length) {
-        // Lazy: the first coat that keeps the look legal, rotating from (t + d). With no no-gos that is always the
-        // first candidate, so no array is built for the coats that are never tried.
+      // Lazy: the first coat that keeps the look legal, rotating from (t + d); thin coats only after every warm one.
+      for (const outer of needsOuterwear ? outerTiers : []) {
         for (let k = 0; k < outer.length && !coat; k++) {
           const tryCoat = [...core, outer[(t + d + k) % outer.length]];
           if (!a.nogos?.length || !comboBlocked(tryCoat, a.nogos)) coat = tryCoat;
         }
+        if (coat) break;
       }
       const base = coat ?? core;
 
@@ -480,12 +495,27 @@ export function buildCandidates(items: CandidateItem[], a: CandidateArgs): Candi
   // truncates the combo list, and the walk indexes outerwear and accessories
   // modulo their list length — so the earliest passes reach the seasonally right
   // coat and accessory.
-  const by = eligibleByCategory(items, a);
+  const strict = combosFrom(eligibleLists(items, a, "category"), a, needsOuterwear);
+  if (strict.length) return strict;
+  // Category relief cannot see look-level no-gos: rather than dress no one, lift the weather bars for the whole look.
+  return combosFrom(eligibleLists(items, a, "look"), a, needsOuterwear);
+}
+
+/** Pieces a look may use today: `preferred` decides usability, `allowed` adds the fallbacks buildCandidates can reach. */
+export function lookPieces(items: CandidateItem[], a: CandidateArgs): { preferred: Set<string>; allowed: Set<string> } {
+  const { needsOuterwear } = weatherRules(a.weather, { rainGuard: a.rainGuard });
+  const strict = eligibleLists(items, a, "category");
+  const used = combosFrom(strict, a, needsOuterwear).length ? strict : eligibleLists(items, a, "look");
+  const preferred = Object.values(used.by).flat().map((i) => i.id);
+  return { preferred: new Set(preferred), allowed: new Set([...preferred, ...used.thinOuter.map((i) => i.id)]) };
+}
+
+function combosFrom({ by, thinOuter }: Eligible, a: CandidateArgs, needsOuterwear: boolean): CandidateItem[][] {
   const tops = by.Tops ?? [];
   const bottoms = by.Bottoms ?? [];
   const onePieces = by["One-piece"] ?? [];
   const shoes = by.Shoes ?? [];
-  const outer = by.Outerwear ?? [];
+  const outer = [by.Outerwear ?? [], thinOuter].filter((tier) => tier.length);
   const accessories = by.Accessories ?? [];
   const bags = by.Bags ?? [];
 

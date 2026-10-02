@@ -377,3 +377,35 @@ describe("reference boundary guards", () => {
     expect(planner.usableToday({ ...days[0], occasion: "work" }, tee.id, ref)).toBe(false);
   });
 });
+
+describe("trip comfort keeps no-go fallbacks (PR #144 review)", () => {
+  const jeans = item("jeans", "Bottoms", { material: "Denim" });
+  const shoes = item("shoes", "Shoes", { material: "Leather" });
+  const solve = (closet: CandidateItem[], weather: Weather) => {
+    const p = tripPlanner(closet, () => weather, { nogos: ["double_denim"] });
+    return solveCapsule({ closet, days: [{ date: "2026-05-12", occasion: "everyday" }], level: 5, floor: QUALITY_FLOOR,
+      build: p.build, usableToday: p.usableToday, requiredToday: p.requiredToday });
+  };
+
+  test("a freezing day packs the thin jacket when the warm coat is denim", () => {
+    const closet = [item("tee", "Tops"), jeans, shoes, item("denim-coat", "Outerwear", { material: "Denim", seasons: ["Winter"] }),
+      item("linen-jacket", "Outerwear", { material: "Linen", seasons: [] })];
+    const r = solve(closet, { tempC: -5, rain: false, highC: -2, lowC: -8 });
+    expect(r.covered[0]?.itemIds).toContain("linen-jacket");
+  });
+
+  test("a thin jacket is a fallback only: it never counts as usable on a freezing day while a warm coat is at home", () => {
+    const closet = [item("tee", "Tops"), jeans, shoes, item("wool-coat", "Outerwear", { material: "Wool", seasons: ["Winter"] }),
+      item("linen-jacket", "Outerwear", { material: "Linen", seasons: [] })];
+    const p = tripPlanner(closet, () => ({ tempC: -5, rain: false, highC: -2, lowC: -8 }));
+    expect(p.usableToday({ date: "2026-05-12", occasion: "everyday" }, "linen-jacket", closet)).toBe(false);
+    expect(p.usableToday({ date: "2026-05-12", occasion: "everyday" }, "wool-coat", closet)).toBe(true);
+  });
+
+  test("a 27 °C day is still covered when the only lighter top would make double denim", () => {
+    const closet = [item("knit", "Tops", { texture: "Cable knit", seasons: [] }), item("denim-top", "Tops", { material: "Denim" }), jeans, shoes];
+    const r = solve(closet, { tempC: 24, rain: false, highC: 27, lowC: 18 });
+    expect(r.uncovered).toHaveLength(0);
+    expect(r.covered[0]?.itemIds).toContain("knit");
+  });
+});
