@@ -1,9 +1,9 @@
-import { buildCandidates, type CandidateItem } from "@/lib/generator/candidates";
+import { buildCandidates, lookPieces, type CandidateItem } from "@/lib/generator/candidates";
 import type { NoGo } from "@/lib/generator/nogos";
 import { rankTopN } from "@/lib/generator/rank";
 import { scoreCombo, type ScoreItem } from "@/lib/generator/score";
-import { occasionBand, type Weather } from "@/lib/generator/rules";
-import { QUALITY_FLOOR, type OutfitBuilder, type TripDay } from "./capsule";
+import { personalBand, OUTERWEAR_C, planningTemp, type Weather } from "@/lib/generator/rules";
+import { QUALITY_FLOOR, type OutfitBuilder, type TripDay, type CapsuleItem, type DayContext } from "./capsule";
 
 /** The occasion given to a day the mix does not reach. */
 const FILLER_OCCASION = "everyday";
@@ -68,41 +68,66 @@ function datesBetween(start: string, end: string): string[] {
  * three places from reading a single moment for a look worn all day; a trip
  * spans a week, which makes it worse, not better.
  */
-export function realBuilder(
+export type PlannerOpts = {
+  aesthetic?: string[];
+  rainGuard?: boolean;
+  nogos?: readonly NoGo[];
+  keepItemIds?: readonly string[];
+  /** The quiz palette and fit answers — very soft score terms. */
+  palette?: string | null;
+  fitPref?: string | null;
+  dressCodes?: { formality_min?: number | null; formality_max?: number | null };
+};
+
+export type TripPlanner = {
+  build: OutfitBuilder;
+  usableToday: (day: TripDay, itemId: string, reference: CapsuleItem[]) => boolean;
+  requiredToday: (day: TripDay, reference: CapsuleItem[]) => string[];
+};
+
+/**
+ * Build and judge trip outfits from one memoised eligibility pass per day and reference.
+ * A packed subset cannot relieve a weather bar that the whole capacity-aware closet would not (trip-comfort §2–§4).
+ */
+export function tripPlanner(
   closet: CandidateItem[],
   forecastFor: (date: string) => Weather,
-  opts?: {
-    aesthetic?: string[];
-    rainGuard?: boolean;
-    nogos?: readonly NoGo[];
-    keepItemIds?: readonly string[];
-    /** The quiz palette and fit answers (quiz part 2) — very soft score terms. */
-    palette?: string | null;
-    fitPref?: string | null;
-  },
-): OutfitBuilder {
+  opts?: PlannerOpts,
+): TripPlanner {
   const byId = new Map(closet.map((i) => [i.id, i]));
+  const resolve = (pieces: CapsuleItem[]) => pieces.flatMap((p) => {
+    const full = byId.get(p.id);
+    return full ? [full] : [];
+  });
+  const argsFor = (day: TripDay) => ({
+    band: personalBand(day.occasion as Parameters<typeof personalBand>[0], opts?.dressCodes ?? null),
+    weather: forecastFor(day.date),
+    excludeItemIds: [] as string[],
+    maxAccessories: 1,
+    maxBags: 1,
+    rainGuard: opts?.rainGuard,
+    nogos: opts?.nogos,
+    keepItemIds: opts?.keepItemIds,
+  });
+  const memo = new Map<string, ReturnType<typeof lookPieces>>();
+  const pieces = (day: TripDay, reference: CapsuleItem[], args?: ReturnType<typeof argsFor>) => {
+    const key = `${day.date}|${day.occasion}|${reference.map((r) => r.id).sort().join(",")}`;
+    let hit = memo.get(key);
+    if (!hit) {
+      hit = lookPieces(resolve(reference), args ?? argsFor(day));
+      memo.set(key, hit);
+    }
+    return hit;
+  };
 
-  return (day, available, recent) => {
-    const pool = available.flatMap((a) => {
-      const full = byId.get(a.id);
-      return full ? [full] : [];
-    });
+  const build: OutfitBuilder = (day, available, recent, dayContext?: DayContext) => {
+    const args = argsFor(day);
+    const ok = pieces(day, dayContext?.reference ?? available, args).allowed;
+    const pool = resolve(available).filter((i) => ok.has(i.id));
     if (pool.length === 0) return null;
 
-    const band = occasionBand(day.occasion as Parameters<typeof occasionBand>[0]);
-    const weather = forecastFor(day.date);
-
-    const combos = buildCandidates(pool, {
-      band,
-      weather,
-      excludeItemIds: [],
-      maxAccessories: 1,
-      maxBags: 1,
-      rainGuard: opts?.rainGuard,
-      nogos: opts?.nogos,
-      keepItemIds: opts?.keepItemIds,
-    });
+    const { band, weather } = args;
+    const combos = buildCandidates(pool, args);
     if (combos.length === 0) return null;
 
     /**
@@ -153,4 +178,23 @@ export function realBuilder(
       score: scoreCombo(top.items, floorCtx),
     };
   };
+
+  return {
+    build,
+    usableToday: (day, itemId, reference) => pieces(day, reference).preferred.has(itemId),
+    requiredToday: (day, reference) =>
+      planningTemp(forecastFor(day.date)) < OUTERWEAR_C &&
+      [...pieces(day, reference).preferred].some((id) => byId.get(id)?.category === "Outerwear")
+        ? ["Outerwear"]
+        : [],
+  };
+}
+
+/** Compatibility for scripts and standalone builders whose offered pool is its own reference. */
+export function realBuilder(
+  closet: CandidateItem[],
+  forecastFor: (date: string) => Weather,
+  opts?: PlannerOpts,
+): OutfitBuilder {
+  return tripPlanner(closet, forecastFor, opts).build;
 }

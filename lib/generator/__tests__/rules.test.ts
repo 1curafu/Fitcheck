@@ -219,10 +219,12 @@ test("rain still reads the hour you step outside, not the day", () => {
   );
 });
 
-test("warmth becomes a hard bar only on a genuinely sweltering day", () => {
+test("warmth becomes a hard bar from 27 °C — 26° is already hot (HOT_C's own note)", () => {
   expect(weatherRules({ tempC: 25, rain: false }).maxWarmth).toBeNull();
-  expect(weatherRules({ tempC: 28, rain: false }).maxWarmth).toBeNull();
-  expect(weatherRules({ tempC: 29, rain: false }).maxWarmth).toBe(0.6);
+  expect(weatherRules({ tempC: 26, rain: false }).maxWarmth).toBeNull();
+  // ⚠️ Trip-comfort spec §7: at 27–28 °C, 15 of 20 shortlisted looks still carried a cable knit or corduroy.
+  expect(weatherRules({ tempC: 27, rain: false }).maxWarmth).toBe(0.6);
+  expect(weatherRules({ tempC: 28, rain: false }).maxWarmth).toBe(0.6);
 });
 
 test("the sweltering bar separates the wearer's own cable knits", () => {
@@ -232,4 +234,11 @@ test("the sweltering bar separates the wearer's own cable knits", () => {
   const bar = weatherRules({ tempC: 24, rain: false, highC: 34 }).maxWarmth!;
   expect(itemWarmth("Cotton", "Cable knit", ["Spring", "Summer"])).toBeLessThan(bar);
   expect(itemWarmth("Cotton", "Cable knit", ["Autumn", "Winter"])).toBeGreaterThanOrEqual(bar);
+});
+
+test("below 5 °C outerwear must be genuinely warm; at 5 °C and above there is no floor", () => {
+  expect(weatherRules({ tempC: 4, rain: false }).minOuterwearWarmth).toBe(0.5);
+  expect(weatherRules({ tempC: -5, rain: false }).minOuterwearWarmth).toBe(0.5);
+  expect(weatherRules({ tempC: 5, rain: false }).minOuterwearWarmth).toBeNull();
+  expect(weatherRules({ tempC: 20, rain: false }).minOuterwearWarmth).toBeNull();
 });

@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { buildCandidates, eligibility, emptiedByNogos, missingCategory } from "../candidates";
+import { buildCandidates, eligibleByCategory, eligibility, emptiedByNogos, missingCategory } from "../candidates";
 
 const items = [
   { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["spring"], material: "cotton", texture: null, pattern: null },
@@ -276,7 +276,7 @@ test("shoe coverage holds across awkward list sizes", () => {
 });
 
 // ── The sweltering-day warmth bar ───────────────────────────────────────────
-// Above 28° a garment's computed warmth stops being a preference. Reported
+// Above 26° a garment's computed warmth stops being a preference. Reported
 // 2026-08-14: a cotton cable-knit sweater reached a 34.8°C day, because
 // `HOT_MATERIALS` only catches insulation by FIBRE and a soft score cannot keep
 // anything out when `diversify` fills 20 shortlist slots from 66 combos.
@@ -713,5 +713,81 @@ describe("emptiedByNogos (why the stylist came up empty)", () => {
     // The function trusts the caller; the daily action only reaches it inside `combos.length === 0`.
     const daily = readFileSync("app/[locale]/generate/actions.ts", "utf8");
     expect(daily).toMatch(/combos\.length === 0\)\s*\{[\s\S]{0,400}emptiedByNogos\(/);
+  });
+});
+
+test("a cotton cable knit is barred at 27 °C when a lighter top exists, and kept when it is the only top (relief)", () => {
+  const warmDay = { ...base, season: "Summer", weather: { tempC: 22, rain: false, highC: 27, lowC: 18 } };
+  // seasons: [] so only WARMTH (cotton cable knit ≈ 0.61) can bar it — never the season filter.
+  const knit = { id: "t-knit", category: "Tops", colors: ["black"], formality: 3, seasons: [], material: "Cotton", texture: "Cable knit", pattern: "solid" };
+  const linen = { id: "t-linen", category: "Tops", colors: ["white"], formality: 3, seasons: ["Summer"], material: "Linen", texture: "Flat", pattern: "solid" };
+  const rest = [
+    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "Lyocell", texture: "Twill", pattern: "solid" },
+    { id: "s1", category: "Shoes", colors: ["white"], formality: 3, seasons: ["Summer"], material: "Leather", texture: "Flat", pattern: "solid" },
+  ];
+  const both = buildCandidates([knit, linen, ...rest], warmDay).flat().map((i) => i.id);
+  expect(both).not.toContain("t-knit");
+  expect(both).toContain("t-linen");
+  // D3: never worse than today — a knit-only closet still gets dressed.
+  expect(buildCandidates([knit, ...rest], warmDay).flat().map((i) => i.id)).toContain("t-knit");
+});
+
+describe("a warm coat below 5 °C (trip-comfort §7)", () => {
+  const freezing = { ...base, season: "Winter", weather: { tempC: -5, rain: false, highC: -2, lowC: -8 } };
+  const core = [
+    { id: "t1", category: "Tops", colors: ["grey"], formality: 3, seasons: [], material: "Wool", texture: "Ribbed", pattern: "solid" },
+    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: [], material: "Wool", texture: "Twill", pattern: "solid" },
+    { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: [], material: "Leather", texture: "Flat", pattern: "solid" },
+  ];
+  const linenJacket = { id: "o-linen", category: "Outerwear", colors: ["sand"], formality: 3, seasons: [], material: "Linen", texture: "Flat", pattern: "solid" };
+  const woolCoat = { id: "o-wool", category: "Outerwear", colors: ["camel"], formality: 3, seasons: [], material: "Wool", texture: "Twill", pattern: "solid" };
+
+  test("a thin jacket is dropped when a warm coat exists", () => {
+    const coats = buildCandidates([...core, linenJacket, woolCoat], freezing).flat().filter((i) => i.category === "Outerwear").map((i) => i.id);
+    expect(coats).toContain("o-wool");
+    expect(coats).not.toContain("o-linen");
+  });
+
+  test("D3: a closet whose only outerwear is thin keeps it — never colder than today", () => {
+    const coats = buildCandidates([...core, linenJacket], freezing).flat().filter((i) => i.category === "Outerwear").map((i) => i.id);
+    expect(coats).toContain("o-linen");
+  });
+
+  test("at 6 °C nothing changes", () => {
+    const cool = { ...freezing, weather: { tempC: 6, rain: false, highC: 6, lowC: 2 } };
+    const coats = eligibleByCategory([...core, linenJacket, woolCoat], cool).Outerwear.map((i) => i.id);
+    expect(coats).toEqual(expect.arrayContaining(["o-wool", "o-linen"]));
+  });
+});
+
+
+test("a warm jacket qualifies below 5 °C as well as a coat — outerwear is judged by warmth", () => {
+  const jacket = { ...items[4], id: "puffer", subcategory: "Puffer jacket", material: "Down", texture: "Quilted" };
+  const thin = { ...items[4], id: "thin", material: "Linen", texture: "Flat" };
+  const by = eligibleByCategory([...items.slice(0, 4), thin, jacket], { ...base, weather: { tempC: 2, rain: false } });
+  expect(by.Outerwear.map(i => i.id)).toEqual(["puffer"]);
+});
+
+describe("comfort rules never beat a look-level no-go (PR #144 review)", () => {
+  const piece = (id: string, category: string, extra: Record<string, unknown> = {}) =>
+    ({ id, category, colors: ["navy"], formality: 3, seasons: [], material: "Cotton", texture: "Flat", pattern: "solid", ...extra });
+  const jeans = piece("jeans", "Bottoms", { material: "Denim" });
+  const shoes = piece("shoes", "Shoes", { material: "Leather" });
+
+  test("below 5 °C a thin jacket is the fallback when the only warm coat breaks double denim", () => {
+    const freezing = { ...base, weather: { tempC: -5, rain: false, highC: -2, lowC: -8 }, nogos: ["double_denim"] as const };
+    const denimCoat = piece("denim-coat", "Outerwear", { material: "Denim", seasons: ["Winter"] });
+    const linen = piece("linen-jacket", "Outerwear", { material: "Linen" });
+    const combos = buildCandidates([piece("tee", "Tops"), jeans, shoes, denimCoat, linen], freezing);
+    expect(combos.length).toBeGreaterThan(0);
+    expect(combos.every((c) => c.some((i) => i.id === "linen-jacket"))).toBe(true);
+  });
+
+  test("at 27 °C a barred knit comes back when every lighter look is ruled out by a no-go", () => {
+    const warm = { ...base, weather: { tempC: 24, rain: false, highC: 27, lowC: 18 }, nogos: ["double_denim"] as const };
+    const knit = piece("knit", "Tops", { texture: "Cable knit" });
+    const denimTop = piece("denim-top", "Tops", { material: "Denim" });
+    const combos = buildCandidates([knit, denimTop, jeans, shoes], warm);
+    expect(combos.map((c) => c.map((i) => i.id))).toContainEqual(expect.arrayContaining(["knit", "jeans"]));
   });
 });

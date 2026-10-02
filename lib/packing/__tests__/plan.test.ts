@@ -68,7 +68,7 @@ test("crosses a DST boundary without dropping or repeating a day", () => {
   expect(days.map((d) => d.date)).toEqual(["2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31"]);
 });
 
-import { realBuilder } from "../plan";
+import { realBuilder, tripPlanner } from "../plan";
 import type { CandidateItem } from "@/lib/generator/candidates";
 import type { Weather } from "@/lib/generator/rules";
 import { rankTopN } from "@/lib/generator/rank";
@@ -243,4 +243,169 @@ test("the recency preference orders without lowering the reported score", () => 
   // Same pool and no alternative, so the same outfit — and crucially the SAME
   // score. A lower one here is the inflation bug.
   expect(repeating!.score).toBeCloseTo(fresh!.score, 5);
+});
+
+describe("trip comfort (spec §2–§4)", () => {
+  const knit = item("knit", "Tops", { colors: ["grey"], material: "Cotton", texture: "Cable knit", seasons: ["Autumn", "Winter"] });
+  const linen = item("linen", "Tops", { colors: ["white"], material: "Linen", texture: "Flat", seasons: ["Summer"] });
+  const chino = item("chino", "Bottoms", { colors: ["stone"] });
+  const chino2 = item("chino2", "Bottoms", { colors: ["navy"] });
+  const loafer = item("loafer", "Shoes", { colors: ["brown"], material: "Leather" });
+  const loafer2 = item("loafer2", "Shoes", { colors: ["black"], material: "Leather" });
+  const cold: Weather = { tempC: 4, rain: false, highC: 6, lowC: 1 };
+  const hot: Weather = { tempC: 30, rain: false, highC: 32, lowC: 24 };
+  const day = (date: string, occasion = "everyday") => ({ date, occasion });
+
+  test("a packed knit is not worn at 32 °C when the closet has a linen top — and only the top is added", () => {
+    const closetH = [knit, linen, chino, chino2, loafer, loafer2];
+    const forecast: Record<string, Weather> = { "2026-05-12": cold, "2026-05-13": hot };
+    const p = tripPlanner(closetH, (d) => forecast[d]);
+    const r = solveCapsule({ closet: closetH, days: [day("2026-05-12"), day("2026-05-13")], level: 5, floor: QUALITY_FLOOR,
+      build: p.build, usableToday: p.usableToday, requiredToday: p.requiredToday });
+    const d1 = r.covered.find((c) => c.day.date === "2026-05-12")!.itemIds;
+    const d2 = r.covered.find((c) => c.day.date === "2026-05-13")!.itemIds;
+    expect(d1).toContain("knit");              // precondition: the cold day packs the knit (else this test proves nothing)
+    expect(d2).not.toContain("knit");
+    expect(d2).toContain("linen");
+    expect(r.itemIds.filter((id) => id.startsWith("chino"))).toHaveLength(1);
+    expect(r.itemIds.filter((id) => id.startsWith("loafer"))).toHaveLength(1);
+  });
+
+  test("a packed subset cannot relieve a weather bar the whole closet would not (suede in the rain, leather at home)", () => {
+    const tee = item("tee", "Tops");
+    const suede = item("suede", "Shoes", { material: "Suede", colors: ["tan"] });
+    const leather = item("leather", "Shoes", { material: "Leather", colors: ["brown"] });
+    const rain: Weather = { tempC: 14, rain: true, highC: 16, lowC: 10 };
+    const p = tripPlanner([tee, chino, suede, leather], () => rain);
+    const all = [tee, chino, suede, leather];
+    expect(p.usableToday(day("2026-05-12"), "suede", all)).toBe(false);
+    expect(p.build(day("2026-05-12"), [tee, chino, suede], undefined, { reference: all })).toBeNull();
+  });
+
+  test("D3: relief at the closet level is honoured — a knit-only closet is still dressed at 32 °C", () => {
+    const only = [knit, chino, loafer];
+    const p = tripPlanner(only, () => hot);
+    expect(p.build(day("2026-05-13"), only, undefined, { reference: only })?.itemIds).toContain("knit");
+  });
+
+  test("the reference is capacity-aware: with the linen top worn out (absent from the reference) the knit is allowed", () => {
+    const p = tripPlanner([knit, linen, chino, loafer], () => hot);
+    expect(p.usableToday(day("2026-05-13"), "knit", [knit, chino, loafer])).toBe(true);
+    expect(p.usableToday(day("2026-05-13"), "knit", [knit, linen, chino, loafer])).toBe(false);
+  });
+
+  test("the usable-today memo keys on date, occasion and the reference — a cold day's answer is never reused on a hot day", () => {
+    const forecast: Record<string, Weather> = { "2026-05-12": cold, "2026-05-13": hot };
+    const p = tripPlanner([knit, linen, chino, loafer], (d) => forecast[d]);
+    const ref = [knit, linen, chino, loafer];
+    expect(p.usableToday(day("2026-05-12"), "knit", ref)).toBe(true);
+    expect(p.usableToday(day("2026-05-13"), "knit", ref)).toBe(false);
+  });
+
+  test("a cold day requires outerwear only when the closet has a usable coat", () => {
+    const coat = item("coat", "Outerwear", { material: "Wool", texture: "Twill", colors: ["camel"] });
+    const withCoat = tripPlanner([linen, chino, loafer, coat], () => cold);
+    expect(withCoat.requiredToday(day("2026-05-12"), [linen, chino, loafer, coat])).toEqual(["Outerwear"]);
+    expect(withCoat.requiredToday(day("2026-05-12"), [linen, chino, loafer])).toEqual([]);
+    const mildP = tripPlanner([linen, chino, loafer, coat], () => mild);
+    expect(mildP.requiredToday(day("2026-05-12"), [linen, chino, loafer, coat])).toEqual([]);
+  });
+
+  test("'pack light' with three mild days and a 2 °C day packs a coat for the cold day", () => {
+    const tee = item("tee", "Tops");
+    const coat = item("coat", "Outerwear", { material: "Wool", texture: "Twill", colors: ["camel"] });
+    const closetC = [tee, chino, loafer, coat];
+    const two: Weather = { tempC: 1, rain: false, highC: 2, lowC: -1 };
+    const forecast: Record<string, Weather> = { "2026-05-12": mild, "2026-05-13": mild, "2026-05-14": mild, "2026-05-15": two };
+    const p = tripPlanner(closetC, (d) => forecast[d]);
+    const r = solveCapsule({ closet: closetC, days: ["12", "13", "14", "15"].map((n) => day(`2026-05-${n}`)), level: 5, floor: QUALITY_FLOOR,
+      build: p.build, usableToday: p.usableToday, requiredToday: p.requiredToday });
+    expect(r.uncovered).toHaveLength(0);
+    expect(r.covered.find((c) => c.day.date === "2026-05-15")!.itemIds).toContain("coat");
+  });
+
+  test("realBuilder is tripPlanner(...).build — existing callers are unchanged", () => {
+    const b = realBuilder(closet, () => mild);
+    expect(b(day("2026-05-12", "work"), closet)).not.toBeNull(); // no ctx: the offered pool is its own reference (old behaviour)
+  });
+});
+
+test("trips follow the user's dress codes, and fall back to the occasion's band when they do not overlap", () => {
+  const tee = item("tee", "Tops", { formality: 2 });
+  const shirt = item("shirt", "Tops", { formality: 4 });
+  const ref = [tee, shirt, item("trouser", "Bottoms", { formality: 4 }), item("loafer", "Shoes", { formality: 4 })];
+  const work = { date: "2026-05-12", occasion: "work" };
+  expect(tripPlanner(ref, () => mild).usableToday(work, "tee", ref)).toBe(true);
+  expect(tripPlanner(ref, () => mild, { dressCodes: { formality_min: 4, formality_max: 4 } }).usableToday(work, "tee", ref)).toBe(false);
+  // personalBand's own fallback: no overlap → the occasion band, so a trip is never emptied by dress codes (D3)
+  const everyday = { date: "2026-05-12", occasion: "everyday" };
+  expect(tripPlanner(ref, () => mild, { dressCodes: { formality_min: 5, formality_max: 5 } }).usableToday(everyday, "tee", ref)).toBe(true);
+});
+
+
+describe("reference boundary guards", () => {
+  const knit = item("knit", "Tops", { texture: "Cable knit", seasons: ["Winter", "Autumn"] });
+  const linen = item("linen", "Tops", { material: "Linen", seasons: ["Summer"], colors: ["white"] });
+  const pool = [knit, linen, item("bottom-a", "Bottoms"), item("bottom-b", "Bottoms"),
+    item("shoe", "Shoes", { material: "Leather", colors: ["brown"] })];
+  const hot: Weather = { tempC: 32, highC: 32, rain: false };
+  const days = [{ date: "2026-05-12", occasion: "everyday" }, { date: "2026-05-13", occasion: "everyday" }];
+
+  test("the solver removes an exhausted linen top from the reference so the hot day still gets dressed", () => {
+    const planner = tripPlanner(pool, () => hot);
+    const result = solveCapsule({ closet: pool, days, level: 1, floor: QUALITY_FLOOR, ...planner });
+    expect(result.uncovered).toEqual([]);
+    expect(result.covered[0].itemIds).toContain("linen");
+    expect(result.covered[1].itemIds).toContain("knit");
+  });
+
+  test("an excluded lighter top cannot block relief for the remaining knit", () => {
+    const planner = tripPlanner(pool, () => hot);
+    const result = solveCapsule({ closet: pool, days: days.slice(0, 1), level: 5, floor: QUALITY_FLOOR,
+      excluded: ["linen"], ...planner });
+    expect(result.uncovered).toEqual([]);
+    expect(result.itemIds).toContain("knit");
+    expect(result.itemIds).not.toContain("linen");
+  });
+
+  test("memo eligibility changes with the occasion on the same date", () => {
+    const tee = item("casual-tee", "Tops", { formality: 1 });
+    const shirt = item("shirt", "Tops", { formality: 4 });
+    const ref = [tee, shirt, ...pool.slice(2)];
+    const planner = tripPlanner(ref, () => mild);
+    expect(planner.usableToday(days[0], tee.id, ref)).toBe(true);
+    expect(planner.usableToday({ ...days[0], occasion: "work" }, tee.id, ref)).toBe(false);
+  });
+});
+
+describe("trip comfort keeps no-go fallbacks (PR #144 review)", () => {
+  const jeans = item("jeans", "Bottoms", { material: "Denim" });
+  const shoes = item("shoes", "Shoes", { material: "Leather" });
+  const solve = (closet: CandidateItem[], weather: Weather) => {
+    const p = tripPlanner(closet, () => weather, { nogos: ["double_denim"] });
+    return solveCapsule({ closet, days: [{ date: "2026-05-12", occasion: "everyday" }], level: 5, floor: QUALITY_FLOOR,
+      build: p.build, usableToday: p.usableToday, requiredToday: p.requiredToday });
+  };
+
+  test("a freezing day packs the thin jacket when the warm coat is denim", () => {
+    const closet = [item("tee", "Tops"), jeans, shoes, item("denim-coat", "Outerwear", { material: "Denim", seasons: ["Winter"] }),
+      item("linen-jacket", "Outerwear", { material: "Linen", seasons: [] })];
+    const r = solve(closet, { tempC: -5, rain: false, highC: -2, lowC: -8 });
+    expect(r.covered[0]?.itemIds).toContain("linen-jacket");
+  });
+
+  test("a thin jacket is a fallback only: it never counts as usable on a freezing day while a warm coat is at home", () => {
+    const closet = [item("tee", "Tops"), jeans, shoes, item("wool-coat", "Outerwear", { material: "Wool", seasons: ["Winter"] }),
+      item("linen-jacket", "Outerwear", { material: "Linen", seasons: [] })];
+    const p = tripPlanner(closet, () => ({ tempC: -5, rain: false, highC: -2, lowC: -8 }));
+    expect(p.usableToday({ date: "2026-05-12", occasion: "everyday" }, "linen-jacket", closet)).toBe(false);
+    expect(p.usableToday({ date: "2026-05-12", occasion: "everyday" }, "wool-coat", closet)).toBe(true);
+  });
+
+  test("a 27 °C day is still covered when the only lighter top would make double denim", () => {
+    const closet = [item("knit", "Tops", { texture: "Cable knit", seasons: [] }), item("denim-top", "Tops", { material: "Denim" }), jeans, shoes];
+    const r = solve(closet, { tempC: 24, rain: false, highC: 27, lowC: 18 });
+    expect(r.uncovered).toHaveLength(0);
+    expect(r.covered[0]?.itemIds).toContain("knit");
+  });
 });
