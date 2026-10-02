@@ -27,8 +27,8 @@ export const PAIRING_RATINGS: Record<string, number> = {
   // (a) Neutral × neutral
   "navy|white": 5,
   "grey|navy": 5,
-  "cream|navy": 4,
-  "brown|navy": 4,
+  "cream|navy": 5, // 2026-10-02: two pair-specific sources
+  "brown|navy": 5, // 2026-10-02: two pair-specific sources
   "camel|navy": 5,   // was 4 — named classic in BOTH documents
   "navy|tan": 5,     // was 4 — same
   "charcoal|navy": 3,
@@ -137,6 +137,67 @@ export const PAIRING_RATINGS: Record<string, number> = {
   "beige|pink": 3,
   "coral|cream": 3,
   "cream|pink": 3,
+  // (d) 2026-10-02 master research — docs/reviews/2026-10-02-pairing-audit.md
+  "beige|burgundy": 4,       // northriveroutfitter.com
+  "beige|denim": 4,          // whowhatwear.com
+  "beige|green": 4,          // whowhatwear.com
+  "beige|rust": 4,           // jenknowsbest.substack.com
+  "beige|sage": 5,           // whowhatwear.com
+  "beige|white": 5,          // westwoodhart.com
+  "black|denim": 4,          // permanentstyle.com
+  "black|gold": 5,           // have-clothes-will-travel.com
+  "black|green": 4,          // whowhatwear.com
+  "black|olive": 3,          // permanentstyle.com
+  "black|orange": 4,         // fashionbeans.com
+  "black|red": 4,            // whowhatwear.com
+  "black|sage": 3,           // fashionbeans.com
+  "black|silver": 5,         // clarks.com
+  "black|terracotta": 3,     // tonelala.com (contested)
+  "black|yellow": 3,         // whowhatwear.com
+  "blue|white": 4,           // westwoodhart.com
+  "brown|green": 4,          // whowhatwear.com
+  "brown|sage": 3,           // whowhatwear.com
+  "burgundy|camel": 4,       // whowhatwear.com
+  "burgundy|charcoal": 4,    // wdrobe.app
+  "burgundy|cream": 4,       // jenknowsbest.substack.com
+  "burgundy|denim": 4,       // whowhatwear.com
+  "burgundy|khaki": 4,       // whowhatwear.com
+  "burgundy|red": 2,         // whowhatwear.com
+  "burgundy|tan": 4,         // northriveroutfitter.com
+  "burgundy|white": 4,       // whowhatwear.com
+  "camel|denim": 4,          // whowhatwear.com
+  "camel|pink": 5,           // whowhatwear.com
+  "caramel|denim": 3,        // sewmamasew.com
+  "charcoal|pink": 4,        // jenknowsbest.substack.com
+  "cream|green": 4,          // fashionbeans.com
+  "cream|mustard": 3,        // instyle.com
+  "cream|olive": 4,          // jenknowsbest.substack.com
+  "cream|sage": 4,           // fashionbeans.com
+  "denim|gold": 4,           // clarks.com
+  "denim|green": 4,          // whowhatwear.com
+  "denim|mint": 3,           // gnfashion.co.in
+  "denim|olive": 4,          // instyle.com
+  "denim|pink": 4,           // vogue.com
+  "denim|red": 4,            // whowhatwear.com
+  "denim|sage": 4,           // fashionbeans.com
+  "denim|silver": 4,         // clarks.com
+  "denim|white": 5,          // instyle.com
+  "forest|plum": 3,          // thekishaproject.com
+  "green|grey": 4,           // whowhatwear.com
+  "green|white": 4,          // whowhatwear.com
+  "grey|rust": 4,            // fashionbeans.com
+  "khaki|navy": 4,           // instyle.com
+  "khaki|rust": 4,           // whowhatwear.com
+  "lavender|sage": 3,        // colorfinderai.com
+  "mint|pink": 1,            // outfittrends.com (contested)
+  "mint|yellow": 1,          // outfittrends.com
+  "olive|white": 4,          // whowhatwear.com
+  "pink|sage": 3,            // fashionbeans.com
+  "plum|rust": 3,            // thekishaproject.com
+  "red|sage": 3,             // fashionbeans.com (contested)
+  "sage|white": 5,           // whowhatwear.com
+  "stone|white": 4,          // fashionbeans.com
+  "teal|terracotta": 3,      // tonelala.com
 };
 
 function key(a: string, b: string): string {
