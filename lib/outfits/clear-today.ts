@@ -1,5 +1,6 @@
 import type { createClient } from "@/lib/supabase/server";
 import { localDateFor } from "./local-date";
+import { releaseSavedThenDelete } from "./release";
 
 type ServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -30,17 +31,12 @@ export async function clearTodaysDrop(supabase: ServerClient, userId: string, ti
     .from("outfits")
     .select("id")
     .eq("user_id", userId)
-    .eq("generated_on", today);
+    .eq("generated_on", today)
+    .is("released_at", null);
   if (readError) throw new Error(readError.message);
 
   const ids = (rows ?? []).map((r) => r.id);
   if (!ids.length) return;
 
-  // ⚠️ Errors are surfaced, not swallowed: a caller that reports "saved" while yesterday's looks survive has
-  // told the user something false. `setLocation` keeps its old best-effort behaviour by catching this itself.
-  //
-  // Only `outfits` is deleted: `outfit_items.outfit_id` is ON DELETE CASCADE, so one statement removes the pieces
-  // too. A separate `outfit_items` delete first left a window where an outfit survived WITHOUT its pieces.
-  const outfits = await supabase.from("outfits").delete().in("id", ids);
-  if (outfits.error) throw new Error(outfits.error.message);
+  await releaseSavedThenDelete(supabase, ids);
 }

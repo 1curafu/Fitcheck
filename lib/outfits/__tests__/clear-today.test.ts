@@ -1,42 +1,39 @@
 import { clearTodaysDrop } from "../clear-today";
 
-test("deletes today's looks and their pieces, keyed on the given timezone", async () => {
-  const calls: string[] = [];
-  const eqs: [string, unknown][] = [];
-  const del = (table: string) => ({ in: async (_c: string, ids: string[]) => { calls.push(`${table}:${ids.join(",")}`); return { error: null }; } });
-  const supabase = {
-    from: (table: string) => ({
-      select: () => {
-        const q = { eq: (c: string, v: unknown) => { eqs.push([c, v]); return q; },
-          then: (r: (x: unknown) => unknown) => Promise.resolve({ data: [{ id: "o1" }, { id: "o2" }] }).then(r) };
-        return q;
-      },
-      delete: () => del(table),
-    }),
-  };
-  vi.useFakeTimers().setSystemTime(new Date("2026-09-30T23:30:00Z")); // already 1 Oct in Zurich
-  await clearTodaysDrop(supabase as never, "u1", "Europe/Zurich");
-  vi.useRealTimers();
-  expect(eqs).toEqual([["user_id", "u1"], ["generated_on", "2026-10-01"]]);
-  // outfit_items.outfit_id is ON DELETE CASCADE: deleting the outfits removes their pieces in one statement, so
-  // there is no window where an outfit survives without its items.
-  expect(calls).toEqual(["outfits:o1,o2"]);
+function clientWith(errors: { read?: string; release?: string; delete?: string } = {}) {
+  const calls: unknown[][] = [];
+  const client = { from: (table: string) => {
+    let mode: "read" | "release" | "delete" = "read";
+    const q = {
+      select: () => q,
+      eq: (key: string, value: unknown) => { calls.push(["eq", key, value]); return q; },
+      is: (key: string, value: unknown) => { calls.push(["is", key, value]); return q; },
+      not: (...args: unknown[]) => { calls.push(["not", ...args]); return q; },
+      update: () => { mode = "release"; calls.push([table, mode]); return q; },
+      delete: () => { mode = "delete"; calls.push([table, mode]); return q; },
+      in: (key: string, ids: string[]) => { calls.push(["in", key, ids]); return q; },
+      then: (resolve: (value: unknown) => unknown) => Promise.resolve({
+        data: [{ id: "o1" }, { id: "o2" }], error: errors[mode] ? { message: errors[mode] } : null,
+      }).then(resolve),
+    };
+    return q;
+  } };
+  return { client: client as never, calls };
+}
+
+afterEach(() => vi.useRealTimers());
+
+test("clears the given timezone's active looks, retaining saved pieces", async () => {
+  const db = clientWith();
+  vi.useFakeTimers().setSystemTime(new Date("2026-09-30T23:30:00Z"));
+  await clearTodaysDrop(db.client, "u1", "Europe/Zurich");
+  expect(db.calls).toEqual([
+    ["eq", "user_id", "u1"], ["eq", "generated_on", "2026-10-01"], ["is", "released_at", null],
+    ["outfits", "release"], ["in", "id", ["o1", "o2"]], ["not", "saved_at", "is", null],
+    ["outfits", "delete"], ["in", "id", ["o1", "o2"]], ["is", "saved_at", null],
+  ]);
 });
 
-const clientWith = (o: { read?: { data: { id: string }[] | null; error: unknown }; delItems?: unknown; delOutfits?: unknown }) => ({
-  from: (table: string) => ({
-    select: () => {
-      const q = { eq: () => q, then: (r: (x: unknown) => unknown) => Promise.resolve(o.read ?? { data: [{ id: "o1" }], error: null }).then(r) };
-      return q;
-    },
-    delete: () => ({ in: async () => (table === "outfit_items" ? o.delItems : o.delOutfits) ?? { error: null } }),
-  }),
-});
-
-test("a failed read of today's looks is an error, not a silent no-op", async () => {
-  await expect(clearTodaysDrop(clientWith({ read: { data: null, error: new Error("read") } }) as never, "u1", "UTC")).rejects.toThrow("read");
-});
-
-test("a failed delete is an error, so the caller never reports a rebuild that did not happen", async () => {
-  await expect(clearTodaysDrop(clientWith({ delOutfits: { error: new Error("outfits") } }) as never, "u1", "UTC")).rejects.toThrow("outfits");
+test.each(["read", "release", "delete"] as const)("a failed %s is surfaced rather than reporting a rebuild", async phase => {
+  await expect(clearTodaysDrop(clientWith({ [phase]: phase }).client, "u1", "UTC")).rejects.toThrow(phase);
 });
