@@ -10,7 +10,8 @@ name: CI
 # were fixed or excluded in the same change).
 on:
   pull_request:
-    branches: [develop, main]
+    # release/** too: a fix merged into a release branch must pass e2e before the release PR (#149 did not).
+    branches: [develop, main, "release/**"]
   push:
     branches: [develop, main]
 

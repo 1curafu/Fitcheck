@@ -42,6 +42,18 @@ export type LocalizedNote = { headline: string; added: string[]; fixed: string[]
 
 const BASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.8.0",
+    date: "2026-10-02",
+    releasedAt: "2026-10-02T16:18:00Z", // when this release was cut; accountPredatesRelease reads it
+    headline: "Save the looks you love and wear them again.",
+    added: ["Save a look and find it under Profile, Saved Outfits", "Trips pack a warm coat for cold days and lighter tops for hot ones", "Trip notes remind you when nights turn cold"],
+    fixed: ["Heavy knits stay out of looks from 27°C"],
+    i18n: {
+      "en-GB": { headline: "Save the looks you love and wear them again.", added: ["Save a look and find it under Profile, Saved Outfits", "Trips pack a warm coat for cold days and lighter tops for hot ones", "Trip notes remind you when nights turn cold"], fixed: ["Heavy knits stay out of looks from 27°C"] },
+      uk: { headline: "Зберігай улюблені образи й носи їх знову.", added: ["Збережи образ і знайди його в Профілі, Збережені образи", "Подорожі беруть тепле пальто на холод і легші топи на спеку", "Подорож нагадає, коли ночі стають холодними"], fixed: ["Об'ємні в'язані речі не з'являються в образах від 27°C"] },
+    },
+  },
+  {
     version: "0.7.0",
     date: "2026-10-02",
     releasedAt: "2026-10-02T05:39:00Z", // when this release was cut; accountPredatesRelease reads it

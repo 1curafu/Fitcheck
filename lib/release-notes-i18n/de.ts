@@ -2,6 +2,11 @@ import type { LocalizedNote } from "@/lib/release-notes";
 
 /** Keyed by version; one entry for every RELEASE_NOTES version, same line counts. */
 export const DE_NOTES: Record<string, LocalizedNote> = {
+  "0.8.0": {
+    headline: "Speichere deine Lieblingslooks und trag sie wieder.",
+    added: ["Speichere einen Look und finde ihn unter Profil, Gespeicherte Outfits", "Reisen packen einen warmen Mantel für Kälte, leichte Tops für Hitze", "Reisehinweise erinnern dich an kalte Nächte"],
+    fixed: ["Dicke Strickteile bleiben ab 27°C aus den Looks"],
+  },
   "0.7.0": {
     headline: "Deine Angaben zu Farben und Passform prägen jetzt deine Looks.",
     added: ["Farben und Passform fließen in alle Looks und Reisen ein", "Pro-Kaufempfehlungen beachten deine No-Gos und Dresscodes", "Neue Hilfe-Seite: in den Einstellungen und auf dem Anmeldebildschirm"],

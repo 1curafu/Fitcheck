@@ -2,6 +2,11 @@ import type { LocalizedNote } from "@/lib/release-notes";
 
 /** Keyed by version; one entry for every RELEASE_NOTES version, same line counts. */
 export const ES_NOTES: Record<string, LocalizedNote> = {
+  "0.8.0": {
+    headline: "Guarda los looks que te encantan y vuelve a llevarlos.",
+    added: ["Guarda un look y encuéntralo en Perfil, Conjuntos guardados", "Los viajes llevan un abrigo cálido para el frío y tops ligeros para el calor", "Un aviso te recuerda cuando las noches son frías"],
+    fixed: ["Las prendas de punto grueso salen de los looks desde 27°C"],
+  },
   "0.7.0": {
     headline: "Tus respuestas sobre colores y corte ahora guían tus looks.",
     added: ["Colores y corte cuentan en cada look y cada viaje", "Los consejos de compra Pro respetan lo que evitas y tus códigos de vestimenta", "Nueva página de Ayuda, en Ajustes y en la pantalla de inicio de sesión"],

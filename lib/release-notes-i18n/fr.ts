@@ -2,6 +2,11 @@ import type { LocalizedNote } from "@/lib/release-notes";
 
 /** Keyed by version; one entry for every RELEASE_NOTES version, same line counts. */
 export const FR_NOTES: Record<string, LocalizedNote> = {
+  "0.8.0": {
+    headline: "Enregistre tes looks préférés et reporte-les.",
+    added: ["Enregistre un look et retrouve-le dans Profil, Tenues enregistrées", "En voyage, un manteau chaud pour le froid, des hauts légers pour la chaleur", "Un rappel te prévient quand les nuits sont froides"],
+    fixed: ["Les grosses mailles quittent les looks dès 27°C"],
+  },
   "0.7.0": {
     headline: "Tes réponses sur les couleurs et la coupe guident désormais tes looks.",
     added: ["Couleurs et coupe comptent dans chaque look et chaque voyage", "Les conseils d’achat Pro respectent tes interdits et tes codes vestimentaires", "Nouvelle page Assistance, dans les Réglages et sur l’écran de connexion"],
