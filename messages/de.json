@@ -164,6 +164,7 @@
       "freeDaily": "Drei Looks täglich für jeden Anlass",
       "freeRerolls": "Pro Tag {count, plural, one {einmal} other {#-mal}} neu erstellen",
       "freeCloset": "Bis zu {count} Teile im Kleiderschrank",
+      "freeSaved": "Speichere bis zu {count} Looks",
       "freeDiary": "Tagebuch und Looks teilen",
       "pro": "Pro",
       "perMonth": "pro Monat oder {yearly} pro Jahr",
@@ -798,11 +799,25 @@
       "overcast": "Bedeckt"
     }
   },
+  "savedOutfits": {
+    "title": "Gespeicherte Looks",
+    "count": "{saved} von {limit} gespeichert",
+    "overLimit": "Du hast {saved} Looks gespeichert. Mit Free kannst du bis zu {limit} speichern. Entferne einige, um neue hinzuzufügen, oder wechsle zu Pro.",
+    "empty": "Speichere einen Look, der dir gefällt, und er bleibt hier.",
+    "emptyCta": "Looks für heute ansehen",
+    "showMore": "Mehr anzeigen",
+    "removedPiece": "Aus dem Kleiderschrank entfernt"
+  },
   "outfit": {
+    "save": "Speichern",
+    "saved": "Gespeichert",
+    "saveLimitTitle": "Speichere diesen Look",
+    "saveLimitBody": "Mit Free kannst du bis zu {count} Looks speichern. Mit Pro behältst du alle Looks, die du liebst.",
+    "savedOn": "Gespeicherter Look · {date}",
+    "saveFailed": "Dieser Look konnte nicht gespeichert werden. Versuch es noch einmal.",
     "back": "Zurück",
     "share": "Teilen",
     "inLook": "In diesem Look",
-    "favourite": "Favorit",
     "wearThisToday": "Heute tragen",
     "wornToday": "Heute getragen",
     "todayLook": "Look von heute",
@@ -1121,6 +1136,7 @@
     "changePiece": "{name} ändern",
     "tapPiece": "Tipp auf ein Teil, um es zu tauschen oder daheimzulassen.",
     "capsuleWhy": "{days} Tage · {pieces} Teile",
+    "coldNights": "Nachts sinken die Temperaturen auf {temp} – pack etwas Warmes für den Abend ein.",
     "forecastEstimate": "Ein Teil dieser Reise liegt jenseits der Vorhersage, das Wetter dafür ist geschätzt.",
     "doneCloset": "Fertig — zurück zum Schrank",
     "seeDays": "Tage ansehen",

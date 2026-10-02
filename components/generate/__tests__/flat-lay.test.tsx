@@ -78,3 +78,14 @@ test("renders from pieces alone, so the public landing can show an example set",
   render(<FlatLay look={{ pieces: look.pieces }} />);
   expect(screen.getAllByRole("img")).toHaveLength(4);
 });
+
+test("saved tiles can render immediately without animation", () => {
+  const original = window.matchMedia;
+  window.matchMedia = vi.fn().mockReturnValue({ matches: false }) as never;
+  try {
+    render(<FlatLay look={look} animated={false} />);
+    for (const image of screen.getAllByRole("img")) expect(image.style.opacity).toBe("1");
+  } finally {
+    window.matchMedia = original;
+  }
+});

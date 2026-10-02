@@ -4,6 +4,7 @@ import type { LookDraft, WeatherPayload } from "@/lib/generator/types";
 import { readOutfitTexts } from "./text-store";
 import type { StoredLook } from "./reassemble";
 import { freshIndexStart, isWornToday } from "./wear";
+import { releaseSavedThenDelete } from "./release";
 
 /** Today's stored set for one occasion, in the order the stylist chose. */
 export async function loadDailyLooks(
@@ -22,6 +23,7 @@ export async function loadDailyLooks(
     .eq("user_id", userId)
     .eq("occasion", occasion)
     .eq("generated_on", generatedOn)
+    .is("released_at", null)
     // A "Style an outfit with this" look is dated and carries an occasion too,
     // so it matches this filter — without the guard it shows up as an extra
     // look in the day's set.
@@ -77,29 +79,22 @@ export async function saveDailyLooks(
 ): Promise<string[]> {
   const supabase = await createClient();
 
-  const { data: existing } = await supabase
+  const { data: existing, error: readError } = await supabase
     .from("outfits")
     .select("id, look_index, wear_logs(worn_on)")
     .eq("user_id", userId)
     .eq("occasion", occasion)
     .eq("generated_on", generatedOn)
+    .is("released_at", null)
     .is("styled_item_id", null);
+  if (readError) throw new Error(readError.message);
 
   // Any wear log pins the row — not just today's. The point is that nothing
   // referenced by wear_logs is ever deleted here.
   const pinned = (existing ?? []).filter((r) => (r.wear_logs ?? []).length > 0);
 
-  let del = supabase
-    .from("outfits")
-    .delete()
-    .eq("user_id", userId)
-    .eq("occasion", occasion)
-    .eq("generated_on", generatedOn)
-    // Never delete a styled look: it is a cached answer to a different
-    // question, and a regenerate has no business invalidating it.
-    .is("styled_item_id", null);
-  if (pinned.length) del = del.not("id", "in", `(${pinned.map((r) => r.id).join(",")})`);
-  await del;
+  const pinnedIds = new Set(pinned.map(r => r.id));
+  await releaseSavedThenDelete(supabase, (existing ?? []).filter(r => !pinnedIds.has(r.id)).map(r => r.id));
 
   const start = freshIndexStart(pinned.map((r) => r.look_index));
   const rows = looks.map((look, i) => ({

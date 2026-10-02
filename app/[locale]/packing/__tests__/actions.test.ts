@@ -13,14 +13,14 @@ vi.mock("@/lib/billing/entitlements", () => ({ currentEntitlements: mock.entitle
 vi.mock("@/lib/weather/forecast", () => ({ fetchTripForecast: async () => ({ byDate: {}, beyondHorizon: false }) }));
 vi.mock("@/lib/packing/capsule", () => ({ QUALITY_FLOOR: 0, solveCapsule: mock.solve }));
 vi.mock("@/lib/packing/schedule", () => ({ scheduleDays: () => [{ day: { date: "2026-09-28", occasion: "everyday" }, itemIds: [], wearIndex: {} }] }));
-vi.mock("@/lib/packing/plan", () => ({ expandDays: () => [{ date: "2026-09-28", occasion: "everyday" }], realBuilder: vi.fn() }));
+vi.mock("@/lib/packing/plan", () => ({ expandDays: () => [{ date: "2026-09-28", occasion: "everyday" }], realBuilder: vi.fn(), tripPlanner: vi.fn(() => ({ build: vi.fn(), usableToday: vi.fn(() => true), requiredToday: vi.fn(() => []) })) }));
 vi.mock("@/lib/packing/narrate", () => ({ narrateTrip: mock.narrate }));
 vi.mock("@/lib/packing/store", () => ({
   saveTrip: async () => "trip", saveTripLooks: mock.save, replaceCapsule: vi.fn(),
   loadTrip: async () => ({ destinationLabel: "Zurich", lat: 47.37, lon: 8.54, timezone: "Europe/Zurich",
     startDate: "2026-09-28", endDate: "2026-09-28", occasionMix: { everyday: 1 }, rewearLevel: 2, capsule: [] }),
 }));
-import { realBuilder } from "@/lib/packing/plan";
+import { tripPlanner } from "@/lib/packing/plan";
 import { planTrip, editCapsule } from "../actions";
 const input = { destinationLabel: "Zurich", lat: 47.37, lon: 8.54, timezone: "Europe/Zurich",
   startDate: "2026-09-28", endDate: "2026-09-28", occasionMix: { everyday: 1 }, rewearLevel: 2 };
@@ -63,12 +63,28 @@ it("a piece the user pinned in the trip editor stays even when a no-go would rem
 it("a trip is styled with the user's palette and fit answers", async () => {
   mock.profile = { palette: "Mono", fit: "Relaxed" };
   await planTrip(input);
-  expect(vi.mocked(realBuilder).mock.calls[0][2]).toEqual(expect.objectContaining({ palette: "Mono", fitPref: "Relaxed" }));
+  expect(vi.mocked(tripPlanner).mock.calls[0][2]).toEqual(expect.objectContaining({ palette: "Mono", fitPref: "Relaxed" }));
 });
 
 it("editing a trip also uses the palette and fit answers", async () => {
   mock.profile = { palette: "Navy", fit: "Tailored" };
   await editCapsule("trip", {});
-  const calls = vi.mocked(realBuilder).mock.calls;
+  const calls = vi.mocked(tripPlanner).mock.calls;
   expect(calls[calls.length - 1][2]).toEqual(expect.objectContaining({ palette: "Navy", fitPref: "Tailored" }));
+});
+
+it("a trip passes the planner's comfort judgements to the solver and the user's dress codes to the planner", async () => {
+  mock.profile = { formality_min: 3, formality_max: 4 };
+  await planTrip(input);
+  expect(vi.mocked(tripPlanner).mock.calls[0][2]).toEqual(expect.objectContaining({ dressCodes: { formality_min: 3, formality_max: 4 } }));
+  const solveArg = mock.solve.mock.calls[0][0];
+  expect(typeof solveArg.usableToday).toBe("function");
+  expect(typeof solveArg.requiredToday).toBe("function");
+});
+
+it("editing a trip passes the dress codes too", async () => {
+  mock.profile = { formality_min: 2, formality_max: 3 };
+  await editCapsule("trip", {});
+  const calls = vi.mocked(tripPlanner).mock.calls;
+  expect(calls[calls.length - 1][2]).toEqual(expect.objectContaining({ dressCodes: { formality_min: 2, formality_max: 3 } }));
 });

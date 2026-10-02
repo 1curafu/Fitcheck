@@ -2,6 +2,11 @@ import type { LocalizedNote } from "@/lib/release-notes";
 
 /** Keyed by version; one entry for every RELEASE_NOTES version, same line counts. */
 export const NL_NOTES: Record<string, LocalizedNote> = {
+  "0.8.0": {
+    headline: "Bewaar je favoriete looks en draag ze opnieuw.",
+    added: ["Bewaar een look en vind hem onder Profiel, Opgeslagen outfits", "Reizen nemen een warme jas mee voor kou en lichte tops voor hitte", "Een melding waarschuwt je voor koude nachten"],
+    fixed: ["Dikke breisels blijven vanaf 27°C uit je looks"],
+  },
   "0.7.0": {
     headline: "Je antwoorden over kleur en pasvorm sturen nu je looks.",
     added: ["Kleur en pasvorm tellen mee in elke look en reis", "Pro-koopadvies houdt rekening met je no-go’s en dresscodes", "Nieuwe Hulp-pagina, in Instellingen en op het inlogscherm"],

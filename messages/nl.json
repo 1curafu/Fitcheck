@@ -164,6 +164,7 @@
       "freeDaily": "Drie looks per dag voor elke gelegenheid",
       "freeRerolls": "Per dag {count, plural, one {één keer} other {# keer}} opnieuw genereren",
       "freeCloset": "Tot {count} kledingstukken in je kledingkast",
+      "freeSaved": "Bewaar maximaal {count} looks",
       "freeDiary": "Dagboek en outfits delen",
       "pro": "Pro",
       "perMonth": "per maand, of {yearly} per jaar",
@@ -792,11 +793,25 @@
       "overcast": "Bewolkt"
     }
   },
+  "savedOutfits": {
+    "title": "Bewaarde outfits",
+    "count": "{saved} van {limit} bewaard",
+    "overLimit": "Je hebt {saved} outfits bewaard. Met Free kun je er maximaal {limit} bewaren. Haal er een paar uit je lijst om nieuwe toe te voegen of neem Pro.",
+    "empty": "Bewaar een look die je leuk vindt en hij blijft hier.",
+    "emptyCta": "Bekijk de looks van vandaag",
+    "showMore": "Meer tonen",
+    "removedPiece": "Uit je kledingkast verwijderd"
+  },
   "outfit": {
+    "save": "Bewaren",
+    "saved": "Bewaard",
+    "saveLimitTitle": "Bewaar deze look",
+    "saveLimitBody": "Met Free kun je maximaal {count} looks bewaren. Met Pro bewaar je alle looks waar je van houdt.",
+    "savedOn": "Bewaarde look · {date}",
+    "saveFailed": "Deze look kon niet worden bewaard. Probeer het opnieuw.",
     "back": "Terug",
     "share": "Delen",
     "inLook": "In deze look",
-    "favourite": "Favoriet",
     "wearThisToday": "Vandaag dragen",
     "wornToday": "Vandaag gedragen",
     "todayLook": "De look van vandaag",
@@ -1115,6 +1130,7 @@
     "changePiece": "{name} wijzigen",
     "tapPiece": "Tik op een stuk om het te wisselen of thuis te laten.",
     "capsuleWhy": "{days} dagen · {pieces} stukken",
+    "coldNights": "Het koelt ’s nachts af tot {temp} — neem iets warms mee voor de avond.",
     "forecastEstimate": "Een deel van deze reis valt buiten de verwachting, dus het weer is een schatting.",
     "doneCloset": "Klaar — terug naar de kast",
     "seeDays": "Bekijk de dagen",

@@ -2,6 +2,7 @@ import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/locales";
 import { createClient } from "@/lib/supabase/server";
 import type { LookDraft, WeatherPayload } from "@/lib/generator/types";
 import { storedLooksBlocked, type NoGo, type NoGoItem } from "@/lib/generator/nogos";
+import { releaseSavedThenDelete } from "./release";
 
 /**
  * The cache read for "Style an outfit with this".
@@ -21,13 +22,15 @@ export async function loadStyledLooks(
   generatedOn: string,
 ): Promise<string[]> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("outfits")
     .select("id, styled_index")
     .eq("user_id", userId)
     .eq("styled_item_id", itemId)
     .eq("generated_on", generatedOn)
+    .is("released_at", null)
     .order("styled_index", { ascending: true, nullsFirst: true });
+  if (error) throw new Error(error.message);
   return (data ?? []).map((r) => r.id);
 }
 
@@ -55,7 +58,7 @@ export async function loadStyledPieceIds(
  *
  * Delete-then-insert, for the same reason `saveDailyLooks` does it: a fresh run
  * may return a different number of looks, and leftovers must not survive beside
- * the new set. `outfit_items` first — the rows hang off `outfits`.
+ * the new set. Saved rows are released; unsaved pieces cascade with their look.
  */
 export async function clearStyledLooks(
   userId: string,
@@ -65,8 +68,7 @@ export async function clearStyledLooks(
   const supabase = await createClient();
   const ids = await loadStyledLooks(userId, itemId, generatedOn);
   if (!ids.length) return;
-  await supabase.from("outfit_items").delete().in("outfit_id", ids);
-  await supabase.from("outfits").delete().in("id", ids);
+  await releaseSavedThenDelete(supabase, ids);
 }
 
 /**

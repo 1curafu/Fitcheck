@@ -9,6 +9,9 @@ import { PackingBack } from "@/components/packing/back-link";
 import { Shortfall } from "@/components/packing/shortfall";
 import { loadTrip } from "@/lib/packing/store";
 import { expandDays } from "@/lib/packing/plan";
+import { coldNights } from "@/lib/weather/trip";
+import { formatTemp } from "@/lib/weather/format";
+import { readPreferences } from "@/lib/profile/preferences";
 import { fetchTripForecast } from "@/lib/weather/forecast";
 import { getLocale, getTranslations } from "next-intl/server";
 import { formatDateRange, intlLocale } from "@/lib/i18n/format";
@@ -62,6 +65,7 @@ async function TripBody({ params }: { params: Promise<{ tripId: string }> }) {
     .from("outfits")
     .select("id, trip_day, occasion, look_name, ai_reasoning, text_locale")
     .eq("trip_id", tripId)
+    .is("released_at", null)
     .order("trip_day");
 
   const first = looks?.[0];
@@ -108,6 +112,13 @@ async function TripBody({ params }: { params: Promise<{ tripId: string }> }) {
   const covered = (looks ?? []).length;
   const range = formatRange(trip.startDate, trip.endDate, locale);
   const forecast = await fetchTripForecast(trip.lat, trip.lon, days.map((d) => d.date));
+  const { data: prefs } = await supabase
+    .from("profiles")
+    .select("preferences")
+    .eq("id", user.id)
+    .maybeSingle();
+  const coldNight = coldNights(forecast.byDate);
+  const unit = readPreferences(prefs?.preferences).tempUnit;
 
   // ⚠️ The shortfall branch. Reachable at an ordinary setting — "Fresh every
   // day" leaves 3 of 7 days uncovered on a 26-item closet — so it is the real
@@ -177,6 +188,7 @@ async function TripBody({ params }: { params: Promise<{ tripId: string }> }) {
        * filled, so it costs a row rather than an API call.
        */
       beyondHorizon={forecast.beyondHorizon}
+      coldNightNote={coldNight ? t("coldNights", { temp: formatTemp(coldNight.lowC, unit, locale) }) : null}
       alternatives={alternatives}
     />
   );

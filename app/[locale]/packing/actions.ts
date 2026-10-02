@@ -8,7 +8,7 @@ import { currentEntitlements, recordGeneration } from "@/lib/billing/entitlement
 import { fetchTripForecast } from "@/lib/weather/forecast";
 import { solveCapsule, QUALITY_FLOOR, type CapsuleItem } from "@/lib/packing/capsule";
 import { scheduleDays } from "@/lib/packing/schedule";
-import { expandDays, realBuilder } from "@/lib/packing/plan";
+import { expandDays, tripPlanner } from "@/lib/packing/plan";
 import { narrateTrip } from "@/lib/packing/narrate";
 import { saveTrip, loadTrip, replaceCapsule, saveTripLooks } from "@/lib/packing/store";
 import { PackingLockedError } from "@/lib/packing/errors";
@@ -73,7 +73,7 @@ export async function planTrip(input: PlanTripInput): Promise<{ tripId: string }
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("archetype, rain_guard, nogos, palette, fit")
+    .select("archetype, rain_guard, nogos, palette, fit, formality_min, formality_max")
     .eq("id", user.id)
     .maybeSingle();
   const aesthetic = profile?.archetype ? [profile.archetype as string] : [];
@@ -90,6 +90,7 @@ export async function planTrip(input: PlanTripInput): Promise<{ tripId: string }
     nogos: readNogos(profile?.nogos),
     palette: readStyleProfile(profile).palette,
     fitPref: readStyleProfile(profile).fit,
+    dressCodes: { formality_min: profile?.formality_min ?? null, formality_max: profile?.formality_max ?? null },
   });
 
   // Recorded, NOT limited (spec decision #5). Packing is Pro-only and Pro is
@@ -117,6 +118,7 @@ type SolveArgs = {
   nogos: NoGo[];
   palette: string | null;
   fitPref: string | null;
+  dressCodes: { formality_min: number | null; formality_max: number | null };
   pinned?: string[];
   excluded?: string[];
   tripId?: string;
@@ -131,13 +133,14 @@ async function solveAndPersist(args: SolveArgs): Promise<string> {
   const pinned = args.pinned ?? [];
   const items = args.items.filter((i) => pinned.includes(i.id) || !itemBlocked(i, args.nogos));
 
-  const build = realBuilder(items, (date) => args.forecast.byDate[date], {
+  const planner = tripPlanner(items, (date) => args.forecast.byDate[date], {
     aesthetic: args.aesthetic,
     rainGuard: args.rainGuard,
     nogos: args.nogos,
     keepItemIds: pinned,
     palette: args.palette,
     fitPref: args.fitPref,
+    dressCodes: args.dressCodes,
   });
 
   const capsuleItems: CapsuleItem[] = items.map((i) => ({ id: i.id, category: i.category }));
@@ -146,7 +149,9 @@ async function solveAndPersist(args: SolveArgs): Promise<string> {
     days: args.days,
     level: args.input.rewearLevel,
     floor: QUALITY_FLOOR,
-    build,
+    build: planner.build,
+    usableToday: planner.usableToday,
+    requiredToday: planner.requiredToday,
     pinned: args.pinned,
     excluded: args.excluded,
   });
@@ -256,7 +261,7 @@ export async function editCapsule(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("archetype, rain_guard, nogos, palette, fit")
+    .select("archetype, rain_guard, nogos, palette, fit, formality_min, formality_max")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -282,6 +287,7 @@ export async function editCapsule(
     nogos: readNogos(profile?.nogos),
     palette: readStyleProfile(profile).palette,
     fitPref: readStyleProfile(profile).fit,
+    dressCodes: { formality_min: profile?.formality_min ?? null, formality_max: profile?.formality_max ?? null },
     pinned: [...pinned],
     excluded: edit.remove ? [edit.remove] : undefined,
   });

@@ -164,6 +164,7 @@
       "freeDaily": "Trois looks par jour pour chaque occasion",
       "freeRerolls": "Régénérer {count, plural, one {une fois} other {# fois}} par jour",
       "freeCloset": "Jusqu’à {count} pièces dans ta garde-robe",
+      "freeSaved": "Enregistre jusqu’à {count} tenues",
       "freeDiary": "Journal des tenues portées et partage",
       "pro": "Pro",
       "perMonth": "par mois, ou {yearly} par an",
@@ -798,11 +799,25 @@
       "overcast": "Couvert"
     }
   },
+  "savedOutfits": {
+    "title": "Tenues enregistrées",
+    "count": "{saved} sur {limit} enregistrés",
+    "overLimit": "Tu as enregistré {saved} tenues. Avec Free, tu peux en garder jusqu’à {limit}. Retires-en quelques-unes pour en ajouter, ou passe à Pro.",
+    "empty": "Enregistre une tenue que tu aimes et elle reste ici.",
+    "emptyCta": "Voir les tenues du jour",
+    "showMore": "Voir plus",
+    "removedPiece": "Retiré du dressing"
+  },
   "outfit": {
+    "save": "Enregistrer",
+    "saved": "Enregistré",
+    "saveLimitTitle": "Enregistre cette tenue",
+    "saveLimitBody": "Free te permet de garder jusqu’à {count} tenues. Passe à Pro pour garder toutes les tenues que tu aimes.",
+    "savedOn": "Tenue enregistrée · {date}",
+    "saveFailed": "Impossible d’enregistrer cette tenue. Réessaie.",
     "back": "Retour",
     "share": "Partager",
     "inLook": "Dans ce look",
-    "favourite": "Favori",
     "wearThisToday": "Porter aujourd’hui",
     "wornToday": "Porté aujourd’hui",
     "todayLook": "Le look du jour",
@@ -1121,6 +1136,7 @@
     "changePiece": "Changer : {name}",
     "tapPiece": "Touche une pièce pour l’échanger ou la laisser.",
     "capsuleWhy": "{days} jours · {pieces} pièces",
+    "coldNights": "La température descendra jusqu’à {temp} pendant la nuit : prévois de quoi te couvrir le soir.",
     "forecastEstimate": "Une partie de ce voyage dépasse les prévisions, sa météo est donc estimée.",
     "doneCloset": "Terminé — retour à la garde-robe",
     "seeDays": "Voir les jours",

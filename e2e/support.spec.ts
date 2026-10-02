@@ -97,6 +97,7 @@ test.describe("public support server validation", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
   test("a whitespace-only draft stays editable and focuses the server field error", async ({ page }) => {
     await page.goto("/support");
+    await expect(page.getByRole("button", { name: "Send message", exact: true })).toBeEnabled();
     await page.getByLabel("Reply email").fill("reader@example.com");
     await page.getByLabel("Message", { exact: true }).fill("          ");
     await page.getByRole("button", { name: "Send message", exact: true }).click();

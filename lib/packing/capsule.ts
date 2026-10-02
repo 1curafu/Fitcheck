@@ -2,9 +2,13 @@ import { maxWears } from "./rewear";
 
 export type TripDay = { date: string; occasion: string };
 export type CapsuleItem = { id: string; category: string };
+export type DayContext = { reference: CapsuleItem[] };
 
 /**
  * Injected. Returns the best outfit for a day from `available`, or null.
+ *
+ * The solver always passes `ctx`: judge weather against the capacity-aware reference, not the packed pool.
+ * Optional so existing standalone builders remain compatible.
  *
  * `recent` carries the previous day's pieces so a builder can prefer variety.
  * ⚠️ Optional, and it is passed ONLY when choosing among pieces already packed
@@ -14,6 +18,7 @@ export type OutfitBuilder = (
   day: TripDay,
   available: CapsuleItem[],
   recent?: string[],
+  ctx?: DayContext,
 ) => { itemIds: string[]; score: number } | null;
 
 export type CapsuleInput = {
@@ -28,6 +33,10 @@ export type CapsuleInput = {
   /** Item ids the user has removed. */
   excluded?: string[];
   build: OutfitBuilder;
+  /** Trip-comfort §3: weather usability against today's whole closet with wear left; defaults to true. */
+  usableToday?: (day: TripDay, itemId: string, reference: CapsuleItem[]) => boolean;
+  /** Trip-comfort §4: categories needed today, judged against the same reference; defaults to none. */
+  requiredToday?: (day: TripDay, reference: CapsuleItem[]) => string[];
 };
 
 /**
@@ -113,9 +122,9 @@ export function solveCapsule(input: CapsuleInput): CapsuleResult {
   const limitFor = (item: CapsuleItem) => maxWears(item.category, level, days.length);
 
   /** Best outfit for a day from `pool`, honouring per-item wear limits and the floor. */
-  const outfitFor = (day: TripDay, pool: CapsuleItem[], recent?: string[]) => {
+  const outfitFor = (day: TripDay, pool: CapsuleItem[], reference: CapsuleItem[], recent?: string[]) => {
     const withCapacity = pool.filter((i) => (wears.get(i.id) ?? 0) < limitFor(i));
-    const built = build(day, withCapacity, recent);
+    const built = build(day, withCapacity, recent, { reference });
     return built && built.score >= floor ? built : null;
   };
 
@@ -129,6 +138,12 @@ export function solveCapsule(input: CapsuleInput): CapsuleResult {
   };
 
   for (const day of days) {
+    // What the whole non-excluded closet can wear today, and what today needs (trip-comfort §2–§4).
+    const reference = eligible.filter((i) => (wears.get(i.id) ?? 0) < limitFor(i));
+    const usable = (id: string) => input.usableToday?.(day, id, reference) ?? true;
+    const packedUsable = chosen.filter((i) => (wears.get(i.id) ?? 0) < limitFor(i) && usable(i.id));
+    const missingRequired = (input.requiredToday?.(day, reference) ?? [])
+      .filter((c) => !packedUsable.some((i) => i.category === c));
     /**
      * 1. Free: dress this day from the pieces already going in the case.
      *
@@ -140,7 +155,8 @@ export function solveCapsule(input: CapsuleInput): CapsuleResult {
      * it is deliberately withheld: a day must never add a piece merely to avoid
      * looking like yesterday.
      */
-    const reused = outfitFor(day, chosen, lastWorn);
+    // A cold day cannot reuse a coatless suitcase when usable outerwear remains at home.
+    const reused = missingRequired.length ? null : outfitFor(day, chosen, reference, lastWorn);
     if (reused) {
       commit(day, reused.itemIds);
       continue;
@@ -158,20 +174,22 @@ export function solveCapsule(input: CapsuleInput): CapsuleResult {
      *
      * So the pool offered here is: everything already packed that still has
      * wear left, PLUS the closet only in the categories where nothing packed
-     * has any left. The builder physically cannot reach for a new shoe when the
+     * has any left AND is usable today. Otherwise a cold-day knit keeps Tops
+     * covered at 32 °C, forcing a full-closet fallback that adds trousers and shoes too.
+     * The builder physically cannot reach for a new shoe when the
      * shoes in the case are still wearable.
      *
      * Cheaper than searching subsets, and exact: the categories that need
      * topping up are known, not guessed.
      */
     const withCapacity = chosen.filter((i) => (wears.get(i.id) ?? 0) < limitFor(i));
-    const covered = new Set(withCapacity.map((i) => i.category));
+    const covered = new Set(packedUsable.map((i) => i.category));
     const toppedUp = [
       ...withCapacity,
       ...eligible.filter((i) => !covered.has(i.category) && !chosen.some((c) => c.id === i.id)),
     ];
 
-    const topped = outfitFor(day, toppedUp);
+    const topped = outfitFor(day, toppedUp, reference);
     if (topped) {
       for (const id of topped.itemIds) {
         if (chosen.some((c) => c.id === id)) continue;
@@ -184,7 +202,7 @@ export function solveCapsule(input: CapsuleInput): CapsuleResult {
 
     // 3. Costed: the topped-up pool still cannot dress the day, so fall back to
     // the whole closet. No `recent` — see above.
-    const fresh = outfitFor(day, eligible);
+    const fresh = outfitFor(day, eligible, reference);
     if (!fresh) continue; // nothing can dress this day — it lands in `uncovered`
 
     for (const id of fresh.itemIds) {

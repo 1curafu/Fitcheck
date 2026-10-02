@@ -9,7 +9,7 @@ export async function Plans() {
   const t = await getTranslations("home.plans");
   const cta = await getTranslations("home.hero");
   const benefits = await getTranslations("billing.benefits");
-  const free = [t("freeDaily"), t("freeRerolls", { count: FREE.regeneratesPerDay ?? 0 }), t("freeCloset", { count: FREE.closetItems ?? 0 }), t("freeDiary")];
+  const free = [t("freeDaily"), t("freeRerolls", { count: FREE.regeneratesPerDay ?? 0 }), t("freeCloset", { count: FREE.closetItems ?? 0 }), t("freeDiary"), t("freeSaved", { count: FREE.savedOutfits ?? 0 })];
   const pro = [t("everythingFree"), ...PRO_BENEFIT_KEYS.map((key) => benefits(`${key}.label`))];
   const item = "grid grid-cols-[18px_1fr] gap-2.5 text-[15px] text-value";
   return (

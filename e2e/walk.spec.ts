@@ -17,7 +17,7 @@ test.use({ storageState: "e2e/.auth/state.json" });
  */
 const ROUTES = [
   "/",
-  "/closet",
+  "/outfits", "/closet",
   "/generate",
   "/calendar",
   "/profile",

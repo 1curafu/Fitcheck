@@ -125,6 +125,7 @@
       "freeDaily": "Three daily looks for every occasion",
       "freeRerolls": "Regenerate {count, plural, one {once} other {# times}} a day",
       "freeCloset": "Up to {count} pieces in your closet",
+      "freeSaved": "Save up to {count} looks",
       "freeDiary": "Wear diary and sharing",
       "pro": "Pro",
       "perMonth": "a month, or {yearly} a year",
@@ -738,11 +739,25 @@
       "overcast": "Overcast"
     }
   },
+  "savedOutfits": {
+    "title": "Saved",
+    "count": "{saved} of {limit} saved",
+    "overLimit": "You have {saved} saved looks. Free saves up to {limit} — unsave some to add new ones, or go Pro.",
+    "empty": "Save a look you like and it stays here.",
+    "emptyCta": "See today's looks",
+    "showMore": "Show more",
+    "removedPiece": "Removed from closet"
+  },
   "outfit": {
+    "save": "Save",
+    "saved": "Saved",
+    "saveLimitTitle": "Save this look",
+    "saveLimitBody": "Free keeps up to {count} saved looks. Go Pro to keep every look you love.",
+    "savedOn": "Saved look · {date}",
+    "saveFailed": "Couldn't save this look. Try again.",
     "back": "Back",
     "share": "Share",
     "inLook": "In this look",
-    "favourite": "Favourite",
     "wearThisToday": "Wear this today",
     "wornToday": "Worn today",
     "todayLook": "Today's look",
@@ -1061,6 +1076,7 @@
     "changePiece": "Change {name}",
     "tapPiece": "Tap a piece to swap it or leave it behind.",
     "capsuleWhy": "{days} days · {pieces} pieces",
+    "coldNights": "Nights drop to {temp} — take something warm for the evenings.",
     "forecastEstimate": "Part of this trip is beyond the forecast, so its weather is an estimate.",
     "doneCloset": "Done — back to the closet",
     "seeDays": "See the days",
