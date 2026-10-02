@@ -799,10 +799,15 @@
     }
   },
   "outfit": {
+    "save": "Guardar",
+    "saved": "Guardado",
+    "saveLimitTitle": "Guarda este look",
+    "saveLimitBody": "Com Free podes guardar até {count} looks. Passa a Pro para guardar todos os looks de que gostas.",
+    "savedOn": "Look guardado · {date}",
+    "saveFailed": "Não foi possível guardar este look. Tenta novamente.",
     "back": "Voltar",
     "share": "Partilhar",
     "inLook": "Neste look",
-    "favourite": "Favorito",
     "wearThisToday": "Usar hoje",
     "wornToday": "Usado hoje",
     "todayLook": "O look de hoje",

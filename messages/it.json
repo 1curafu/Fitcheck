@@ -799,10 +799,15 @@
     }
   },
   "outfit": {
+    "save": "Salva",
+    "saved": "Salvato",
+    "saveLimitTitle": "Salva questo look",
+    "saveLimitBody": "Con Free puoi salvare fino a {count} look. Passa a Pro per conservare tutti i look che ami.",
+    "savedOn": "Look salvato · {date}",
+    "saveFailed": "Non è stato possibile salvare questo look. Riprova.",
     "back": "Indietro",
     "share": "Condividi",
     "inLook": "In questo look",
-    "favourite": "Preferito",
     "wearThisToday": "Indossalo oggi",
     "wornToday": "Indossato oggi",
     "todayLook": "Il look di oggi",

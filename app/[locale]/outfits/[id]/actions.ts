@@ -100,25 +100,6 @@ export async function setSaved(outfitId: string, saved: boolean): Promise<SaveRe
   return { status: saved ? "saved" : "unsaved" };
 }
 
-export async function toggleFavorite(outfitId: string): Promise<{ favorite: boolean }> {
-  const supabase = await createClient();
-  const { data: row } = await supabase
-    .from("outfits")
-    .select("is_favorite")
-    .eq("id", outfitId)
-    .single();
-
-  const next = !row?.is_favorite;
-  const { error } = await supabase
-    .from("outfits")
-    .update({ is_favorite: next })
-    .eq("id", outfitId);
-  if (error) throw new Error(error.message);
-
-  revalidateEverywhere(`/outfits/${outfitId}`);
-  return { favorite: next };
-}
-
 /**
  * Stamp that the user opened this look.
  *

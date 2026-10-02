@@ -793,10 +793,15 @@
     }
   },
   "outfit": {
+    "save": "Bewaren",
+    "saved": "Bewaard",
+    "saveLimitTitle": "Bewaar deze look",
+    "saveLimitBody": "Met Free kun je maximaal {count} looks bewaren. Met Pro bewaar je alle looks waar je van houdt.",
+    "savedOn": "Bewaarde look · {date}",
+    "saveFailed": "Deze look kon niet worden bewaard. Probeer het opnieuw.",
     "back": "Terug",
     "share": "Delen",
     "inLook": "In deze look",
-    "favourite": "Favoriet",
     "wearThisToday": "Vandaag dragen",
     "wornToday": "Vandaag gedragen",
     "todayLook": "De look van vandaag",

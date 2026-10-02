@@ -739,10 +739,15 @@
     }
   },
   "outfit": {
+    "save": "Save",
+    "saved": "Saved",
+    "saveLimitTitle": "Save this look",
+    "saveLimitBody": "Free keeps up to {count} saved looks. Go Pro to keep every look you love.",
+    "savedOn": "Saved look · {date}",
+    "saveFailed": "Couldn't save this look. Try again.",
     "back": "Back",
     "share": "Share",
     "inLook": "In this look",
-    "favourite": "Favourite",
     "wearThisToday": "Wear this today",
     "wornToday": "Worn today",
     "todayLook": "Today's look",

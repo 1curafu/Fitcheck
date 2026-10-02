@@ -799,10 +799,15 @@
     }
   },
   "outfit": {
+    "save": "Enregistrer",
+    "saved": "Enregistré",
+    "saveLimitTitle": "Enregistre cette tenue",
+    "saveLimitBody": "Free te permet de garder jusqu’à {count} tenues. Passe à Pro pour garder toutes les tenues que tu aimes.",
+    "savedOn": "Tenue enregistrée · {date}",
+    "saveFailed": "Impossible d’enregistrer cette tenue. Réessaie.",
     "back": "Retour",
     "share": "Partager",
     "inLook": "Dans ce look",
-    "favourite": "Favori",
     "wearThisToday": "Porter aujourd’hui",
     "wornToday": "Porté aujourd’hui",
     "todayLook": "Le look du jour",
