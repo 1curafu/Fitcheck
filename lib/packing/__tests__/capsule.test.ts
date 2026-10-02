@@ -303,3 +303,71 @@ describe("over-packing", () => {
     expect(r.uncovered).toHaveLength(0);
   });
 });
+
+describe("trip comfort: reference, usable today, required today", () => {
+  test("every builder call receives the day's reference: non-excluded pieces with wear left", () => {
+    const refs: string[][] = [];
+    const spy: OutfitBuilder = (d, a, r, ctx) => { refs.push((ctx?.reference ?? []).map((i) => i.id).sort()); return simple(d, a); };
+    solveCapsule({ closet, days: days(3), level: 3, floor: 0.5, build: spy, excluded: ["jeans"] });
+    expect(refs.length).toBeGreaterThan(0);
+    expect(refs.every((r) => r.length > 0 && !r.includes("jeans"))).toBe(true);
+  });
+
+  // A builder that, like the real one, wears only what is usable today.
+  const knitDay = "2026-05-13";
+  const wardrobe: CapsuleItem[] = [
+    { id: "knit", category: "Tops" }, { id: "linen", category: "Tops" },
+    { id: "bot-0", category: "Bottoms" }, { id: "bot-1", category: "Bottoms" },
+    { id: "shoe-0", category: "Shoes" }, { id: "shoe-1", category: "Shoes" },
+  ];
+  const usableToday = (day: TripDay, id: string) => !(day.date === knitDay && id === "knit"); // the knit is wrong for the hot day
+  const comfortAware: OutfitBuilder = (day, available) => {
+    const ok = available.filter((i) => usableToday(day, i.id));
+    const n = Number(day.date.slice(-2));
+    const pick = (c: string) => { const o = ok.filter((i) => i.category === c); return o.length ? o[n % o.length] : null; };
+    const top = pick("Tops"); const bottom = pick("Bottoms"); const shoe = pick("Shoes");
+    return top && bottom && shoe ? { itemIds: [top.id, bottom.id, shoe.id], score: 1 } : null;
+  };
+  const hotTrip = [{ date: "2026-05-12", occasion: "work" }, { date: knitDay, occasion: "work" }];
+
+  test("a packed piece that is not usable today counts as missing — only its category is topped up", () => {
+    // Day 1 packs the knit (n=12 → index 0). Day 2 must swap ONLY the top: one bottom, one shoe in the whole capsule.
+    const r = solveCapsule({ closet: wardrobe, days: hotTrip, level: 5, floor: 0.5, build: comfortAware, usableToday });
+    expect(r.uncovered).toHaveLength(0);
+    expect(r.covered.find((c) => c.day.date === knitDay)!.itemIds).toContain("linen");
+    expect(r.itemIds.filter((id) => id.startsWith("bot"))).toHaveLength(1);
+    expect(r.itemIds.filter((id) => id.startsWith("shoe"))).toHaveLength(1);
+  });
+
+  test("without usableToday the solver behaves exactly as before (default: always usable)", () => {
+    const r = solveCapsule({ closet, days: days(3), level: 3, floor: 0.5, build: simple });
+    expect(r.uncovered).toHaveLength(0);
+  });
+
+  const coatCloset: CapsuleItem[] = [
+    { id: "tee", category: "Tops" }, { id: "chino", category: "Bottoms" }, { id: "loafer", category: "Shoes" }, { id: "coat", category: "Outerwear" },
+  ];
+  const coldDay = "2026-05-15";
+  // Like the real builder: layers a coat on the cold day when one is offered.
+  const layers: OutfitBuilder = (day, available) => {
+    const pick = (c: string) => available.find((i) => i.category === c) ?? null;
+    const top = pick("Tops"); const bottom = pick("Bottoms"); const shoe = pick("Shoes");
+    if (!top || !bottom || !shoe) return null;
+    const coat = day.date === coldDay ? pick("Outerwear") : null;
+    return { itemIds: [top.id, bottom.id, shoe.id, ...(coat ? [coat.id] : [])], score: 1 };
+  };
+  const requiredToday = (day: TripDay) => (day.date === coldDay ? ["Outerwear"] : []);
+
+  test("a required category with nothing usable packed is topped up — a coat for the cold day", () => {
+    const r = solveCapsule({ closet: coatCloset, days: days(4), level: 5, floor: 0.5, build: layers, requiredToday });
+    expect(r.covered.find((c) => c.day.date === coldDay)!.itemIds).toContain("coat");
+    expect(r.itemIds).toContain("coat");
+    expect(r.covered.filter((c) => c.day.date !== coldDay).every((c) => !c.itemIds.includes("coat"))).toBe(true);
+  });
+
+  test("D3: a requirement nothing in the closet can meet never leaves the day uncovered", () => {
+    const noCoat = coatCloset.filter((i) => i.id !== "coat");
+    const r = solveCapsule({ closet: noCoat, days: days(4), level: 5, floor: 0.5, build: layers, requiredToday });
+    expect(r.uncovered).toHaveLength(0);
+  });
+});
