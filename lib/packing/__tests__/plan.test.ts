@@ -68,7 +68,7 @@ test("crosses a DST boundary without dropping or repeating a day", () => {
   expect(days.map((d) => d.date)).toEqual(["2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31"]);
 });
 
-import { realBuilder } from "../plan";
+import { realBuilder, tripPlanner } from "../plan";
 import type { CandidateItem } from "@/lib/generator/candidates";
 import type { Weather } from "@/lib/generator/rules";
 import { rankTopN } from "@/lib/generator/rank";
@@ -243,4 +243,89 @@ test("the recency preference orders without lowering the reported score", () => 
   // Same pool and no alternative, so the same outfit — and crucially the SAME
   // score. A lower one here is the inflation bug.
   expect(repeating!.score).toBeCloseTo(fresh!.score, 5);
+});
+
+describe("trip comfort (spec §2–§4)", () => {
+  const knit = item("knit", "Tops", { colors: ["grey"], material: "Cotton", texture: "Cable knit", seasons: ["Autumn", "Winter"] });
+  const linen = item("linen", "Tops", { colors: ["white"], material: "Linen", texture: "Flat", seasons: ["Summer"] });
+  const chino = item("chino", "Bottoms", { colors: ["stone"] });
+  const chino2 = item("chino2", "Bottoms", { colors: ["navy"] });
+  const loafer = item("loafer", "Shoes", { colors: ["brown"], material: "Leather" });
+  const loafer2 = item("loafer2", "Shoes", { colors: ["black"], material: "Leather" });
+  const cold: Weather = { tempC: 4, rain: false, highC: 6, lowC: 1 };
+  const hot: Weather = { tempC: 30, rain: false, highC: 32, lowC: 24 };
+  const day = (date: string, occasion = "everyday") => ({ date, occasion });
+
+  test("a packed knit is not worn at 32 °C when the closet has a linen top — and only the top is added", () => {
+    const closetH = [knit, linen, chino, chino2, loafer, loafer2];
+    const forecast: Record<string, Weather> = { "2026-05-12": cold, "2026-05-13": hot };
+    const p = tripPlanner(closetH, (d) => forecast[d]);
+    const r = solveCapsule({ closet: closetH, days: [day("2026-05-12"), day("2026-05-13")], level: 5, floor: QUALITY_FLOOR,
+      build: p.build, usableToday: p.usableToday, requiredToday: p.requiredToday });
+    const d1 = r.covered.find((c) => c.day.date === "2026-05-12")!.itemIds;
+    const d2 = r.covered.find((c) => c.day.date === "2026-05-13")!.itemIds;
+    expect(d1).toContain("knit");              // precondition: the cold day packs the knit (else this test proves nothing)
+    expect(d2).not.toContain("knit");
+    expect(d2).toContain("linen");
+    expect(r.itemIds.filter((id) => id.startsWith("chino"))).toHaveLength(1);
+    expect(r.itemIds.filter((id) => id.startsWith("loafer"))).toHaveLength(1);
+  });
+
+  test("a packed subset cannot relieve a weather bar the whole closet would not (suede in the rain, leather at home)", () => {
+    const tee = item("tee", "Tops");
+    const suede = item("suede", "Shoes", { material: "Suede", colors: ["tan"] });
+    const leather = item("leather", "Shoes", { material: "Leather", colors: ["brown"] });
+    const rain: Weather = { tempC: 14, rain: true, highC: 16, lowC: 10 };
+    const p = tripPlanner([tee, chino, suede, leather], () => rain);
+    const all = [tee, chino, suede, leather];
+    expect(p.usableToday(day("2026-05-12"), "suede", all)).toBe(false);
+    expect(p.build(day("2026-05-12"), [tee, chino, suede], undefined, { reference: all })).toBeNull();
+  });
+
+  test("D3: relief at the closet level is honoured — a knit-only closet is still dressed at 32 °C", () => {
+    const only = [knit, chino, loafer];
+    const p = tripPlanner(only, () => hot);
+    expect(p.build(day("2026-05-13"), only, undefined, { reference: only })?.itemIds).toContain("knit");
+  });
+
+  test("the reference is capacity-aware: with the linen top worn out (absent from the reference) the knit is allowed", () => {
+    const p = tripPlanner([knit, linen, chino, loafer], () => hot);
+    expect(p.usableToday(day("2026-05-13"), "knit", [knit, chino, loafer])).toBe(true);
+    expect(p.usableToday(day("2026-05-13"), "knit", [knit, linen, chino, loafer])).toBe(false);
+  });
+
+  test("the usable-today memo keys on date, occasion and the reference — a cold day's answer is never reused on a hot day", () => {
+    const forecast: Record<string, Weather> = { "2026-05-12": cold, "2026-05-13": hot };
+    const p = tripPlanner([knit, linen, chino, loafer], (d) => forecast[d]);
+    const ref = [knit, linen, chino, loafer];
+    expect(p.usableToday(day("2026-05-12"), "knit", ref)).toBe(true);
+    expect(p.usableToday(day("2026-05-13"), "knit", ref)).toBe(false);
+  });
+
+  test("a cold day requires outerwear only when the closet has a usable coat", () => {
+    const coat = item("coat", "Outerwear", { material: "Wool", texture: "Twill", colors: ["camel"] });
+    const withCoat = tripPlanner([linen, chino, loafer, coat], () => cold);
+    expect(withCoat.requiredToday(day("2026-05-12"), [linen, chino, loafer, coat])).toEqual(["Outerwear"]);
+    expect(withCoat.requiredToday(day("2026-05-12"), [linen, chino, loafer])).toEqual([]);
+    const mildP = tripPlanner([linen, chino, loafer, coat], () => mild);
+    expect(mildP.requiredToday(day("2026-05-12"), [linen, chino, loafer, coat])).toEqual([]);
+  });
+
+  test("'pack light' with three mild days and a 2 °C day packs a coat for the cold day", () => {
+    const tee = item("tee", "Tops");
+    const coat = item("coat", "Outerwear", { material: "Wool", texture: "Twill", colors: ["camel"] });
+    const closetC = [tee, chino, loafer, coat];
+    const two: Weather = { tempC: 1, rain: false, highC: 2, lowC: -1 };
+    const forecast: Record<string, Weather> = { "2026-05-12": mild, "2026-05-13": mild, "2026-05-14": mild, "2026-05-15": two };
+    const p = tripPlanner(closetC, (d) => forecast[d]);
+    const r = solveCapsule({ closet: closetC, days: ["12", "13", "14", "15"].map((n) => day(`2026-05-${n}`)), level: 5, floor: QUALITY_FLOOR,
+      build: p.build, usableToday: p.usableToday, requiredToday: p.requiredToday });
+    expect(r.uncovered).toHaveLength(0);
+    expect(r.covered.find((c) => c.day.date === "2026-05-15")!.itemIds).toContain("coat");
+  });
+
+  test("realBuilder is tripPlanner(...).build — existing callers are unchanged", () => {
+    const b = realBuilder(closet, () => mild);
+    expect(b(day("2026-05-12", "work"), closet)).not.toBeNull(); // no ctx: the offered pool is its own reference (old behaviour)
+  });
 });
