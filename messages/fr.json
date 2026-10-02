@@ -164,6 +164,7 @@
       "freeDaily": "Trois looks par jour pour chaque occasion",
       "freeRerolls": "Régénérer {count, plural, one {une fois} other {# fois}} par jour",
       "freeCloset": "Jusqu’à {count} pièces dans ta garde-robe",
+      "freeSaved": "Enregistre jusqu’à {count} tenues",
       "freeDiary": "Journal des tenues portées et partage",
       "pro": "Pro",
       "perMonth": "par mois, ou {yearly} par an",
@@ -797,6 +798,15 @@
       "snow": "Neige",
       "overcast": "Couvert"
     }
+  },
+  "savedOutfits": {
+    "title": "Enregistrés",
+    "count": "{saved} sur {limit} enregistrés",
+    "overLimit": "Tu as {saved} tenues enregistrées. Free te permet d’en garder jusqu’à {limit} — retires-en pour en ajouter de nouvelles, ou passe à Pro.",
+    "empty": "Enregistre une tenue que tu aimes et elle reste ici.",
+    "emptyCta": "Voir les tenues du jour",
+    "showMore": "Voir plus",
+    "removedPiece": "Retiré du dressing"
   },
   "outfit": {
     "save": "Enregistrer",

@@ -164,6 +164,7 @@
       "freeDaily": "Drei Looks täglich für jeden Anlass",
       "freeRerolls": "Pro Tag {count, plural, one {einmal} other {#-mal}} neu erstellen",
       "freeCloset": "Bis zu {count} Teile im Kleiderschrank",
+      "freeSaved": "Speichere bis zu {count} Looks",
       "freeDiary": "Tagebuch und Looks teilen",
       "pro": "Pro",
       "perMonth": "pro Monat oder {yearly} pro Jahr",
@@ -797,6 +798,15 @@
       "snow": "Schnee",
       "overcast": "Bedeckt"
     }
+  },
+  "savedOutfits": {
+    "title": "Gespeichert",
+    "count": "{saved} von {limit} gespeichert",
+    "overLimit": "Du hast {saved} Looks gespeichert. Mit Free kannst du bis zu {limit} speichern — entferne einige aus deiner Sammlung, um neue hinzuzufügen, oder hol dir Pro.",
+    "empty": "Speichere einen Look, der dir gefällt, und er bleibt hier.",
+    "emptyCta": "Looks für heute ansehen",
+    "showMore": "Mehr anzeigen",
+    "removedPiece": "Aus dem Kleiderschrank entfernt"
   },
   "outfit": {
     "save": "Speichern",

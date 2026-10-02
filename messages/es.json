@@ -164,6 +164,7 @@
       "freeDaily": "Tres conjuntos al día para cada ocasión",
       "freeRerolls": "Regenera {count, plural, one {una vez} other {# veces}} al día",
       "freeCloset": "Hasta {count} prendas en el armario",
+      "freeSaved": "Guarda hasta {count} looks",
       "freeDiary": "Diario de conjuntos y opción para compartirlos",
       "pro": "Pro",
       "perMonth": "al mes, o {yearly} al año",
@@ -797,6 +798,15 @@
       "snow": "Nieve",
       "overcast": "Cubierto"
     }
+  },
+  "savedOutfits": {
+    "title": "Guardados",
+    "count": "{saved} de {limit} guardados",
+    "overLimit": "Tienes {saved} looks guardados. Con Free puedes guardar hasta {limit} — quita algunos de guardados para añadir nuevos, o pásate a Pro.",
+    "empty": "Guarda un look que te guste y se quedará aquí.",
+    "emptyCta": "Ver los looks de hoy",
+    "showMore": "Mostrar más",
+    "removedPiece": "Retirado del armario"
   },
   "outfit": {
     "save": "Guardar",

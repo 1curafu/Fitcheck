@@ -125,6 +125,7 @@
       "freeDaily": "Three daily looks for every occasion",
       "freeRerolls": "Regenerate {count, plural, one {once} other {# times}} a day",
       "freeCloset": "Up to {count} pieces in your closet",
+      "freeSaved": "Save up to {count} looks",
       "freeDiary": "Wear diary and sharing",
       "pro": "Pro",
       "perMonth": "a month, or {yearly} a year",
@@ -737,6 +738,15 @@
       "snow": "Snow",
       "overcast": "Overcast"
     }
+  },
+  "savedOutfits": {
+    "title": "Saved",
+    "count": "{saved} of {limit} saved",
+    "overLimit": "You have {saved} saved looks. Free saves up to {limit} — unsave some to add new ones, or go Pro.",
+    "empty": "Save a look you like and it stays here.",
+    "emptyCta": "See today's looks",
+    "showMore": "Show more",
+    "removedPiece": "Removed from closet"
   },
   "outfit": {
     "save": "Save",

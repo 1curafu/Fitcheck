@@ -164,6 +164,7 @@
       "freeDaily": "Drie looks per dag voor elke gelegenheid",
       "freeRerolls": "Per dag {count, plural, one {één keer} other {# keer}} opnieuw genereren",
       "freeCloset": "Tot {count} kledingstukken in je kledingkast",
+      "freeSaved": "Bewaar maximaal {count} looks",
       "freeDiary": "Dagboek en outfits delen",
       "pro": "Pro",
       "perMonth": "per maand, of {yearly} per jaar",
@@ -791,6 +792,15 @@
       "snow": "Sneeuw",
       "overcast": "Bewolkt"
     }
+  },
+  "savedOutfits": {
+    "title": "Bewaard",
+    "count": "{saved} van {limit} bewaard",
+    "overLimit": "Je hebt {saved} looks bewaard. Met Free kun je er maximaal {limit} bewaren — verwijder er een paar uit je verzameling om nieuwe toe te voegen, of neem Pro.",
+    "empty": "Bewaar een look die je leuk vindt en hij blijft hier.",
+    "emptyCta": "Bekijk de looks van vandaag",
+    "showMore": "Meer tonen",
+    "removedPiece": "Uit je kledingkast verwijderd"
   },
   "outfit": {
     "save": "Bewaren",
