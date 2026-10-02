@@ -77,3 +77,11 @@ public/ort/
 
 # cutout parity harness artefacts
 scratch/
+
+# StrykerJS
+reports/mutation/
+.stryker-tmp/
+
+# Lighthouse CI
+reports/lighthouse/
+.lighthouseci/

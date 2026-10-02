@@ -1,0 +1,37 @@
+name: Lighthouse
+
+# Mobile Lighthouse on the public pages (signed-out). Accessibility below 0.9 fails; the rest warn.
+on:
+  pull_request:
+    branches: [develop]
+
+concurrency:
+  group: lighthouse-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Production build
+        run: npm run build
+
+      - name: Lighthouse CI
+        run: npx --yes @lhci/cli@0.15.1 autorun
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: lighthouse-reports
+          path: reports/lighthouse
+          retention-days: 7
