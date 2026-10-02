@@ -950,5 +950,5 @@ describe("quiz part 2: palette and fit (very soft)", () => {
 test("the sourced black/red pairing beats an unrated accent", () => {
   const base = [{ category: "Tops", colors: ["black"], formality: 3 }, { category: "Shoes", colors: ["black"], formality: 3 }];
   const withBottoms = (color: string) => scoreCombo([...base, { category: "Bottoms", colors: [color], formality: 3 }], CTX);
-  expect(withBottoms("red")).toBeGreaterThan(withBottoms("lavender"));
+  expect(withBottoms("red")).toBeGreaterThan(withBottoms("purple"));
 });

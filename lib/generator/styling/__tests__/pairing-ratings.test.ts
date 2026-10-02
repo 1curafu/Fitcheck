@@ -18,7 +18,7 @@ test("a contested pair is rated low-middling, not banned", () => {
 });
 
 test("an unresearched pair is null, not a made-up midpoint", () => {
-  expect(pairingRating("black", "green")).toBeNull();
+  expect(pairingRating("black", "purple")).toBeNull();
 });
 
 test("every key in the table is a real vocabulary colour", () => {
@@ -74,13 +74,7 @@ test("a canonical pair still scores full marks", () => {
   expect(pairingScore(["navy", "white"])).toBe(1);
 });
 
-test("the reported outfit has NO rated pairs — and that is correct", () => {
-  // ⚠️ sky/stone/white and sky/stone/cream contain no researched pair between
-  // them, so this term has no opinion on the reported defect at all and returns
-  // null so the caller drops it. That is the designed behaviour, not a gap:
-  // TEMPERATURE is what separates cream from white (Task 2), not pairing.
-  // An earlier draft of this plan asserted pairing could rank them — it cannot,
-  // and asserting it would have pinned a fiction.
-  expect(pairingScore(["sky", "stone", "white"])).toBeNull();
+test("the reported white-shoe look now has stone/white evidence; cream stays unrated", () => {
+  expect(pairingScore(["sky", "stone", "white"])).toBe(0.75);
   expect(pairingScore(["sky", "stone", "cream"])).toBeNull();
 });
