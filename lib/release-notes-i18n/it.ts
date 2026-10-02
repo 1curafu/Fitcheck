@@ -2,6 +2,11 @@ import type { LocalizedNote } from "@/lib/release-notes";
 
 /** Keyed by version; one entry for every RELEASE_NOTES version, same line counts. */
 export const IT_NOTES: Record<string, LocalizedNote> = {
+  "0.8.0": {
+    headline: "Salva i look che ami e indossali di nuovo.",
+    added: ["Salva un look e trovalo in Profilo, Outfit salvati", "I viaggi preparano un cappotto caldo per il freddo e top leggeri per il caldo", "Un avviso ti ricorda quando le notti sono fredde"],
+    fixed: ["Le maglie pesanti restano fuori dai look dai 27°C"],
+  },
   "0.7.0": {
     headline: "Le tue risposte su colori e vestibilità ora guidano i tuoi look.",
     added: ["Colori e vestibilità contano in ogni look e viaggio", "I consigli d’acquisto Pro rispettano i tuoi no e i tuoi dress code", "Nuova pagina Assistenza, nelle Impostazioni e nella schermata di accesso"],
