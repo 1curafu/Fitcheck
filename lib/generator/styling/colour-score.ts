@@ -56,6 +56,7 @@ const W_ECHO = 0.15;
 export function colourScore(
   perItemColours: string[][],
   perItemAccents: (string | null | undefined)[] = [],
+  overrides?: ReadonlyMap<string, number>,
 ): number {
   const flat = perItemColours.flat();
   const harmony = colorHarmonyScore(flat);
@@ -65,7 +66,7 @@ export function colourScore(
   // and one cool vote. See temperature.ts.
   const temperature = temperatureCoherence(perItemColours);
   if (temperature != null) terms.push({ weight: W_TEMPERATURE, value: temperature });
-  const pairing = pairingScore(flat);
+  const pairing = pairingScore(flat, overrides);
   if (pairing != null) terms.push({ weight: W_PAIRING, value: pairing });
   // The ONE term the accent joins. Appended to its own garment's list so echo
   // still counts a colour once per garment, exactly as it did when the tagger

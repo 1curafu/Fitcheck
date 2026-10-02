@@ -952,3 +952,95 @@ test("the sourced black/red pairing beats an unrated accent", () => {
   const withBottoms = (color: string) => scoreCombo([...base, { category: "Bottoms", colors: [color], formality: 3 }], CTX);
   expect(withBottoms("red")).toBeGreaterThan(withBottoms("purple"));
 });
+
+const NO_SHOE_RULE_BASELINE = [
+  {
+    "items": [
+      {
+        "category": "Tops",
+        "colors": [
+          "cream"
+        ],
+        "formality": 3,
+        "material": "Cotton"
+      },
+      {
+        "category": "Bottoms",
+        "colors": [
+          "brown"
+        ],
+        "formality": 3,
+        "material": "Cotton"
+      },
+      {
+        "category": "Shoes",
+        "colors": [
+          "cream"
+        ],
+        "formality": 3,
+        "material": "Leather"
+      }
+    ],
+    "score": 0.9777777777777777
+  },
+  {
+    "items": [
+      {
+        "category": "Tops",
+        "colors": [
+          "charcoal"
+        ],
+        "formality": 2,
+        "material": "Cotton"
+      },
+      {
+        "category": "Bottoms",
+        "colors": [
+          "charcoal"
+        ],
+        "formality": 2,
+        "material": "Cotton"
+      },
+      {
+        "category": "Shoes",
+        "colors": [
+          "brown"
+        ],
+        "formality": 2,
+        "material": "Canvas",
+        "bulk": "Chunky"
+      }
+    ],
+    "score": 0.8600231466606006
+  },
+  {
+    "items": [
+      {
+        "category": "One-piece",
+        "colors": [
+          "lavender"
+        ],
+        "formality": 4,
+        "material": "Wool"
+      },
+      {
+        "category": "Shoes",
+        "colors": [
+          "white"
+        ],
+        "formality": 2,
+        "material": "Canvas",
+        "bulk": "Low profile"
+      }
+    ],
+    "score": 0.8247619047619047
+  }
+];
+test.each(NO_SHOE_RULE_BASELINE)("no matching shoe rule preserves the measured score $score", ({ items, score }) => {
+  expect(scoreCombo(items, CTX)).toBe(score);
+});
+test("navy tailoring prefers brown over black shoes", () => {
+  const suit = [{ category: "Tops", colors: ["navy"], formality: 4, material: "Wool" }, { category: "Bottoms", colors: ["navy"], formality: 4, material: "Wool" }];
+  const score = (color: string) => scoreCombo([...suit, { category: "Shoes", colors: [color], formality: 4, material: "Leather" }], CTX);
+  expect(score("brown")).toBeGreaterThan(score("black"));
+});

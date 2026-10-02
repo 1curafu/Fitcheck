@@ -5,6 +5,7 @@ import { seasonFit } from "./season";
 import { accentMetalTone, isHardware, metalCoordination } from "./styling/metal";
 import { warmthFit } from "./texture";
 import { colourScore } from "./styling/colour-score";
+import { shoeColourOverrides } from "./styling/shoe-colour";
 import { visualSeparation } from "./styling/value";
 import { valueDirection } from "./styling/direction";
 import { canonicalTrio } from "./styling/trios";
@@ -401,6 +402,7 @@ export function scoreCombo(items: ScoreItem[], ctx: Ctx): number {
         // unsupported loud colour — WORSE than the 0.5 the same bag gets with no
         // accent at all. Metal answers to `metalCoordination`, on both sides.
         items.map((i) => (accentMetalTone(i.accent_color) ? null : i.accent_color)),
+        shoeColourOverrides(items),
       ),
     },
     { weight: WEIGHTS.coherence, value: formalityCoherenceOf(items) },

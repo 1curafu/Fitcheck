@@ -217,12 +217,12 @@ export function pairingRating(a: string, b: string): number | null {
  * colours is never punished for the research's gaps — it simply gets no opinion
  * from this term, and the other signals decide.
  */
-export function pairingScore(colours: string[]): number | null {
+export function pairingScore(colours: string[], overrides?: ReadonlyMap<string, number>): number | null {
   const seen = [...new Set(colours.map((c) => c.trim().toLowerCase()))];
   const rated: number[] = [];
   for (let i = 0; i < seen.length; i++) {
     for (let j = i + 1; j < seen.length; j++) {
-      const r = pairingRating(seen[i], seen[j]);
+      const r = overrides?.get(key(seen[i], seen[j])) ?? pairingRating(seen[i], seen[j]);
       if (r != null) rated.push(r);
     }
   }
