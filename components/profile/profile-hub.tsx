@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Link } from "@/lib/i18n/navigation";
-import { Fingerprint, Bookmark, ChartColumn, Settings } from "lucide-react";
+import { Fingerprint, Bookmark, ChartColumn, Luggage, Settings } from "lucide-react";
 import { ProCard } from "@/components/billing/pro-card";
 import type { SubscriptionSummary } from "@/lib/billing/status-line";
 import type { Tier } from "@/lib/billing/tiers";
@@ -18,6 +18,7 @@ import type { Tier } from "@/lib/billing/tiers";
 const ICONS = {
   dna: Fingerprint,
   saved: Bookmark,
+  packing: Luggage,
   stats: ChartColumn,
   settings: Settings,
 } as const;
