@@ -146,7 +146,8 @@ export const OUTERWEAR_C = 15;
 const WET_MATERIALS = ["suede", "canvas"];
 
 /**
- * Above this, a garment's computed warmth stops being a penalty and becomes a bar.
+ * Above this (26 °C), a garment's computed warmth stops being a penalty and becomes a bar.
+ * Lowered from 28 on 2026-10-01 (trip-comfort §7): cable knit and corduroy reached 27–28 °C shortlists.
  *
  * `HOT_MATERIALS` only catches insulation by FIBRE, which is why a cotton
  * cable-knit sweater reached a 34.8°C day on 2026-08-14. Measured on the real
@@ -161,7 +162,7 @@ const WET_MATERIALS = ["suede", "canvas"];
  * `eligibleByCategory`'s relief rule guarantees it can narrow a required slot
  * but never empty one.
  */
-const SWELTERING_C = 28;
+const SWELTERING_C = 26;
 const SWELTERING_MAX_WARMTH = 0.6;
 
 /**

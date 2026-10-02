@@ -276,7 +276,7 @@ test("shoe coverage holds across awkward list sizes", () => {
 });
 
 // ── The sweltering-day warmth bar ───────────────────────────────────────────
-// Above 28° a garment's computed warmth stops being a preference. Reported
+// Above 26° a garment's computed warmth stops being a preference. Reported
 // 2026-08-14: a cotton cable-knit sweater reached a 34.8°C day, because
 // `HOT_MATERIALS` only catches insulation by FIBRE and a soft score cannot keep
 // anything out when `diversify` fills 20 shortlist slots from 66 combos.
@@ -714,4 +714,20 @@ describe("emptiedByNogos (why the stylist came up empty)", () => {
     const daily = readFileSync("app/[locale]/generate/actions.ts", "utf8");
     expect(daily).toMatch(/combos\.length === 0\)\s*\{[\s\S]{0,400}emptiedByNogos\(/);
   });
+});
+
+test("a cotton cable knit is barred at 27 °C when a lighter top exists, and kept when it is the only top (relief)", () => {
+  const warmDay = { ...base, season: "Summer", weather: { tempC: 22, rain: false, highC: 27, lowC: 18 } };
+  // seasons: [] so only WARMTH (cotton cable knit ≈ 0.61) can bar it — never the season filter.
+  const knit = { id: "t-knit", category: "Tops", colors: ["black"], formality: 3, seasons: [], material: "Cotton", texture: "Cable knit", pattern: "solid" };
+  const linen = { id: "t-linen", category: "Tops", colors: ["white"], formality: 3, seasons: ["Summer"], material: "Linen", texture: "Flat", pattern: "solid" };
+  const rest = [
+    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: ["Summer"], material: "Lyocell", texture: "Twill", pattern: "solid" },
+    { id: "s1", category: "Shoes", colors: ["white"], formality: 3, seasons: ["Summer"], material: "Leather", texture: "Flat", pattern: "solid" },
+  ];
+  const both = buildCandidates([knit, linen, ...rest], warmDay).flat().map((i) => i.id);
+  expect(both).not.toContain("t-knit");
+  expect(both).toContain("t-linen");
+  // D3: never worse than today — a knit-only closet still gets dressed.
+  expect(buildCandidates([knit, ...rest], warmDay).flat().map((i) => i.id)).toContain("t-knit");
 });
