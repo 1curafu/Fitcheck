@@ -2,6 +2,7 @@ import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/locales";
 import { createClient } from "@/lib/supabase/server";
 import type { ScheduledDay } from "./schedule";
 import { fallbackTripLookName } from "./narrate";
+import { releaseSavedThenDelete } from "@/lib/outfits/release";
 
 export type CapsuleEntry = { itemId: string; pinned: boolean };
 
@@ -146,8 +147,10 @@ export async function saveTripLooks(
 ): Promise<void> {
   const supabase = await createClient();
 
-  const { error: delError } = await supabase.from("outfits").delete().eq("trip_id", tripId);
-  if (delError) throw new Error(`clearing trip looks failed: ${delError.message}`);
+  const { data: existing, error: readError } = await supabase.from("outfits").select("id")
+    .eq("trip_id", tripId).eq("user_id", userId).is("released_at", null);
+  if (readError) throw new Error(`reading trip looks failed: ${readError.message}`);
+  await releaseSavedThenDelete(supabase, (existing ?? []).map(row => row.id));
   if (days.length === 0) return;
 
   const { data: inserted, error } = await supabase

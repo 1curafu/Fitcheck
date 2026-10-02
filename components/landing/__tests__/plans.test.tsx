@@ -22,6 +22,7 @@ test("the free plan's numbers come from tiers.ts and the prices from prices.ts",
   render(await Plans());
   expect(screen.getByText(`Regenerate ${FREE.regeneratesPerDay} times a day`)).toBeInTheDocument();
   expect(screen.getByText(`Up to ${FREE.closetItems} pieces in your closet`)).toBeInTheDocument();
+  expect(screen.getByText(`Save up to ${FREE.savedOutfits} looks`)).toBeInTheDocument();
   expect(screen.getByText("€5.29")).toBeInTheDocument();
   expect(screen.getByText("a month, or €52.90 a year")).toBeInTheDocument();
   expect(screen.getByText("€0")).toBeInTheDocument();

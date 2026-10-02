@@ -11,4 +11,4 @@ if (!changed.length) {
   process.exit(0);
 }
 console.log(`Mutating ${changed.length} file(s):\n${changed.join("\n")}`);
-execFileSync("npx", ["stryker", "run", "--mutate", changed.join(",")], { stdio: "inherit" });
+execFileSync("npx", ["stryker", "run", "--mutate", changed.map(file => file.replace(/[\[\]]/g, bracket => bracket === "[" ? "[[]" : "[]]")).join(",")], { stdio: "inherit" });

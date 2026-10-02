@@ -29,7 +29,7 @@ const LINK_DEFS = [
     href: "/outfits",
     key: "savedOutfits",
     icon: "saved",
-    ready: false,
+    ready: true,
   },
   {
     href: "/packing",

@@ -65,6 +65,7 @@ async function TripBody({ params }: { params: Promise<{ tripId: string }> }) {
     .from("outfits")
     .select("id, trip_day, occasion, look_name, ai_reasoning, text_locale")
     .eq("trip_id", tripId)
+    .is("released_at", null)
     .order("trip_day");
 
   const first = looks?.[0];

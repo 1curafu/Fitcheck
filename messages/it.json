@@ -164,6 +164,7 @@
       "freeDaily": "Tre look al giorno per ogni occasione",
       "freeRerolls": "Rigenera {count, plural, one {una volta} other {# volte}} al giorno",
       "freeCloset": "Fino a {count} capi nel guardaroba",
+      "freeSaved": "Salva fino a {count} look",
       "freeDiary": "Diario dei look indossati e condivisione",
       "pro": "Pro",
       "perMonth": "al mese, o {yearly} all’anno",
@@ -798,11 +799,25 @@
       "overcast": "Coperto"
     }
   },
+  "savedOutfits": {
+    "title": "Look salvati",
+    "count": "{saved} di {limit} salvati",
+    "overLimit": "Hai salvato {saved} look. Con Free puoi salvarne fino a {limit}: rimuovine alcuni per aggiungerne di nuovi, oppure passa a Pro.",
+    "empty": "Salva un look che ti piace e resterà qui.",
+    "emptyCta": "Vedi i look di oggi",
+    "showMore": "Mostra altri",
+    "removedPiece": "Rimosso dal guardaroba"
+  },
   "outfit": {
+    "save": "Salva",
+    "saved": "Salvato",
+    "saveLimitTitle": "Salva questo look",
+    "saveLimitBody": "Con Free puoi salvare fino a {count} look. Passa a Pro per conservare tutti i look che ami.",
+    "savedOn": "Look salvato · {date}",
+    "saveFailed": "Non è stato possibile salvare questo look. Riprova.",
     "back": "Indietro",
     "share": "Condividi",
     "inLook": "In questo look",
-    "favourite": "Preferito",
     "wearThisToday": "Indossalo oggi",
     "wornToday": "Indossato oggi",
     "todayLook": "Il look di oggi",

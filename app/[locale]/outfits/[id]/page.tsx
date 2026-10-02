@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { signItemImages, displayPath } from "@/lib/storage/signed";
+import { formatShortDate } from "@/lib/i18n/format";
 import { todayFor } from "@/lib/outfits/today";
 import { isWornToday } from "@/lib/outfits/wear";
 import { readPreferences } from "@/lib/profile/preferences";
@@ -60,7 +61,7 @@ async function OutfitBody({ params }: { params: Promise<{ id: string }> }) {
   const { data: outfit } = await supabase
     .from("outfits")
     .select(
-      "id, text_locale, look_name, occasion, ai_reasoning, weather_snapshot, is_favorite, layout, styled_item_id, generated_on, created_at",
+      "id, text_locale, look_name, occasion, ai_reasoning, weather_snapshot, saved_at, layout, styled_item_id, generated_on, trip_day, created_at",
     )
     .eq("id", id)
     .maybeSingle();
@@ -124,6 +125,8 @@ async function OutfitBody({ params }: { params: Promise<{ id: string }> }) {
   // The snapshot stores Celsius, as everything does; the unit is applied here.
   const prefs = readPreferences(profile?.preferences);
 
+  const lookDate = outfit.generated_on ?? outfit.trip_day ?? outfit.created_at?.slice(0, 10) ?? null;
+
   return (
     <OutfitDetail
       outfit={{
@@ -135,12 +138,13 @@ async function OutfitBody({ params }: { params: Promise<{ id: string }> }) {
           ? `${formatTemp(weather.tempC ?? 0, prefs.tempUnit, locale)} ${tWeather(`conditions.${conditionKey(weather.conditionId ?? weather.condition)}`)}`
           : "",
         reasoning: text.why,
-        // The share card's kicker date: the daily drop's local date, else the row's created day. Never weather (A3).
-        lookDate: outfit.generated_on ?? (outfit.created_at ? outfit.created_at.slice(0, 10) : null),
+        // Share date uses the daily/trip date, then creation day; never weather.
+        lookDate,
       }}
       pieces={pieces}
       worn={isWornToday(logs ?? [], today)}
-      favorite={outfit.is_favorite ?? false}
+      saved={outfit.saved_at != null}
+      savedOn={outfit.saved_at && lookDate && lookDate !== today ? formatShortDate(new Date(`${lookDate}T00:00:00Z`), locale) : undefined}
       styledItemId={outfit.styled_item_id ?? null}
     />
   );

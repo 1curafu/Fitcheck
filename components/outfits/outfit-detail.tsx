@@ -1,12 +1,14 @@
 "use client";
 import { useLocale, useTranslations } from "next-intl";
 import { useVocab } from "@/lib/i18n/vocab";
-import { useRouter, Link } from "@/lib/i18n/navigation";
+import { useRouter, usePathname, Link } from "@/lib/i18n/navigation";
 
 import { useOptimistic, useTransition, type CSSProperties, useEffect, useState, useCallback } from "react";
 
 import { Bookmark, Share } from "lucide-react";
-import { toggleWear, toggleFavorite, noteOutfitViewed } from "@/app/[locale]/outfits/[id]/actions";
+import { toggleWear, setSaved, noteOutfitViewed } from "@/app/[locale]/outfits/[id]/actions";
+import { UpgradeSheet } from "@/components/billing/upgrade-sheet";
+import { FREE } from "@/lib/billing/tiers";
 import { TryAnotherLook } from "./try-another-look";
 import { ShareSheet } from "./share-sheet";
 import { WeatherAttribution } from "@/components/weather/attribution";
@@ -31,7 +33,8 @@ export function OutfitDetail({
   outfit: initialOutfit,
   pieces,
   worn,
-  favorite,
+  saved,
+  savedOn,
   styledItemId = null,
 }: {
   outfit: {
@@ -48,7 +51,8 @@ export function OutfitDetail({
   };
   pieces: DetailPiece[];
   worn: boolean;
-  favorite: boolean;
+  saved: boolean;
+  savedOn?: string;
   /** The piece this look was styled around, when it came from "Style an outfit with this". */
   styledItemId?: string | null;
 }) {
@@ -74,7 +78,11 @@ export function OutfitDetail({
   // once and then ignore it — the button would keep saying whatever the last tap
   // said even if the write failed.
   const [isWorn, showWorn] = useOptimistic(worn);
-  const [isFav, showFav] = useOptimistic(favorite);
+  const [isSaved, showSaved] = useOptimistic(saved);
+  const pathname = usePathname();
+  const [saveUpgrade, setSaveUpgrade] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  useEffect(() => () => { setSaveUpgrade(false); setSaveMessage(null); }, [pathname]);
   const [pending, start] = useTransition();
   const [sharing, setSharing] = useState(false);
   // Cache Components preserves this route with React <Activity hidden> rather than unmounting it — leaving with the
@@ -176,6 +184,7 @@ export function OutfitDetail({
               would be noise, not compliance. */}
           {outfit.weatherLabel && <WeatherAttribution className="mt-1" />}
           <h1 className="mt-2 font-serif text-[34px]/[1.04] text-foreground">{outfit.lookName}</h1>
+          {savedOn && <p className="mt-2 text-sm text-muted-foreground">{t("savedOn", { date: savedOn })}</p>}
 
           {outfit.reasoning && (
             // The Italic Why Rule — the one sentence that is the product. The rust
@@ -234,29 +243,37 @@ export function OutfitDetail({
       {/* Same additive inset as the bottom nav — `pb-[30px]` was a hard-coded
           home-indicator allowance, which is 30px of dead space in a browser tab
           where the toolbar already occupies that band. */}
-      {/* A two-column grid, not a row: the favourite square owns the first
-          column and the primary the second, and "Try another look" spans
-          both beneath them at full width — without a third button squeezing
-          Wear. Only a look styled around a piece has a piece to keep; the daily
-          drop regenerates as a set, from the stylist. */}
-      <div className="sticky bottom-0 z-30 grid grid-cols-[56px_1fr] gap-3 bg-gradient-to-t from-canvas from-60% to-transparent px-[22px] pb-[calc(env(safe-area-inset-bottom)+14px)] pt-[14px]">
+      {/* Save is secondary to Wear; styled looks keep their full-width retry below. */}
+      <div className="sticky bottom-0 z-30 grid grid-cols-[auto_1fr] gap-3 bg-gradient-to-t from-canvas from-60% to-transparent px-[22px] pb-[calc(env(safe-area-inset-bottom)+14px)] pt-[14px]">
         <button
           type="button"
-          aria-label={t("favourite")}
-          aria-pressed={isFav}
+          aria-label={t(isSaved ? "saved" : "save")}
+          aria-pressed={isSaved}
           disabled={pending}
           onClick={() =>
             start(async () => {
-              showFav(!isFav);
-              await toggleFavorite(outfit.id);
+              setSaveMessage(null);
+              showSaved(!isSaved);
+              try {
+                const result = await setSaved(outfit.id, !isSaved);
+                if (result.status === "limit" || result.status === "missing") {
+                  showSaved(isSaved);
+                  if (result.status === "limit") setSaveUpgrade(true);
+                  else setSaveMessage(t("saveFailed"));
+                }
+              } catch {
+                showSaved(isSaved);
+                setSaveMessage(t("saveFailed"));
+              }
             })
           }
-          className="grid h-[54px] w-14 place-items-center rounded-[14px] bg-surface-2 shadow-[inset_0_0_0_1px_var(--hairline-7)]"
+          className="flex min-h-[54px] min-w-24 flex-col items-center justify-center gap-1 rounded-[14px] bg-surface-2 px-3 text-xs shadow-[inset_0_0_0_1px_var(--hairline-7)]"
         >
           <Bookmark
-            size={22}
-            className={isFav ? "fill-brand text-brand" : "text-muted-foreground"}
+            size={20}
+            className={isSaved ? "fill-brand text-brand" : "text-muted-foreground"}
           />
+          <span>{t(isSaved ? "saved" : "save")}</span>
         </button>
         <button
           type="button"
@@ -273,6 +290,7 @@ export function OutfitDetail({
         >
           {t(wearLabel(isWorn))}
         </button>
+        {saveMessage && <p role="status" className="col-span-2 text-center text-xs text-muted-foreground">{saveMessage}</p>}
         {styledItemId && (
           // Spans both columns and centres: a hairline PILL at natural width,
           // not a second filled block. A filled full-width version was tried
@@ -283,6 +301,7 @@ export function OutfitDetail({
           </div>
         )}
       </div>
+      <UpgradeSheet open={saveUpgrade} title={t("saveLimitTitle")} body={t("saveLimitBody", { count: FREE.savedOutfits ?? 0 })} onClose={() => setSaveUpgrade(false)} />
       {sharing && <ShareSheet outfit={outfit} pieces={pieces} onClose={() => setSharing(false)} />}
     </div>
   );

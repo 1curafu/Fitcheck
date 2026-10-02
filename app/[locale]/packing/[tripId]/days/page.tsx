@@ -68,6 +68,7 @@ async function DaysBody({ params }: { params: Promise<{ tripId: string }> }) {
     .from("outfits")
     .select("id, trip_day, occasion, look_name, ai_reasoning, text_locale, outfit_items(item_id)")
     .eq("trip_id", tripId)
+    .is("released_at", null)
     .order("trip_day");
 
   const rows = looks ?? [];
