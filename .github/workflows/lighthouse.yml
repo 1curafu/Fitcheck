@@ -12,6 +12,10 @@ concurrency:
 jobs:
   lighthouse:
     runs-on: ubuntu-latest
+    # proxy.ts builds a Supabase client on every request; signed-out pages never reach the network, so placeholders suffice.
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: lighthouse-placeholder
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
 
