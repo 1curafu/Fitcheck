@@ -37,7 +37,8 @@
     "legalLead": "By continuing you agree to the",
     "terms": "Terms",
     "and": "and",
-    "privacy": "Privacy Policy"
+    "privacy": "Privacy Policy",
+    "support": "Need help?"
   },
   "home": {
     "metadata": {
@@ -329,7 +330,7 @@
   },
   "styleProfile": {
     "title": "Style profile",
-    "intro": "Change any answer. Your no-gos, style and dress codes apply to today's looks right away.",
+    "intro": "Change any answer. Your looks follow every answer from today.",
     "save": "Save changes",
     "saving": "Saving…",
     "saved": "Saved",
@@ -841,6 +842,7 @@
     "wornTimes": "Worn {n} times",
     "thatPiece": "That piece",
     "reasonPairs": "It pairs with more of your closet than anything else you're missing.",
+    "reasonNogos": "Your no-gos rule out the {hidden} you own — that's what's holding the rest back.",
     "reasonCounts": "You have {mine} against {deepest} — that's what's holding the rest back.",
     "slot": {
       "Tops": "{n, plural, one {# top} other {# tops}}",
@@ -942,7 +944,9 @@
       "stop": "Stop sharing",
       "stopFailed": "Couldn't stop sharing. Try again."
     },
-    "language": "Language"
+    "language": "Language",
+    "support": "Support",
+    "supportDescription": "Write to the Fitcheck team"
   },
   "billing": {
     "pro": "Pro",
@@ -1141,5 +1145,45 @@
     "title": "Language",
     "close": "Close language choices",
     "saveFailed": "Couldn’t change the language. Try again."
+  },
+  "support": {
+    "title": "Support",
+    "description": "Having trouble with Fitcheck? Send us a message.",
+    "metadataDescription": "Contact the Fitcheck team for help with your account, billing or the app.",
+    "replyEmail": "Reply email",
+    "topic": "Topic",
+    "message": "Message",
+    "messageHint": "Tell us what happened and what you expected. Use 10–4,000 characters.",
+    "sensitiveHint": "Keep passwords, payment-card details and sign-in codes out of your message.",
+    "send": "Send message",
+    "sending": "Sending…",
+    "sentTitle": "Message sent",
+    "sentBody": "We'll reply by email.",
+    "anotherMessage": "Write another message",
+    "emailFallback": "Email us instead",
+    "unavailableBody": "The form is unavailable right now. You can still email us.",
+    "verificationLabel": "Spam protection",
+    "verificationRetry": "Try verification again",
+    "privacyHint": "Read how we handle your message in our Privacy Policy.",
+    "backHome": "Back to Fitcheck",
+    "topics": {
+      "account": "Account",
+      "billing": "Billing",
+      "technical": "Technical issue",
+      "feedback": "Feedback",
+      "other": "Other"
+    },
+    "validation": {
+      "replyEmail": "Enter a valid email address, up to 254 characters.",
+      "topic": "Choose a topic from the list.",
+      "message": "Write a message between 10 and 4,000 characters.",
+      "general": "Check the form and try again."
+    },
+    "results": {
+      "sent": "Message sent. We'll reply by email.",
+      "verificationFailed": "We couldn't verify the spam check. Try again or email us.",
+      "unavailable": "The form is unavailable right now. You can still email us.",
+      "failed": "We couldn't confirm that your message was sent. Try again or email us."
+    }
   }
 }

@@ -15,7 +15,7 @@ import { PackingLockedError } from "@/lib/packing/errors";
 import type { CandidateItem } from "@/lib/generator/candidates";
 import { CANDIDATE_SELECT, toCandidateItem } from "@/lib/generator/from-row";
 import { itemBlocked, type NoGo } from "@/lib/generator/nogos";
-import { readNogos } from "@/lib/onboarding/style-profile";
+import { readNogos, readStyleProfile } from "@/lib/onboarding/style-profile";
 
 export type PlanTripInput = {
   destinationLabel: string;
@@ -73,7 +73,7 @@ export async function planTrip(input: PlanTripInput): Promise<{ tripId: string }
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("archetype, rain_guard, nogos")
+    .select("archetype, rain_guard, nogos, palette, fit")
     .eq("id", user.id)
     .maybeSingle();
   const aesthetic = profile?.archetype ? [profile.archetype as string] : [];
@@ -88,6 +88,8 @@ export async function planTrip(input: PlanTripInput): Promise<{ tripId: string }
     aesthetic,
     rainGuard: profile?.rain_guard ?? undefined,
     nogos: readNogos(profile?.nogos),
+    palette: readStyleProfile(profile).palette,
+    fitPref: readStyleProfile(profile).fit,
   });
 
   // Recorded, NOT limited (spec decision #5). Packing is Pro-only and Pro is
@@ -113,6 +115,8 @@ type SolveArgs = {
   aesthetic: string[];
   rainGuard?: boolean;
   nogos: NoGo[];
+  palette: string | null;
+  fitPref: string | null;
   pinned?: string[];
   excluded?: string[];
   tripId?: string;
@@ -132,6 +136,8 @@ async function solveAndPersist(args: SolveArgs): Promise<string> {
     rainGuard: args.rainGuard,
     nogos: args.nogos,
     keepItemIds: pinned,
+    palette: args.palette,
+    fitPref: args.fitPref,
   });
 
   const capsuleItems: CapsuleItem[] = items.map((i) => ({ id: i.id, category: i.category }));
@@ -250,7 +256,7 @@ export async function editCapsule(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("archetype, rain_guard, nogos")
+    .select("archetype, rain_guard, nogos, palette, fit")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -274,6 +280,8 @@ export async function editCapsule(
     aesthetic: profile?.archetype ? [profile.archetype as string] : [],
     rainGuard: profile?.rain_guard ?? undefined,
     nogos: readNogos(profile?.nogos),
+    palette: readStyleProfile(profile).palette,
+    fitPref: readStyleProfile(profile).fit,
     pinned: [...pinned],
     excluded: edit.remove ? [edit.remove] : undefined,
   });

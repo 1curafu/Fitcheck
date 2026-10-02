@@ -8,7 +8,8 @@ import { MobileNav } from "@/components/shell/mobile-nav";
 import { todayFor } from "@/lib/outfits/today";
 import { entitlementsFor } from "@/lib/billing/tiers";
 import { closetStats, mostWorn, gatheringDust } from "@/lib/stats/aggregate";
-import { biggestGap, slotCounts } from "@/lib/stats/gap";
+import { readNogos } from "@/lib/onboarding/style-profile";
+import { biggestGap, hiddenByNogos, slotCounts } from "@/lib/stats/gap";
 import { StatsView } from "@/components/stats/stats-view";
 import type { CandidateItem } from "@/lib/generator/candidates";
 import type { UiOccasion } from "@/lib/generator/types";
@@ -56,7 +57,7 @@ async function StatsBody() {
   ] = await Promise.all([
     supabase
       .from("profiles")
-      .select("tier, location_timezone")
+      .select("tier, location_timezone, formality_min, formality_max, nogos")
       .eq("id", user.id)
       .single(),
     supabase
@@ -113,10 +114,16 @@ async function StatsBody() {
   const entitlements = entitlementsFor(profile?.tier);
 
   const closet: CandidateItem[] = items.map(toCandidateItem);
+  // Quiz part 2: the advice honours the user's dress codes and no-gos, as the stylist does.
+  const gapPrefs = {
+    formality_min: profile?.formality_min ?? null,
+    formality_max: profile?.formality_max ?? null,
+    nogos: readNogos(profile?.nogos),
+  };
   // Skipped entirely for a user who cannot see it — a few dozen passes over the
   // closet is cheap, but computing an answer nobody is shown is still waste.
   const gap = entitlements.gapAnalysis
-    ? biggestGap(closet, ALL_OCCASIONS)
+    ? biggestGap(closet, ALL_OCCASIONS, gapPrefs)
     : null;
 
   /**
@@ -134,8 +141,11 @@ async function StatsBody() {
    */
   const reason = (() => {
     if (!gap) return "";
-    const counts = slotCounts(closet, ALL_OCCASIONS);
+    const counts = slotCounts(closet, ALL_OCCASIONS, gapPrefs);
     const mine = counts[gap.candidate.category] ?? 0;
+    // "You have 0 bottoms" is false for someone whose bottoms their own no-gos hide: say what is actually happening.
+    const hidden = hiddenByNogos(closet, ALL_OCCASIONS, gapPrefs)[gap.candidate.category] ?? 0;
+    if (mine === 0 && hidden > 0) return t("reasonNogos", { hidden: slotPhrase(gap.candidate.category, hidden) });
     const deepest = Object.entries(counts).reduce((a, b) =>
       b[1] > a[1] ? b : a,
     );

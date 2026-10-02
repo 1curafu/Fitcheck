@@ -37,7 +37,8 @@
     "legalLead": "Door verder te gaan ga je akkoord met de",
     "terms": "Voorwaarden",
     "and": "en het",
-    "privacy": "Privacybeleid"
+    "privacy": "Privacybeleid",
+    "support": "Hulp nodig?"
   },
   "home": {
     "metadata": {
@@ -383,7 +384,7 @@
   },
   "styleProfile": {
     "title": "Stijlprofiel",
-    "intro": "Je kunt elk antwoord aanpassen. Je no-go’s, stijl en dresscodes gelden meteen voor de looks van vandaag.",
+    "intro": "Je kunt elk antwoord aanpassen. Vanaf vandaag houden je looks rekening met al je antwoorden.",
     "save": "Wijzigingen opslaan",
     "saving": "Opslaan…",
     "saved": "Opgeslagen",
@@ -895,6 +896,7 @@
     "wornTimes": "{n} keer gedragen",
     "thatPiece": "Dat stuk",
     "reasonPairs": "Het past bij meer van je kast dan al het andere dat je mist.",
+    "reasonNogos": "Je no-go’s sluiten {hidden} uit die je hebt — daardoor valt de rest ook af.",
     "reasonCounts": "Je hebt {mine} tegenover {deepest} — dat houdt de rest tegen.",
     "slot": {
       "Tops": "{n, plural, one {# bovenstuk} other {# bovenstukken}}",
@@ -996,7 +998,9 @@
       "stop": "Stoppen met delen",
       "stopFailed": "Stoppen met delen is niet gelukt. Probeer het opnieuw."
     },
-    "language": "Taal"
+    "language": "Taal",
+    "support": "Hulp",
+    "supportDescription": "Schrijf het Fitcheck-team"
   },
   "billing": {
     "pro": "Pro",
@@ -1195,5 +1199,45 @@
     "title": "Taal",
     "close": "Taalkeuze sluiten",
     "saveFailed": "Kon de taal niet wijzigen. Probeer het opnieuw."
+  },
+  "support": {
+    "title": "Hulp",
+    "description": "Problemen met Fitcheck? Stuur ons een bericht.",
+    "metadataDescription": "Neem contact op met het Fitcheck-team voor hulp met je account, betalingen of de app.",
+    "replyEmail": "E-mail voor het antwoord",
+    "topic": "Onderwerp",
+    "message": "Bericht",
+    "messageHint": "Vertel wat er gebeurde en wat je verwachtte. Gebruik 10 tot 4.000 tekens.",
+    "sensitiveHint": "Vermeld geen wachtwoorden, betaalkaartgegevens of inlogcodes.",
+    "send": "Bericht versturen",
+    "sending": "Versturen…",
+    "sentTitle": "Bericht verstuurd",
+    "sentBody": "We antwoorden per e-mail.",
+    "anotherMessage": "Nog een bericht schrijven",
+    "emailFallback": "Stuur ons een e-mail",
+    "unavailableBody": "Het formulier is nu niet beschikbaar. Je kunt ons nog steeds mailen.",
+    "verificationLabel": "Bescherming tegen spam",
+    "verificationRetry": "Verificatie opnieuw proberen",
+    "privacyHint": "Lees hoe we je bericht verwerken in ons Privacybeleid.",
+    "backHome": "Terug naar Fitcheck",
+    "topics": {
+      "account": "Profiel",
+      "billing": "Betalingen",
+      "technical": "Technisch probleem",
+      "feedback": "Reactie",
+      "other": "Overig"
+    },
+    "validation": {
+      "replyEmail": "Vul een geldig e-mailadres in van maximaal 254 tekens.",
+      "topic": "Kies een onderwerp uit de lijst.",
+      "message": "Schrijf een bericht van 10 tot 4.000 tekens.",
+      "general": "Controleer het formulier en probeer het opnieuw."
+    },
+    "results": {
+      "sent": "Bericht verstuurd. We antwoorden per e-mail.",
+      "verificationFailed": "We konden de spamcontrole niet bevestigen. Probeer het opnieuw of mail ons.",
+      "unavailable": "Het formulier is nu niet beschikbaar. Je kunt ons nog steeds mailen.",
+      "failed": "We konden niet bevestigen dat je bericht is verstuurd. Probeer het opnieuw of mail ons."
+    }
   }
 }

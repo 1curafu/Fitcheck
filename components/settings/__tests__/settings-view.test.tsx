@@ -236,3 +236,9 @@ test("the Style profile row opens the editor", () => {
   renderSettings();
   expect(screen.getByRole("link", { name: /your style answers/i })).toHaveAttribute("href", "/settings/style");
 });
+
+test("offers a support entry before account deletion", () => {
+  renderSettings();
+  expect(screen.getByRole("link", { name: /Support/ })).toHaveAttribute("href", "/support");
+  expect(screen.getByText("Write to the Fitcheck team")).toBeInTheDocument();
+});

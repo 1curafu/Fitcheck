@@ -64,6 +64,8 @@ export type LookInputs = {
   archetype: string | null;
   nogos: readonly string[];
   occasions: readonly string[];
+  palette: string | null;
+  fit: string | null;
   formality_min: number | null;
   formality_max: number | null;
 };
@@ -72,7 +74,7 @@ export type LookInputs = {
  * Would today's stored looks have been built differently? Only then is the drop cleared (a free rebuild).
  * Band, no-gos, archetype (it reaches the rerank prompt) and OCCASIONS: "Style with this piece" derives its occasion
  * from them (`predictOccasion`) but caches by item and day, so a look built and narrated for Work would otherwise
- * stay Work after the user switches to Evening. Quiz part 2 adds palette and fit.
+ * stay Work after the user switches to Evening — and PALETTE and FIT, which steer scoring since quiz part 2.
  */
 export function affectsLooks(before: LookInputs, after: LookInputs): boolean {
   const same = (a: readonly string[], b: readonly string[]) => [...a].sort().join("|") === [...b].sort().join("|");
@@ -80,6 +82,8 @@ export function affectsLooks(before: LookInputs, after: LookInputs): boolean {
     before.archetype !== after.archetype ||
     before.formality_min !== after.formality_min ||
     before.formality_max !== after.formality_max ||
+    before.palette !== after.palette ||
+    before.fit !== after.fit ||
     !same(before.nogos, after.nogos) ||
     !same(before.occasions, after.occasions)
   );

@@ -1,5 +1,6 @@
+import { readFileSync } from "node:fs";
 import sharp from "sharp";
-import { storeTrimmed, trimStoredCutout } from "../trim-cutouts-core";
+import { storeTrimmed, trimStoredCutout, verifyTrimmed } from "../trim-cutouts-core";
 
 /** A w×h transparent image with an opaque box, encoded as the given format. */
 async function image(w: number, h: number, box: { x: number; y: number; w: number; h: number }, format: "webp" | "png") {
@@ -69,5 +70,54 @@ describe("storeTrimmed — the write order decides whether an interrupted run ca
     const calls: [string, string][] = [];
     await storeTrimmed(async (p, _b, type) => { calls.push([p, type]); return null; }, { cutout: "u/i/cutout.png", thumb: null }, { cutout: Buffer.from("c"), thumb: null });
     expect(calls).toEqual([["u/i/cutout.png", "image/png"]]);
+  });
+});
+
+describe("verifyTrimmed — what the stored object actually is after the upload", () => {
+  const before = { width: 400, height: 800 };
+
+  test("a cropped object verifies", async () => {
+    const tight = await image(176, 416, { x: 8, y: 8, w: 160, h: 400 }, "webp");
+    expect(await verifyTrimmed(async () => tight, "u/i/cutout.webp", before)).toMatchObject({ status: "ok", width: 176, height: 416 });
+  });
+
+  test("the OLD padded object still being served is reported as 'unchanged' (a stale CDN read), not as a failed crop", async () => {
+    // ⚠️ Found on the first production --apply: the read-back right after an overwrite returned the pre-upload bytes, so the
+    // script aborted with "still has its margin" although the upload had landed. The verdict must tell the two apart.
+    const padded = await image(400, 800, { x: 120, y: 200, w: 160, h: 400 }, "webp");
+    expect(await verifyTrimmed(async () => padded, "u/i/cutout.webp", before)).toMatchObject({ status: "unchanged", width: 400, height: 800 });
+  });
+
+  test("an object that changed but is still padded is reported as 'padded'", async () => {
+    const stillPadded = await image(300, 600, { x: 90, y: 150, w: 120, h: 300 }, "webp");
+    expect(await verifyTrimmed(async () => stillPadded, "u/i/cutout.webp", before)).toMatchObject({ status: "padded", width: 300, height: 600 });
+  });
+
+  test("a missing object is 'unreadable'", async () => {
+    expect((await verifyTrimmed(async () => null, "u/i/cutout.webp", before)).status).toBe("unreadable");
+  });
+
+  test("a read that THROWS (a transient network failure) is 'unreadable', never an exception that aborts the run", async () => {
+    // ⚠️ Review finding on #138: a rejected fetch escaped to main().catch, bypassing both the retry loop and every later row.
+    const flaky = async (): Promise<Buffer | null> => { throw new Error("ECONNRESET"); };
+    expect((await verifyTrimmed(flaky, "u/i/cutout.webp", before)).status).toBe("unreadable");
+  });
+
+  test("bytes that are not an image (an error page, a truncated body) are 'unreadable', not a decode exception", async () => {
+    const garbage = Buffer.from("<html>502 Bad Gateway</html>");
+    expect((await verifyTrimmed(async () => garbage, "u/i/cutout.webp", before)).status).toBe("unreadable");
+  });
+});
+
+describe("scripts/backfill-trim-cutouts.ts (source guards — the script is a CLI with no unit coverage)", () => {
+  const script = readFileSync("scripts/backfill-trim-cutouts.ts", "utf8");
+
+  test("every verification read passes a unique cacheNonce, instead of relying on a new token being a new cache key", () => {
+    expect(script).toMatch(/createSignedUrl\(path, \d+, \{ cacheNonce \}\)/);
+    expect(script).toMatch(/const cacheNonce = `\$\{Date\.now\(\)\}-\$\{Math\.random\(\)/);
+  });
+
+  test("a failure while writing or verifying one row is caught and listed, so it cannot abort the remaining rows", () => {
+    expect(script).toMatch(/try \{[\s\S]*storeTrimmed\([\s\S]*verifyTrimmed\([\s\S]*\} catch \(e\) \{[\s\S]*failures\.push\(item\.id\)/);
   });
 });

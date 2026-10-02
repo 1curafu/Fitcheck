@@ -20,6 +20,7 @@ vi.mock("@/lib/packing/store", () => ({
   loadTrip: async () => ({ destinationLabel: "Zurich", lat: 47.37, lon: 8.54, timezone: "Europe/Zurich",
     startDate: "2026-09-28", endDate: "2026-09-28", occasionMix: { everyday: 1 }, rewearLevel: 2, capsule: [] }),
 }));
+import { realBuilder } from "@/lib/packing/plan";
 import { planTrip, editCapsule } from "../actions";
 const input = { destinationLabel: "Zurich", lat: 47.37, lon: 8.54, timezone: "Europe/Zurich",
   startDate: "2026-09-28", endDate: "2026-09-28", occasionMix: { everyday: 1 }, rewearLevel: 2 };
@@ -57,4 +58,17 @@ it("a piece the user pinned in the trip editor stays even when a no-go would rem
   mock.profile = { nogos: ["ripped"] };
   await editCapsule("trip", { pin: "ripped" });
   expect(mock.solve.mock.calls[0][0].closet.map((c: { id: string }) => c.id)).toEqual(["tee", "ripped", "chino"]);
+});
+
+it("a trip is styled with the user's palette and fit answers", async () => {
+  mock.profile = { palette: "Mono", fit: "Relaxed" };
+  await planTrip(input);
+  expect(vi.mocked(realBuilder).mock.calls[0][2]).toEqual(expect.objectContaining({ palette: "Mono", fitPref: "Relaxed" }));
+});
+
+it("editing a trip also uses the palette and fit answers", async () => {
+  mock.profile = { palette: "Navy", fit: "Tailored" };
+  await editCapsule("trip", {});
+  const calls = vi.mocked(realBuilder).mock.calls;
+  expect(calls[calls.length - 1][2]).toEqual(expect.objectContaining({ palette: "Navy", fitPref: "Tailored" }));
 });

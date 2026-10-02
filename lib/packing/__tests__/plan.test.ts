@@ -71,6 +71,9 @@ test("crosses a DST boundary without dropping or repeating a day", () => {
 import { realBuilder } from "../plan";
 import type { CandidateItem } from "@/lib/generator/candidates";
 import type { Weather } from "@/lib/generator/rules";
+import { rankTopN } from "@/lib/generator/rank";
+import { scoreCombo } from "@/lib/generator/score";
+import { QUALITY_FLOOR, solveCapsule } from "../capsule";
 
 const item = (id: string, category: string, extra: Partial<CandidateItem> = {}): CandidateItem => ({
   id,
@@ -92,7 +95,62 @@ const closet: CandidateItem[] = [
 
 const mild: Weather = { tempC: 19, rain: false, highC: 22, lowC: 14 };
 
+// Real scores straddle the floor; Mono/Oversized reverses the two tops' order.
+const floorCloset = [
+  item("preferred", "Tops", { colors: ["black"], formality: 2, fit: "Oversized", pattern: "striped" }),
+  item("qualified", "Tops", { colors: ["burgundy"], formality: 2, fit: "Regular", pattern: "striped" }),
+  item("bottom", "Bottoms", { colors: ["olive"], formality: 4, fit: "Regular", pattern: "striped" }),
+  item("shoe", "Shoes", { colors: ["tan"] }),
+];
+const floorDay = { date: "2026-05-12", occasion: "work" };
+const floorPrefs = { palette: "Mono", fitPref: "Oversized" };
+const floorCtx = { aesthetic: [], band: [2, 4.5] as [number, number], tempC: mild.highC };
+
 describe("realBuilder", () => {
+  test("selects the highest-ranked floor-qualified alternative to a preferred sub-floor look", () => {
+    const preferred = [floorCloset[0], ...floorCloset.slice(2)];
+    const qualified = [floorCloset[1], ...floorCloset.slice(2)];
+    expect(scoreCombo(preferred, floorCtx)).toBeLessThan(QUALITY_FLOOR);
+    expect(scoreCombo(qualified, floorCtx)).toBeGreaterThanOrEqual(QUALITY_FLOOR);
+    expect(rankTopN([preferred, qualified], { ...floorCtx, ...floorPrefs }, 2)[0].items).toEqual(preferred);
+
+    const out = realBuilder(floorCloset, () => mild, floorPrefs)(floorDay, floorCloset);
+    expect(out?.itemIds).toEqual(["qualified", "bottom", "shoe"]);
+    expect(out?.score).toBe(scoreCombo(qualified, floorCtx));
+  });
+
+  test("keeps trip days covered from packed pieces when the preference winner misses the floor", () => {
+    const days = [floorDay, { date: "2026-05-13", occasion: "work" }];
+    const result = solveCapsule({
+      closet: floorCloset, days, level: 5, floor: QUALITY_FLOOR,
+      pinned: floorCloset.map((i) => i.id),
+      build: realBuilder(floorCloset, () => mild, floorPrefs),
+    });
+    expect(result.uncovered).toEqual([]);
+    expect(result.covered.map((d) => d.itemIds)).toEqual([
+      ["qualified", "bottom", "shoe"], ["qualified", "bottom", "shoe"],
+    ]);
+  });
+
+  test("preferences still choose between looks that both qualify", () => {
+    const pool = floorCloset.map((i) => ({ ...i, pattern: "solid" }));
+    const plain = realBuilder(pool, () => mild)(floorDay, pool);
+    const steered = realBuilder(pool, () => mild, floorPrefs)(floorDay, pool);
+    expect(plain?.itemIds).toContain("qualified");
+    expect(steered?.itemIds).toContain("preferred");
+    expect(plain!.score).toBeGreaterThanOrEqual(QUALITY_FLOOR);
+    expect(steered!.score).toBeGreaterThanOrEqual(QUALITY_FLOOR);
+  });
+
+  test("a closet with no floor-qualified outfit still leaves the day uncovered", () => {
+    const pool = floorCloset.filter((i) => i.id !== "qualified");
+    const build = realBuilder(pool, () => mild, floorPrefs);
+    expect(build(floorDay, pool)?.score).toBeLessThan(QUALITY_FLOOR);
+    const result = solveCapsule({ closet: pool, days: [floorDay], level: 5, floor: QUALITY_FLOOR, build });
+    expect(result.covered).toEqual([]);
+    expect(result.uncovered).toEqual([floorDay]);
+  });
+
   test("builds a scored outfit from the real generator", () => {
     const build = realBuilder(closet, () => mild);
     const out = build({ date: "2026-05-12", occasion: "work" }, closet);
@@ -120,6 +178,22 @@ describe("realBuilder", () => {
     expect(ruled).not.toBeNull();
     expect(ruled!.itemIds).toEqual(expect.arrayContaining(["jeans", "tee", "loafer"]));
     expect(ruled!.itemIds).not.toContain("jacket");
+  });
+
+  test("the quality-floor score ignores palette and fit — a soft preference must not push a good look under the hard floor", () => {
+    // ⚠️ Opus review: the floor (QUALITY_FLOOR 0.7) was calibrated without these terms; including them cost a coherent look
+    // up to ~12% of its score, so Mono + Oversized users saw 12.5% of good outfits fall under it. Rank WITH the
+    // preferences, but report the floor score WITHOUT them — the same way recency is excluded.
+    const off = [
+      item("shirt", "Tops", { colors: ["red"], fit: "Regular" }),
+      item("trouser", "Bottoms", { colors: ["olive"], fit: "Regular" }),
+      item("loafer", "Shoes", { colors: ["tan"] }),
+    ];
+    const day = { date: "2026-05-12", occasion: "work" };
+    const plain = realBuilder(off, () => mild)(day, off);
+    const steered = realBuilder(off, () => mild, { palette: "Mono", fitPref: "Oversized" })(day, off);
+    expect(plain).not.toBeNull();
+    expect(steered!.score).toBe(plain!.score);
   });
 
   // The solve narrows `available` as wear limits bite; the builder must honour

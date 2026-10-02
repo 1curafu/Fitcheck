@@ -2,6 +2,11 @@ import type { LocalizedNote } from "@/lib/release-notes";
 
 /** Keyed by version; one entry for every RELEASE_NOTES version, same line counts. */
 export const NL_NOTES: Record<string, LocalizedNote> = {
+  "0.7.0": {
+    headline: "Je antwoorden over kleur en pasvorm sturen nu je looks.",
+    added: ["Kleur en pasvorm tellen mee in elke look en reis", "Pro-koopadvies houdt rekening met je no-go’s en dresscodes", "Nieuwe Hulp-pagina, in Instellingen en op het inlogscherm"],
+    fixed: ["Reizen kiezen eerst een kloppende outfit en stemmen die daarna af op jouw smaak"],
+  },
   "0.6.0": {
     headline: "Je stijlantwoorden bepalen nu je looks.",
     added: ["Je no-go’s blijven uit alle looks en reizen", "Pas je stijlantwoorden altijd aan: Instellingen, Stijlprofiel", "Nieuwe stukken worden bijgesneden en vallen in looks groter uit"],

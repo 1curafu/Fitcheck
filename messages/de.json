@@ -37,7 +37,8 @@
     "legalLead": "Mit dem Fortfahren akzeptierst du die",
     "terms": "Nutzungsbedingungen",
     "and": "und die",
-    "privacy": "Datenschutzerklärung"
+    "privacy": "Datenschutzerklärung",
+    "support": "Brauchst du Hilfe?"
   },
   "home": {
     "metadata": {
@@ -383,7 +384,7 @@
   },
   "styleProfile": {
     "title": "Stilprofil",
-    "intro": "Du kannst jede Antwort ändern. Deine No-Gos, dein Stil und deine Dresscodes wirken sich sofort auf die heutigen Looks aus.",
+    "intro": "Du kannst jede Antwort ändern. Ab heute richten sich deine Looks nach all deinen Antworten.",
     "save": "Änderungen speichern",
     "saving": "Wird gespeichert…",
     "saved": "Gespeichert",
@@ -901,6 +902,7 @@
     "wornTimes": "{n}-mal getragen",
     "thatPiece": "Dieses Teil",
     "reasonPairs": "Es passt zu mehr Teilen deines Schranks als alles andere, was dir fehlt.",
+    "reasonNogos": "Deine No-Gos schließen {hidden} aus, die du besitzt – deshalb fällt auch der Rest weg.",
     "reasonCounts": "Du hast {mine} gegenüber {deepest} — das bremst den Rest.",
     "slot": {
       "Tops": "{n, plural, one {# Oberteil} other {# Oberteile}}",
@@ -1002,7 +1004,9 @@
       "stop": "Teilen beenden",
       "stopFailed": "Teilen konnte nicht beendet werden. Versuch es noch einmal."
     },
-    "language": "Sprache"
+    "language": "Sprache",
+    "support": "Hilfe",
+    "supportDescription": "Schreib dem Fitcheck-Team"
   },
   "billing": {
     "pro": "Pro",
@@ -1201,5 +1205,45 @@
     "title": "Sprache",
     "close": "Sprachauswahl schließen",
     "saveFailed": "Die Sprache konnte nicht geändert werden. Versuch es noch einmal."
+  },
+  "support": {
+    "title": "Hilfe",
+    "description": "Probleme mit Fitcheck? Schreib uns.",
+    "metadataDescription": "Kontaktiere das Fitcheck-Team bei Fragen zu deinem Konto, zur Zahlung oder zur App.",
+    "replyEmail": "E-Mail für die Antwort",
+    "topic": "Thema",
+    "message": "Nachricht",
+    "messageHint": "Beschreibe, was passiert ist und was du erwartet hast. Verwende 10–4.000 Zeichen.",
+    "sensitiveHint": "Gib keine Passwörter, Kartendaten oder Anmeldecodes an.",
+    "send": "Nachricht senden",
+    "sending": "Wird gesendet…",
+    "sentTitle": "Nachricht gesendet",
+    "sentBody": "Wir antworten per E-Mail.",
+    "anotherMessage": "Weitere Nachricht schreiben",
+    "emailFallback": "Stattdessen eine E-Mail senden",
+    "unavailableBody": "Das Formular ist gerade nicht verfügbar. Du kannst uns weiterhin eine E-Mail senden.",
+    "verificationLabel": "Spamschutz",
+    "verificationRetry": "Prüfung erneut versuchen",
+    "privacyHint": "In unserer Datenschutzerklärung erfährst du, wie wir deine Nachricht verarbeiten.",
+    "backHome": "Zurück zu Fitcheck",
+    "topics": {
+      "account": "Konto",
+      "billing": "Zahlung",
+      "technical": "Technisches Problem",
+      "feedback": "Rückmeldung",
+      "other": "Sonstiges"
+    },
+    "validation": {
+      "replyEmail": "Gib eine gültige E-Mail-Adresse mit höchstens 254 Zeichen ein.",
+      "topic": "Wähle ein Thema aus der Liste.",
+      "message": "Schreibe eine Nachricht mit 10 bis 4.000 Zeichen.",
+      "general": "Prüfe das Formular und versuche es erneut."
+    },
+    "results": {
+      "sent": "Nachricht gesendet. Wir antworten per E-Mail.",
+      "verificationFailed": "Die Spamprüfung konnte nicht bestätigt werden. Versuche es erneut oder schreib uns eine E-Mail.",
+      "unavailable": "Das Formular ist gerade nicht verfügbar. Du kannst uns weiterhin eine E-Mail senden.",
+      "failed": "Wir konnten den Versand deiner Nachricht nicht bestätigen. Versuche es erneut oder schreib uns eine E-Mail."
+    }
   }
 }

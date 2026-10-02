@@ -97,3 +97,14 @@ test("the styled-look action re-checks its CACHED looks and explains a no-go emp
   expect(styled).toMatch(/emptiedByNogos\(/);
   expect(styled).toContain("item.style.nogos");
 });
+
+test("every producer that ranks or scores looks hands it the palette and fit answers", () => {
+  // ⚠️ Source-level, as with `nogos:` — both keys are optional, so a producer that forgets them compiles and silently
+  // ignores the quiz (quiz part 2).
+  const callers = FILES.filter(({ path, text }) => /\b(rankTopN|scoreCombo)\(/.test(text) && !path.includes("lib/generator/"));
+  expect(callers.length).toBeGreaterThanOrEqual(3);
+  // Comments stripped, and a literal `null` does not count: `palette: null` or a mention in a comment must not satisfy it.
+  const code = (t: string) => t.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+  const passes = (t: string, key: string) => new RegExp(`\\b${key}\\s*:\\s*(?!null\\b)[A-Za-z_?(]`).test(code(t));
+  expect(callers.filter(({ text }) => !passes(text, "palette") || !passes(text, "fitPref")).map(({ path }) => path)).toEqual([]);
+});

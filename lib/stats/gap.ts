@@ -3,7 +3,8 @@ import {
   REQUIRED_CATEGORIES,
   type CandidateItem,
 } from "@/lib/generator/candidates";
-import { personalBand, weatherRules, type Weather } from "@/lib/generator/rules";
+import { itemBlocked, type NoGo } from "@/lib/generator/nogos";
+import { occasionBand, personalBand, weatherRules, type Weather } from "@/lib/generator/rules";
 import type { UiOccasion } from "@/lib/generator/types";
 
 /**
@@ -20,14 +21,62 @@ import type { UiOccasion } from "@/lib/generator/types";
  * neutral: the claim is "this unlocks N outfits", and a wilder candidate would
  * inflate N while being something the user would never buy.
  */
-export type GapCandidate = { label: keyof typeof import("@/messages/en-US.json").stats.gapPieces; category: string; colors: string[]; formality: number };
+export type GapCandidate = {
+  label: keyof typeof import("@/messages/en-US.json").stats.gapPieces;
+  category: string;
+  colors: string[];
+  formality: number;
+  /** Tags the no-go rules read (quiz part 2). Only `darkDenim` carries one today; every other candidate stays neutral. */
+  material?: string;
+  branding?: string;
+};
+
+/**
+ * The occasions worth simulating for THIS wardrobe: those whose band the user's dress codes can reach. `personalBand`
+ * falls back to the occasion's FULL band when there is no overlap (a Business-only wardrobe asking about Everyday), which
+ * let the advice suggest pieces outside the user's own dress codes. No prefs, or nothing reachable at all, keeps every
+ * occasion — better a broad answer than an empty one.
+ */
+export function relevantOccasions(occasions: UiOccasion[], prefs?: GapPrefs): UiOccasion[] {
+  const min = prefs?.formality_min;
+  const max = prefs?.formality_max;
+  if (min == null || max == null) return occasions;
+  const reachable = occasions.filter((o) => {
+    const [olo, ohi] = occasionBand(o);
+    return Math.max(olo, Math.max(1, min - 0.5)) <= Math.min(ohi, Math.min(5, max + 0.5));
+  });
+  return reachable.length ? reachable : occasions;
+}
+
+/** How many owned pieces the user's no-gos hide, per slot — so the advice can say "your no-gos" instead of "0 bottoms". */
+export function hiddenByNogos(closet: CandidateItem[], occasions: UiOccasion[], prefs?: GapPrefs): Record<string, number> {
+  const all = slotCounts(closet, occasions, { ...prefs, nogos: [] });
+  const kept = slotCounts(closet, occasions, prefs);
+  return Object.fromEntries(Object.keys(all).map((c) => [c, all[c] - (kept[c] ?? 0)]));
+}
+
+/** The quiz answers the advice honours (quiz part 2). Absent = today's behaviour. */
+export type GapPrefs = { formality_min?: number | null; formality_max?: number | null; nogos?: readonly NoGo[] };
+
+/**
+ * Buildable outfits when no look may carry two denim garments: per slot, `n` eligible pieces of which `d` are denim;
+ * `garment` marks the slots that count toward double denim (tops, bottoms, coats — not shoes).
+ * = P × [ Π (n−d) + Σ_g d_g × Π_{h≠g} (n_h−d_h) ], P = product of the non-garment slots. Exact — pinned against brute force.
+ */
+export function denimSafeCount(slots: readonly { garment: boolean; n: number; d: number }[]): number {
+  const other = slots.filter((s) => !s.garment).reduce((a, s) => a * s.n, 1);
+  const g = slots.filter((s) => s.garment);
+  const free = g.reduce((a, s) => a * (s.n - s.d), 1);
+  const one = g.reduce((sum, s, i) => sum + s.d * g.reduce((a, h, j) => (j === i ? a : a * (h.n - h.d)), 1), 0);
+  return other * (free + one);
+}
 
 export const GAP_CANDIDATES: GapCandidate[] = [
   // Staples that suit any wardrobe.
   { label: "navyKnit", category: "Tops", colors: ["navy"], formality: 3 },
   { label: "whiteShirt", category: "Tops", colors: ["white"], formality: 4 },
   { label: "woolTrousers", category: "Bottoms", colors: ["grey"], formality: 4 },
-  { label: "darkDenim", category: "Bottoms", colors: ["denim"], formality: 2 },
+  { label: "darkDenim", category: "Bottoms", colors: ["denim"], formality: 2, material: "Denim" },
   { label: "camelCoat", category: "Outerwear", colors: ["camel"], formality: 4 },
   { label: "whiteSneakers", category: "Shoes", colors: ["white"], formality: 2 },
   { label: "brownLoafers", category: "Shoes", colors: ["brown"], formality: 4 },
@@ -53,13 +102,15 @@ export const GAP_CANDIDATES: GapCandidate[] = [
  * the list was menswear-only and would tell someone who wears dresses to buy a
  * white oxford shirt and brown loafers.
  */
-export function candidatesFor(closet: CandidateItem[]): GapCandidate[] {
+export function candidatesFor(closet: CandidateItem[], prefs?: GapPrefs, list: GapCandidate[] = GAP_CANDIDATES): GapCandidate[] {
   const owns = new Set(closet.map((i) => i.category));
   // Shoes and outerwear are worn over everything; a top or bottom is only
   // proposed to a wardrobe that is not exclusively one-pieces.
   const universal = new Set(["Shoes", "Outerwear"]);
   const onlyOnePieces = owns.has("One-piece") && !owns.has("Tops") && !owns.has("Bottoms");
-  return GAP_CANDIDATES.filter((c) => {
+  return list.filter((c) => {
+    // A suggestion the user's own no-gos rule out is never made (quiz part 2).
+    if (prefs?.nogos?.length && itemBlocked(c, prefs.nogos)) return false;
     if (universal.has(c.category)) return true;
     if (c.category === "One-piece") return owns.has("One-piece");
     return !onlyOnePieces;
@@ -98,9 +149,12 @@ export const SIMULATED_CONDITIONS: Weather[] = [
  * which is what the cap is truncating, and is the number the claim actually
  * means: how many outfits become buildable.
  */
-function argsFor(o: UiOccasion, weather: Weather) {
+function argsFor(o: UiOccasion, weather: Weather, prefs?: GapPrefs) {
   return {
-    band: personalBand(o, null),
+    // The user's own dress codes (quiz): "what should I buy" for THIS wardrobe, not for every formality level.
+    band: personalBand(o, prefs ?? null),
+    // …and their no-gos, so pieces they hide are not counted as owned.
+    nogos: prefs?.nogos,
     weather,
     // No season preference: the gap is about what the wardrobe can BUILD, and
     // season only ever orders and scores (see lib/generator/season.ts). A
@@ -111,16 +165,14 @@ function argsFor(o: UiOccasion, weather: Weather) {
   };
 }
 
-function countCombos(closet: CandidateItem[], occasions: UiOccasion[]): number {
+function countCombos(closet: CandidateItem[], occasions: UiOccasion[], prefs?: GapPrefs): number {
   let total = 0;
   for (const weather of SIMULATED_CONDITIONS) {
     const { needsOuterwear } = weatherRules(weather);
     for (const o of occasions) {
-      const by = eligibleByCategory(closet, argsFor(o, weather));
-      const slots = REQUIRED_CATEGORIES.map((c) => (by[c] ?? []).length);
+      const by = eligibleByCategory(closet, argsFor(o, weather, prefs));
       // A missing required slot means zero buildable outfits, not a partial count.
-      if (slots.some((n) => n === 0)) continue;
-      const base = slots.reduce((a, b) => a * b, 1);
+      if (REQUIRED_CATEGORIES.some((c) => (by[c] ?? []).length === 0)) continue;
       /**
        * ⚠️ On the COLD pass outerwear counts as a required slot, so a closet
        * with no coat scores ZERO cold-weather outfits.
@@ -136,9 +188,20 @@ function countCombos(closet: CandidateItem[], occasions: UiOccasion[]): number {
        * says the true thing: without a coat you cannot properly dress for half
        * the year, and buying one opens all of it.
        */
-      const coats = (by["Outerwear"] ?? []).length;
-      if (needsOuterwear) total += base * coats;
-      else total += base;
+      const cats: string[] = needsOuterwear ? [...REQUIRED_CATEGORIES, "Outerwear"] : [...REQUIRED_CATEGORIES];
+      const lists = cats.map((c) => by[c] ?? []);
+      if (prefs?.nogos?.includes("double_denim")) {
+        // No look may carry two denim garments: count exactly, not the plain slot product (quiz part 2).
+        total += denimSafeCount(
+          cats.map((c, i) => ({
+            garment: c !== "Shoes",
+            n: lists[i].length,
+            d: lists[i].filter((it) => it.material?.toLowerCase() === "denim").length,
+          })),
+        );
+      } else {
+        total += lists.reduce((a, l) => a * l.length, 1);
+      }
     }
   }
   return total;
@@ -168,8 +231,9 @@ function countCombos(closet: CandidateItem[], occasions: UiOccasion[]): number {
 export function slotCounts(
   closet: CandidateItem[],
   occasions: UiOccasion[],
+  prefs?: GapPrefs,
 ): Record<string, number> {
-  const by = eligibleByCategory(closet, argsFor(occasions[0] ?? "everyday", SIMULATED_CONDITIONS[0]));
+  const by = eligibleByCategory(closet, argsFor(relevantOccasions(occasions, prefs)[0] ?? "everyday", SIMULATED_CONDITIONS[0], prefs));
   const out: Record<string, number> = {};
   for (const c of [...REQUIRED_CATEGORIES, "Outerwear"]) out[c] = (by[c] ?? []).length;
   return out;
@@ -198,13 +262,16 @@ export function slotCounts(
 export function biggestGap(
   closet: CandidateItem[],
   occasions: UiOccasion[],
+  prefs?: GapPrefs,
 ): { candidate: GapCandidate; unlocks: number; share: number | null } | null {
   if (!closet.length) return null;
 
-  const before = countCombos(closet, occasions);
+  // Only the occasions the user's dress codes can reach (quiz part 2).
+  occasions = relevantOccasions(occasions, prefs);
+  const before = countCombos(closet, occasions, prefs);
   let best: { candidate: GapCandidate; unlocks: number; share: number | null } | null = null;
 
-  for (const c of candidatesFor(closet)) {
+  for (const c of candidatesFor(closet, prefs)) {
     const hypothetical: CandidateItem = {
       id: "__hypothetical__",
       category: c.category,
@@ -215,12 +282,13 @@ export function biggestGap(
       // neutrally as possible. A hypothetical garment should not win by being
       // given flattering tags nobody has bought yet.
       seasons: [],
-      material: null,
+      // …except the material the no-go rules must see (`darkDenim`); every other candidate stays neutral.
+      material: c.material ?? null,
       pattern: "solid",
       texture: null,
       accent_color: null,
     };
-    const unlocks = countCombos([...closet, hypothetical], occasions) - before;
+    const unlocks = countCombos([...closet, hypothetical], occasions, prefs) - before;
     if (unlocks > 0 && (!best || unlocks > best.unlocks)) {
       /**
        * ⚠️ `share` is NULL when the wardrobe can currently build nothing at all

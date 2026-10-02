@@ -16,7 +16,7 @@ const answers = {
   archetype: "Old Money", palette: "Neutrals", fit: "Tailored",
   dress_codes: ["Smart casual"], occasions: ["Work"], nogos: ["ripped"],
 };
-const stored = { archetype: "Old Money", nogos: ["ripped"], occasions: ["Work"], formality_min: 3, formality_max: 3, location_timezone: "Europe/Zurich" };
+const stored = { archetype: "Old Money", palette: "Neutrals", fit: "Tailored", nogos: ["ripped"], occasions: ["Work"], formality_min: 3, formality_max: 3, location_timezone: "Europe/Zurich" };
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -33,10 +33,25 @@ it("saves the six answers with the derived band, and never touches onboarding st
   expect(mock.update.mock.calls[0][0]).not.toHaveProperty("onboarded_at");
 });
 
-it("an unchanged look input keeps today's looks", async () => {
-  // palette and fit change nothing until quiz part 2 scores them
-  await updateStyleProfile({ ...answers, palette: "Earth", fit: "Relaxed" });
+it("an unchanged save keeps today's looks", async () => {
+  await updateStyleProfile(answers);
   expect(mock.clear).not.toHaveBeenCalled();
+});
+
+it("a palette change clears today's looks (quiz part 2: it steers scoring)", async () => {
+  await updateStyleProfile({ ...answers, palette: "Earth" });
+  expect(mock.clear).toHaveBeenCalled();
+});
+
+it("a fit change clears today's looks", async () => {
+  await updateStyleProfile({ ...answers, fit: "Relaxed" });
+  expect(mock.clear).toHaveBeenCalled();
+});
+
+it("an unknown stored palette reads as no answer and never throws", async () => {
+  mock.read.mockResolvedValue({ data: { ...stored, palette: "Pastel" }, error: null });
+  await expect(updateStyleProfile(answers)).resolves.toBeUndefined();
+  expect(mock.update).toHaveBeenCalled();
 });
 
 it("changing only the occasions clears today's looks — the styled-look cache is keyed by item and day, not occasion", async () => {
