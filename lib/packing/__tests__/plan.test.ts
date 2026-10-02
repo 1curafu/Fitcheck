@@ -100,7 +100,7 @@ const floorCloset = [
   item("preferred", "Tops", { colors: ["black"], formality: 2, fit: "Oversized", pattern: "striped" }),
   item("qualified", "Tops", { colors: ["burgundy"], formality: 2, fit: "Regular", pattern: "striped" }),
   item("bottom", "Bottoms", { colors: ["olive"], formality: 4, fit: "Regular", pattern: "striped" }),
-  item("shoe", "Shoes", { colors: ["tan"] }),
+  item("shoe", "Shoes", { colors: ["brown"] }),
 ];
 const floorDay = { date: "2026-05-12", occasion: "work" };
 const floorPrefs = { palette: "Mono", fitPref: "Oversized" };

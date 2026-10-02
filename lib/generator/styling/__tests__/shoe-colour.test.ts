@@ -1,6 +1,6 @@
 import { COLOR_NAMES } from "@/lib/closet/vocab";
 import { SHOE_COLOUR_RULES, shoeColourRule, shoeColourOverrides } from "../shoe-colour";
-import { pairingScore } from "../pairing-ratings";
+import { pairingScore, pairingRating } from "../pairing-ratings";
 import { colourScore } from "../colour-score";
 
 const RULES = [
@@ -26,8 +26,10 @@ const RULES = [
 ] as const;
 
 test.each(RULES)("%s shoes against %s %s get the sourced signal", (shoe, withColor, where, value) => {
-  expect(shoeColourRule([{ category: where === "bottoms" ? "Bottoms" : "Tops", colors: [withColor], formality: 4 },
-    { category: "Shoes", colors: [shoe], formality: 4 }])).toBe(value);
+  const items = [{ category: where === "bottoms" ? "Bottoms" : "Tops", colors: [withColor], formality: 4 },
+    { category: "Shoes", colors: [shoe], formality: 4 }];
+  expect(shoeColourRule(items)).toBe(value);
+  expect([...shoeColourOverrides(items)]).toEqual([[[shoe, withColor].sort().join("|"), value * 4 + 1]]);
 });
 
 test("shoe rules never reverse outfit and shoe", () => {
@@ -54,6 +56,8 @@ test("missing shoes or missing evidence is null", () => {
   expect(shoeColourRule([])).toBeNull();
   expect(shoeColourRule([{ category: "Tops", colors: ["navy"] }])).toBeNull();
   expect(shoeColourRule([{ category: "Tops", colors: ["cream"] }, { category: "Shoes", colors: [] }])).toBeNull();
+  expect(shoeColourRule([{ category: "Tops", colors: ["navy"] }, { category: "Shoes" }])).toBeNull();
+  expect(shoeColourRule([{ category: "Tops" }, { category: "Shoes", colors: ["white"] }])).toBeNull();
 });
 test("all rule colours belong to the garment vocabulary", () => {
   for (const rule of SHOE_COLOUR_RULES) { expect(COLOR_NAMES).toContain(rule.shoe); expect(COLOR_NAMES).toContain(rule.with); }
@@ -63,6 +67,9 @@ test("directional overrides replace one pair and preserve unrelated evidence", (
   const overrides = shoeColourOverrides([{ category: "Tops", colors: ["red"] }, { category: "Shoes", colors: ["black"] }]);
   expect([...overrides]).toEqual([["black|red", 5]]);
   expect(pairingScore(["red", "black"], overrides)).toBe(1);
+  expect(pairingScore([" RED ", "Black"], overrides)).toBe(1);
+  expect(pairingRating(" red ", " BLACK ")).toBe(4);
+  expect(pairingScore(["RED", "red", "black", "white"], overrides)).toBeCloseTo((5 + 5 + 4 - 3) / 12, 12);
   expect(pairingScore(["red", "black"])).toBe(0.75);
   expect(pairingScore(["red", "black", "white"], overrides)).toBeCloseTo((5 + 5 + 4 - 3) / 12, 12);
   expect(colourScore([["red"], ["black"]], [], overrides)).toBeGreaterThan(colourScore([["red"], ["black"]]));
