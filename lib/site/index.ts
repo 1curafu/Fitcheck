@@ -1,12 +1,21 @@
 /** The canonical origin — absolute URLs in metadata, sitemap and robots come from here. */
 export const SITE_URL = "https://fitcheck.space";
 
-/** The pages a search engine may index. Everything else is behind sign-in. */
-export const PUBLIC_PATHS = ["/", "/sign-in", "/privacy", "/terms"] as const;
+/** www serves the same app on another host: separate session cookies, and Turnstile verifies the exact hostname.
+ *  One canonical host, path kept (`next.config.ts` redirects()). */
+export const HOST_REDIRECTS = [{
+  source: "/:path*",
+  has: [{ type: "host" as const, value: "www.fitcheck.space" }],
+  destination: `${SITE_URL}/:path*`,
+  permanent: true,
+}];
+
+/** Public pages, including help for people who cannot sign in. */
+export const PUBLIC_PATHS = ["/", "/sign-in", "/privacy", "/terms", "/support"] as const;
 
 /** Public and crawlable (robots allow, alternates), but never a search result: kept out of the sitemap and marked
  *  noindex in the page metadata. A login form is not something a searcher is looking for. */
-export const NOINDEX_PATHS = ["/sign-in"] as const satisfies readonly (typeof PUBLIC_PATHS)[number][];
+export const NOINDEX_PATHS = ["/sign-in", "/support"] as const satisfies readonly (typeof PUBLIC_PATHS)[number][];
 
 /** App surfaces — they redirect signed-out visitors, so indexing them yields nothing. */
 export const PRIVATE_PREFIXES = [

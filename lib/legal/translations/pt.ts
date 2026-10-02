@@ -37,9 +37,19 @@ export const PRIVACY_PT: LegalDocument = {
       ],
     },
     {
+      id: "contacting-support",
+      heading: "Contactar o apoio",
+      paragraphs: [
+        "Se contactares support@fitcheck.space, usamos o teu endereço de resposta, o assunto escolhido e a mensagem para te ajudar. O formulário não anexa o teu guarda-roupa, conta ou localização. O endereço indicado serve para responder e não comprova a titularidade da conta.",
+        "Resend entrega as mensagens na nossa caixa de apoio: a Namecheap reencaminha os e-mails para support@fitcheck.space para uma caixa do Gmail gerida pela Google. Cloudflare Turnstile verifica os sinais do navegador para detetar spam; não lhe enviamos a mensagem nem o endereço de resposta. A aplicação não acrescenta o endereço IP à verificação no servidor, mas o widget pode tratá-lo. Cloudflare é subcontratante para a segurança do site e responsável pelo tratamento quando melhora a deteção de bots.",
+        "Eliminamos a correspondência encerrada e a reciclagem da caixa no prazo de 90 dias após a última resposta. A eliminação da conta não remove automaticamente os e-mails de apoio. Escreve para legal@fitcheck.space para pedir a sua eliminação. Os registos de entrega dos fornecedores seguem as suas próprias regras de conservação.",
+      ],
+    },
+    {
       id: "why-we-use-it",
       heading: "Porque os usamos",
       paragraphs: [
+        "Para responder a pedidos de apoio e proteger o formulário de spam. Segundo o RGPD, este é o nosso interesse legítimo em ajudar as pessoas e manter o serviço seguro.",
         "Para prestar o serviço em que te registaste — etiquetar a tua roupa, criar looks, lembrar o que usaste. Ao abrigo do RGPD, trata-se da execução de um contrato.",
         "Para manter a app a funcionar e encontrar erros. Ao abrigo do RGPD, é o nosso interesse legítimo, limitado a relatórios de erros.",
         "Para te vender o Pro e mantê-lo ativo enquanto pagares. Mais uma vez um contrato, mais a contabilidade que a lei exige.",
@@ -56,8 +66,10 @@ export const PRIVACY_PT: LegalDocument = {
         "Supabase (UE, Frankfurt) — guarda a tua conta, as tuas fotos e tudo o que foi referido acima. Os teus dados ficam na UE.",
         "Anthropic (EUA) — a IA que etiqueta a tua roupa. Recebe a foto recortada de uma peça para a descrever, e descrições curtas em texto das peças — nunca fotos — para pensar nos conjuntos. A Anthropic não treina os seus modelos com dados enviados através da sua API.",
         "OpenWeather — recebe as tuas coordenadas para devolver uma previsão. Mais nada.",
-        "Google — apenas se escolheres iniciar sessão com o Google.",
-        "Resend (EUA) — envia o e-mail de início de sessão.",
+        "Google — o início de sessão com o Google, se o escolheres, e o Gmail, que aloja a nossa caixa de apoio e guarda as mensagens que nos envias.",
+        "Resend (EUA) — envia e-mails de início de sessão e entrega na nossa caixa as mensagens de apoio, incluindo o endereço de resposta, o assunto e a mensagem.",
+        "Namecheap (EUA) — reencaminha os e-mails enviados para support@fitcheck.space, incluindo o endereço de resposta e a mensagem, para essa caixa do Gmail.",
+        "Cloudflare Turnstile — recebe sinais de segurança do navegador na página de apoio para verificar spam; não lhe enviamos a mensagem nem o endereço de resposta.",
         "Stripe — trata do pagamento do Pro; com a Link, os únicos que veem os dados do cartão.",
         "Link (Stripe) — vende-te o Fitcheck Pro como vendedor oficial (merchant of record): recebe o pagamento, cobra o IVA e envia os recibos, segundo os seus próprios termos e política de privacidade. Eliminar a tua conta Fitcheck cancela a subscrição; a Link e a Stripe guardam os registos de pagamento que a lei exige.",
         "Sentry (UE) — recebe relatórios de erros, para podermos corrigir o que avariou.",
@@ -68,7 +80,7 @@ export const PRIVACY_PT: LegalDocument = {
       id: "data-leaving-europe",
       heading: "Dados que saem da Europa",
       paragraphs: [
-        "A Anthropic, a Resend, a Google e a Stripe estão sediadas nos Estados Unidos ou tratam dados através deles. As transferências para estas empresas assentam no Quadro de Privacidade de Dados UE-EUA quando o fornecedor está certificado e, caso contrário, nas Cláusulas Contratuais-Tipo da Comissão Europeia, que a Suíça reconhece com o seu próprio aditamento. Quando o oferecem, a Google e a Stripe servem os utilizadores suíços e da UE através das suas entidades europeias.",
+        "A Anthropic, a Resend, a Cloudflare, a Namecheap, a Google e a Stripe estão sediadas nos Estados Unidos ou tratam dados através deles. As transferências para estas empresas assentam no Quadro de Privacidade de Dados UE-EUA quando o fornecedor está certificado e, caso contrário, nas Cláusulas Contratuais-Tipo da Comissão Europeia, que a Suíça reconhece com o seu próprio aditamento. Quando o oferecem, a Google e a Stripe servem os utilizadores suíços e da UE através das suas entidades europeias.",
       ],
     },
     {

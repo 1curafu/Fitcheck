@@ -1,6 +1,7 @@
 import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
+import { HOST_REDIRECTS } from "./lib/site";
 
 const withNextIntl = createNextIntlPlugin("./lib/i18n/request.ts");
 
@@ -45,6 +46,9 @@ const nextConfig: NextConfig = {
    * per-session one. Both paths carry a content hash in practice (ORT by
    * version, the model by our export), so a year is safe.
    */
+  async redirects() {
+    return [...HOST_REDIRECTS];
+  },
   async headers() {
     return [
       {

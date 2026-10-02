@@ -37,7 +37,8 @@
     "legalLead": "Continuando accetti i",
     "terms": "Termini",
     "and": "e",
-    "privacy": "l’Informativa sulla privacy"
+    "privacy": "l’Informativa sulla privacy",
+    "support": "Ti serve aiuto?"
   },
   "home": {
     "metadata": {
@@ -1003,7 +1004,9 @@
       "stop": "Smetti di condividere",
       "stopFailed": "Impossibile interrompere la condivisione. Riprova."
     },
-    "language": "Lingua"
+    "language": "Lingua",
+    "support": "Assistenza",
+    "supportDescription": "Scrivi al team Fitcheck"
   },
   "billing": {
     "pro": "Pro",
@@ -1202,5 +1205,45 @@
     "title": "Lingua",
     "close": "Chiudi la scelta della lingua",
     "saveFailed": "Impossibile cambiare lingua. Riprova."
+  },
+  "support": {
+    "title": "Assistenza",
+    "description": "Problemi con Fitcheck? Scrivici.",
+    "metadataDescription": "Contatta il team Fitcheck per assistenza con il tuo account, i pagamenti o l’app.",
+    "replyEmail": "E-mail per la risposta",
+    "topic": "Argomento",
+    "message": "Messaggio",
+    "messageHint": "Spiega cosa è successo e cosa ti aspettavi. Usa da 10 a 4.000 caratteri.",
+    "sensitiveHint": "Non includere password, dati delle carte di pagamento o codici di accesso.",
+    "send": "Invia messaggio",
+    "sending": "Invio…",
+    "sentTitle": "Messaggio inviato",
+    "sentBody": "Risponderemo via e-mail.",
+    "anotherMessage": "Scrivi un altro messaggio",
+    "emailFallback": "Scrivici via e-mail",
+    "unavailableBody": "Il modulo non è disponibile al momento. Puoi comunque scriverci via e-mail.",
+    "verificationLabel": "Protezione antispam",
+    "verificationRetry": "Riprova la verifica",
+    "privacyHint": "Leggi come gestiamo il tuo messaggio nella nostra Informativa sulla privacy.",
+    "backHome": "Torna a Fitcheck",
+    "topics": {
+      "account": "Profilo",
+      "billing": "Pagamenti",
+      "technical": "Problema tecnico",
+      "feedback": "Commenti",
+      "other": "Altro"
+    },
+    "validation": {
+      "replyEmail": "Inserisci un indirizzo e-mail valido, fino a 254 caratteri.",
+      "topic": "Scegli un argomento dall’elenco.",
+      "message": "Scrivi un messaggio da 10 a 4.000 caratteri.",
+      "general": "Controlla il modulo e riprova."
+    },
+    "results": {
+      "sent": "Messaggio inviato. Risponderemo via e-mail.",
+      "verificationFailed": "Non è stato possibile confermare la verifica antispam. Riprova o scrivici via e-mail.",
+      "unavailable": "Il modulo non è disponibile al momento. Puoi comunque scriverci via e-mail.",
+      "failed": "Non è stato possibile confermare l’invio del tuo messaggio. Riprova o scrivici via e-mail."
+    }
   }
 }

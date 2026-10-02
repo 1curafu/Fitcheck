@@ -5,8 +5,8 @@ import manifest from "../manifest";
 test("one installed app keeps its stable root launch and English manifest",()=>{
  expect(manifest()).toMatchObject({name:"Fitcheck",short_name:"Fitcheck",start_url:"/",lang:"en-US",display:"standalone"});
 });
-import { NOINDEX_PATHS, PRIVATE_PREFIXES, PUBLIC_PATHS, SITE_URL, UNLISTED_PREFIXES } from "@/lib/site";
-import { readdirSync } from "node:fs";
+import { HOST_REDIRECTS, NOINDEX_PATHS, PRIVATE_PREFIXES, PUBLIC_PATHS, SITE_URL, UNLISTED_PREFIXES } from "@/lib/site";
+import { readdirSync, readFileSync } from "node:fs";
 import { config as proxyConfig } from "../../proxy";
 
 test("every public path is in the sitemap, as an absolute https URL", () => {
@@ -79,4 +79,25 @@ test("public alternates use canonical locale URLs and an English x-default", asy
     ru: `${SITE_URL}/ru/privacy`, de: `${SITE_URL}/de/privacy`, fr: `${SITE_URL}/fr/privacy`, it: `${SITE_URL}/it/privacy`,
     pt: `${SITE_URL}/pt/privacy`, es: `${SITE_URL}/es/privacy`, nl: `${SITE_URL}/nl/privacy`, "x-default": `${SITE_URL}/privacy`,
   } });
+});
+
+test("support is public and crawlable, with no indexed locale variants", () => {
+  expect(PUBLIC_PATHS).toContain("/support");
+  expect(NOINDEX_PATHS).toContain("/support");
+  const entry = robots().rules;
+  const rule = Array.isArray(entry) ? entry[0] : entry;
+  expect(rule.allow).toContain("/support");
+  expect(rule.disallow).not.toContain("/support/");
+  expect(sitemap().filter(item => /\/support(?:$|\/)/.test(item.url))).toEqual([]);
+});
+
+test("www permanently redirects to the canonical host, keeping the path (Turnstile and cookies are per host)", () => {
+  expect(HOST_REDIRECTS).toEqual([{
+    source: "/:path*",
+    has: [{ type: "host", value: "www.fitcheck.space" }],
+    destination: "https://fitcheck.space/:path*",
+    permanent: true,
+  }]);
+  expect(SITE_URL).toBe("https://fitcheck.space");
+  expect(readFileSync("next.config.ts", "utf8")).toMatch(/redirects\(\)\s*{\s*return \[\.\.\.HOST_REDIRECTS\]/);
 });

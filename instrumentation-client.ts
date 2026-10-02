@@ -28,6 +28,7 @@ Sentry.init({
     // reports carry no more than the error, the page and the browser.
     userInfo: false,
     httpBodies: [],
+    stackFrameVariables: false,
   },
 });
 

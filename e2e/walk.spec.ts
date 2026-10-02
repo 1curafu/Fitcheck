@@ -28,6 +28,7 @@ const ROUTES = [
   "/closet/removed",
   "/onboarding",
   "/sign-in",
+  "/support",
   // ⚠️ New routes must be added here or `npm run insights` passes without ever
   // visiting them — a green walk that proves nothing.
   "/packing",
@@ -65,7 +66,7 @@ test.describe("signed out", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
   test("walk the public routes @insights", async ({ page }) => {
     test.setTimeout(120_000);
-    for (const route of ["/", "/sign-in", "/privacy", "/terms", "/uk", "/uk/sign-in", "/uk/privacy", "/uk/terms"]) {
+    for (const route of ["/", "/sign-in", "/privacy", "/terms", "/support", "/uk", "/uk/sign-in", "/uk/privacy", "/uk/terms", "/uk/support"]) {
       await page.goto(route, { waitUntil: "domcontentloaded" }).catch(() => {});
       await page.waitForTimeout(1200);
     }

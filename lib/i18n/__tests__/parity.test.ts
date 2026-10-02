@@ -49,7 +49,7 @@ const SAME_AS_ENGLISH: Partial<Record<Full, string[]>> = {
     "vocab.color.khaki", "vocab.color.camel", "vocab.color.indigo", "vocab.color.gold", "vocab.color.orange", "vocab.length.Midi",
     "vocab.season.Winter", "generate.refine.palette.neutral", "generate.refine.palette.camel", "share.format", "share.story",
     "share.post", "packing.outfits", "home.preview.city"],
-  fr: ["onboarding.questions.nogos.options.shorts.label", "item.edit.texture", "capture.confirm.texture", "vocab.material.Tweed",
+  fr: ["support.message", "onboarding.questions.nogos.options.shorts.label", "item.edit.texture", "capture.confirm.texture", "vocab.material.Tweed",
     "vocab.material.Polyester", "vocab.material.Nylon", "vocab.material.Viscose", "vocab.material.Modal", "vocab.material.Lyocell",
     "vocab.texture.Seersucker", "vocab.color.beige", "vocab.color.taupe", "vocab.color.camel", "vocab.color.caramel",
     "vocab.color.indigo", "vocab.color.olive", "vocab.color.orange", "vocab.length.Midi", "generate.refine.palette.camel",

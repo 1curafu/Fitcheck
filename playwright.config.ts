@@ -57,6 +57,7 @@ export default defineConfig({
       // The generator's model call is stubbed: deterministic, free, and it
       // still runs the whole pipeline in front of it. See `stubbedRerank`.
       FITCHECK_STUB_AI: "1",
+      FITCHECK_STUB_SUPPORT: "1",
       FITCHECK_TRANSLATION_STUB_DELAY_MS: "600",
       FITCHECK_TRANSLATION_STUB_FAIL_NAME: "E2E Translation Unavailable",
       // The deletion journey exercises the full destructive coordinator, but
