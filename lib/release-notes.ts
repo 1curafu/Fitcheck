@@ -42,6 +42,18 @@ export type LocalizedNote = { headline: string; added: string[]; fixed: string[]
 
 const BASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.7.0",
+    date: "2026-10-02",
+    releasedAt: "2026-10-02T05:39:00Z", // when this release was cut; accountPredatesRelease reads it
+    headline: "Your color and fit answers now guide your looks.",
+    added: ["Your color and fit answers shape every look and trip", "Pro buying advice respects your no-gos and dress codes", "Get help from the new Support page in Settings or on the sign-in screen"],
+    fixed: ["Trips choose a well-matched outfit first, then tune it to your taste"],
+    i18n: {
+      "en-GB": { headline: "Your colour and fit answers now guide your looks.", added: ["Your colour and fit answers shape every look and trip", "Pro buying advice respects your no-gos and dress codes", "Get help from the new Support page in Settings or on the sign-in screen"], fixed: ["Trips choose a well-matched outfit first, then tune it to your taste"] },
+      uk: { headline: "Твої відповіді про кольори й посадку тепер формують образи.", added: ["Кольори й посадка враховуються в усіх образах і подорожах", "Поради Pro щодо покупок враховують твої табу й дрес-код", "Нова сторінка Підтримка — у Налаштуваннях і на екрані входу"], fixed: ["Подорожі спершу обирають гармонійний образ, а тоді підлаштовують під твій смак"] },
+    },
+  },
+  {
     version: "0.6.0",
     date: "2026-09-30",
     releasedAt: "2026-09-30T18:07:00Z", // when this release was cut; accountPredatesRelease reads it
