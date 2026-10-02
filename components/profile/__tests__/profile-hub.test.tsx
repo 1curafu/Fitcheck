@@ -163,3 +163,16 @@ test("the policies are reachable from the hub, not only from Settings", () => {
   expect(screen.getByRole("link", { name: /privacy policy/i })).toHaveAttribute("href", "/privacy");
   expect(screen.getByRole("link", { name: /terms of service/i })).toHaveAttribute("href", "/terms");
 });
+
+test("Packing shows a luggage icon, not the Saved bookmark", async () => {
+  const { container } = render(<ProfileHub {...props} links={[...props.links,
+    { href: "/packing", label: "Packing Mode", desc: "The smallest case", icon: "packing" as const, ready: true }]} />);
+  const packing = screen.getByText("Packing Mode").closest("a")!;
+  expect(packing.querySelector("svg.lucide-luggage")).not.toBeNull();
+  expect(container.querySelectorAll("svg.lucide-bookmark")).toHaveLength(1);
+});
+
+test("the Profile route gives Packing the luggage icon", async () => {
+  const { readFileSync } = await import("node:fs");
+  expect(readFileSync("app/[locale]/profile/page.tsx", "utf8")).toMatch(/href: "\/packing",\s*key: "packing",\s*icon: "packing"/);
+});

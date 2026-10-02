@@ -34,7 +34,7 @@ const LINK_DEFS = [
   {
     href: "/packing",
     key: "packing",
-    icon: "saved",
+    icon: "packing",
     ready: true,
   },
   {
