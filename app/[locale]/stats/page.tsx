@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { cacheLife } from "next/cache";
 import { ScreenHeader } from "@/components/shell/screen-header";
 import { redirect } from "@/lib/i18n/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -8,10 +9,12 @@ import { MobileNav } from "@/components/shell/mobile-nav";
 import { todayFor } from "@/lib/outfits/today";
 import { entitlementsFor } from "@/lib/billing/tiers";
 import { closetStats, mostWorn, gatheringDust } from "@/lib/stats/aggregate";
-import { readNogos } from "@/lib/onboarding/style-profile";
-import { biggestGap, hiddenByNogos, slotCounts } from "@/lib/stats/gap";
+import { readStyleProfile } from "@/lib/onboarding/style-profile";
+import { biggestGap, hiddenByNogos, slotCounts, relevantOccasions, SIMULATED_CONDITIONS } from "@/lib/stats/gap";
+import { rankPurchases, closetRead, type AdvisorPrefs } from "@/lib/stats/advisor";
+import { personalBand } from "@/lib/generator/rules";
 import { StatsView } from "@/components/stats/stats-view";
-import type { CandidateItem } from "@/lib/generator/candidates";
+import { missingCategory, type CandidateItem } from "@/lib/generator/candidates";
 import type { UiOccasion } from "@/lib/generator/types";
 import { toCandidateItem } from "@/lib/generator/from-row";
 
@@ -19,6 +22,12 @@ import { toCandidateItem } from "@/lib/generator/from-row";
 const ALL_OCCASIONS: UiOccasion[] = ["everyday", "work", "weekend", "evening"];
 
 const TOP_N = 3;
+
+async function cachedAdvice(_userId: string, closet: CandidateItem[], prefs: AdvisorPrefs) {
+  "use cache";
+  cacheLife("hours");
+  return { purchases: rankPurchases(closet, prefs), read: closetRead(closet) };
+}
 
 export default async function StatsPage() {
   const t = await getTranslations("stats");
@@ -57,7 +66,7 @@ async function StatsBody() {
   ] = await Promise.all([
     supabase
       .from("profiles")
-      .select("tier, location_timezone, formality_min, formality_max, nogos")
+      .select("tier, location_timezone, formality_min, formality_max, nogos, palette, fit, archetype")
       .eq("id", user.id)
       .single(),
     supabase
@@ -114,17 +123,31 @@ async function StatsBody() {
   const entitlements = entitlementsFor(profile?.tier);
 
   const closet: CandidateItem[] = items.map(toCandidateItem);
+  const quiz = readStyleProfile(profile);
   // Quiz part 2: the advice honours the user's dress codes and no-gos, as the stylist does.
   const gapPrefs = {
     formality_min: profile?.formality_min ?? null,
     formality_max: profile?.formality_max ?? null,
-    nogos: readNogos(profile?.nogos),
+    nogos: quiz.nogos,
   };
   // Skipped entirely for a user who cannot see it — a few dozen passes over the
   // closet is cheap, but computing an answer nobody is shown is still waste.
-  const gap = entitlements.gapAnalysis
+  const missing = missingCategory(closet, {
+    band: personalBand(relevantOccasions(ALL_OCCASIONS, gapPrefs)[0] ?? "everyday", gapPrefs),
+    weather: SIMULATED_CONDITIONS[0], excludeItemIds: [], maxAccessories: 0, nogos: gapPrefs.nogos,
+  });
+  const gap = entitlements.gapAnalysis && missing
     ? biggestGap(closet, ALL_OCCASIONS, gapPrefs)
     : null;
+  // Full tags and preferences join the user id in the cache key, so edits cannot reuse stale advice.
+  const advice = entitlements.gapAnalysis && !missing
+    ? await cachedAdvice(user.id, closet.slice().sort((a, b) => a.id.localeCompare(b.id)), {
+      ...gapPrefs, palette: quiz.palette, fitPref: quiz.fit, aesthetic: quiz.archetype ? [quiz.archetype] : [],
+    }) : null;
+  const vocab = await getTranslations("vocab.color");
+  const read = advice ? t(`closetRead.${advice.read.kind}`, {
+    colours: new Intl.ListFormat(await getLocale(), { style: "long", type: "conjunction" }).format(advice.read.top.map(color => vocab(color))),
+  }) : "";
 
   /**
    * The reason line names the gap in the user's OWN counts.
@@ -174,6 +197,9 @@ async function StatsBody() {
         days: d.days,
       }))}
       gap={gap && { label: t(`gapPieces.${gap.candidate.label}`), share: gap.share, reason }}
+      advisor={advice && { read, purchases: advice.purchases.map(row => ({
+        label: row.purchase.label, colorKey: row.purchase.color, pairsWith: row.pairsWith, partners: row.partners.map(nameOf),
+      })) }}
       entitlements={{
         analytics: entitlements.analytics,
         gapAnalysis: entitlements.gapAnalysis,

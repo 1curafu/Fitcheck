@@ -101,12 +101,12 @@ test("the gated sections are still named, so the user knows what is behind them"
   renderStats(free);
   expect(screen.getByText(/most worn/i)).toBeInTheDocument();
   expect(screen.getByText(/gathering dust/i)).toBeInTheDocument();
-  expect(screen.getByText(/biggest gap/i)).toBeInTheDocument();
+  expect(screen.getByText(/what to buy next/i)).toBeInTheDocument();
 });
 
 test("tapping a locked section opens the upgrade sheet, not a dead end", async () => {
   renderStats(free);
-  await userEvent.click(screen.getByRole("button", { name: /biggest gap/i }));
+  await userEvent.click(screen.getByRole("button", { name: /what to buy next/i }));
   expect(screen.getByRole("dialog")).toBeInTheDocument();
 });
 
@@ -124,4 +124,26 @@ test("a wardrobe that can build nothing gets urgency, not a rounding error", () 
   renderStats({ gap: { label: "Dark denim", share: null, reason: "You have 0 bottoms." } });
   expect(screen.getByText(/can't build a look without one/i)).toBeInTheDocument();
   expect(screen.queryByText(/%/)).not.toBeInTheDocument();
+});
+
+test("advisor cards show labelled colour, real counts and owned partners", () => {
+  renderStats({ gap: null, advisor: { read: "Mostly neutrals: black, grey and white.", purchases: [
+    { label: "tshirt", colorKey: "red", pairsWith: 2, partners: ["Brushed Oxford", "Wool Trousers"] },
+    { label: "ankleBoots", colorKey: "black", pairsWith: 1, partners: ["Wool Trousers"] },
+  ] } });
+  expect(screen.getByText("What to buy next")).toBeInTheDocument();
+  expect(screen.getByText("A T-shirt")).toBeInTheDocument();
+  expect(screen.getByText("red")).toBeInTheDocument();
+  expect(screen.getByText("Goes with 2 of your pieces")).toBeInTheDocument();
+  expect(screen.getByText("Goes with 1 of your pieces")).toBeInTheDocument();
+  expect(screen.getByText("Best with your Brushed Oxford and Wool Trousers.")).toBeInTheDocument();
+  expect(screen.getByText("Best with your Wool Trousers.")).toBeInTheDocument();
+  expect(screen.getAllByTestId("advisor-card")).toHaveLength(2);
+});
+
+test("Free hides supplied advice and offers the new locked pitch", () => {
+  renderStats({ ...free, advisor: { read: "private read", purchases: [{ label: "blouse", colorKey: "pink", pairsWith: 3, partners: ["private piece"] }] } });
+  expect(screen.queryByText("private read")).not.toBeInTheDocument();
+  expect(screen.queryByText(/private piece/)).not.toBeInTheDocument();
+  expect(screen.getByText("Pieces that go with the most of your closet")).toBeInTheDocument();
 });

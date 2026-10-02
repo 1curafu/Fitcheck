@@ -5,6 +5,9 @@ import { useState } from "react";
 import { Link } from "@/lib/i18n/navigation";
 import { Kicker } from "@/components/ui-fitcheck/kicker";
 import { UpgradeSheet } from "@/components/billing/upgrade-sheet";
+import { Surface } from "@/components/ui-fitcheck/surface";
+import { colorHex, type ColorName } from "@/lib/closet/vocab";
+import type { AdvisorPieceKey } from "@/lib/stats/advisor";
 
 /**
  * Wear Stats (Fitcheck.dc.html:737-780).
@@ -38,6 +41,7 @@ export type DustRow = { id: string; name: string; days: number | null };
  * cannot be defended to a customer. See `lib/stats/gap.ts`.
  */
 export type Gap = { label: string; share: number | null; reason: string };
+export type Advice = { read: string; purchases: { label: AdvisorPieceKey; colorKey: ColorName; pairsWith: number; partners: string[] }[] };
 
 /**
  * The claim, in plain words.
@@ -107,6 +111,7 @@ export function StatsView({
   mostWorn,
   dust,
   gap,
+  advisor = null,
   entitlements,
   isPro,
 }: {
@@ -117,10 +122,12 @@ export function StatsView({
   mostWorn: StatRow[];
   dust: DustRow[];
   gap: Gap | null;
+  advisor?: Advice | null;
   entitlements: { analytics: boolean; gapAnalysis: boolean };
   isPro: boolean;
 }) {
   const t = useTranslations("stats");
+  const vocab = useTranslations("vocab.color");
   const [gateTitle, setGateTitle] = useState<string | null>(null);
   const empty = totalWears === 0;
   const sharePhrase = (share: number | null) => share == null
@@ -191,7 +198,28 @@ export function StatsView({
           )}
 
           {entitlements.gapAnalysis ? (
-            gap && (
+            advisor?.purchases.length ? (
+              <Section title={t("whatToBuy")}>
+                <p className="mb-3 text-[13.5px] leading-[1.5] text-muted-foreground">{advisor.read}</p>
+                <div className="space-y-3">
+                  {advisor.purchases.map((purchase) => (
+                    <Surface key={`${purchase.label}|${purchase.colorKey}`} data-testid="advisor-card" className="p-5">
+                      <div className="font-serif text-[24px] text-foreground">{t(`advisorPieces.${purchase.label}`)}</div>
+                      <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-[12.5px] text-foreground">
+                        <span aria-hidden="true" className="size-3 rounded-full border border-foreground/20" style={{ backgroundColor: colorHex(purchase.colorKey) }} />
+                        {vocab(purchase.colorKey)}
+                      </div>
+                      <div className="mt-[10px] text-[13px] font-semibold text-brand">{t("goesWith", { n: purchase.pairsWith })}</div>
+                      <p className="mt-[10px] text-[13.5px] leading-[1.5] text-muted-foreground">
+                        {purchase.partners.length > 1
+                          ? t("bestWith", { a: purchase.partners[0], b: purchase.partners[1] })
+                          : t("bestWithOne", { a: purchase.partners[0] })}
+                      </p>
+                    </Surface>
+                  ))}
+                </div>
+              </Section>
+            ) : gap && (
               <Section title={t("biggestGap")}>
                 <div className="rounded-[16px] bg-surface-1 p-5 shadow-[inset_0_0_0_1px_var(--hairline-2)]">
                   <div className="font-serif text-[24px] text-foreground">{gap.label}</div>
@@ -207,8 +235,8 @@ export function StatsView({
             )
           ) : (
             <LockedSection
-              title={t("biggestGap")}
-              pitch={t("biggestGapPitch")}
+              title={t("whatToBuy")}
+              pitch={t("whatToBuyPitch")}
               onOpen={setGateTitle}
             />
           )}

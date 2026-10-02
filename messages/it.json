@@ -896,6 +896,37 @@
     }
   },
   "stats": {
+    "whatToBuy": "Cosa comprare adesso",
+    "whatToBuyPitch": "Capi che si abbinano a più pezzi del tuo guardaroba",
+    "closetRead": {
+      "neutral": "Soprattutto colori neutri: {colours}.",
+      "mixed": "Colori neutri con qualche tocco di colore: {colours}.",
+      "colourful": "Tanto colore: {colours}."
+    },
+    "goesWith": "{n, plural, one {Si abbina a # dei tuoi capi} other {Si abbina a # dei tuoi capi}}",
+    "bestWith": "Meglio con i tuoi capi {a} e {b}.",
+    "bestWithOne": "Meglio con il tuo capo {a}.",
+    "advisorPieces": {
+      "tshirt": "Una T-shirt",
+      "knit": "Un capo in maglia",
+      "shirt": "Una camicia",
+      "jeans": "Un paio di jeans",
+      "chinos": "Chino",
+      "trousers": "Pantaloni",
+      "sneakers": "Scarpe da ginnastica",
+      "loafers": "Mocassini",
+      "oxfords": "Scarpe Oxford",
+      "jacket": "Una giacca",
+      "overcoat": "Un cappotto",
+      "dayDress": "Un abito da giorno",
+      "dress": "Un abito",
+      "blouse": "Una blusa",
+      "midiSkirt": "Una gonna midi",
+      "pencilSkirt": "Una gonna a matita",
+      "balletFlats": "Ballerine",
+      "heels": "Scarpe con tacco largo",
+      "ankleBoots": "Stivaletti"
+    },
     "title": "Statistiche d’uso",
     "back": "Indietro",
     "closetValue": "Valore dell’armadio",

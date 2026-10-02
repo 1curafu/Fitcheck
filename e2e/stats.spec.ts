@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { setTier, clearWears, reseed } from "./helpers";
+import { setTier, clearWears, reseed, admin, testUserId } from "./helpers";
 
 test.use({ storageState: "e2e/.auth/state.json" });
 
@@ -23,24 +23,36 @@ test.describe.serial("wear stats", () => {
     await expect(page.getByText(/gathering dust/i)).toBeVisible();
   });
 
-  test("the gap card's reason names the same slot it recommends", async ({ page }) => {
-    /**
-     * ⚠️ THE assertion this file exists for. On 2026-08-18 the card recommended
-     * a camel overcoat and then explained "you have 4 pairs of shoes against 10
-     * tops" — a reason for a different purchase entirely. It shipped, and it was
-     * caught by eye on a screenshot.
-     */
+  test("buying advice names real partners and counts owned pieces", async ({ page }) => {
     await setTier("pro");
     await page.goto("/stats");
 
-    const card = page.locator("section", { hasText: /your biggest gap/i });
-    await expect(card).toBeVisible();
-    const text = await card.innerText();
+    await expect(page.getByText("What to buy next")).toBeVisible();
+    const cards = page.getByTestId("advisor-card");
+    await expect(cards.first()).toBeVisible();
+    expect(await cards.count()).toBeGreaterThanOrEqual(1);
+    expect(await cards.count()).toBeLessThanOrEqual(3);
+    for (const card of await cards.all()) {
+      await expect(card.getByText(/Goes with \d+ of your pieces/)).toBeVisible();
+      await expect(card.getByText(/Best with your E2E .+ and E2E /)).toBeVisible();
+    }
+    await page.screenshot({ path: "e2e/.artifacts/wardrobe-advisor-stats.png", fullPage: true });
+  });
 
-    // The seeded closet has ONE pair of shoes against three tops, so shoes are
-    // the bottleneck and the recommendation must be footwear.
-    expect(text, `gap card said: ${text}`).toMatch(/sneakers|loafers/i);
-    expect(text).toMatch(/pair of shoes/i);
+  test("missing shoes keeps the existing slot answer", async ({ page }) => {
+    await setTier("pro");
+    const { error } = await admin().from("items").update({ archived: true }).eq("user_id", await testUserId()).eq("category", "Shoes");
+    if (error) throw error;
+    try {
+      await page.goto("/stats");
+      const card = page.locator("section", { hasText: /your biggest gap/i });
+      await expect(card).toBeVisible();
+      await expect(card.getByText(/can't build a look without one/i)).toBeVisible();
+      expect(await card.innerText()).toMatch(/sneakers|loafers|shoes/i);
+      await expect(page.getByTestId("advisor-card")).toHaveCount(0);
+    } finally {
+      await reseed();
+    }
   });
 
   test("a free user sees their own numbers but not the analysis", async ({ page }) => {
@@ -57,13 +69,14 @@ test.describe.serial("wear stats", () => {
 
     // Named and tappable, never hidden: nobody buys what they never reached for.
     await expect(page.getByText(/most worn/i)).toBeVisible();
-    await expect(page.getByText(/your biggest gap/i)).toBeVisible();
+    await expect(page.getByText(/what to buy next/i)).toBeVisible();
+    await expect(page.getByTestId("advisor-card")).toHaveCount(0);
   });
 
   test("a locked section opens the upgrade sheet, above the bottom nav", async ({ page }) => {
     await setTier("free");
     await page.goto("/stats");
-    await page.getByRole("button", { name: /your biggest gap/i }).click();
+    await page.getByRole("button", { name: /what to buy next/i }).click();
 
     const sheet = page.getByRole("dialog");
     await expect(sheet).toBeVisible();
