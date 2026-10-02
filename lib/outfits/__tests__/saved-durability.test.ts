@@ -14,15 +14,23 @@ const db = vi.hoisted(() => ({
   rows: [] as Record<string, unknown>[],
   operations: [] as string[],
   failRelease: false,
-  failDelete: false,
   from: vi.fn(),
+  // One locked transaction in the database: all or nothing.
+  rpc: vi.fn(async (name: string, args: { p_ids: string[] }) => {
+    db.operations.push(`rpc:${name}`);
+    if (db.failRelease) return { error: { message: "release failed" } };
+    const target = db.rows.filter(r => args.p_ids.includes(r.id as string));
+    target.filter(r => r.saved_at != null).forEach(r => Object.assign(r, { released_at: new Date().toISOString(), look_index: null, styled_index: null }));
+    db.rows = db.rows.filter(r => !(target.includes(r) && r.saved_at == null));
+    return { error: null };
+  }),
 }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => db }));
 
 beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-10-02T12:00:00Z"));
-  db.operations = []; db.failRelease = false; db.failDelete = false;
+  db.operations = []; db.failRelease = false;
   db.rows = ["saved", "unsaved"].map((id, i) => ({
     id, user_id: "owner", occasion: "everyday", generated_on: "2026-10-02",
     trip_id: null, styled_item_id: null, saved_at: i ? null : "2026-10-01T12:00:00Z",
@@ -48,8 +56,7 @@ beforeEach(() => {
     q.then = (resolve: (value: unknown) => unknown) => {
       const rows = table === "outfits" ? db.rows.filter(r => filters.every(f => f(r))) : [];
       if (mode !== "read") db.operations.push(`${table}:${mode}`);
-      const error = mode === "release" && db.failRelease ? { message: "release failed" }
-        : mode === "delete" && db.failDelete ? { message: "delete failed" } : null;
+      const error = null;
       if (!error && table === "outfits") {
         if (mode === "release") rows.forEach(r => Object.assign(r, patch));
         if (mode === "delete") db.rows = db.rows.filter(r => !rows.includes(r));
@@ -78,7 +85,8 @@ test.each(["daily", "styled", "settings", "trip"])("%s replacement retains saved
   await replace(kind);
   expect(db.rows).toHaveLength(1);
   expect(db.rows[0]).toMatchObject({ id: "saved", saved_at: "2026-10-01T12:00:00Z", released_at: "2026-10-02T12:00:00.000Z", look_index: null, styled_index: null, generated_on: "2026-10-02", layout: { pieces: [{ itemId: "piece" }] } });
-  expect(db.operations.slice(0, 2)).toEqual(["outfits:release", "outfits:delete"]);
+  expect(db.operations).toContain("rpc:release_saved_then_delete");
+  expect(db.operations).not.toContain("outfits:delete");
   expect(db.operations).not.toContain("outfit_items:delete");
 });
 

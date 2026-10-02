@@ -1,8 +1,13 @@
 import { clearTodaysDrop } from "../clear-today";
 
-function clientWith(errors: { read?: string; release?: string; delete?: string } = {}) {
+function clientWith(errors: { read?: string; rpc?: string } = {}) {
   const calls: unknown[][] = [];
-  const client = { from: (table: string) => {
+  const client = {
+  rpc: (name: string, args: unknown) => {
+    calls.push(["rpc", name, args]);
+    return Promise.resolve({ error: errors.rpc ? { message: errors.rpc } : null });
+  },
+  from: (table: string) => {
     let mode: "read" | "release" | "delete" = "read";
     const q = {
       select: () => q,
@@ -13,7 +18,7 @@ function clientWith(errors: { read?: string; release?: string; delete?: string }
       delete: () => { mode = "delete"; calls.push([table, mode]); return q; },
       in: (key: string, ids: string[]) => { calls.push(["in", key, ids]); return q; },
       then: (resolve: (value: unknown) => unknown) => Promise.resolve({
-        data: [{ id: "o1" }, { id: "o2" }], error: errors[mode] ? { message: errors[mode] } : null,
+        data: [{ id: "o1" }, { id: "o2" }], error: mode === "read" && errors.read ? { message: errors.read } : null,
       }).then(resolve),
     };
     return q;
@@ -29,11 +34,10 @@ test("clears the given timezone's active looks, retaining saved pieces", async (
   await clearTodaysDrop(db.client, "u1", "Europe/Zurich");
   expect(db.calls).toEqual([
     ["eq", "user_id", "u1"], ["eq", "generated_on", "2026-10-01"], ["is", "released_at", null],
-    ["outfits", "release"], ["in", "id", ["o1", "o2"]], ["not", "saved_at", "is", null],
-    ["outfits", "delete"], ["in", "id", ["o1", "o2"]], ["is", "saved_at", null],
+    ["rpc", "release_saved_then_delete", { p_ids: ["o1", "o2"] }],
   ]);
 });
 
-test.each(["read", "release", "delete"] as const)("a failed %s is surfaced rather than reporting a rebuild", async phase => {
+test.each(["read", "rpc"] as const)("a failed %s is surfaced rather than reporting a rebuild", async phase => {
   await expect(clearTodaysDrop(clientWith({ [phase]: phase }).client, "u1", "UTC")).rejects.toThrow(phase);
 });
