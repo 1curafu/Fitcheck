@@ -794,9 +794,9 @@
     }
   },
   "savedOutfits": {
-    "title": "Bewaard",
+    "title": "Bewaarde outfits",
     "count": "{saved} van {limit} bewaard",
-    "overLimit": "Je hebt {saved} looks bewaard. Met Free kun je er maximaal {limit} bewaren — verwijder er een paar uit je verzameling om nieuwe toe te voegen, of neem Pro.",
+    "overLimit": "Je hebt {saved} outfits bewaard. Met Free kun je er maximaal {limit} bewaren. Haal er een paar uit je lijst om nieuwe toe te voegen of neem Pro.",
     "empty": "Bewaar een look die je leuk vindt en hij blijft hier.",
     "emptyCta": "Bekijk de looks van vandaag",
     "showMore": "Meer tonen",

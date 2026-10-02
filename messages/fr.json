@@ -800,9 +800,9 @@
     }
   },
   "savedOutfits": {
-    "title": "Enregistrés",
+    "title": "Tenues enregistrées",
     "count": "{saved} sur {limit} enregistrés",
-    "overLimit": "Tu as {saved} tenues enregistrées. Free te permet d’en garder jusqu’à {limit} — retires-en pour en ajouter de nouvelles, ou passe à Pro.",
+    "overLimit": "Tu as enregistré {saved} tenues. Avec Free, tu peux en garder jusqu’à {limit}. Retires-en quelques-unes pour en ajouter, ou passe à Pro.",
     "empty": "Enregistre une tenue que tu aimes et elle reste ici.",
     "emptyCta": "Voir les tenues du jour",
     "showMore": "Voir plus",

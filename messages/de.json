@@ -800,9 +800,9 @@
     }
   },
   "savedOutfits": {
-    "title": "Gespeichert",
+    "title": "Gespeicherte Looks",
     "count": "{saved} von {limit} gespeichert",
-    "overLimit": "Du hast {saved} Looks gespeichert. Mit Free kannst du bis zu {limit} speichern — entferne einige aus deiner Sammlung, um neue hinzuzufügen, oder hol dir Pro.",
+    "overLimit": "Du hast {saved} Looks gespeichert. Mit Free kannst du bis zu {limit} speichern. Entferne einige, um neue hinzuzufügen, oder wechsle zu Pro.",
     "empty": "Speichere einen Look, der dir gefällt, und er bleibt hier.",
     "emptyCta": "Looks für heute ansehen",
     "showMore": "Mehr anzeigen",
