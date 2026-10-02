@@ -329,3 +329,15 @@ describe("trip comfort (spec §2–§4)", () => {
     expect(b(day("2026-05-12", "work"), closet)).not.toBeNull(); // no ctx: the offered pool is its own reference (old behaviour)
   });
 });
+
+test("trips follow the user's dress codes, and fall back to the occasion's band when they do not overlap", () => {
+  const tee = item("tee", "Tops", { formality: 2 });
+  const shirt = item("shirt", "Tops", { formality: 4 });
+  const ref = [tee, shirt, item("trouser", "Bottoms", { formality: 4 }), item("loafer", "Shoes", { formality: 4 })];
+  const work = { date: "2026-05-12", occasion: "work" };
+  expect(tripPlanner(ref, () => mild).usableToday(work, "tee", ref)).toBe(true);
+  expect(tripPlanner(ref, () => mild, { dressCodes: { formality_min: 4, formality_max: 4 } }).usableToday(work, "tee", ref)).toBe(false);
+  // personalBand's own fallback: no overlap → the occasion band, so a trip is never emptied by dress codes (D3)
+  const everyday = { date: "2026-05-12", occasion: "everyday" };
+  expect(tripPlanner(ref, () => mild, { dressCodes: { formality_min: 5, formality_max: 5 } }).usableToday(everyday, "tee", ref)).toBe(true);
+});

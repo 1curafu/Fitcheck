@@ -2,7 +2,7 @@ import { buildCandidates, eligibleByCategory, type CandidateItem } from "@/lib/g
 import type { NoGo } from "@/lib/generator/nogos";
 import { rankTopN } from "@/lib/generator/rank";
 import { scoreCombo, type ScoreItem } from "@/lib/generator/score";
-import { occasionBand, OUTERWEAR_C, planningTemp, type Weather } from "@/lib/generator/rules";
+import { personalBand, OUTERWEAR_C, planningTemp, type Weather } from "@/lib/generator/rules";
 import { QUALITY_FLOOR, type OutfitBuilder, type TripDay, type CapsuleItem, type DayContext } from "./capsule";
 
 /** The occasion given to a day the mix does not reach. */
@@ -76,6 +76,7 @@ export type PlannerOpts = {
   /** The quiz palette and fit answers — very soft score terms. */
   palette?: string | null;
   fitPref?: string | null;
+  dressCodes?: { formality_min?: number | null; formality_max?: number | null };
 };
 
 export type TripPlanner = {
@@ -99,7 +100,7 @@ export function tripPlanner(
     return full ? [full] : [];
   });
   const argsFor = (day: TripDay) => ({
-    band: occasionBand(day.occasion as Parameters<typeof occasionBand>[0]),
+    band: personalBand(day.occasion as Parameters<typeof personalBand>[0], opts?.dressCodes ?? null),
     weather: forecastFor(day.date),
     excludeItemIds: [] as string[],
     maxAccessories: 1,
