@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { buildCandidates, eligibility, emptiedByNogos, missingCategory } from "../candidates";
+import { buildCandidates, eligibleByCategory, eligibility, emptiedByNogos, missingCategory } from "../candidates";
 
 const items = [
   { id: "t1", category: "Tops", colors: ["cream"], formality: 3, seasons: ["spring"], material: "cotton", texture: null, pattern: null },
@@ -730,4 +730,32 @@ test("a cotton cable knit is barred at 27 °C when a lighter top exists, and kep
   expect(both).toContain("t-linen");
   // D3: never worse than today — a knit-only closet still gets dressed.
   expect(buildCandidates([knit, ...rest], warmDay).flat().map((i) => i.id)).toContain("t-knit");
+});
+
+describe("a warm coat below 5 °C (trip-comfort §7)", () => {
+  const freezing = { ...base, season: "Winter", weather: { tempC: -5, rain: false, highC: -2, lowC: -8 } };
+  const core = [
+    { id: "t1", category: "Tops", colors: ["grey"], formality: 3, seasons: [], material: "Wool", texture: "Ribbed", pattern: "solid" },
+    { id: "b1", category: "Bottoms", colors: ["navy"], formality: 3, seasons: [], material: "Wool", texture: "Twill", pattern: "solid" },
+    { id: "s1", category: "Shoes", colors: ["brown"], formality: 3, seasons: [], material: "Leather", texture: "Flat", pattern: "solid" },
+  ];
+  const linenJacket = { id: "o-linen", category: "Outerwear", colors: ["sand"], formality: 3, seasons: [], material: "Linen", texture: "Flat", pattern: "solid" };
+  const woolCoat = { id: "o-wool", category: "Outerwear", colors: ["camel"], formality: 3, seasons: [], material: "Wool", texture: "Twill", pattern: "solid" };
+
+  test("a thin jacket is dropped when a warm coat exists", () => {
+    const coats = buildCandidates([...core, linenJacket, woolCoat], freezing).flat().filter((i) => i.category === "Outerwear").map((i) => i.id);
+    expect(coats).toContain("o-wool");
+    expect(coats).not.toContain("o-linen");
+  });
+
+  test("D3: a closet whose only outerwear is thin keeps it — never colder than today", () => {
+    const coats = buildCandidates([...core, linenJacket], freezing).flat().filter((i) => i.category === "Outerwear").map((i) => i.id);
+    expect(coats).toContain("o-linen");
+  });
+
+  test("at 6 °C nothing changes", () => {
+    const cool = { ...freezing, weather: { tempC: 6, rain: false, highC: 6, lowC: 2 } };
+    const coats = eligibleByCategory([...core, linenJacket, woolCoat], cool).Outerwear.map((i) => i.id);
+    expect(coats).toEqual(expect.arrayContaining(["o-wool", "o-linen"]));
+  });
 });

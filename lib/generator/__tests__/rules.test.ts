@@ -235,3 +235,10 @@ test("the sweltering bar separates the wearer's own cable knits", () => {
   expect(itemWarmth("Cotton", "Cable knit", ["Spring", "Summer"])).toBeLessThan(bar);
   expect(itemWarmth("Cotton", "Cable knit", ["Autumn", "Winter"])).toBeGreaterThanOrEqual(bar);
 });
+
+test("below 5 °C outerwear must be genuinely warm; at 5 °C and above there is no floor", () => {
+  expect(weatherRules({ tempC: 4, rain: false }).minOuterwearWarmth).toBe(0.5);
+  expect(weatherRules({ tempC: -5, rain: false }).minOuterwearWarmth).toBe(0.5);
+  expect(weatherRules({ tempC: 5, rain: false }).minOuterwearWarmth).toBeNull();
+  expect(weatherRules({ tempC: 20, rain: false }).minOuterwearWarmth).toBeNull();
+});

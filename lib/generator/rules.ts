@@ -142,6 +142,10 @@ const HOT_C = 25;
  */
 export const OUTERWEAR_C = 15;
 
+/** Below this prefer a genuinely warm coat, with relief for thin-only closets (trip-comfort §7). */
+export const COLD_OUTERWEAR_C = 5;
+const COLD_OUTERWEAR_MIN_WARMTH = 0.5;
+
 /** Materials rain ruins. Turned off by the rain-guard preference, nothing else. */
 const WET_MATERIALS = ["suede", "canvas"];
 
@@ -183,6 +187,7 @@ export function weatherRules(w: Weather, prefs?: { rainGuard?: boolean }) {
   const planning = planningTemp(w);
   return {
     needsOuterwear: planning < OUTERWEAR_C,
+    minOuterwearWarmth: planning < COLD_OUTERWEAR_C ? COLD_OUTERWEAR_MIN_WARMTH : null,
     excludeMaterials: [
       ...(w.rain && rainGuard ? WET_MATERIALS : []),
       ...(planning > HOT_C ? HOT_MATERIALS : []),

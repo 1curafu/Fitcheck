@@ -328,7 +328,7 @@ export function eligibleByCategory(
   items: CandidateItem[],
   a: CandidateArgs,
 ): Record<string, CandidateItem[]> {
-  const { excludeMaterials, maxWarmth } = weatherRules(a.weather, { rainGuard: a.rainGuard });
+  const { excludeMaterials, maxWarmth, minOuterwearWarmth } = weatherRules(a.weather, { rainGuard: a.rainGuard });
   const bars: WeatherBars = { excludeMaterials, maxWarmth };
   const cats = new Set<string>(items.map((i) => i.category));
   for (const c of REQUIRED_CATEGORIES) cats.add(c);
@@ -339,6 +339,11 @@ export function eligibleByCategory(
     const inCat = items.filter((i) => i.category === c);
     let list = inCat.filter((i) => isEligible(i, a, bars));
     if (!list.length && isRequired(c)) list = inCat.filter((i) => isEligible(i, a, NO_BARS));
+    // Below 5 °C prefer a warm coat, but keep thin outerwear when the closet cannot do better (D3).
+    if (c === "Outerwear" && minOuterwearWarmth != null) {
+      const warm = list.filter((i) => itemWarmth(i.material, i.texture, i.seasons) >= minOuterwearWarmth);
+      if (warm.length) list = warm;
+    }
     out[c] = bySeasonFirst(list, a.season);
   }
   return out;
