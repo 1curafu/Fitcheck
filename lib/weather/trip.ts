@@ -1,4 +1,4 @@
-import type { Weather } from "@/lib/generator/rules";
+import { OUTERWEAR_C, planningTemp, type Weather } from "@/lib/generator/rules";
 
 /**
  * The provider's forecast horizon. Beyond this it returns nothing, and a trip
@@ -25,3 +25,19 @@ export type TripForecast = {
    */
   beyondHorizon: boolean;
 };
+
+/** At or below this, the night needs something warm even when the day did not (owner: a note, not a packed piece). */
+export const COLD_NIGHT_C = 8;
+
+/**
+ * The coldest night of a trip whose DAY is mild (high ≥ OUTERWEAR_C) — a colder day already packs a coat (trip-comfort §4).
+ * Trips have no hourly forecast, so this is a note to the user rather than an outfit change (owner decision, 2026-10-01).
+ */
+export function coldNights(byDate: Record<string, Weather>): { lowC: number } | null {
+  let coldest: number | null = null;
+  for (const w of Object.values(byDate)) {
+    if (w.lowC == null) continue;
+    if (w.lowC <= COLD_NIGHT_C && planningTemp(w) >= OUTERWEAR_C) coldest = coldest == null ? w.lowC : Math.min(coldest, w.lowC);
+  }
+  return coldest == null ? null : { lowC: coldest };
+}

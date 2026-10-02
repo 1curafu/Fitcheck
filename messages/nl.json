@@ -1115,6 +1115,7 @@
     "changePiece": "{name} wijzigen",
     "tapPiece": "Tik op een stuk om het te wisselen of thuis te laten.",
     "capsuleWhy": "{days} dagen · {pieces} stukken",
+    "coldNights": "’s Nachts zakt het naar {temp} — neem iets warms mee voor de avond.",
     "forecastEstimate": "Een deel van deze reis valt buiten de verwachting, dus het weer is een schatting.",
     "doneCloset": "Klaar — terug naar de kast",
     "seeDays": "Bekijk de dagen",

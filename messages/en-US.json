@@ -1061,6 +1061,7 @@
     "changePiece": "Change {name}",
     "tapPiece": "Tap a piece to swap it or leave it behind.",
     "capsuleWhy": "{days} days · {pieces} pieces",
+    "coldNights": "Nights drop to {temp} — take something warm for the evenings.",
     "forecastEstimate": "Part of this trip is beyond the forecast, so its weather is an estimate.",
     "doneCloset": "Done — back to the closet",
     "seeDays": "See the days",

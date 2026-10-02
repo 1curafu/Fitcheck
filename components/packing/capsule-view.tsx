@@ -42,6 +42,7 @@ export function CapsuleView({
   lookText,
   tripId,
   beyondHorizon,
+  coldNightNote,
   alternatives,
 }: {
   destination: string;
@@ -53,6 +54,7 @@ export function CapsuleView({
   lookText: OutfitText | null;
   tripId: string;
   beyondHorizon: boolean;
+  coldNightNote?: string | null;
   /** The rest of the closet, so a piece can be swapped for a real alternative. */
   alternatives: Alternative[];
 }) {
@@ -148,6 +150,9 @@ export function CapsuleView({
           <p className="mt-[10px] text-[13px] leading-[1.45] text-muted-foreground">
             {t("forecastEstimate")}
           </p>
+        )}
+        {coldNightNote && (
+          <p className="mt-[10px] text-[13px] leading-[1.45] text-muted-foreground">{coldNightNote}</p>
         )}
       </div>
 

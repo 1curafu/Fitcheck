@@ -1121,6 +1121,7 @@
     "changePiece": "Trocar: {name}",
     "tapPiece": "Toca numa peça para a trocar ou deixar em casa.",
     "capsuleWhy": "{days} dias · {pieces} peças",
+    "coldNights": "À noite desce até {temp} — leva algo quente para a noite.",
     "forecastEstimate": "Parte desta viagem fica para lá da previsão, por isso o tempo é uma estimativa.",
     "doneCloset": "Feito — voltar ao roupeiro",
     "seeDays": "Ver os dias",
