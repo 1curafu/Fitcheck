@@ -2,6 +2,11 @@ import type { LocalizedNote } from "@/lib/release-notes";
 
 /** Keyed by version; one entry for every RELEASE_NOTES version, same line counts. */
 export const ES_NOTES: Record<string, LocalizedNote> = {
+  "0.7.0": {
+    headline: "Tus respuestas sobre colores y corte ahora guían tus looks.",
+    added: ["Colores y corte cuentan en cada look y cada viaje", "Los consejos de compra Pro respetan lo que evitas y tus códigos de vestimenta", "Nueva página de Ayuda, en Ajustes y en la pantalla de inicio de sesión"],
+    fixed: ["Los viajes eligen primero un conjunto coherente y luego lo ajustan a tu gusto"],
+  },
   "0.6.0": {
     headline: "Tus respuestas de estilo ahora dan forma a tus looks.",
     added: ["Lo que quieres evitar queda fuera de todos los looks y viajes", "Cambia tus respuestas de estilo cuando quieras: Ajustes, Perfil de estilo", "Las prendas nuevas se recortan y se ven más grandes en los looks"],

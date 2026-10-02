@@ -2,6 +2,11 @@ import type { LocalizedNote } from "@/lib/release-notes";
 
 /** Keyed by version; one entry for every RELEASE_NOTES version, same line counts. */
 export const DE_NOTES: Record<string, LocalizedNote> = {
+  "0.7.0": {
+    headline: "Deine Angaben zu Farben und Passform prägen jetzt deine Looks.",
+    added: ["Farben und Passform fließen in alle Looks und Reisen ein", "Pro-Kaufempfehlungen beachten deine No-Gos und Dresscodes", "Neue Hilfe-Seite: in den Einstellungen und auf dem Anmeldebildschirm"],
+    fixed: ["Reisen wählen zuerst ein stimmiges Outfit und passen es dann deinem Geschmack an"],
+  },
   "0.6.0": {
     headline: "Deine Stilangaben prägen jetzt deine Looks.",
     added: ["Deine No-Gos bleiben aus allen Looks, Reisen und Styling-Vorschlägen", "Änder deine Stilangaben jederzeit: Einstellungen, Stilprofil", "Neue Teile werden zugeschnitten und wirken in Looks größer"],
