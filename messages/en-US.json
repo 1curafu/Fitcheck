@@ -1232,5 +1232,131 @@
       "unavailable": "The form is unavailable right now. You can still email us.",
       "failed": "We couldn't confirm that your message was sent. Try again or email us."
     }
+  },
+  "styleDna": {
+    "title": "Style DNA",
+    "kicker": "Style DNA",
+    "yourArchetype": "Your archetype",
+    "youSaid": "You said {archetype}",
+    "agrees": "Your closet agrees",
+    "notEnough": "Add a few more pieces and Fitcheck will read your style from your closet.",
+    "noAnswer": "Not set yet",
+    "share": "Share",
+    "preparing": "Preparing…",
+    "shareFailed": "Couldn't share the image. Try again.",
+    "footer": "{count, plural, one {# piece} other {# pieces}} analyzed",
+    "stats": {
+      "pieces": "Pieces",
+      "looksWorn": "Looks worn",
+      "colours": "Colors"
+    },
+    "opening": {
+      "oldMoney": "Quiet heritage, worn with ease.",
+      "preppy": "Collegiate roots, kept crisp.",
+      "streetwear": "Easy proportions, sneaker-led.",
+      "smartCasual": "Polished and easy, never trying too hard.",
+      "fresh": "Your style, in the making."
+    },
+    "trait": {
+      "tonalTailored": "You lean tonal and favor a tailored cut.",
+      "tonalRelaxed": "You lean tonal and keep the cut relaxed.",
+      "tonalBalanced": "You lean tonal and mix sharp with easy.",
+      "mixedTailored": "You mix neutrals with a little color and favor a tailored cut.",
+      "mixedRelaxed": "You mix neutrals with a little color and keep the cut relaxed.",
+      "mixedBalanced": "You mix neutrals with a little color and mix sharp with easy.",
+      "colourfulTailored": "You let color lead and favor a tailored cut.",
+      "colourfulRelaxed": "You let color lead and keep the cut relaxed.",
+      "colourfulBalanced": "You let color lead and mix sharp with easy."
+    },
+    "mix": {
+      "title": "Style mix",
+      "caption": "From {marked} of your {total} pieces with a clear style signal"
+    },
+    "quiz": {
+      "title": "Your answers vs your closet",
+      "palette": "You said {palette}: {pct}% of your closet agrees",
+      "fit": "You said {fit}: {pct}% of your tagged clothes suit it"
+    },
+    "tendencies": {
+      "title": "Your tendencies",
+      "cut": "Tailored vs relaxed",
+      "tonal": "Tonal dressing",
+      "pattern": "Pattern appetite",
+      "heritage": "Heritage references",
+      "level": {
+        "tailored": "Leans tailored",
+        "balanced": "Balanced",
+        "relaxed": "Leans relaxed",
+        "strong": "Strong",
+        "moderate": "Moderate",
+        "colourful": "Colorful",
+        "minimal": "Minimal",
+        "some": "Some",
+        "bold": "Bold",
+        "low": "Low",
+        "high": "High"
+      }
+    },
+    "formula": {
+      "title": "Your formula",
+      "worn": "{count, plural, one {Worn # time} other {Worn # times}}",
+      "none": "No repeat formula yet. Wear a favorite look again."
+    },
+    "pairing": {
+      "title": "Go-to colors",
+      "classic": "A classic pairing",
+      "good": "A good pairing",
+      "yours": "Your pairing",
+      "none": "No repeat color pairing yet."
+    },
+    "fabric": {
+      "title": "Fabric fingerprint",
+      "natural": "Mostly natural fibers",
+      "mixed": "A mix of natural and synthetic",
+      "synthetic": "Mostly synthetic"
+    },
+    "dressy": {
+      "title": "Dressy vs worn",
+      "ownDressier": "You own dressier than you wear",
+      "wearDressier": "You dress up more than your closet suggests",
+      "aligned": "What you own is what you wear",
+      "scale": "Owned {owned} · Worn {worn} (of 5)"
+    },
+    "signature": {
+      "title": "Signature pieces",
+      "none": "No piece worn twice yet."
+    },
+    "locked": "Wear {need} looks to unlock ({have}/{need})",
+    "teaser": {
+      "title": "Complete your DNA",
+      "body": "See the piece that goes with most of your closet",
+      "pro": "Pro"
+    },
+    "kind": {
+      "tee": "T-shirt",
+      "shirt": "Shirt",
+      "polo": "Polo",
+      "knit": "Knit",
+      "hoodie": "Hoodie",
+      "blouse": "Blouse",
+      "top": "Top",
+      "jeans": "Jeans",
+      "chinos": "Chinos",
+      "trousers": "Trousers",
+      "shorts": "Shorts",
+      "skirt": "Skirt",
+      "dress": "Dress",
+      "jumpsuit": "Jumpsuit",
+      "sneakers": "Sneakers",
+      "loafers": "Loafers",
+      "boots": "Boots",
+      "heels": "Heels",
+      "flats": "Flats",
+      "sandals": "Sandals",
+      "shoes": "Shoes",
+      "blazer": "Blazer",
+      "jacket": "Jacket",
+      "coat": "Coat"
+    }
   }
 }

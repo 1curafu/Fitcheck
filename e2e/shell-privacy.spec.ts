@@ -23,7 +23,7 @@ import { admin, testUserId } from "./helpers";
  * and it must contain nothing that belongs to anybody.
  */
 
-const ROUTES = ["/outfits", "/closet", "/closet/removed", "/generate", "/stats", "/profile", "/calendar", "/settings", "/settings/style", "/sign-in", "/support", "/l/AAAAAAAAAAAAAAAAAAAAAA"];
+const ROUTES = ["/outfits", "/closet", "/closet/removed", "/generate", "/stats", "/style-dna", "/profile", "/calendar", "/settings", "/settings/style", "/sign-in", "/support", "/l/AAAAAAAAAAAAAAAAAAAAAA"];
 const privateOutfitId = randomUUID();
 const originalMarker = "Private shell original prose";
 const translatedMarker = "Private shell translated prose";

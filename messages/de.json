@@ -1292,5 +1292,131 @@
       "unavailable": "Das Formular ist gerade nicht verfügbar. Du kannst uns weiterhin eine E-Mail senden.",
       "failed": "Wir konnten den Versand deiner Nachricht nicht bestätigen. Versuche es erneut oder schreib uns eine E-Mail."
     }
+  },
+  "styleDna": {
+    "title": "Stil-DNA",
+    "kicker": "Stil-DNA",
+    "yourArchetype": "Dein Archetyp",
+    "youSaid": "Du hast {archetype} gewählt",
+    "agrees": "Dein Kleiderschrank bestätigt es",
+    "notEnough": "Füge noch ein paar Teile hinzu, dann erkennt Fitcheck deinen Stil in deinem Kleiderschrank.",
+    "noAnswer": "Noch nicht festgelegt",
+    "share": "Teilen",
+    "preparing": "Wird vorbereitet…",
+    "shareFailed": "Das Bild konnte nicht geteilt werden. Versuch es noch einmal.",
+    "footer": "{count, plural, one {# Teil analysiert} other {# Teile analysiert}}",
+    "stats": {
+      "pieces": "Teile",
+      "looksWorn": "Getragene Outfits",
+      "colours": "Farben"
+    },
+    "opening": {
+      "oldMoney": "Klassische Eleganz, ganz entspannt.",
+      "preppy": "College-Flair, stets gepflegt.",
+      "streetwear": "Lockere Silhouette, Sneaker im Mittelpunkt.",
+      "smartCasual": "Gepflegt und entspannt, ohne Anstrengung.",
+      "fresh": "Dein Stil nimmt gerade Form an."
+    },
+    "trait": {
+      "tonalTailored": "Du magst Ton in Ton und bevorzugst taillierte Schnitte.",
+      "tonalRelaxed": "Du magst Ton in Ton und trägst es lieber locker.",
+      "tonalBalanced": "Du magst Ton in Ton und kombinierst klare Linien mit entspannten Schnitten.",
+      "mixedTailored": "Du kombinierst Neutrales mit einem Hauch Farbe und bevorzugst taillierte Schnitte.",
+      "mixedRelaxed": "Du kombinierst Neutrales mit einem Hauch Farbe und trägst es lieber locker.",
+      "mixedBalanced": "Du kombinierst neutrale Farben mit einem Hauch Farbe und klare Linien mit entspannten Schnitten.",
+      "colourfulTailored": "Du lässt Farbe führen und bevorzugst taillierte Schnitte.",
+      "colourfulRelaxed": "Du lässt Farbe führen und trägst es lieber locker.",
+      "colourfulBalanced": "Du lässt Farbe den Ton angeben und kombinierst klare Linien mit entspannten Schnitten."
+    },
+    "mix": {
+      "title": "Stilmix",
+      "caption": "Aus {marked} von {total} Teilen mit klar erkennbarem Stil"
+    },
+    "quiz": {
+      "title": "Deine Antworten im Vergleich zu deinem Kleiderschrank",
+      "palette": "Du hast „{palette}“ gewählt: {pct} % deiner Kleidungsstücke passen dazu",
+      "fit": "Du hast „{fit}“ gewählt: {pct} % deiner erfassten Kleidungsstücke passen dazu"
+    },
+    "tendencies": {
+      "title": "Deine Stilvorlieben",
+      "cut": "Tailliert oder locker",
+      "tonal": "Ton in Ton",
+      "pattern": "Lust auf Muster",
+      "heritage": "Klassische Bezüge",
+      "level": {
+        "tailored": "Eher tailliert",
+        "balanced": "Ausgewogen",
+        "relaxed": "Eher locker",
+        "strong": "Stark",
+        "moderate": "Mittel",
+        "colourful": "Farbig",
+        "minimal": "Minimal",
+        "some": "Etwas",
+        "bold": "Mutig",
+        "low": "Gering",
+        "high": "Hoch"
+      }
+    },
+    "formula": {
+      "title": "Deine Formel",
+      "worn": "{count, plural, one {# Mal getragen} other {# Mal getragen}}",
+      "none": "Noch keine wiederkehrende Formel. Trag einen Lieblingslook noch einmal."
+    },
+    "pairing": {
+      "title": "Lieblingsfarben",
+      "classic": "Eine klassische Kombination",
+      "good": "Eine gute Kombination",
+      "yours": "Deine Kombination",
+      "none": "Noch keine wiederkehrende Farbkombination."
+    },
+    "fabric": {
+      "title": "Stoffprofil",
+      "natural": "Überwiegend Naturfasern",
+      "mixed": "Mischung aus Natur- und Kunstfasern",
+      "synthetic": "Überwiegend Kunstfasern"
+    },
+    "dressy": {
+      "title": "Eleganz im Schrank und in deinen Looks",
+      "ownDressier": "Du besitzt Eleganteres, als du trägst",
+      "wearDressier": "Du ziehst dich eleganter an, als dein Kleiderschrank vermuten lässt",
+      "aligned": "Was du besitzt, trägst du auch",
+      "scale": "Besitz {owned} · Getragen {worn} (von 5)"
+    },
+    "signature": {
+      "title": "Lieblingsteile",
+      "none": "Noch kein Teil zweimal getragen."
+    },
+    "locked": "Trag {need} Looks, um freizuschalten ({have}/{need})",
+    "teaser": {
+      "title": "Vervollständige deinen Stil",
+      "body": "Entdecke das Teil, das zu den meisten Kleidungsstücken in deinem Kleiderschrank passt",
+      "pro": "Pro"
+    },
+    "kind": {
+      "tee": "T-Shirt",
+      "shirt": "Hemd",
+      "polo": "Poloshirt",
+      "knit": "Strick",
+      "hoodie": "Kapuzenpulli",
+      "blouse": "Bluse",
+      "top": "Oberteil",
+      "jeans": "Jeans",
+      "chinos": "Chino",
+      "trousers": "Hose",
+      "shorts": "Shorts",
+      "skirt": "Rock",
+      "dress": "Kleid",
+      "jumpsuit": "Overall",
+      "sneakers": "Sneaker",
+      "loafers": "Loafer",
+      "boots": "Stiefel",
+      "heels": "Pumps",
+      "flats": "Ballerinas",
+      "sandals": "Sandalen",
+      "shoes": "Schuhe",
+      "blazer": "Blazer",
+      "jacket": "Jacke",
+      "coat": "Mantel"
+    }
   }
 }

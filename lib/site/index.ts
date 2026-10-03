@@ -19,7 +19,7 @@ export const NOINDEX_PATHS = ["/sign-in", "/support"] as const satisfies readonl
 
 /** App surfaces — they redirect signed-out visitors, so indexing them yields nothing. */
 export const PRIVATE_PREFIXES = [
-  "/closet", "/outfits", "/generate", "/profile", "/settings", "/stats",
+  "/closet", "/outfits", "/generate", "/profile", "/settings", "/stats", "/style-dna",
   "/calendar", "/packing", "/onboarding", "/auth", "/api", "/monitoring", "/billing",
 ] as const;
 

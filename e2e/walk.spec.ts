@@ -23,7 +23,7 @@ const ROUTES = [
   "/profile",
   "/settings",
   "/settings/style",
-  "/stats",
+  "/stats", "/style-dna",
   "/closet/upload",
   "/closet/removed",
   "/onboarding",

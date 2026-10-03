@@ -23,7 +23,7 @@ const LINK_DEFS = [
     href: "/style-dna",
     key: "styleDna",
     icon: "dna",
-    ready: false,
+    ready: true,
   },
   {
     href: "/outfits",

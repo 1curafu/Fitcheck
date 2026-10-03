@@ -4,20 +4,20 @@ export type Fonts = { serif: string; sans: string };
 type Img = CanvasImageSource & { width: number; height: number };
 
 // Midnight Atelier tokens (DESIGN.md).
-const C = { canvas: "#0E0E10", s1: "#161517", s3: "#201F22", cream: "#EDE6D8", creamStrong: "#F3EEE3",
+export const C = { canvas: "#0E0E10", s1: "#161517", s3: "#201F22", cream: "#EDE6D8", creamStrong: "#F3EEE3",
   muted: "#928C7F", list: "#C8C1B3", rust: "#B86A47", hairline: "rgba(237,230,216,0.12)" };
 
 export function cssFont(f: FontSpec, fonts: Fonts): string {
   return `${f.italic ? "italic " : ""}${f.weight ?? 400} ${f.size}px ${f.family === "serif" ? fonts.serif : fonts.sans}`;
 }
 
-function setFont(ctx: CanvasRenderingContext2D, f: FontSpec, fonts: Fonts) {
+export function setFont(ctx: CanvasRenderingContext2D, f: FontSpec, fonts: Fonts) {
   ctx.font = cssFont(f, fonts);
   if ("letterSpacing" in ctx) (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = f.caps ? `${Math.round(f.size * 0.18)}px` : "0px";
 }
 
 /** The Fitcheck mark (public/brand/fitcheck-mark.svg geometry on its 32-unit grid). */
-function paintMark(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
+export function paintMark(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(size / 32, size / 32);
@@ -41,7 +41,7 @@ function paintMark(ctx: CanvasRenderingContext2D, x: number, y: number, size: nu
 }
 
 let grainTile: HTMLCanvasElement | null = null;
-function grain(): HTMLCanvasElement {
+export function grain(): HTMLCanvasElement {
   if (grainTile) return grainTile;
   const tile = document.createElement("canvas");
   tile.width = tile.height = 160;

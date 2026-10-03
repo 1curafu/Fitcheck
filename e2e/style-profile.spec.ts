@@ -64,9 +64,11 @@ test("a no-go ticked in the Style profile never reaches today's looks", async ({
   expect(after.data).toEqual([]);
 });
 
-test("the Profile style card opens the editor", async ({ page }) => {
+test("the Profile style card opens Style DNA, which leads on to the editor", async ({ page }) => {
   await page.goto("/profile");
   await page.getByRole("link", { name: /old money/i }).click();
+  await expect(page).toHaveURL(/\/style-dna$/);
+  await page.getByRole("link", { name: /your style answers/i }).click();
   await expect(page).toHaveURL(/\/settings\/style$/);
   await expect(page.getByRole("heading", { name: "Style profile" }).first()).toBeVisible();
 });

@@ -85,3 +85,6 @@ reports/mutation/
 # Lighthouse CI
 reports/lighthouse/
 .lighthouseci/
+
+# Local scratch scripts
+work/
