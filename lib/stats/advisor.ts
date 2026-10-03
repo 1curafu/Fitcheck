@@ -69,8 +69,10 @@ export function purchaseCandidates(closet: CandidateItem[], prefs?: AdvisorPrefs
   const top = frequentColours(closet);
   const accents = COLORS.filter(color => !color.neutral && top.filter(c => (pairingRating(color.name, c) ?? 0) >= 4).length >= 2).map(c => c.name);
   const candidates = new Map<string, Purchase>();
-  // Colour rounds keep the bounded pool from spending every slot on the first archetype.
-  for (const color of ["denim" as const, ...accents, ...NEUTRALS]) {
+  // Colour rounds keep the bounded pool from spending every slot on the first archetype; accents and neutrals
+  // alternate so neither family can fill all 80 slots before the other is tried (release 0.8.1 review).
+  const alternated = Array.from({ length: Math.max(accents.length, NEUTRALS.length) }, (_, i) => [accents[i], NEUTRALS[i]]).flat();
+  for (const color of ["denim" as const, ...alternated.filter((c): c is ColorName => c !== undefined)]) {
     for (const row of rows.filter(row => selected.has(row))) {
       if ((row.label === "jeans") !== (color === "denim")) continue;
       if (itemBlocked(row, prefs?.nogos ?? [])) continue;
