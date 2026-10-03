@@ -111,3 +111,23 @@ test("the strip renders Celsius by default", () => {
   expect(screen.getByText("14°")).toBeInTheDocument();
   expect(screen.getByText(/feels 12°/)).toBeInTheDocument();
 });
+
+test("the OpenWeather credit sits with the temperature, always visible and never inside the city menu", async () => {
+  render(<WeatherStrip weather={weather} cities={[{ name: "Paris", country: "FR", lat: 48.85, lon: 2.35 }]} />);
+  // Visible with the menu closed: the credit follows the weather, not the picker.
+  expect(screen.getByText("Weather data © OpenWeather")).toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: /berlin/i }));
+  const menu = screen.getByRole("listbox", { name: /choose a city/i });
+  expect(within(menu.parentElement!).queryByText(/openweather/i)).not.toBeInTheDocument();
+  expect(screen.getAllByText("Weather data © OpenWeather")).toHaveLength(1);
+});
+
+test("the credit sits above where the city menu opens, so the open menu never covers it (PR #160 review)", async () => {
+  render(<WeatherStrip weather={weather} cities={[{ name: "Paris", country: "FR", lat: 48.85, lon: 2.35 }]} />);
+  await userEvent.click(screen.getByRole("button", { name: /berlin/i }));
+  const credit = screen.getByText("Weather data © OpenWeather");
+  const menu = screen.getByRole("listbox", { name: /choose a city/i });
+  // The overlay is positioned from where it sits in the flow: anything after its anchor ends up underneath it.
+  expect(credit.compareDocumentPosition(menu) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(credit.compareDocumentPosition(screen.getByTestId("later-toggle")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+});

@@ -12,13 +12,11 @@ import { cn } from "@/lib/utils";
  * ⚠️ Their own explainer marks a help-centre article "too obscure" and a
  * settings sub-page "not visible", so it cannot be filed away somewhere tidy.
  *
- * ⚠️ **PLACEMENT: the credit follows the WEATHER, not the picker.** A grep
- * settled that — three surfaces render a temperature, and the location picker
- * sits on only one of them while appearing on two screens that show no weather
- * at all. So: the picker carries it for the Stylist (it opens from the weather
- * pill, so it is a child of the weather control rather than the "settings
- * sub-page" the licence rejects), and the two picker-less surfaces — the
- * packing day list and the outfit detail — carry their own.
+ * ⚠️ **PLACEMENT: the credit follows the WEATHER, not the picker.** Three
+ * surfaces render a temperature and each carries its own line: the Stylist's
+ * `WeatherStrip` (always visible, not only while the city menu is open), the
+ * packing day list and the outfit detail (at the foot of the page). The city picker (Stylist menu,
+ * Settings, trip setup) shows no weather and carries none (owner, 2026-10-03).
  *
  * ⚠️ **Colour is not a free choice.** `DESIGN.md` sets the readability floor at
  * Warm Gray `#928C7F` (`text-muted-foreground`) and marks Dim/Faint as ornament

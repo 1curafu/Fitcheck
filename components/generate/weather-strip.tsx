@@ -7,6 +7,7 @@ import type { WeatherPayload } from "@/lib/generator/types";
 import type { City } from "@/lib/weather/geocode";
 import { formatTemp } from "@/lib/weather/format";
 import { LocationPicker } from "@/components/weather/location-picker";
+import { WeatherAttribution } from "@/components/weather/attribution";
 
 const HAIR = "border-[rgba(237,230,216,0.07)]";
 const HAIR2 = "border-[rgba(237,230,216,0.12)]";
@@ -58,6 +59,10 @@ export function WeatherStrip({
         </button>
         <span className="text-[11px] text-muted-dim">{t("feels", { temperature: formatTemp(weather.feelsLikeC, weather.tempUnit, locale) })}</span>
       </div>
+
+      {/* ⚠️ Required by OpenWeather's terms wherever its weather is shown. It sits right under the temperature and
+          before the city menu's anchor, so the open menu (absolute, below it) can never cover it. */}
+      <WeatherAttribution className="mt-1" />
 
       {(locating || geoError) && (
         <p role="status" className="mt-1 text-[11.5px] text-muted-foreground">
