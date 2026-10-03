@@ -50,7 +50,8 @@ export const ARCHETYPE_MARKS: Record<ArchetypeId, { signature: readonly Mark[]; 
   // Preppy and Streetwear have no off-style rows in the research: they only lift their own looks.
   Preppy: {
     signature: [
-      named(/\b(oxford|polo|rugby)\b/i, ["Tops"]),
+      // A "polo neck" is a turtleneck, not a polo shirt.
+      named(/\b(oxford|rugby)\b|\bpolo\b(?![- ]?necks?\b)/i, ["Tops"]),
       (i) => i.texture === "Cable knit" || /\bcable[- ]?knit\b/i.test(i.subcategory ?? ""),
       named(/\bchinos?\b/i, ["Bottoms"]),
       named(/\b(loafers?|boat shoes?)\b/i, ["Shoes"]),

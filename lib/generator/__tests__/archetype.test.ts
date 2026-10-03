@@ -42,6 +42,8 @@ describe("archetype marks (quiz part 3; docs/research/fitcheck-archetype-signals
   test.each([
     ["Preppy", piece("Shoes", { subcategory: "Oxford brogues" })], // Oxford SHOES are not an Oxford shirt
     ["Preppy", piece("Bottoms", { subcategory: "Pleated trousers" })], // the research names a pleated SKIRT
+    ["Preppy", piece("Tops", { subcategory: "Polo neck jumper" })], // British for a turtleneck, not a polo shirt
+    ["Preppy", piece("Tops", { subcategory: "Polo-neck sweater" })],
     ["Old Money", piece("Bottoms", { fit: "Regular" })], // default cut: no information (spec D6)
     ["Old Money", piece("Tops", { branding: "None" })], // default branding: no information (spec D6)
     ["Old Money", piece("Tops", { subcategory: "Blouse", material: "Cotton" })], // the research names a SILK blouse
