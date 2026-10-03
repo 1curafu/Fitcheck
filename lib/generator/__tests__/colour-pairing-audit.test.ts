@@ -1,0 +1,76 @@
+import { pairingRating } from "../styling/pairing-ratings";
+
+const AUDIT: Record<string, number> = {
+  "beige|burgundy": 4,
+  "beige|denim": 4,
+  "beige|green": 4,
+  "beige|rust": 4,
+  "beige|sage": 5,
+  "beige|white": 5,
+  "black|denim": 4,
+  "black|gold": 5,
+  "black|green": 4,
+  "black|olive": 3,
+  "black|orange": 4,
+  "black|red": 4,
+  "black|sage": 3,
+  "black|silver": 5,
+  "black|terracotta": 3,
+  "black|yellow": 3,
+  "blue|white": 4,
+  "brown|green": 4,
+  "brown|sage": 3,
+  "burgundy|camel": 4,
+  "burgundy|charcoal": 4,
+  "burgundy|cream": 4,
+  "burgundy|denim": 4,
+  "burgundy|khaki": 4,
+  "burgundy|red": 2,
+  "burgundy|tan": 4,
+  "burgundy|white": 4,
+  "camel|denim": 4,
+  "camel|pink": 5,
+  "caramel|denim": 3,
+  "charcoal|pink": 4,
+  "cream|green": 4,
+  "cream|mustard": 3,
+  "cream|olive": 4,
+  "cream|sage": 4,
+  "denim|gold": 4,
+  "denim|green": 4,
+  "denim|mint": 3,
+  "denim|olive": 4,
+  "denim|pink": 4,
+  "denim|red": 4,
+  "denim|sage": 4,
+  "denim|silver": 4,
+  "denim|white": 5,
+  "forest|plum": 3,
+  "green|grey": 4,
+  "green|white": 4,
+  "grey|rust": 4,
+  "khaki|navy": 4,
+  "khaki|rust": 4,
+  "lavender|sage": 3,
+  "mint|pink": 1,
+  "mint|yellow": 1,
+  "olive|white": 4,
+  "pink|sage": 3,
+  "plum|rust": 3,
+  "red|sage": 3,
+  "sage|white": 5,
+  "stone|white": 4,
+  "teal|terracotta": 3,
+  "brown|navy": 5,
+  "cream|navy": 5,
+};
+
+test.each(Object.entries(AUDIT))("%s has the sourced rating %i", (key, rating) => {
+  const [a, b] = key.split("|");
+  expect(pairingRating(a, b)).toBe(rating);
+});
+
+test.each(["beige|camel", "beige|charcoal", "beige|chocolate", "beige|cream", "beige|ivory", "beige|tan", "black|chocolate", "black|cream", "black|ivory", "black|taupe", "brown|charcoal", "brown|chocolate", "brown|ivory", "brown|tan", "camel|charcoal", "camel|cream", "camel|ivory", "camel|tan", "camel|taupe", "camel|white", "charcoal|chocolate", "charcoal|cream", "charcoal|ivory", "charcoal|tan", "charcoal|taupe", "charcoal|white", "chocolate|cream", "chocolate|grey", "chocolate|ivory", "chocolate|navy", "chocolate|tan", "chocolate|taupe", "chocolate|white", "cream|ivory", "cream|tan", "grey|taupe", "ivory|tan", "ivory|taupe", "navy|taupe", "tan|taupe", "tan|white", "taupe|white"])("blanket-only %s stays unrated", key => {
+  const [a, b] = key.split("|");
+  expect(pairingRating(a, b)).toBeNull();
+});

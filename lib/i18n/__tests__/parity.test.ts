@@ -68,7 +68,7 @@ const SAME_AS_ENGLISH: Partial<Record<Full, string[]>> = {
     "vocab.material.Nylon", "vocab.material.Viscose", "vocab.material.Modal", "vocab.material.Lyocell", "vocab.material.Rubber",
     "vocab.texture.Seersucker", "vocab.color.beige", "vocab.color.taupe", "vocab.color.camel", "vocab.color.indigo",
     "vocab.color.terracotta", "vocab.length.Midi", "vocab.season.Winter", "vocab.pattern.print", "generate.refine.palette.camel",
-    "share.story", "share.post", "billing.privacy", "packing.outfits", "home.preview.city"],
+    "share.story", "share.post", "billing.privacy", "packing.outfits", "home.preview.city", "stats.advisorPieces.loafers"],
 };
 /** Another region's vocabulary a catalogue must not use. */
 const FORBIDDEN: Partial<Record<Full, RegExp>> = {

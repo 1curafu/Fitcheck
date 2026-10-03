@@ -836,6 +836,37 @@
     }
   },
   "stats": {
+    "whatToBuy": "What to buy next",
+    "whatToBuyPitch": "Pieces that go with the most of your closet",
+    "closetRead": {
+      "neutral": "Mostly neutrals: {colours}.",
+      "mixed": "Neutrals with some colour: {colours}.",
+      "colourful": "Plenty of colour: {colours}."
+    },
+    "goesWith": "{n, plural, one {Goes with # of your pieces} other {Goes with # of your pieces}}",
+    "bestWith": "Best with your {a} and {b}.",
+    "bestWithOne": "Best with your {a}.",
+    "advisorPieces": {
+      "tshirt": "A T-shirt",
+      "knit": "A knit",
+      "shirt": "A shirt",
+      "jeans": "Jeans",
+      "chinos": "Chinos",
+      "trousers": "Trousers",
+      "sneakers": "Sneakers",
+      "loafers": "Loafers",
+      "oxfords": "Oxford shoes",
+      "jacket": "A jacket",
+      "overcoat": "An overcoat",
+      "dayDress": "A day dress",
+      "dress": "A dress",
+      "blouse": "A blouse",
+      "midiSkirt": "A midi skirt",
+      "pencilSkirt": "A pencil skirt",
+      "balletFlats": "Ballet flats",
+      "heels": "Block heels",
+      "ankleBoots": "Ankle boots"
+    },
     "title": "Wear Stats",
     "back": "Back",
     "closetValue": "Closet value",

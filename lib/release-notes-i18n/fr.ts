@@ -2,6 +2,11 @@ import type { LocalizedNote } from "@/lib/release-notes";
 
 /** Keyed by version; one entry for every RELEASE_NOTES version, same line counts. */
 export const FR_NOTES: Record<string, LocalizedNote> = {
+  "0.8.1": {
+    headline: "Découvre ton prochain achat, d’après tes propres looks.",
+    added: ["Pro : « Prochain achat » propose des pièces qui vont avec presque tout", "Chaussures assorties selon les stylistes, comme du marron avec du marine"],
+    fixed: ["Le Mode valise a sa propre icône de valise dans le Profil", "Supprimer des pièces ne laisse plus de look enregistré vide"],
+  },
   "0.8.0": {
     headline: "Enregistre tes looks préférés et reporte-les.",
     added: ["Enregistre un look et retrouve-le dans Profil, Tenues enregistrées", "En voyage, un manteau chaud pour le froid, des hauts légers pour la chaleur", "Un rappel te prévient quand les nuits sont froides"],

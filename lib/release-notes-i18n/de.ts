@@ -2,6 +2,11 @@ import type { LocalizedNote } from "@/lib/release-notes";
 
 /** Keyed by version; one entry for every RELEASE_NOTES version, same line counts. */
 export const DE_NOTES: Record<string, LocalizedNote> = {
+  "0.8.1": {
+    headline: "Finde heraus, was du als Nächstes kaufst – gemessen an deinen Looks.",
+    added: ["Pro: „Dein nächster Kauf“ zeigt Teile, die zu den meisten deiner Sachen passen", "Schuhfarben folgen Stylisten-Regeln, etwa braune Schuhe zu Navy"],
+    fixed: ["Der Packmodus hat ein eigenes Koffer-Symbol im Profil", "Gelöschte Teile hinterlassen keinen leeren gespeicherten Look mehr"],
+  },
   "0.8.0": {
     headline: "Speichere deine Lieblingslooks und trag sie wieder.",
     added: ["Speichere einen Look und finde ihn unter Profil, Gespeicherte Outfits", "Reisen packen einen warmen Mantel für Kälte, leichte Tops für Hitze", "Reisehinweise erinnern dich an kalte Nächte"],

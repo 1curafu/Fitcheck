@@ -2,6 +2,11 @@ import type { LocalizedNote } from "@/lib/release-notes";
 
 /** Keyed by version; one entry for every RELEASE_NOTES version, same line counts. */
 export const NL_NOTES: Record<string, LocalizedNote> = {
+  "0.8.1": {
+    headline: "Ontdek wat je hierna kunt kopen, op basis van je eigen looks.",
+    added: ["Pro: ‘Wat je hierna kunt kopen’ toont items die bij het meeste in je kast passen", "Schoenkleuren volgen stylistregels, zoals bruine schoenen bij marineblauw"],
+    fixed: ["Inpakmodus heeft een eigen koffericoon in je Profiel", "Items verwijderen laat geen lege bewaarde looks meer achter"],
+  },
   "0.8.0": {
     headline: "Bewaar je favoriete looks en draag ze opnieuw.",
     added: ["Bewaar een look en vind hem onder Profiel, Opgeslagen outfits", "Reizen nemen een warme jas mee voor kou en lichte tops voor hitte", "Een melding waarschuwt je voor koude nachten"],

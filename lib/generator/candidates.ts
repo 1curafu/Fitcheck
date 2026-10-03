@@ -197,8 +197,12 @@ function isEligible(i: CandidateItem, a: CandidateArgs, bars: WeatherBars): bool
   // measured on a wearable 10-top/4-bottom/4-shoe closet whose trousers merely
   // lacked a Winter tag, the same wardrobe gave 40 combos in summer and 0 in
   // winter.
-  const f = i.formality ?? 3;
-  return f >= lo - floorTolerance(i.category) && f <= hi + 0.5;
+  return formalityFits(i.formality ?? 3, i.category, [lo, hi]);
+}
+
+/** The band test looks are built with; the wardrobe advisor reuses it so it never proposes what looks cannot use. */
+export function formalityFits(f: number, category: string, [lo, hi]: readonly [number, number]): boolean {
+  return f >= lo - floorTolerance(category) && f <= hi + 0.5;
 }
 
 /**

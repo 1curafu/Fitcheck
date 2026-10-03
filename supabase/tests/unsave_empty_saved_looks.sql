@@ -1,6 +1,6 @@
 -- PR #148 review: a saved look whose last piece is permanently deleted stops counting as saved.
 begin;
-select plan(5);
+select plan(7);
 
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values ('d1000000-0000-4000-8000-000000000001', 'authenticated', 'authenticated', 'empty-saved@example.test', 'x', now(), '{}', '{}', now(), now());
@@ -30,6 +30,12 @@ select ok(not has_function_privilege('anon', 'public.outfits_unsave_when_empty()
 -- run as its owner (PR #148 e2e: "permission denied for table outfits").
 select ok((select prosecdef from pg_proc where oid = 'public.outfits_unsave_when_empty()'::regprocedure),
   'the unsave trigger runs as its owner, so Auth can delete users');
+
+-- Concurrent final-piece deletes (PR #148 review): one lock per look, then a fresh emptiness check.
+select ok((select (tgtype & 1) = 0 from pg_trigger where tgname = 'outfit_items_unsave_when_empty'),
+  'the unsave trigger is statement-level');
+select ok((select prosrc ilike '%for update%' from pg_proc where oid = 'public.outfits_unsave_when_empty()'::regprocedure),
+  'it locks the affected looks before checking emptiness');
 
 select * from finish();
 rollback;
