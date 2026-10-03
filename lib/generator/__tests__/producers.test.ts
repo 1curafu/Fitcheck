@@ -108,3 +108,11 @@ test("every producer that ranks or scores looks hands it the palette and fit ans
   const passes = (t: string, key: string) => new RegExp(`\\b${key}\\s*:\\s*(?!null\\b)[A-Za-z_?(]`).test(code(t));
   expect(callers.filter(({ text }) => !passes(text, "palette") || !passes(text, "fitPref")).map(({ path }) => path)).toEqual([]);
 });
+
+test("advisor participates in the no-go and preference producer guards", () => {
+  const advisor = FILES.find(({ path }) => path === "lib/stats/advisor.ts")!.text;
+  expect(advisor).toMatch(/buildCandidates\(/);
+  expect(advisor).toMatch(/nogos:\s*prefs\?\.nogos/);
+  expect(advisor).toMatch(/palette:\s*prefs\?\.palette/);
+  expect(advisor).toMatch(/fitPref:\s*prefs\?\.fitPref/);
+});

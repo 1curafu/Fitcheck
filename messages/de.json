@@ -896,6 +896,37 @@
     }
   },
   "stats": {
+    "whatToBuy": "Dein nächster Kauf",
+    "whatToBuyPitch": "Kleidungsstücke, die zu möglichst vielen Sachen in deinem Kleiderschrank passen",
+    "closetRead": {
+      "neutral": "Vor allem neutrale Farben: {colours}.",
+      "mixed": "Neutrale Farben mit etwas Farbe: {colours}.",
+      "colourful": "Viel Farbe: {colours}."
+    },
+    "goesWith": "{n, plural, one {Passt zu # Teil aus deinem Kleiderschrank} other {Passt zu # Teilen aus deinem Kleiderschrank}}",
+    "bestWith": "Passt am besten zu: {a} und {b}.",
+    "bestWithOne": "Passt am besten zu: {a}.",
+    "advisorPieces": {
+      "tshirt": "Ein T-Shirt",
+      "knit": "Ein Strickoberteil",
+      "shirt": "Ein Hemd",
+      "jeans": "Eine Jeans",
+      "chinos": "Chinohosen",
+      "trousers": "Eine Hose",
+      "sneakers": "Sneaker",
+      "loafers": "Loafer",
+      "oxfords": "Oxford-Schuhe",
+      "jacket": "Eine Jacke",
+      "overcoat": "Ein Mantel",
+      "dayDress": "Ein Alltagskleid",
+      "dress": "Ein Kleid",
+      "blouse": "Eine Bluse",
+      "midiSkirt": "Ein Midirock",
+      "pencilSkirt": "Ein Bleistiftrock",
+      "balletFlats": "Ballerinas",
+      "heels": "Schuhe mit Blockabsatz",
+      "ankleBoots": "Stiefeletten"
+    },
     "title": "Trage-Statistik",
     "back": "Zurück",
     "closetValue": "Wert des Schranks",

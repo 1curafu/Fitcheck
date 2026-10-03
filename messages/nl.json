@@ -890,6 +890,37 @@
     }
   },
   "stats": {
+    "whatToBuy": "Wat je hierna kunt kopen",
+    "whatToBuyPitch": "Items die bij zoveel mogelijk van je kleding passen",
+    "closetRead": {
+      "neutral": "Vooral neutrale kleuren: {colours}.",
+      "mixed": "Neutrale kleuren met wat kleur: {colours}.",
+      "colourful": "Veel kleur: {colours}."
+    },
+    "goesWith": "{n, plural, one {Past bij # kledingstuk uit je kledingkast} other {Past bij # kledingstukken uit je kledingkast}}",
+    "bestWith": "Past het best bij: {a} en {b}.",
+    "bestWithOne": "Past het best bij: {a}.",
+    "advisorPieces": {
+      "tshirt": "Een T-shirt",
+      "knit": "Een gebreide top",
+      "shirt": "Een overhemd",
+      "jeans": "Een spijkerbroek",
+      "chinos": "Een chino",
+      "trousers": "Een broek",
+      "sneakers": "Sportschoenen",
+      "loafers": "Loafers",
+      "oxfords": "Oxford-schoenen",
+      "jacket": "Een jas",
+      "overcoat": "Een lange jas",
+      "dayDress": "Een jurk voor overdag",
+      "dress": "Een jurk",
+      "blouse": "Een blouse",
+      "midiSkirt": "Een midirok",
+      "pencilSkirt": "Een kokerrok",
+      "balletFlats": "Ballerina’s",
+      "heels": "Schoenen met blokhak",
+      "ankleBoots": "Enkellaarsjes"
+    },
     "title": "Draagstatistieken",
     "back": "Terug",
     "closetValue": "Waarde van de kast",
