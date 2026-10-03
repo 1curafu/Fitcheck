@@ -196,6 +196,20 @@ describe("realBuilder", () => {
     expect(steered!.score).toBe(plain!.score);
   });
 
+  test("the quality-floor score ignores the style answer too (quiz part 3)", () => {
+    // Plus marks only (tailored cut, loafers): logo/ripped pieces could meet the registry's own rules and blur the test.
+    const marked = [
+      item("shirt", "Tops", { colors: ["red"], fit: "Tailored" }),
+      item("trouser", "Bottoms", { colors: ["olive"], fit: "Tailored" }),
+      item("loafer", "Shoes", { colors: ["tan"], subcategory: "Loafers" }),
+    ];
+    const day = { date: "2026-05-12", occasion: "work" };
+    const plain = realBuilder(marked, () => mild)(day, marked);
+    const styled = realBuilder(marked, () => mild, { aesthetic: ["Old Money"] })(day, marked);
+    expect(plain).not.toBeNull();
+    expect(styled!.score).toBe(plain!.score);
+  });
+
   // The solve narrows `available` as wear limits bite; the builder must honour
   // that rather than reaching back into the full closet behind its back.
   test("only uses what it was offered", () => {
