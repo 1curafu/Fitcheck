@@ -16,6 +16,7 @@ describe("archetype marks (quiz part 3; docs/research/fitcheck-archetype-signals
     ["Preppy", piece("Tops", { subcategory: "Rugby shirt" })],
     ["Preppy", piece("Tops", { subcategory: "Jumper", texture: "Cable knit" })],
     ["Preppy", piece("Tops", { subcategory: "Cable-knit sweater" })],
+    ["Preppy", piece("Tops", { subcategory: "Cableknit jumper" })],
     ["Preppy", piece("Bottoms", { subcategory: "Chinos" })],
     ["Preppy", piece("Shoes", { subcategory: "Boat shoes" })],
     ["Preppy", piece("Shoes", { subcategory: "Loafers" })],
@@ -48,6 +49,9 @@ describe("archetype marks (quiz part 3; docs/research/fitcheck-archetype-signals
     ["Streetwear", piece("Bottoms", { fit: "Relaxed" })], // frame.ts precedent (spec D6)
     ["Streetwear", piece("Tops", { subcategory: "Floral blouse", pattern: "print" })], // not a graphic tee
     ["Smart Casual", piece("Bottoms", { fit: "Tailored" })], // no marks at all (spec D4)
+    ["Old Money", piece("Bottoms", { subcategory: "Silk blouse trousers", material: "Silk" })], // the silk-blouse mark is a top
+    ["Old Money", piece("Tops", { formality: 1 })], // a gym top is not gym footwear
+    ["Streetwear", piece("Tops", { bulk: "Chunky" })], // chunky is a sole, not a garment
   ])("%s has no opinion on %o", (archetype, item) => expect(one(archetype, item)).toBeNull());
 
   test("no answer or an unknown answer is no opinion", () => {
@@ -56,6 +60,8 @@ describe("archetype marks (quiz part 3; docs/research/fitcheck-archetype-signals
     expect(archetypeScore([tailored], undefined)).toBeNull();
     expect(archetypeScore([tailored], "smart_casual")).toBeNull();
     expect(archetypeScore([tailored], "Boho")).toBeNull();
+    // Object.prototype names must not reach the marks table.
+    for (const name of ["constructor", "toString", "__proto__"]) expect(archetypeScore([tailored], name)).toBeNull();
     expect(ARCHETYPE_MARKS["Smart Casual"]).toBeNull();
   });
 
