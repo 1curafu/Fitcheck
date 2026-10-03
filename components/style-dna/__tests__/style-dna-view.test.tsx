@@ -65,3 +65,8 @@ test("when the closet agrees with the quiz it says so instead of repeating the a
   expect(screen.getByText("Your closet agrees")).toBeInTheDocument();
   expect(screen.queryByText("You said Preppy")).not.toBeInTheDocument();
 });
+
+test("the page links on to the style editor, so changing an answer is one tap from the card", () => {
+  render(<StyleDnaView dna={base} signaturePieces={pieces} isPro />);
+  expect(screen.getByRole("link", { name: /your style answers/i })).toHaveAttribute("href", "/settings/style");
+});

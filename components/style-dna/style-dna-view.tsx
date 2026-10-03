@@ -11,6 +11,7 @@ const pct = (share: number) => Math.round(share * 100);
 
 export function StyleDnaView({ dna, signaturePieces, isPro }: { dna: StyleDna; signaturePieces: Signature[]; isPro: boolean }) {
   const t = useTranslations("styleDna");
+  const settings = useTranslations("settings");
   const archetypes = useTranslations("onboarding.questions.archetype.options");
   const palettes = useTranslations("onboarding.questions.palette.options");
   const fits = useTranslations("onboarding.questions.fit.options");
@@ -151,7 +152,13 @@ export function StyleDnaView({ dna, signaturePieces, isPro }: { dna: StyleDna; s
         ) : <p className="text-[14px] text-muted-foreground">{t("signature.none")}</p>)}
       </Section>
 
-      <Link href="/stats" className="mt-[22px] flex items-center justify-between rounded-[14px] p-4 shadow-[inset_0_0_0_1px_rgba(237,230,216,0.08)]">
+      {/* The quiz answers behind this card: the editor is one tap away (reuses the Settings row's copy). */}
+      <Link href="/settings/style" className="mt-[22px] block rounded-[14px] p-4 shadow-[inset_0_0_0_1px_rgba(237,230,216,0.08)]">
+        <span className="block text-[14.5px] text-foreground">{settings("styleProfileRow")}</span>
+        <span className="mt-[2px] block text-[12px] text-muted-foreground">{settings("styleProfileRowDescription")}</span>
+      </Link>
+
+      <Link href="/stats" className="mt-[12px] flex items-center justify-between rounded-[14px] p-4 shadow-[inset_0_0_0_1px_rgba(237,230,216,0.08)]">
         <span>
           <span className="block font-serif text-[18px]">{t("teaser.title")}</span>
           <span className="block text-[13px] text-muted-foreground">{t("teaser.body")}</span>
