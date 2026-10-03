@@ -60,6 +60,10 @@ export function WeatherStrip({
         <span className="text-[11px] text-muted-dim">{t("feels", { temperature: formatTemp(weather.feelsLikeC, weather.tempUnit, locale) })}</span>
       </div>
 
+      {/* ⚠️ Required by OpenWeather's terms wherever its weather is shown. It sits right under the temperature and
+          before the city menu's anchor, so the open menu (absolute, below it) can never cover it. */}
+      <WeatherAttribution className="mt-1" />
+
       {(locating || geoError) && (
         <p role="status" className="mt-1 text-[11.5px] text-muted-foreground">
           {locating ? t("locating") : geoError}
@@ -135,10 +139,6 @@ export function WeatherStrip({
           ))}
         </div>
       )}
-
-      {/* ⚠️ Required by OpenWeather's terms wherever its weather is shown, and always visible here, not only
-          while the city menu is open. */}
-      <WeatherAttribution className="mt-[7px]" />
     </div>
   );
 }
