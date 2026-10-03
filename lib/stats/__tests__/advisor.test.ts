@@ -4,7 +4,7 @@ import { buildCandidates } from "@/lib/generator/candidates";
 import { scoreCombo } from "@/lib/generator/score";
 import { personalBand } from "@/lib/generator/rules";
 import { relevantOccasions, SIMULATED_CONDITIONS } from "../gap";
-import { ADVISOR_ARCHETYPES, purchaseCandidates, rankPurchases, closetRead } from "../advisor";
+import { ADVISOR_ARCHETYPES, purchaseCandidates, rankPurchases, closetRead, neutralShare } from "../advisor";
 
 const piece = (id: string, category: string, color: string, extra: Partial<CandidateItem> = {}): CandidateItem => ({
   id, category, colors: [color], formality: 3, seasons: [], material: "Cotton", texture: "Flat", pattern: "solid", ...extra,
@@ -310,4 +310,11 @@ test("a neutral closet whose accents fill the pool still gets neutral candidates
   const NEUTRAL = new Set(["black", "white", "grey", "charcoal", "navy", "cream", "beige", "camel", "brown"]);
   expect(pool.filter(c => NEUTRAL.has(c.color)).length).toBeGreaterThan(0);
   expect(pool.filter(c => !NEUTRAL.has(c.color) && c.color !== "denim").length).toBeGreaterThan(0);
+});
+
+test("neutralShare is the share closetRead classifies by", () => {
+  const items = [piece("a", "Tops", "black"), piece("b", "Tops", "grey"), piece("c", "Tops", "red"), piece("d", "Bags", "red")];
+  expect(neutralShare(items)).toBeCloseTo(2 / 3);
+  expect(neutralShare([])).toBe(1);
+  expect(closetRead(items).kind).toBe("mixed");
 });

@@ -170,8 +170,14 @@ export type ClosetRead = { kind: "neutral" | "mixed" | "colourful"; top: ColorNa
 const READ_NEUTRALS = new Set<string>([...NEUTRALS, "stone", "sand", "taupe", "khaki", "ivory", "tan", "chocolate", "denim"]);
 const GARMENTS = new Set(["Tops", "Bottoms", "One-piece", "Outerwear", "Shoes"]);
 
-export function closetRead(closet: CandidateItem[]): ClosetRead {
+/** The share of garments whose main colour is neutral; 1 for an empty closet (no colour to report). */
+export function neutralShare(closet: CandidateItem[]): number {
   const garments = closet.filter(item => GARMENTS.has(item.category));
-  const neutralShare = garments.length ? garments.filter(item => READ_NEUTRALS.has(item.colors[0])).length / garments.length : 1;
-  return { kind: neutralShare >= 0.8 ? "neutral" : neutralShare <= 0.6 ? "colourful" : "mixed", top: frequentColours(garments) };
+  return garments.length ? garments.filter(item => READ_NEUTRALS.has(item.colors[0])).length / garments.length : 1;
+}
+
+export function closetRead(closet: CandidateItem[]): ClosetRead {
+  const share = neutralShare(closet);
+  const garments = closet.filter(item => GARMENTS.has(item.category));
+  return { kind: share >= 0.8 ? "neutral" : share <= 0.6 ? "colourful" : "mixed", top: frequentColours(garments) };
 }
