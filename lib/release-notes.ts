@@ -42,6 +42,18 @@ export type LocalizedNote = { headline: string; added: string[]; fixed: string[]
 
 const BASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.8.1",
+    date: "2026-10-03",
+    releasedAt: "2026-10-03T15:14:00Z", // when this release was cut; accountPredatesRelease reads it
+    headline: "Find out what to buy next, judged by your own looks.",
+    added: ["Pro: What to buy next suggests pieces that go with the most of your closet", "Shoe colors follow stylists' rules, like brown shoes with navy"],
+    fixed: ["Packing Mode has its own luggage icon in Profile", "Deleting pieces never leaves an empty saved look"],
+    i18n: {
+      "en-GB": { headline: "Find out what to buy next, judged by your own looks.", added: ["Pro: What to buy next suggests pieces that go with the most of your wardrobe", "Shoe colours follow stylists' rules, like brown shoes with navy"], fixed: ["Packing Mode has its own luggage icon in Profile", "Deleting pieces never leaves an empty saved look"] },
+      uk: { headline: "Дізнайся, що купити далі, за власними образами.", added: ["Pro: «Що купити далі» радить речі, які пасують до більшості твоєї шафи", "Колір взуття за правилами стилістів, як-от коричневе взуття з темно-синім"], fixed: ["«Валіза» має власну іконку в Профілі", "Видалення речей більше не залишає порожніх збережених образів"] },
+    },
+  },
+  {
     version: "0.8.0",
     date: "2026-10-02",
     releasedAt: "2026-10-02T16:18:00Z", // when this release was cut; accountPredatesRelease reads it

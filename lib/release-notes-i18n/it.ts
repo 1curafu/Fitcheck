@@ -2,6 +2,11 @@ import type { LocalizedNote } from "@/lib/release-notes";
 
 /** Keyed by version; one entry for every RELEASE_NOTES version, same line counts. */
 export const IT_NOTES: Record<string, LocalizedNote> = {
+  "0.8.1": {
+    headline: "Scopri il tuo prossimo acquisto, in base ai tuoi look.",
+    added: ["Pro: «Prossimo acquisto» suggerisce capi che vanno con quasi tutto il guardaroba", "Colori delle scarpe secondo gli stilisti, come marrone con blu navy"],
+    fixed: ["La Modalità valigia ha la sua icona nel Profilo", "Eliminare dei capi non lascia più look salvati vuoti"],
+  },
   "0.8.0": {
     headline: "Salva i look che ami e indossali di nuovo.",
     added: ["Salva un look e trovalo in Profilo, Outfit salvati", "I viaggi preparano un cappotto caldo per il freddo e top leggeri per il caldo", "Un avviso ti ricorda quando le notti sono fredde"],
