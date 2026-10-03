@@ -1288,45 +1288,48 @@
     }
   },
   "styleDna": {
+    "title": "Stijl-DNA",
+    "kicker": "Stijl-DNA",
+    "yourArchetype": "Jouw archetype",
     "youSaid": "Je koos {archetype}",
-    "agrees": "Je kledingkast is het ermee eens",
-    "notEnough": "Voeg nog een paar stukken toe en Fitcheck leest je stijl uit je kledingkast.",
-    "noAnswer": "Nog niet gekozen",
+    "agrees": "Je kledingkast bevestigt het",
+    "notEnough": "Voeg nog een paar kledingstukken toe, dan leidt Fitcheck je stijl af uit je kledingkast.",
+    "noAnswer": "Nog niet ingesteld",
     "share": "Delen",
-    "preparing": "Voorbereiden…",
+    "preparing": "Wordt voorbereid…",
     "shareFailed": "De afbeelding kon niet worden gedeeld. Probeer het opnieuw.",
     "footer": "{count, plural, one {# stuk geanalyseerd} other {# stukken geanalyseerd}}",
     "stats": {
-      "colours": "Kleuren",
       "pieces": "Stukken",
-      "looksWorn": "Outfits gedragen"
+      "looksWorn": "Outfits gedragen",
+      "colours": "Kleuren"
     },
     "opening": {
-      "oldMoney": "Stille erfenis, ontspannen gedragen.",
-      "preppy": "Collegewortels, altijd verzorgd.",
-      "streetwear": "Ruime verhoudingen, een look op sneakers.",
+      "oldMoney": "Tijdloze klasse, moeiteloos gedragen.",
+      "preppy": "Campusstijl, altijd verzorgd.",
+      "streetwear": "Ruime silhouetten, sneakers als blikvanger.",
       "smartCasual": "Verzorgd en ontspannen, zonder moeite.",
-      "fresh": "Je stijl krijgt langzaam vorm."
+      "fresh": "Je stijl krijgt vorm."
     },
     "trait": {
       "tonalTailored": "Je houdt van tint in tint en van een getailleerde snit.",
       "tonalRelaxed": "Je houdt van tint in tint en van een losse snit.",
-      "tonalBalanced": "Je houdt van tint in tint en mengt strakke lijnen met losse.",
+      "tonalBalanced": "Je gaat graag voor ton-sur-ton, met een mix van strakke lijnen en losse vormen.",
       "mixedTailored": "Je combineert neutrale tinten met een vleugje kleur en kiest voor een getailleerde snit.",
       "mixedRelaxed": "Je combineert neutrale tinten met een vleugje kleur en kiest voor een losse snit.",
-      "mixedBalanced": "Je combineert neutrale tinten met een vleugje kleur en mengt strakke lijnen met losse.",
+      "mixedBalanced": "Je combineert neutrale tinten met een vleugje kleur en strakke lijnen met losse vormen.",
       "colourfulTailored": "Je laat kleur de leiding nemen en kiest voor een getailleerde snit.",
       "colourfulRelaxed": "Je laat kleur de leiding nemen en kiest voor een losse snit.",
-      "colourfulBalanced": "Je laat kleur de leiding nemen en mengt strakke lijnen met losse."
+      "colourfulBalanced": "Je laat kleur de hoofdrol spelen en combineert strakke lijnen met losse vormen."
     },
     "mix": {
       "title": "Stijlmix",
-      "caption": "Op basis van {marked} van je {total} stukken met een duidelijk stijlsignaal"
+      "caption": "Gebaseerd op {marked} van je {total} kledingstukken met duidelijke stijlkenmerken"
     },
     "quiz": {
-      "title": "Je antwoorden en je kledingkast",
-      "palette": "Je koos «{palette}»: {pct}% van je kledingkast past daarbij",
-      "fit": "Je koos «{fit}»: {pct}% van je gelabelde kleding past daarbij"
+      "title": "Je antwoorden vergeleken met je kledingkast",
+      "palette": "Je koos «{palette}»: {pct} % van je kledingstukken past daarbij",
+      "fit": "Je koos «{fit}»: {pct} % van je geregistreerde kleding past daarbij"
     },
     "tendencies": {
       "title": "Jouw voorkeuren",
@@ -1361,26 +1364,26 @@
       "none": "Nog geen terugkerende kleurencombinatie."
     },
     "fabric": {
-      "title": "Stofvingerafdruk",
+      "title": "Stofprofiel",
       "natural": "Vooral natuurlijke vezels",
       "mixed": "Een mix van natuurlijke en synthetische vezels",
       "synthetic": "Vooral synthetisch"
     },
     "dressy": {
-      "title": "Bezit en gedragen",
-      "ownDressier": "Je bezit chiquere kleding dan je draagt",
+      "title": "Hoe netjes je kleding is",
+      "ownDressier": "Je hebt nettere kleding dan je meestal draagt.",
       "wearDressier": "Je kleedt je chiquer dan je kledingkast doet vermoeden",
       "aligned": "Wat je bezit, draag je ook",
       "scale": "Bezit {owned} · Gedragen {worn} (van 5)"
     },
     "signature": {
-      "title": "Signatuurstukken",
+      "title": "Kenmerkende kledingstukken",
       "none": "Nog geen stuk twee keer gedragen."
     },
     "locked": "Draag {need} looks om te ontgrendelen ({have}/{need})",
     "teaser": {
       "title": "Maak je stijl compleet",
-      "body": "Zie het stuk dat bij het meeste in je kledingkast past",
+      "body": "Ontdek het kledingstuk dat bij de meeste kleding in je kast past",
       "pro": "Pro"
     },
     "kind": {
@@ -1408,9 +1411,6 @@
       "blazer": "Blazer",
       "jacket": "Jack",
       "coat": "Mantel"
-    },
-    "title": "Stijl-DNA",
-    "kicker": "Stijl-DNA",
-    "yourArchetype": "Jouw archetype"
+    }
   }
 }

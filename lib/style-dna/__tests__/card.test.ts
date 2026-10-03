@@ -1,4 +1,14 @@
 import { readFileSync } from "node:fs";
+import enUS from "@/messages/en-US.json";
+import enGB from "@/messages/en-GB.json";
+import uk from "@/messages/uk.json";
+import ru from "@/messages/ru.json";
+import de from "@/messages/de.json";
+import fr from "@/messages/fr.json";
+import it from "@/messages/it.json";
+import pt from "@/messages/pt.json";
+import es from "@/messages/es.json";
+import nl from "@/messages/nl.json";
 import { STORY_SAFE, type FontSpec } from "@/lib/share/card-layout";
 import { DNA_CARD, layoutDnaCard, type DnaCardInput } from "../card";
 
@@ -22,7 +32,7 @@ test("everything sits inside the story safe area, even with long text", () => {
     expect(y).toBeLessThan(STORY_SAFE.bottom);
   }
   expect(long.title.lines.length).toBeLessThanOrEqual(2);
-  expect(long.blurb.lines.length).toBeLessThanOrEqual(3);
+  expect(long.blurb.lines.length).toBeLessThanOrEqual(4);
   expect(long.title.font.size).toBeLessThan(132); // the long word forced a smaller size
 });
 
@@ -73,4 +83,24 @@ test("the card sits centred in the story safe area, not hugging the top", () => 
   expect(above).toBeGreaterThanOrEqual(0);
   expect(below).toBeGreaterThanOrEqual(0);
   expect(Math.abs(above - below)).toBeLessThanOrEqual(1);
+});
+
+test("every language's blurb fits the card untruncated, whatever the style and tendencies (conservative measure)", () => {
+  // 0.56em per character is wider than Libre Caslon italic or its Cyrillic fallback really are, so a pass here is safe.
+  const wide = (text: string, font: FontSpec) => text.length * font.size * 0.56;
+  type Copy = { styleDna: { opening?: Record<string, string>; trait?: Record<string, string> } };
+  const catalogues = { "en-US": enUS, "en-GB": enGB, uk, ru, de, fr, it, pt, es, nl } as unknown as Record<string, Copy>;
+  const source = enUS.styleDna as { opening: Record<string, string>; trait: Record<string, string> };
+  const openings = ["oldMoney", "preppy", "streetwear", "smartCasual", "fresh"];
+  const traits = ["tonal", "mixed", "colourful"].flatMap((tone) => ["Tailored", "Relaxed", "Balanced"].map((cut) => `${tone}${cut}`));
+  const truncated: string[] = [];
+  for (const [locale, messages] of Object.entries(catalogues)) {
+    const own = messages.styleDna;
+    for (const o of openings) for (const t of traits) {
+      const blurb = `${own.opening?.[o] ?? source.opening[o]} ${own.trait?.[t] ?? source.trait[t]}`;
+      const { blurb: laid } = layoutDnaCard(input({ blurb }), wide);
+      if (laid.lines.at(-1)!.endsWith("…")) truncated.push(`${locale} ${o}+${t}`);
+    }
+  }
+  expect(truncated).toEqual([]);
 });

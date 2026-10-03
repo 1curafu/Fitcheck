@@ -1294,23 +1294,26 @@
     }
   },
   "styleDna": {
+    "title": "DNA di stile",
+    "kicker": "DNA di stile",
+    "yourArchetype": "Il tuo archetipo",
     "youSaid": "Hai scelto {archetype}",
-    "agrees": "Il tuo armadio è d’accordo",
-    "notEnough": "Aggiungi ancora qualche capo e Fitcheck leggerà il tuo stile dal tuo armadio.",
-    "noAnswer": "Non ancora scelto",
+    "agrees": "Il tuo guardaroba lo conferma",
+    "notEnough": "Aggiungi qualche altro capo e Fitcheck ricaverà il tuo stile dal tuo guardaroba.",
+    "noAnswer": "Non ancora definito",
     "share": "Condividi",
     "preparing": "Preparazione…",
     "shareFailed": "Impossibile condividere l’immagine. Riprova.",
     "footer": "{count, plural, one {# capo analizzato} other {# capi analizzati}}",
     "stats": {
-      "colours": "Colori",
       "pieces": "Capi",
-      "looksWorn": "Outfit indossati"
+      "looksWorn": "Outfit indossati",
+      "colours": "Colori"
     },
     "opening": {
-      "oldMoney": "Eredità discreta, indossata con naturalezza.",
-      "preppy": "Radici da college, sempre in ordine.",
-      "streetwear": "Proporzioni morbide, look da sneaker.",
+      "oldMoney": "Eleganza classica, portata con naturalezza.",
+      "preppy": "Ispirazione college, sempre impeccabile.",
+      "streetwear": "Proporzioni rilassate, sneaker protagoniste.",
       "smartCasual": "Curato e disinvolto, senza sforzo.",
       "fresh": "Il tuo stile sta prendendo forma."
     },
@@ -1327,15 +1330,15 @@
     },
     "mix": {
       "title": "Mix di stili",
-      "caption": "Su {marked} dei tuoi {total} capi con un segnale di stile chiaro"
+      "caption": "Basato su {marked} dei tuoi {total} capi con uno stile ben riconoscibile"
     },
     "quiz": {
-      "title": "Le tue risposte e il tuo armadio",
-      "palette": "Hai scelto «{palette}»: il {pct}% del tuo armadio è in linea",
-      "fit": "Hai scelto «{fit}»: il {pct}% dei capi con taglio indicato è in linea"
+      "title": "Le tue risposte e ciò che rivela il tuo guardaroba",
+      "palette": "Hai scelto «{palette}»: il {pct} % dei capi del tuo guardaroba è in linea",
+      "fit": "Hai scelto «{fit}»: il {pct} % dei capi con caratteristiche registrate è adatto"
     },
     "tendencies": {
-      "title": "Le tue tendenze",
+      "title": "Le tue preferenze di stile",
       "cut": "Sartoriale o morbido",
       "tonal": "Tono su tono",
       "pattern": "Voglia di fantasie",
@@ -1367,16 +1370,16 @@
       "none": "Ancora nessun abbinamento di colori ricorrente."
     },
     "fabric": {
-      "title": "Impronta dei tessuti",
+      "title": "Profilo dei tessuti",
       "natural": "Soprattutto fibre naturali",
       "mixed": "Un mix di naturale e sintetico",
       "synthetic": "Soprattutto sintetico"
     },
     "dressy": {
-      "title": "Posseduto e indossato",
+      "title": "Eleganza dei capi che possiedi e indossi",
       "ownDressier": "Possiedi capi più eleganti di quelli che indossi",
-      "wearDressier": "Ti vesti più elegante di quanto suggerisca il tuo armadio",
-      "aligned": "Quello che possiedi è quello che indossi",
+      "wearDressier": "Ti vesti in modo più elegante di quanto suggerisca il tuo guardaroba.",
+      "aligned": "Indossi quello che hai nel guardaroba.",
       "scale": "Posseduto {owned} · Indossato {worn} (su 5)"
     },
     "signature": {
@@ -1386,7 +1389,7 @@
     "locked": "Indossa {need} look per sbloccare ({have}/{need})",
     "teaser": {
       "title": "Completa il tuo stile",
-      "body": "Scopri il capo che si abbina a più capi del tuo armadio",
+      "body": "Scopri il capo che si abbina alla maggior parte dei capi del tuo guardaroba",
       "pro": "Pro"
     },
     "kind": {
@@ -1414,9 +1417,6 @@
       "blazer": "Blazer",
       "jacket": "Giacca",
       "coat": "Cappotto"
-    },
-    "title": "DNA di stile",
-    "kicker": "DNA di stile",
-    "yourArchetype": "Il tuo archetipo"
+    }
   }
 }

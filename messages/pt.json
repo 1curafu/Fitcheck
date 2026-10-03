@@ -1294,23 +1294,26 @@
     }
   },
   "styleDna": {
+    "title": "ADN de estilo",
+    "kicker": "ADN de estilo",
+    "yourArchetype": "O teu arquétipo",
     "youSaid": "Escolheste {archetype}",
-    "agrees": "O teu roupeiro concorda",
-    "notEnough": "Adiciona mais algumas peças e o Fitcheck lê o teu estilo no teu roupeiro.",
-    "noAnswer": "Ainda não escolhido",
+    "agrees": "O teu roupeiro também mostra isso",
+    "notEnough": "Adiciona mais algumas peças e o Fitcheck vai perceber o teu estilo através do teu roupeiro.",
+    "noAnswer": "Ainda por definir",
     "share": "Partilhar",
     "preparing": "A preparar…",
     "shareFailed": "Não foi possível partilhar a imagem. Tenta outra vez.",
     "footer": "{count, plural, one {# peça analisada} other {# peças analisadas}}",
     "stats": {
-      "colours": "Cores",
       "pieces": "Peças",
-      "looksWorn": "Conjuntos usados"
+      "looksWorn": "Conjuntos usados",
+      "colours": "Cores"
     },
     "opening": {
-      "oldMoney": "Herança discreta, usada com à-vontade.",
-      "preppy": "Raízes universitárias, sempre cuidado.",
-      "streetwear": "Proporções soltas, visual de sapatilhas.",
+      "oldMoney": "Elegância clássica, com naturalidade.",
+      "preppy": "Espírito universitário, sempre impecável.",
+      "streetwear": "Silhueta descontraída, com destaque para as sapatilhas.",
       "smartCasual": "Cuidado e descontraído, sem esforço.",
       "fresh": "O teu estilo está a ganhar forma."
     },
@@ -1327,15 +1330,15 @@
     },
     "mix": {
       "title": "Mistura de estilos",
-      "caption": "Com base em {marked} das tuas {total} peças com um sinal de estilo claro"
+      "caption": "Com base em {marked} das tuas {total} peças com traços de estilo bem definidos"
     },
     "quiz": {
-      "title": "As tuas respostas e o teu roupeiro",
-      "palette": "Escolheste «{palette}»: {pct}% do teu roupeiro está de acordo",
-      "fit": "Escolheste «{fit}»: {pct}% da roupa etiquetada está de acordo"
+      "title": "As tuas respostas e o que revela o teu roupeiro",
+      "palette": "Escolheste «{palette}»: {pct} % das peças do teu roupeiro estão de acordo",
+      "fit": "Escolheste «{fit}»: {pct} % das peças com características registadas têm esse corte"
     },
     "tendencies": {
-      "title": "As tuas tendências",
+      "title": "As tuas preferências de estilo",
       "cut": "Ajustado ou solto",
       "tonal": "Tom sobre tom",
       "pattern": "Gosto por padrões",
@@ -1348,7 +1351,7 @@
         "moderate": "Moderado",
         "colourful": "Colorido",
         "minimal": "Mínimo",
-        "some": "Algum",
+        "some": "Um pouco",
         "bold": "Ousado",
         "low": "Baixo",
         "high": "Alto"
@@ -1367,26 +1370,26 @@
       "none": "Ainda não há combinação de cores repetida."
     },
     "fabric": {
-      "title": "Impressão digital dos tecidos",
+      "title": "Perfil dos tecidos",
       "natural": "Sobretudo fibras naturais",
       "mixed": "Uma mistura de naturais e sintéticas",
       "synthetic": "Sobretudo sintéticas"
     },
     "dressy": {
-      "title": "Tens e usas",
+      "title": "Elegância das peças que tens e usas",
       "ownDressier": "Tens roupa mais elegante do que usas",
       "wearDressier": "Vestes-te de forma mais elegante do que o teu roupeiro sugere",
       "aligned": "O que tens é o que usas",
       "scale": "Tens {owned} · Usas {worn} (de 5)"
     },
     "signature": {
-      "title": "Peças de assinatura",
+      "title": "Peças marcantes",
       "none": "Nenhuma peça usada duas vezes por agora."
     },
     "locked": "Usa {need} looks para desbloquear ({have}/{need})",
     "teaser": {
       "title": "Completa o teu estilo",
-      "body": "Vê a peça que combina com a maior parte do teu roupeiro",
+      "body": "Vê a peça que combina com a maioria das peças do teu roupeiro",
       "pro": "Pro"
     },
     "kind": {
@@ -1414,9 +1417,6 @@
       "blazer": "Blazer",
       "jacket": "Casaco",
       "coat": "Sobretudo"
-    },
-    "title": "ADN de estilo",
-    "kicker": "ADN de estilo",
-    "yourArchetype": "O teu arquétipo"
+    }
   }
 }

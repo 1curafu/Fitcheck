@@ -1294,23 +1294,26 @@
     }
   },
   "styleDna": {
+    "title": "ADN de style",
+    "kicker": "ADN de style",
+    "yourArchetype": "Ton archétype",
     "youSaid": "Tu as choisi {archetype}",
-    "agrees": "Ta garde-robe est d’accord",
-    "notEnough": "Ajoute encore quelques pièces et Fitcheck lira ton style dans ta garde-robe.",
-    "noAnswer": "Pas encore choisi",
+    "agrees": "Ta garde-robe le confirme",
+    "notEnough": "Ajoute encore quelques pièces et Fitcheck déduira ton style à partir de ta garde-robe.",
+    "noAnswer": "Pas encore défini",
     "share": "Partager",
     "preparing": "Préparation…",
     "shareFailed": "Impossible de partager l’image. Réessaie.",
     "footer": "{count, plural, one {# pièce analysée} other {# pièces analysées}}",
     "stats": {
-      "colours": "Couleurs",
       "pieces": "Pièces",
-      "looksWorn": "Tenues portées"
+      "looksWorn": "Tenues portées",
+      "colours": "Couleurs"
     },
     "opening": {
       "oldMoney": "Un héritage discret, porté avec aisance.",
-      "preppy": "Racines universitaires, toujours soigné.",
-      "streetwear": "Proportions amples, look en baskets.",
+      "preppy": "Esprit campus, toujours impeccable.",
+      "streetwear": "Silhouette décontractée, baskets au premier plan.",
       "smartCasual": "Soigné et décontracté, sans effort.",
       "fresh": "Ton style est en train de se dessiner."
     },
@@ -1327,15 +1330,15 @@
     },
     "mix": {
       "title": "Mélange de styles",
-      "caption": "Sur {marked} de tes {total} pièces au style bien marqué"
+      "caption": "À partir de {marked} de tes {total} pièces au style bien marqué"
     },
     "quiz": {
-      "title": "Tes réponses et ta garde-robe",
+      "title": "Tes réponses face à ta garde-robe",
       "palette": "Ta palette : « {palette} » — {pct} % de ta garde-robe y correspond",
-      "fit": "Ta coupe : « {fit} » — {pct} % de tes vêtements étiquetés y correspondent"
+      "fit": "Tu as choisi « {fit} » : {pct} % de tes vêtements répertoriés correspondent à cette coupe"
     },
     "tendencies": {
-      "title": "Tes tendances",
+      "title": "Tes préférences de style",
       "cut": "Ajusté ou ample",
       "tonal": "Ton sur ton",
       "pattern": "Goût pour les motifs",
@@ -1367,16 +1370,16 @@
       "none": "Pas encore d’accord de couleurs récurrent."
     },
     "fabric": {
-      "title": "Empreinte des matières",
+      "title": "Profil des matières",
       "natural": "Surtout des fibres naturelles",
       "mixed": "Un mélange de naturel et de synthétique",
       "synthetic": "Surtout du synthétique"
     },
     "dressy": {
-      "title": "Possédé ou porté",
-      "ownDressier": "Tu possèdes plus habillé que ce que tu portes",
-      "wearDressier": "Tu t’habilles plus que ta garde-robe ne le laisse penser",
-      "aligned": "Ce que tu possèdes, tu le portes",
+      "title": "Élégance de ta garde-robe et de tes tenues",
+      "ownDressier": "Tu as des pièces plus habillées que celles que tu portes.",
+      "wearDressier": "Tu t’habilles plus élégamment que ne le laisse penser ta garde-robe.",
+      "aligned": "Tu portes ce que tu as dans ta garde-robe.",
       "scale": "Possédé {owned} · Porté {worn} (sur 5)"
     },
     "signature": {
@@ -1386,7 +1389,7 @@
     "locked": "Porte {need} looks pour débloquer ({have}/{need})",
     "teaser": {
       "title": "Complète ton style",
-      "body": "Découvre la pièce qui va avec le plus de tes pièces",
+      "body": "Découvre la pièce qui va avec la plupart des vêtements de ta garde-robe",
       "pro": "Pro"
     },
     "kind": {
@@ -1414,9 +1417,6 @@
       "blazer": "Blazer",
       "jacket": "Veste",
       "coat": "Manteau"
-    },
-    "title": "ADN de style",
-    "kicker": "ADN de style",
-    "yourArchetype": "Ton archétype"
+    }
   }
 }

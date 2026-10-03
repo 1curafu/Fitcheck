@@ -1294,23 +1294,26 @@
     }
   },
   "styleDna": {
+    "title": "ADN de estilo",
+    "kicker": "ADN de estilo",
+    "yourArchetype": "Tu arquetipo",
     "youSaid": "Elegiste {archetype}",
-    "agrees": "Tu armario está de acuerdo",
-    "notEnough": "Añade algunas prendas más y Fitcheck leerá tu estilo a partir de tu armario.",
-    "noAnswer": "Aún sin elegir",
+    "agrees": "Tu armario lo confirma",
+    "notEnough": "Añade algunas prendas más y Fitcheck deducirá tu estilo a partir de tu armario.",
+    "noAnswer": "Aún sin definir",
     "share": "Compartir",
     "preparing": "Preparando…",
     "shareFailed": "No se pudo compartir la imagen. Inténtalo de nuevo.",
     "footer": "{count, plural, one {# prenda analizada} other {# prendas analizadas}}",
     "stats": {
-      "colours": "Colores",
       "pieces": "Prendas",
-      "looksWorn": "Conjuntos usados"
+      "looksWorn": "Conjuntos usados",
+      "colours": "Colores"
     },
     "opening": {
-      "oldMoney": "Herencia discreta, llevada con naturalidad.",
-      "preppy": "Raíces universitarias, siempre cuidado.",
-      "streetwear": "Proporciones amplias, look de zapatillas.",
+      "oldMoney": "Elegancia clásica, sin esfuerzo.",
+      "preppy": "Aires universitarios, siempre impecables.",
+      "streetwear": "Silueta holgada, con las zapatillas como protagonistas.",
       "smartCasual": "Cuidado y relajado, sin esfuerzo.",
       "fresh": "Tu estilo se está formando."
     },
@@ -1327,15 +1330,15 @@
     },
     "mix": {
       "title": "Mezcla de estilos",
-      "caption": "A partir de {marked} de tus {total} prendas con una señal de estilo clara"
+      "caption": "A partir de {marked} de tus {total} prendas con rasgos de estilo bien definidos"
     },
     "quiz": {
-      "title": "Tus respuestas y tu armario",
-      "palette": "Elegiste «{palette}»: el {pct} % de tu armario coincide",
-      "fit": "Elegiste «{fit}»: el {pct} % de la ropa etiquetada coincide"
+      "title": "Tus respuestas frente a tu armario",
+      "palette": "Elegiste «{palette}»: el {pct} % de las prendas de tu armario coincide",
+      "fit": "Elegiste «{fit}»: el {pct} % de las prendas con características registradas tiene ese corte"
     },
     "tendencies": {
-      "title": "Tus tendencias",
+      "title": "Tus preferencias de estilo",
       "cut": "Entallado o holgado",
       "tonal": "Tono sobre tono",
       "pattern": "Gusto por los estampados",
@@ -1367,26 +1370,26 @@
       "none": "Aún no hay una combinación de colores repetida."
     },
     "fabric": {
-      "title": "Huella de tejidos",
+      "title": "Perfil de los tejidos",
       "natural": "Sobre todo fibras naturales",
       "mixed": "Una mezcla de naturales y sintéticas",
       "synthetic": "Sobre todo sintéticas"
     },
     "dressy": {
-      "title": "Lo que tienes y lo que llevas",
+      "title": "Elegancia de las prendas que tienes y llevas",
       "ownDressier": "Tienes ropa más elegante de la que llevas",
       "wearDressier": "Te vistes con más elegancia de la que sugiere tu armario",
       "aligned": "Lo que tienes es lo que llevas",
       "scale": "Tienes {owned} · Llevas {worn} (de 5)"
     },
     "signature": {
-      "title": "Prendas insignia",
+      "title": "Prendas emblemáticas",
       "none": "Ninguna prenda se ha llevado dos veces todavía."
     },
     "locked": "Ponte {need} looks para desbloquear ({have}/{need})",
     "teaser": {
       "title": "Completa tu estilo",
-      "body": "Descubre la prenda que combina con la mayor parte de tu armario",
+      "body": "Descubre la prenda que combina con la mayoría de las prendas de tu armario",
       "pro": "Pro"
     },
     "kind": {
@@ -1414,9 +1417,6 @@
       "blazer": "Blazer",
       "jacket": "Chaqueta",
       "coat": "Abrigo"
-    },
-    "title": "ADN de estilo",
-    "kicker": "ADN de estilo",
-    "yourArchetype": "Tu arquetipo"
+    }
   }
 }

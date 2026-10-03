@@ -64,7 +64,8 @@ function build(input: DnaCardInput, measure: Measure, shift: number): DnaLayout 
   const t = fitText(input.archetype, [132, 112, 96, 84], (s) => serif(s), measure, 2);
   const title: Text = { ...t, x: M, y, lineHeight: Math.round(t.font.size * 1.04) };
   y += title.lineHeight * title.lines.length + 40;
-  const b = fitText(input.blurb, [42, 38, 34], (s) => serif(s, true), measure, 3);
+  // Up to four lines at 30px: reviewed copy in the longer languages (es, de, pt, uk) needs it to avoid an ellipsis.
+  const b = fitText(input.blurb, [42, 38, 34, 30], (s) => serif(s, true), measure, 4);
   const blurb: Text = { ...b, x: M, y, lineHeight: Math.round(b.font.size * 1.4) };
   y += blurb.lineHeight * blurb.lines.length + 60;
   const n = Math.max(1, input.swatches.length);

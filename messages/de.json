@@ -1294,48 +1294,51 @@
     }
   },
   "styleDna": {
+    "title": "Stil-DNA",
+    "kicker": "Stil-DNA",
+    "yourArchetype": "Dein Archetyp",
     "youSaid": "Du hast {archetype} gewählt",
-    "agrees": "Dein Kleiderschrank sieht es genauso",
-    "notEnough": "Füge noch ein paar Teile hinzu, dann liest Fitcheck deinen Stil aus deinem Kleiderschrank.",
-    "noAnswer": "Noch nicht gewählt",
+    "agrees": "Dein Kleiderschrank bestätigt es",
+    "notEnough": "Füge noch ein paar Teile hinzu, dann erkennt Fitcheck deinen Stil in deinem Kleiderschrank.",
+    "noAnswer": "Noch nicht festgelegt",
     "share": "Teilen",
     "preparing": "Wird vorbereitet…",
     "shareFailed": "Das Bild konnte nicht geteilt werden. Versuch es noch einmal.",
     "footer": "{count, plural, one {# Teil analysiert} other {# Teile analysiert}}",
     "stats": {
-      "colours": "Farben",
       "pieces": "Teile",
-      "looksWorn": "Getragene Outfits"
+      "looksWorn": "Getragene Outfits",
+      "colours": "Farben"
     },
     "opening": {
-      "oldMoney": "Stilles Erbe, mit Leichtigkeit getragen.",
-      "preppy": "College-Wurzeln, stets gepflegt.",
-      "streetwear": "Lockere Proportionen, Look auf Sneakern.",
+      "oldMoney": "Klassische Eleganz, ganz entspannt.",
+      "preppy": "College-Flair, stets gepflegt.",
+      "streetwear": "Lockere Silhouette, Sneaker im Mittelpunkt.",
       "smartCasual": "Gepflegt und entspannt, ohne Anstrengung.",
       "fresh": "Dein Stil nimmt gerade Form an."
     },
     "trait": {
       "tonalTailored": "Du magst Ton in Ton und bevorzugst taillierte Schnitte.",
       "tonalRelaxed": "Du magst Ton in Ton und trägst es lieber locker.",
-      "tonalBalanced": "Du magst Ton in Ton und mischst klare Linien mit Lockerem.",
+      "tonalBalanced": "Du magst Ton in Ton und kombinierst klare Linien mit entspannten Schnitten.",
       "mixedTailored": "Du kombinierst Neutrales mit einem Hauch Farbe und bevorzugst taillierte Schnitte.",
       "mixedRelaxed": "Du kombinierst Neutrales mit einem Hauch Farbe und trägst es lieber locker.",
-      "mixedBalanced": "Du kombinierst Neutrales mit einem Hauch Farbe und mischst klare Linien mit Lockerem.",
+      "mixedBalanced": "Du kombinierst neutrale Farben mit einem Hauch Farbe und klare Linien mit entspannten Schnitten.",
       "colourfulTailored": "Du lässt Farbe führen und bevorzugst taillierte Schnitte.",
       "colourfulRelaxed": "Du lässt Farbe führen und trägst es lieber locker.",
-      "colourfulBalanced": "Du lässt Farbe führen und mischst klare Linien mit Lockerem."
+      "colourfulBalanced": "Du lässt Farbe den Ton angeben und kombinierst klare Linien mit entspannten Schnitten."
     },
     "mix": {
       "title": "Stilmix",
-      "caption": "Basierend auf {marked} von {total} Teilen mit klarem Stilsignal"
+      "caption": "Aus {marked} von {total} Teilen mit klar erkennbarem Stil"
     },
     "quiz": {
-      "title": "Deine Antworten und dein Kleiderschrank",
-      "palette": "Du hast „{palette}“ gewählt: {pct} % deines Kleiderschranks passen dazu",
-      "fit": "Du hast „{fit}“ gewählt: {pct} % deiner getaggten Kleidung passen dazu"
+      "title": "Deine Antworten im Vergleich zu deinem Kleiderschrank",
+      "palette": "Du hast „{palette}“ gewählt: {pct} % deiner Kleidungsstücke passen dazu",
+      "fit": "Du hast „{fit}“ gewählt: {pct} % deiner erfassten Kleidungsstücke passen dazu"
     },
     "tendencies": {
-      "title": "Deine Tendenzen",
+      "title": "Deine Stilvorlieben",
       "cut": "Tailliert oder locker",
       "tonal": "Ton in Ton",
       "pattern": "Lust auf Muster",
@@ -1367,13 +1370,13 @@
       "none": "Noch keine wiederkehrende Farbkombination."
     },
     "fabric": {
-      "title": "Stoff-Fingerabdruck",
+      "title": "Stoffprofil",
       "natural": "Überwiegend Naturfasern",
       "mixed": "Mischung aus Natur- und Kunstfasern",
       "synthetic": "Überwiegend Kunstfasern"
     },
     "dressy": {
-      "title": "Besitzt vs. getragen",
+      "title": "Eleganz im Schrank und in deinen Looks",
       "ownDressier": "Du besitzt Eleganteres, als du trägst",
       "wearDressier": "Du ziehst dich eleganter an, als dein Kleiderschrank vermuten lässt",
       "aligned": "Was du besitzt, trägst du auch",
@@ -1386,7 +1389,7 @@
     "locked": "Trag {need} Looks, um freizuschalten ({have}/{need})",
     "teaser": {
       "title": "Vervollständige deinen Stil",
-      "body": "Sieh das Teil, das zu den meisten deiner Teile passt",
+      "body": "Entdecke das Teil, das zu den meisten Kleidungsstücken in deinem Kleiderschrank passt",
       "pro": "Pro"
     },
     "kind": {
@@ -1414,9 +1417,6 @@
       "blazer": "Blazer",
       "jacket": "Jacke",
       "coat": "Mantel"
-    },
-    "title": "Stil-DNA",
-    "kicker": "Stil-DNA",
-    "yourArchetype": "Dein Archetyp"
+    }
   }
 }
