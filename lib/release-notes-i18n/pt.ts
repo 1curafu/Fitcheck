@@ -2,6 +2,11 @@ import type { LocalizedNote } from "@/lib/release-notes";
 
 /** Keyed by version; one entry for every RELEASE_NOTES version, same line counts. */
 export const PT_NOTES: Record<string, LocalizedNote> = {
+  "0.8.1": {
+    headline: "Descobre a tua próxima compra, com base nos teus looks.",
+    added: ["Pro: «Próxima compra» sugere peças que combinam com quase todo o teu roupeiro", "Cores dos sapatos segundo estilistas, como castanho com azul-marinho"],
+    fixed: ["O Modo mala tem o seu próprio ícone de mala no Perfil", "Apagar peças já não deixa looks guardados vazios"],
+  },
   "0.8.0": {
     headline: "Guarda os looks de que gostas e volta a usá-los.",
     added: ["Guarda um look e encontra-o em Perfil, Conjuntos guardados", "As viagens levam um casaco quente para o frio e tops leves para o calor", "Um aviso lembra-te quando as noites arrefecem"],
