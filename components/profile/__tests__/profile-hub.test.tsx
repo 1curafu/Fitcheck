@@ -62,10 +62,10 @@ test("the outfits stat is labelled as what was worn", () => {
   expect(screen.getByTestId("stat-trio")).toHaveTextContent(/worn/i);
 });
 
-test("the archetype card opens the Style profile editor", () => {
+test("the archetype card opens Style DNA", () => {
   render(<ProfileHub {...props} />);
-  // It pointed at /style-dna, which was never built — a tap landed on the 404 page.
-  expect(screen.getByRole("link", { name: /old money/i })).toHaveAttribute("href", "/settings/style");
+  // It briefly pointed at /settings/style while /style-dna was unbuilt; Style DNA exists now (2026-10-03).
+  expect(screen.getByRole("link", { name: /old money/i })).toHaveAttribute("href", "/style-dna");
 });
 
 test("an unbuilt destination is not a link — it says Soon", () => {
