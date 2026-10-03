@@ -46,9 +46,15 @@ function fitText(text: string, sizes: number[], make: (s: number) => FontSpec, m
   return { font, lines: wrapLines(text, WIDTH, font, measure, maxLines).lines };
 }
 
-/** The mockup card (dna-back.png) on a 1080×1920 Story, kept inside the platforms' safe area. */
+/** The mockup card (dna-back.png) on a 1080×1920 Story, centred in the platforms' safe area. */
 export function layoutDnaCard(input: DnaCardInput, measure: Measure): DnaLayout {
-  let y = STORY_SAFE.top + 70;
+  const natural = build(input, measure, 0);
+  const spare = STORY_SAFE.bottom - STORY_SAFE.top - natural.frame.h;
+  return spare > 0 ? build(input, measure, Math.floor(spare / 2)) : natural;
+}
+
+function build(input: DnaCardInput, measure: Measure, shift: number): DnaLayout {
+  let y = STORY_SAFE.top + 80 + shift;
   const mark = { x: M, y, size: 56 };
   const wordmark = { x: M + 76, y: y + 42, font: serif(40) };
   const kicker = { text: input.kicker, x: DNA_CARD.w - M, y: y + 38, font: sans(20, 500, true) };
@@ -71,7 +77,7 @@ export function layoutDnaCard(input: DnaCardInput, measure: Measure): DnaLayout 
   const divider = y + 110;
   const footer = { text: input.footer, x: M, y: divider + 60, font: sans(20, 500, true) };
   return {
-    frame: { x: 48, y: STORY_SAFE.top - 10, w: DNA_CARD.w - 96, h: footer.y + 60 - (STORY_SAFE.top - 10) },
+    frame: { x: 48, y: STORY_SAFE.top + shift, w: DNA_CARD.w - 96, h: footer.y + 60 - (STORY_SAFE.top + shift) },
     mark, wordmark, kicker, label, title, blurb, swatches, swatchFont: sans(16, 500, true),
     stats, statValueFont: serif(84), statLabelFont: sans(20, 500, true), divider, footer,
   };

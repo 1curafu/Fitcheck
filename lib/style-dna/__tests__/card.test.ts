@@ -65,3 +65,12 @@ test("a single word wider than the card still shrinks the title to its smallest 
   const l = layoutDnaCard(input({ archetype: "Донеприсвійноісторичний" }), (text, font) => text.length * font.size * 0.9);
   expect(l.title.font.size).toBe(84);
 });
+
+test("the card sits centred in the story safe area, not hugging the top", () => {
+  const l = layoutDnaCard(input(), measure);
+  const above = l.frame.y - STORY_SAFE.top;
+  const below = STORY_SAFE.bottom - (l.frame.y + l.frame.h);
+  expect(above).toBeGreaterThanOrEqual(0);
+  expect(below).toBeGreaterThanOrEqual(0);
+  expect(Math.abs(above - below)).toBeLessThanOrEqual(1);
+});

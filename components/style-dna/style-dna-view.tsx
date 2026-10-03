@@ -68,7 +68,8 @@ export function StyleDnaView({ dna, signaturePieces, isPro }: { dna: StyleDna; s
       </article>
       <ShareDna input={card} fileName="fitcheck-style-dna.jpg" />
 
-      {dna.mix.marked > 0 ? (
+      {/* Same evidence bar as the headline: below it the closet has not spoken, so no mix is claimed. */}
+      {dna.reading.source === "closet" ? (
         <Section title={t("mix.title")}>
           <div className="flex h-[10px] overflow-hidden rounded-full bg-[#201f22]">
             {(["Preppy", "Old Money", "Streetwear"] as const).map((s, i) => (

@@ -70,3 +70,12 @@ test("the page links on to the style editor, so changing an answer is one tap fr
   render(<StyleDnaView dna={base} signaturePieces={pieces} isPro />);
   expect(screen.getByRole("link", { name: /your style answers/i })).toHaveAttribute("href", "/settings/style");
 });
+
+test("the style mix needs the same evidence as the headline: one marked piece is not a mix", () => {
+  const thin: StyleDna = {
+    ...base, reading: { source: "quiz", archetype: "Old Money" },
+    mix: { garments: 7, marked: 1, shares: { "Old Money": 0, Preppy: 1, Streetwear: 0 } },
+  };
+  render(<StyleDnaView dna={thin} signaturePieces={[]} isPro />);
+  expect(screen.queryByText(/style mix/i)).not.toBeInTheDocument();
+});
