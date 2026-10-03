@@ -40,3 +40,28 @@ test("the card input carries no photo, piece name, user name or handle (spec D6)
   const type = source.slice(source.indexOf("export type DnaCardInput"), source.indexOf("};", source.indexOf("export type DnaCardInput")));
   expect(type).not.toMatch(/image|url|photo|name|handle|piece/i);
 });
+
+test("sections stack top to bottom inside the frame, and the rows are evenly spaced", () => {
+  const l = layoutDnaCard(input(), measure);
+  const downwards = [l.mark.y, l.label.y, l.title.y, l.blurb.y, l.swatches[0].y, l.stats[0].y, l.divider, l.footer.y];
+  expect(downwards).toEqual([...downwards].sort((a, b) => a - b));
+  expect(new Set(downwards).size).toBe(downwards.length);
+  expect(l.frame.y).toBeLessThan(l.mark.y);
+  expect(l.frame.y + l.frame.h).toBeGreaterThan(l.footer.y);
+  expect(l.frame.x + l.frame.w).toBeLessThanOrEqual(DNA_CARD.w);
+  const pitches = l.swatches.slice(1).map((s, i) => s.x - l.swatches[i].x);
+  expect(new Set(pitches).size).toBe(1);
+  expect(l.swatches[0].x).toBe(96);
+  expect(l.swatches.every((s) => s.w > 0 && s.labelY > s.y + s.h)).toBe(true);
+  expect(l.stats.map((s) => s.x)).toEqual([96, 96 + 296, 96 + 592]);
+  expect(l.stats.every((s) => s.labelY > s.y)).toBe(true);
+  expect(l.wordmark.x).toBeGreaterThan(l.mark.x);
+  expect(l.kicker.x).toBe(DNA_CARD.w - 96);
+  expect(l.title.lineHeight).toBeGreaterThan(l.title.font.size);
+  expect(l.blurb.lineHeight).toBeGreaterThan(l.blurb.font.size);
+});
+
+test("a single word wider than the card still shrinks the title to its smallest size", () => {
+  const l = layoutDnaCard(input({ archetype: "Донеприсвійноісторичний" }), (text, font) => text.length * font.size * 0.9);
+  expect(l.title.font.size).toBe(84);
+});

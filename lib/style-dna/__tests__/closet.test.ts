@@ -134,3 +134,95 @@ describe("blurbKeys", () => {
     expect(blurbKeys({ source: "quiz", archetype: null }, { ...none, tonal: { value: 0.3, level: "colourful" }, cut: { value: 0.2, level: "relaxed" } }).trait).toBe("colourfulRelaxed");
   });
 });
+
+describe("boundaries pinned after the Stryker review", () => {
+  const hoodie = () => piece("Tops", { subcategory: "Hoodie" });
+  const oxford = () => piece("Tops", { subcategory: "Oxford shirt" });
+  const tailored = () => piece("Bottoms", { fit: "Tailored" });
+
+  test("exactly 8 garments with 5 marked is enough for the closet to speak", () => {
+    const closet = [...plain(3), ...Array.from({ length: 5 }, hoodie)];
+    expect(styleMix(closet)).toMatchObject({ garments: 8, marked: 5 });
+    expect(readCloset(styleMix(closet), "Preppy")).toEqual({ source: "closet", archetype: "Streetwear" });
+  });
+
+  test("a leader with exactly half of the style hits, strictly ahead, is clear", () => {
+    const closet = [oxford(), oxford(), oxford(), tailored(), tailored(), hoodie(), ...plain(2)];
+    const mix = styleMix(closet);
+    expect(mix.shares.Preppy).toBe(0.5);
+    expect(readCloset(mix, null)).toEqual({ source: "closet", archetype: "Preppy" });
+  });
+
+  test("exactly 30% of the garments marked is enough", () => {
+    const closet = [...Array.from({ length: 6 }, oxford), ...plain(14)];
+    expect(readCloset(styleMix(closet), null)).toEqual({ source: "closet", archetype: "Preppy" });
+  });
+
+  test("bags and accessories never add to the swatches, the quiz check or the fabric", () => {
+    const bag = piece("Bags", { colors: ["gold"], material: "Leather", fit: "Tailored" });
+    expect(swatches([bag])).toEqual([]);
+    expect(swatches([piece("Tops", { colors: ["not-a-colour"] })])).toEqual([]);
+    expect(quizVsCloset([...Array.from({ length: 4 }, () => piece("Tops", { colors: ["grey"] })), bag], "Neutrals", null).palette).toBeNull();
+    expect(fabric([bag, bag, bag])).toBeNull();
+  });
+
+  test("a shoe's fit does not count towards the cut", () => {
+    const sharp = [tailored(), tailored(), tailored()];
+    expect(tendencies(sharp).cut).not.toBeNull();
+    expect(tendencies([tailored(), tailored(), piece("Shoes", { fit: "Tailored" })]).cut).toBeNull();
+    const four = Array.from({ length: 4 }, () => piece("Tops", { colors: ["grey"], fit: "Tailored" }));
+    expect(quizVsCloset([...four, piece("Shoes", { fit: "Tailored" })], null, "Tailored").fit).toBeNull();
+  });
+});
+
+describe("level thresholds are exclusive or inclusive exactly where the spec says", () => {
+  const cutOf = (sharp: number, easy: number) =>
+    tendencies([...Array.from({ length: sharp }, () => piece("Tops", { fit: "Tailored" })), ...Array.from({ length: easy }, () => piece("Tops", { fit: "Relaxed" }))]).cut?.level;
+  const tonalOf = (neutral: number, bright: number) =>
+    tendencies([...Array.from({ length: neutral }, () => piece("Tops", { colors: ["grey"] })), ...Array.from({ length: bright }, () => piece("Tops", { colors: ["red"] }))]).tonal?.level;
+  const patternOf = (printed: number, solid: number) =>
+    tendencies([...Array.from({ length: printed }, () => piece("Tops", { pattern: "striped" })), ...Array.from({ length: solid }, () => piece("Tops"))]).pattern?.level;
+  const heritageOf = (marked: number, other: number) =>
+    tendencies([...Array.from({ length: marked }, () => piece("Tops", { subcategory: "Polo" })), ...Array.from({ length: other }, () => piece("Tops"))]).heritage?.level;
+
+  test("cut: 60% is balanced, not tailored; 40% is balanced, not relaxed", () => {
+    expect([cutOf(3, 2), cutOf(2, 3), cutOf(4, 1), cutOf(1, 4)]).toEqual(["balanced", "balanced", "tailored", "relaxed"]);
+  });
+
+  test("tonal: 80% is strong; 60% is already colourful, not moderate", () => {
+    expect([tonalOf(4, 1), tonalOf(3, 2), tonalOf(7, 3)]).toEqual(["strong", "colourful", "moderate"]);
+  });
+
+  test("pattern: 20% is some, not minimal; 45% is bold, not some", () => {
+    expect([patternOf(1, 4), patternOf(0, 5), patternOf(9, 11), patternOf(2, 8)]).toEqual(["some", "minimal", "bold", "some"]);
+  });
+
+  test("heritage: 20% is some, not low; 45% is high, not some", () => {
+    expect([heritageOf(1, 4), heritageOf(0, 5), heritageOf(9, 11), heritageOf(2, 8)]).toEqual(["some", "low", "high", "some"]);
+  });
+
+  test("fabric: exactly three known fibres is a fingerprint; 60% natural is natural; 30% is mixed", () => {
+    const of = (natural: number, synthetic: number) =>
+      fabric([...Array.from({ length: natural }, () => piece("Tops", { material: "Wool" })), ...Array.from({ length: synthetic }, () => piece("Tops", { material: "Polyester" }))])?.level;
+    expect([of(2, 1), of(3, 2), of(3, 7), of(2, 8)]).toEqual(["natural", "natural", "mixed", "synthetic"]);
+  });
+
+  test("fabric: 'Other' and hardware never make the top three, even when most common", () => {
+    const closet = [...Array.from({ length: 4 }, () => piece("Tops", { material: "Other" })), piece("Tops", { material: "Wool" }),
+      piece("Tops", { material: "Cotton" }), piece("Tops", { material: "Linen" })];
+    expect(fabric(closet)?.top).toEqual(["Cotton", "Linen", "Wool"]);
+  });
+});
+
+test("heritage counts Old Money and Preppy pieces, never Streetwear ones", () => {
+  const hoodies = [piece("Tops", { subcategory: "Hoodie" }), piece("Tops", { subcategory: "Cargo hoodie" })];
+  expect(tendencies(hoodies).heritage).toEqual({ value: 0, level: "low" });
+  expect(tendencies([piece("Bottoms", { fit: "Tailored" })]).heritage?.value).toBe(1); // Old Money only
+  expect(tendencies([piece("Tops", { subcategory: "Polo" })]).heritage?.value).toBe(1); // Preppy only
+});
+
+test("the quiz check judges garments only: a bag's colour is not a vote", () => {
+  const four = Array.from({ length: 4 }, () => piece("Tops", { colors: ["grey"] }));
+  expect(quizVsCloset([...four, piece("Bags", { colors: ["grey"] })], "Neutrals", null).palette).toBeNull();
+  expect(quizVsCloset([...four, piece("Shoes", { colors: ["grey"] })], "Neutrals", null).palette).toEqual({ answer: "Neutrals", share: 1 });
+});
