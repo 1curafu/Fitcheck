@@ -48,27 +48,45 @@ const SAME_AS_ENGLISH: Partial<Record<Full, string[]>> = {
     "vocab.material.Lyocell", "vocab.material.Gold", "vocab.texture.Seersucker", "vocab.color.beige", "vocab.color.taupe",
     "vocab.color.khaki", "vocab.color.camel", "vocab.color.indigo", "vocab.color.gold", "vocab.color.orange", "vocab.length.Midi",
     "vocab.season.Winter", "generate.refine.palette.neutral", "generate.refine.palette.camel", "share.format", "share.story",
-    "share.post", "packing.outfits", "home.preview.city"],
+    "share.post", "packing.outfits", "home.preview.city",
+    // Style DNA garment names and cognates that are the standard word here (2026-10-03).
+    "styleDna.tendencies.level.minimal", "styleDna.kind.jeans", "styleDna.kind.shorts", "styleDna.kind.blazer",
+  ],
   fr: ["support.message", "onboarding.questions.nogos.options.shorts.label", "item.edit.texture", "capture.confirm.texture", "vocab.material.Tweed",
     "vocab.material.Polyester", "vocab.material.Nylon", "vocab.material.Viscose", "vocab.material.Modal", "vocab.material.Lyocell",
     "vocab.texture.Seersucker", "vocab.color.beige", "vocab.color.taupe", "vocab.color.camel", "vocab.color.caramel",
     "vocab.color.indigo", "vocab.color.olive", "vocab.color.orange", "vocab.length.Midi", "generate.refine.palette.camel",
-    "generate.refine.palette.olive", "share.format", "share.story", "packing.destination"],
+    "generate.refine.palette.olive", "share.format", "share.story", "packing.destination",
+    // Style DNA garment names and cognates that are the standard word here (2026-10-03).
+    "styleDna.tendencies.level.minimal", "styleDna.kind.tee", "styleDna.kind.polo", "styleDna.kind.blouse", "styleDna.kind.blazer",
+  ],
   it: ["shell.nav.stylist", "vocab.occasion.weekend", "onboarding.questions.occasions.options.Weekend.label", "vocab.material.Tweed", "vocab.material.Nylon", "vocab.material.Modal", "vocab.material.Lyocell",
     "vocab.texture.Twill", "vocab.texture.Seersucker", "vocab.color.beige", "vocab.color.terracotta", "vocab.length.Midi",
-    "share.post", "billing.privacy", "home.nav.label"],
+    "share.post", "billing.privacy", "home.nav.label",
+    // Style DNA garment names and cognates that are the standard word here (2026-10-03).
+    "styleDna.kind.tee", "styleDna.kind.polo", "styleDna.kind.jeans", "styleDna.kind.blazer",
+  ],
   pt: ["item.edit.material", "capture.confirm.material", "vocab.material.Tweed", "vocab.material.Nylon", "vocab.material.Viscose",
     "vocab.material.Modal", "vocab.texture.Seersucker", "vocab.color.chocolate", "vocab.color.coral", "vocab.length.Midi",
-    "vocab.formality.5", "share.story"],
+    "vocab.formality.5", "share.story",
+    // Style DNA garment names and cognates that are the standard word here (2026-10-03).
+    "styleDna.kind.tee", "styleDna.kind.polo", "styleDna.kind.jeans", "styleDna.kind.chinos", "styleDna.kind.blazer",
+  ],
   es: ["item.edit.material", "capture.confirm.material", "vocab.material.Tweed", "vocab.material.Modal", "vocab.material.Lyocell",
     "vocab.texture.Seersucker", "vocab.color.camel", "vocab.color.chocolate", "vocab.color.coral", "vocab.length.Midi",
-    "vocab.formality.5", "generate.refine.palette.camel"],
+    "vocab.formality.5", "generate.refine.palette.camel",
+    // Style DNA garment names and cognates that are the standard word here (2026-10-03).
+    "styleDna.kind.polo", "styleDna.kind.chinos", "styleDna.kind.blazer",
+  ],
   nl: ["shell.nav.stylist", "onboarding.questions.occasions.options.Weekend.label", "onboarding.questions.nogos.options.skinny.label",
     "vocab.occasion.weekend", "vocab.material.Canvas", "vocab.material.Tweed", "vocab.material.Fleece", "vocab.material.Polyester",
     "vocab.material.Nylon", "vocab.material.Viscose", "vocab.material.Modal", "vocab.material.Lyocell", "vocab.material.Rubber",
     "vocab.texture.Seersucker", "vocab.color.beige", "vocab.color.taupe", "vocab.color.camel", "vocab.color.indigo",
     "vocab.color.terracotta", "vocab.length.Midi", "vocab.season.Winter", "vocab.pattern.print", "generate.refine.palette.camel",
-    "share.story", "share.post", "billing.privacy", "packing.outfits", "home.preview.city", "stats.advisorPieces.loafers"],
+    "share.story", "share.post", "billing.privacy", "packing.outfits", "home.preview.city", "stats.advisorPieces.loafers",
+    // Style DNA garment names and cognates that are the standard word here (2026-10-03).
+    "styleDna.kind.tee", "styleDna.kind.polo", "styleDna.kind.hoodie", "styleDna.kind.blouse", "styleDna.kind.jeans", "styleDna.kind.jumpsuit", "styleDna.kind.loafers", "styleDna.kind.blazer",
+  ],
 };
 /** Another region's vocabulary a catalogue must not use. */
 const FORBIDDEN: Partial<Record<Full, RegExp>> = {

@@ -43,5 +43,38 @@
     "example": {
       "body": "Fitcheck checks the weather and the occasion, compares colours, fabrics and formality across everything you own, and picks what goes together."
     }
+  },
+  "styleDna": {
+    "footer": "{count, plural, one {# piece} other {# pieces}} analysed",
+    "stats": {
+      "colours": "Colours"
+    },
+    "trait": {
+      "tonalTailored": "You lean tonal and favour a tailored cut.",
+      "mixedTailored": "You mix neutrals with a little colour and favour a tailored cut.",
+      "mixedRelaxed": "You mix neutrals with a little colour and keep the cut relaxed.",
+      "mixedBalanced": "You mix neutrals with a little colour and mix sharp with easy.",
+      "colourfulTailored": "You let colour lead and favour a tailored cut.",
+      "colourfulRelaxed": "You let colour lead and keep the cut relaxed.",
+      "colourfulBalanced": "You let colour lead and mix sharp with easy."
+    },
+    "tendencies": {
+      "level": {
+        "colourful": "Colourful"
+      }
+    },
+    "formula": {
+      "none": "No repeat formula yet. Wear a favourite look again."
+    },
+    "pairing": {
+      "title": "Go-to colours",
+      "none": "No repeat colour pairing yet."
+    },
+    "fabric": {
+      "natural": "Mostly natural fibres"
+    },
+    "kind": {
+      "sneakers": "Sneakers"
+    }
   }
 }

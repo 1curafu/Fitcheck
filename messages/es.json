@@ -1292,5 +1292,131 @@
       "unavailable": "El formulario no está disponible ahora. Puedes seguir escribiéndonos por correo.",
       "failed": "No se pudo confirmar el envío de tu mensaje. Inténtalo de nuevo o escríbenos por correo."
     }
+  },
+  "styleDna": {
+    "youSaid": "Elegiste {archetype}",
+    "agrees": "Tu armario está de acuerdo",
+    "notEnough": "Añade algunas prendas más y Fitcheck leerá tu estilo a partir de tu armario.",
+    "noAnswer": "Aún sin elegir",
+    "share": "Compartir",
+    "preparing": "Preparando…",
+    "shareFailed": "No se pudo compartir la imagen. Inténtalo de nuevo.",
+    "footer": "{count, plural, one {# prenda analizada} other {# prendas analizadas}}",
+    "stats": {
+      "colours": "Colores",
+      "pieces": "Prendas",
+      "looksWorn": "Conjuntos usados"
+    },
+    "opening": {
+      "oldMoney": "Herencia discreta, llevada con naturalidad.",
+      "preppy": "Raíces universitarias, siempre cuidado.",
+      "streetwear": "Proporciones amplias, look de zapatillas.",
+      "smartCasual": "Cuidado y relajado, sin esfuerzo.",
+      "fresh": "Tu estilo se está formando."
+    },
+    "trait": {
+      "tonalTailored": "Te inclinas por el tono sobre tono y los cortes entallados.",
+      "tonalRelaxed": "Te inclinas por el tono sobre tono y los cortes holgados.",
+      "tonalBalanced": "Te inclinas por el tono sobre tono y mezclas líneas definidas con cortes holgados.",
+      "mixedTailored": "Combinas neutros con un toque de color y prefieres los cortes entallados.",
+      "mixedRelaxed": "Combinas neutros con un toque de color y prefieres los cortes holgados.",
+      "mixedBalanced": "Combinas neutros con un toque de color y mezclas líneas definidas con cortes holgados.",
+      "colourfulTailored": "Dejas que el color lidere y prefieres los cortes entallados.",
+      "colourfulRelaxed": "Dejas que el color lidere y prefieres los cortes holgados.",
+      "colourfulBalanced": "Dejas que el color lidere y mezclas líneas definidas con cortes holgados."
+    },
+    "mix": {
+      "title": "Mezcla de estilos",
+      "caption": "A partir de {marked} de tus {total} prendas con una señal de estilo clara"
+    },
+    "quiz": {
+      "title": "Tus respuestas y tu armario",
+      "palette": "Elegiste «{palette}»: el {pct} % de tu armario coincide",
+      "fit": "Elegiste «{fit}»: el {pct} % de la ropa etiquetada coincide"
+    },
+    "tendencies": {
+      "title": "Tus tendencias",
+      "cut": "Entallado o holgado",
+      "tonal": "Tono sobre tono",
+      "pattern": "Gusto por los estampados",
+      "heritage": "Referencias clásicas",
+      "level": {
+        "tailored": "Más entallado",
+        "balanced": "Equilibrado",
+        "relaxed": "Más holgado",
+        "strong": "Fuerte",
+        "moderate": "Moderado",
+        "colourful": "Colorido",
+        "minimal": "Mínimo",
+        "some": "Algo",
+        "bold": "Atrevido",
+        "low": "Bajo",
+        "high": "Alto"
+      }
+    },
+    "formula": {
+      "title": "Tu fórmula",
+      "worn": "{count, plural, one {Llevado # vez} other {Llevado # veces}}",
+      "none": "Aún no hay una fórmula repetida. Vuelve a ponerte un look favorito."
+    },
+    "pairing": {
+      "title": "Colores favoritos",
+      "classic": "Una combinación clásica",
+      "good": "Una buena combinación",
+      "yours": "Tu combinación",
+      "none": "Aún no hay una combinación de colores repetida."
+    },
+    "fabric": {
+      "title": "Huella de tejidos",
+      "natural": "Sobre todo fibras naturales",
+      "mixed": "Una mezcla de naturales y sintéticas",
+      "synthetic": "Sobre todo sintéticas"
+    },
+    "dressy": {
+      "title": "Lo que tienes y lo que llevas",
+      "ownDressier": "Tienes ropa más elegante de la que llevas",
+      "wearDressier": "Te vistes con más elegancia de la que sugiere tu armario",
+      "aligned": "Lo que tienes es lo que llevas",
+      "scale": "Tienes {owned} · Llevas {worn} (de 5)"
+    },
+    "signature": {
+      "title": "Prendas insignia",
+      "none": "Ninguna prenda se ha llevado dos veces todavía."
+    },
+    "locked": "Ponte {need} looks para desbloquear ({have}/{need})",
+    "teaser": {
+      "title": "Completa tu estilo",
+      "body": "Descubre la prenda que combina con la mayor parte de tu armario",
+      "pro": "Pro"
+    },
+    "kind": {
+      "tee": "Camiseta",
+      "shirt": "Camisa",
+      "polo": "Polo",
+      "knit": "Punto",
+      "hoodie": "Sudadera con capucha",
+      "blouse": "Blusa",
+      "top": "Top",
+      "jeans": "Vaqueros",
+      "chinos": "Chinos",
+      "trousers": "Pantalones",
+      "shorts": "Pantalones cortos",
+      "skirt": "Falda",
+      "dress": "Vestido",
+      "jumpsuit": "Mono",
+      "sneakers": "Zapatillas",
+      "loafers": "Mocasines",
+      "boots": "Botas",
+      "heels": "Tacones",
+      "flats": "Bailarinas",
+      "sandals": "Sandalias",
+      "shoes": "Zapatos",
+      "blazer": "Blazer",
+      "jacket": "Chaqueta",
+      "coat": "Abrigo"
+    },
+    "title": "ADN de estilo",
+    "kicker": "ADN de estilo",
+    "yourArchetype": "Tu arquetipo"
   }
 }

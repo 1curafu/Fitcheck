@@ -1292,5 +1292,131 @@
       "unavailable": "Le formulaire est indisponible pour le moment. Tu peux toujours nous écrire par e-mail.",
       "failed": "Nous n’avons pas pu confirmer l’envoi de ton message. Réessaie ou écris-nous par e-mail."
     }
+  },
+  "styleDna": {
+    "youSaid": "Tu as choisi {archetype}",
+    "agrees": "Ta garde-robe est d’accord",
+    "notEnough": "Ajoute encore quelques pièces et Fitcheck lira ton style dans ta garde-robe.",
+    "noAnswer": "Pas encore choisi",
+    "share": "Partager",
+    "preparing": "Préparation…",
+    "shareFailed": "Impossible de partager l’image. Réessaie.",
+    "footer": "{count, plural, one {# pièce analysée} other {# pièces analysées}}",
+    "stats": {
+      "colours": "Couleurs",
+      "pieces": "Pièces",
+      "looksWorn": "Tenues portées"
+    },
+    "opening": {
+      "oldMoney": "Un héritage discret, porté avec aisance.",
+      "preppy": "Racines universitaires, toujours soigné.",
+      "streetwear": "Proportions amples, look en baskets.",
+      "smartCasual": "Soigné et décontracté, sans effort.",
+      "fresh": "Ton style est en train de se dessiner."
+    },
+    "trait": {
+      "tonalTailored": "Tu aimes le ton sur ton et les coupes ajustées.",
+      "tonalRelaxed": "Tu aimes le ton sur ton et les coupes amples.",
+      "tonalBalanced": "Tu aimes le ton sur ton et mêles lignes nettes et coupes souples.",
+      "mixedTailored": "Tu mêles les neutres et une touche de couleur, avec des coupes ajustées.",
+      "mixedRelaxed": "Tu mêles les neutres et une touche de couleur, avec des coupes amples.",
+      "mixedBalanced": "Tu mêles les neutres et une touche de couleur, lignes nettes et coupes souples.",
+      "colourfulTailored": "Tu laisses la couleur mener, avec des coupes ajustées.",
+      "colourfulRelaxed": "Tu laisses la couleur mener, avec des coupes amples.",
+      "colourfulBalanced": "Tu laisses la couleur mener et mêles lignes nettes et coupes souples."
+    },
+    "mix": {
+      "title": "Mélange de styles",
+      "caption": "Sur {marked} de tes {total} pièces au style bien marqué"
+    },
+    "quiz": {
+      "title": "Tes réponses et ta garde-robe",
+      "palette": "Ta palette : « {palette} » — {pct} % de ta garde-robe y correspond",
+      "fit": "Ta coupe : « {fit} » — {pct} % de tes vêtements étiquetés y correspondent"
+    },
+    "tendencies": {
+      "title": "Tes tendances",
+      "cut": "Ajusté ou ample",
+      "tonal": "Ton sur ton",
+      "pattern": "Goût pour les motifs",
+      "heritage": "Références classiques",
+      "level": {
+        "tailored": "Plutôt ajusté",
+        "balanced": "Équilibré",
+        "relaxed": "Plutôt ample",
+        "strong": "Fort",
+        "moderate": "Modéré",
+        "colourful": "Coloré",
+        "minimal": "Minimal",
+        "some": "Un peu",
+        "bold": "Audacieux",
+        "low": "Faible",
+        "high": "Élevé"
+      }
+    },
+    "formula": {
+      "title": "Ta formule",
+      "worn": "{count, plural, one {Porté # fois} other {Porté # fois}}",
+      "none": "Pas encore de formule récurrente. Reporte un look préféré."
+    },
+    "pairing": {
+      "title": "Couleurs fétiches",
+      "classic": "Un accord classique",
+      "good": "Un bon accord",
+      "yours": "Ton accord",
+      "none": "Pas encore d’accord de couleurs récurrent."
+    },
+    "fabric": {
+      "title": "Empreinte des matières",
+      "natural": "Surtout des fibres naturelles",
+      "mixed": "Un mélange de naturel et de synthétique",
+      "synthetic": "Surtout du synthétique"
+    },
+    "dressy": {
+      "title": "Possédé ou porté",
+      "ownDressier": "Tu possèdes plus habillé que ce que tu portes",
+      "wearDressier": "Tu t’habilles plus que ta garde-robe ne le laisse penser",
+      "aligned": "Ce que tu possèdes, tu le portes",
+      "scale": "Possédé {owned} · Porté {worn} (sur 5)"
+    },
+    "signature": {
+      "title": "Pièces signature",
+      "none": "Aucune pièce portée deux fois pour l’instant."
+    },
+    "locked": "Porte {need} looks pour débloquer ({have}/{need})",
+    "teaser": {
+      "title": "Complète ton style",
+      "body": "Découvre la pièce qui va avec le plus de tes pièces",
+      "pro": "Pro"
+    },
+    "kind": {
+      "tee": "T-shirt",
+      "shirt": "Chemise",
+      "polo": "Polo",
+      "knit": "Maille",
+      "hoodie": "Sweat à capuche",
+      "blouse": "Blouse",
+      "top": "Haut",
+      "jeans": "Jean",
+      "chinos": "Chino",
+      "trousers": "Pantalon",
+      "shorts": "Short",
+      "skirt": "Jupe",
+      "dress": "Robe",
+      "jumpsuit": "Combinaison",
+      "sneakers": "Baskets",
+      "loafers": "Mocassins",
+      "boots": "Bottes",
+      "heels": "Talons",
+      "flats": "Ballerines",
+      "sandals": "Sandales",
+      "shoes": "Chaussures",
+      "blazer": "Blazer",
+      "jacket": "Veste",
+      "coat": "Manteau"
+    },
+    "title": "ADN de style",
+    "kicker": "ADN de style",
+    "yourArchetype": "Ton archétype"
   }
 }

@@ -1292,5 +1292,131 @@
       "unavailable": "Il modulo non è disponibile al momento. Puoi comunque scriverci via e-mail.",
       "failed": "Non è stato possibile confermare l’invio del tuo messaggio. Riprova o scrivici via e-mail."
     }
+  },
+  "styleDna": {
+    "youSaid": "Hai scelto {archetype}",
+    "agrees": "Il tuo armadio è d’accordo",
+    "notEnough": "Aggiungi ancora qualche capo e Fitcheck leggerà il tuo stile dal tuo armadio.",
+    "noAnswer": "Non ancora scelto",
+    "share": "Condividi",
+    "preparing": "Preparazione…",
+    "shareFailed": "Impossibile condividere l’immagine. Riprova.",
+    "footer": "{count, plural, one {# capo analizzato} other {# capi analizzati}}",
+    "stats": {
+      "colours": "Colori",
+      "pieces": "Capi",
+      "looksWorn": "Outfit indossati"
+    },
+    "opening": {
+      "oldMoney": "Eredità discreta, indossata con naturalezza.",
+      "preppy": "Radici da college, sempre in ordine.",
+      "streetwear": "Proporzioni morbide, look da sneaker.",
+      "smartCasual": "Curato e disinvolto, senza sforzo.",
+      "fresh": "Il tuo stile sta prendendo forma."
+    },
+    "trait": {
+      "tonalTailored": "Ami il tono su tono e i tagli sartoriali.",
+      "tonalRelaxed": "Ami il tono su tono e i tagli morbidi.",
+      "tonalBalanced": "Ami il tono su tono e alterni linee nette e tagli morbidi.",
+      "mixedTailored": "Unisci i neutri a un tocco di colore, con tagli sartoriali.",
+      "mixedRelaxed": "Unisci i neutri a un tocco di colore, con tagli morbidi.",
+      "mixedBalanced": "Unisci i neutri a un tocco di colore, alternando linee nette e tagli morbidi.",
+      "colourfulTailored": "Lasci guidare il colore, con tagli sartoriali.",
+      "colourfulRelaxed": "Lasci guidare il colore, con tagli morbidi.",
+      "colourfulBalanced": "Lasci guidare il colore e alterni linee nette e tagli morbidi."
+    },
+    "mix": {
+      "title": "Mix di stili",
+      "caption": "Su {marked} dei tuoi {total} capi con un segnale di stile chiaro"
+    },
+    "quiz": {
+      "title": "Le tue risposte e il tuo armadio",
+      "palette": "Hai scelto «{palette}»: il {pct}% del tuo armadio è in linea",
+      "fit": "Hai scelto «{fit}»: il {pct}% dei capi con taglio indicato è in linea"
+    },
+    "tendencies": {
+      "title": "Le tue tendenze",
+      "cut": "Sartoriale o morbido",
+      "tonal": "Tono su tono",
+      "pattern": "Voglia di fantasie",
+      "heritage": "Riferimenti classici",
+      "level": {
+        "tailored": "Più sartoriale",
+        "balanced": "Equilibrato",
+        "relaxed": "Più morbido",
+        "strong": "Forte",
+        "moderate": "Moderato",
+        "colourful": "Colorato",
+        "minimal": "Minimo",
+        "some": "Un po’",
+        "bold": "Deciso",
+        "low": "Basso",
+        "high": "Alto"
+      }
+    },
+    "formula": {
+      "title": "La tua formula",
+      "worn": "{count, plural, one {Indossato # volta} other {Indossato # volte}}",
+      "none": "Ancora nessuna formula ricorrente. Indossa di nuovo un look preferito."
+    },
+    "pairing": {
+      "title": "Colori preferiti",
+      "classic": "Un abbinamento classico",
+      "good": "Un buon abbinamento",
+      "yours": "Il tuo abbinamento",
+      "none": "Ancora nessun abbinamento di colori ricorrente."
+    },
+    "fabric": {
+      "title": "Impronta dei tessuti",
+      "natural": "Soprattutto fibre naturali",
+      "mixed": "Un mix di naturale e sintetico",
+      "synthetic": "Soprattutto sintetico"
+    },
+    "dressy": {
+      "title": "Posseduto e indossato",
+      "ownDressier": "Possiedi capi più eleganti di quelli che indossi",
+      "wearDressier": "Ti vesti più elegante di quanto suggerisca il tuo armadio",
+      "aligned": "Quello che possiedi è quello che indossi",
+      "scale": "Posseduto {owned} · Indossato {worn} (su 5)"
+    },
+    "signature": {
+      "title": "Capi simbolo",
+      "none": "Nessun capo indossato due volte, per ora."
+    },
+    "locked": "Indossa {need} look per sbloccare ({have}/{need})",
+    "teaser": {
+      "title": "Completa il tuo stile",
+      "body": "Scopri il capo che si abbina a più capi del tuo armadio",
+      "pro": "Pro"
+    },
+    "kind": {
+      "tee": "T-shirt",
+      "shirt": "Camicia",
+      "polo": "Polo",
+      "knit": "Maglia",
+      "hoodie": "Felpa con cappuccio",
+      "blouse": "Camicetta",
+      "top": "Top",
+      "jeans": "Jeans",
+      "chinos": "Chino",
+      "trousers": "Pantaloni",
+      "shorts": "Pantaloncini",
+      "skirt": "Gonna",
+      "dress": "Abito",
+      "jumpsuit": "Tuta intera",
+      "sneakers": "Sneaker",
+      "loafers": "Mocassini",
+      "boots": "Stivali",
+      "heels": "Tacchi",
+      "flats": "Ballerine",
+      "sandals": "Sandali",
+      "shoes": "Scarpe",
+      "blazer": "Blazer",
+      "jacket": "Giacca",
+      "coat": "Cappotto"
+    },
+    "title": "DNA di stile",
+    "kicker": "DNA di stile",
+    "yourArchetype": "Il tuo archetipo"
   }
 }

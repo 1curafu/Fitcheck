@@ -1292,5 +1292,131 @@
       "unavailable": "O formulário está indisponível de momento. Podes continuar a escrever-nos por e-mail.",
       "failed": "Não foi possível confirmar o envio da tua mensagem. Tenta novamente ou escreve-nos por e-mail."
     }
+  },
+  "styleDna": {
+    "youSaid": "Escolheste {archetype}",
+    "agrees": "O teu roupeiro concorda",
+    "notEnough": "Adiciona mais algumas peças e o Fitcheck lê o teu estilo no teu roupeiro.",
+    "noAnswer": "Ainda não escolhido",
+    "share": "Partilhar",
+    "preparing": "A preparar…",
+    "shareFailed": "Não foi possível partilhar a imagem. Tenta outra vez.",
+    "footer": "{count, plural, one {# peça analisada} other {# peças analisadas}}",
+    "stats": {
+      "colours": "Cores",
+      "pieces": "Peças",
+      "looksWorn": "Conjuntos usados"
+    },
+    "opening": {
+      "oldMoney": "Herança discreta, usada com à-vontade.",
+      "preppy": "Raízes universitárias, sempre cuidado.",
+      "streetwear": "Proporções soltas, visual de sapatilhas.",
+      "smartCasual": "Cuidado e descontraído, sem esforço.",
+      "fresh": "O teu estilo está a ganhar forma."
+    },
+    "trait": {
+      "tonalTailored": "Gostas de tom sobre tom e de cortes ajustados.",
+      "tonalRelaxed": "Gostas de tom sobre tom e de cortes soltos.",
+      "tonalBalanced": "Gostas de tom sobre tom e misturas linhas definidas com cortes soltos.",
+      "mixedTailored": "Combinas neutros com um toque de cor e preferes cortes ajustados.",
+      "mixedRelaxed": "Combinas neutros com um toque de cor e preferes cortes soltos.",
+      "mixedBalanced": "Combinas neutros com um toque de cor e misturas linhas definidas com cortes soltos.",
+      "colourfulTailored": "Deixas a cor liderar e preferes cortes ajustados.",
+      "colourfulRelaxed": "Deixas a cor liderar e preferes cortes soltos.",
+      "colourfulBalanced": "Deixas a cor liderar e misturas linhas definidas com cortes soltos."
+    },
+    "mix": {
+      "title": "Mistura de estilos",
+      "caption": "Com base em {marked} das tuas {total} peças com um sinal de estilo claro"
+    },
+    "quiz": {
+      "title": "As tuas respostas e o teu roupeiro",
+      "palette": "Escolheste «{palette}»: {pct}% do teu roupeiro está de acordo",
+      "fit": "Escolheste «{fit}»: {pct}% da roupa etiquetada está de acordo"
+    },
+    "tendencies": {
+      "title": "As tuas tendências",
+      "cut": "Ajustado ou solto",
+      "tonal": "Tom sobre tom",
+      "pattern": "Gosto por padrões",
+      "heritage": "Referências clássicas",
+      "level": {
+        "tailored": "Mais ajustado",
+        "balanced": "Equilibrado",
+        "relaxed": "Mais solto",
+        "strong": "Forte",
+        "moderate": "Moderado",
+        "colourful": "Colorido",
+        "minimal": "Mínimo",
+        "some": "Algum",
+        "bold": "Ousado",
+        "low": "Baixo",
+        "high": "Alto"
+      }
+    },
+    "formula": {
+      "title": "A tua fórmula",
+      "worn": "{count, plural, one {Usado # vez} other {Usado # vezes}}",
+      "none": "Ainda não há fórmula repetida. Usa outra vez um look preferido."
+    },
+    "pairing": {
+      "title": "Cores de eleição",
+      "classic": "Uma combinação clássica",
+      "good": "Uma boa combinação",
+      "yours": "A tua combinação",
+      "none": "Ainda não há combinação de cores repetida."
+    },
+    "fabric": {
+      "title": "Impressão digital dos tecidos",
+      "natural": "Sobretudo fibras naturais",
+      "mixed": "Uma mistura de naturais e sintéticas",
+      "synthetic": "Sobretudo sintéticas"
+    },
+    "dressy": {
+      "title": "Tens e usas",
+      "ownDressier": "Tens roupa mais elegante do que usas",
+      "wearDressier": "Vestes-te de forma mais elegante do que o teu roupeiro sugere",
+      "aligned": "O que tens é o que usas",
+      "scale": "Tens {owned} · Usas {worn} (de 5)"
+    },
+    "signature": {
+      "title": "Peças de assinatura",
+      "none": "Nenhuma peça usada duas vezes por agora."
+    },
+    "locked": "Usa {need} looks para desbloquear ({have}/{need})",
+    "teaser": {
+      "title": "Completa o teu estilo",
+      "body": "Vê a peça que combina com a maior parte do teu roupeiro",
+      "pro": "Pro"
+    },
+    "kind": {
+      "tee": "T-shirt",
+      "shirt": "Camisa",
+      "polo": "Polo",
+      "knit": "Malha",
+      "hoodie": "Camisola com capuz",
+      "blouse": "Blusa",
+      "top": "Top",
+      "jeans": "Jeans",
+      "chinos": "Chinos",
+      "trousers": "Calças",
+      "shorts": "Calções",
+      "skirt": "Saia",
+      "dress": "Vestido",
+      "jumpsuit": "Macacão",
+      "sneakers": "Sapatilhas",
+      "loafers": "Mocassins",
+      "boots": "Botas",
+      "heels": "Saltos",
+      "flats": "Sabrinas",
+      "sandals": "Sandálias",
+      "shoes": "Sapatos",
+      "blazer": "Blazer",
+      "jacket": "Casaco",
+      "coat": "Sobretudo"
+    },
+    "title": "ADN de estilo",
+    "kicker": "ADN de estilo",
+    "yourArchetype": "O teu arquétipo"
   }
 }

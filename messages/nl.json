@@ -1286,5 +1286,131 @@
       "unavailable": "Het formulier is nu niet beschikbaar. Je kunt ons nog steeds mailen.",
       "failed": "We konden niet bevestigen dat je bericht is verstuurd. Probeer het opnieuw of mail ons."
     }
+  },
+  "styleDna": {
+    "youSaid": "Je koos {archetype}",
+    "agrees": "Je kledingkast is het ermee eens",
+    "notEnough": "Voeg nog een paar stukken toe en Fitcheck leest je stijl uit je kledingkast.",
+    "noAnswer": "Nog niet gekozen",
+    "share": "Delen",
+    "preparing": "Voorbereiden…",
+    "shareFailed": "De afbeelding kon niet worden gedeeld. Probeer het opnieuw.",
+    "footer": "{count, plural, one {# stuk geanalyseerd} other {# stukken geanalyseerd}}",
+    "stats": {
+      "colours": "Kleuren",
+      "pieces": "Stukken",
+      "looksWorn": "Outfits gedragen"
+    },
+    "opening": {
+      "oldMoney": "Stille erfenis, ontspannen gedragen.",
+      "preppy": "Collegewortels, altijd verzorgd.",
+      "streetwear": "Ruime verhoudingen, een look op sneakers.",
+      "smartCasual": "Verzorgd en ontspannen, zonder moeite.",
+      "fresh": "Je stijl krijgt langzaam vorm."
+    },
+    "trait": {
+      "tonalTailored": "Je houdt van tint in tint en van een getailleerde snit.",
+      "tonalRelaxed": "Je houdt van tint in tint en van een losse snit.",
+      "tonalBalanced": "Je houdt van tint in tint en mengt strakke lijnen met losse.",
+      "mixedTailored": "Je combineert neutrale tinten met een vleugje kleur en kiest voor een getailleerde snit.",
+      "mixedRelaxed": "Je combineert neutrale tinten met een vleugje kleur en kiest voor een losse snit.",
+      "mixedBalanced": "Je combineert neutrale tinten met een vleugje kleur en mengt strakke lijnen met losse.",
+      "colourfulTailored": "Je laat kleur de leiding nemen en kiest voor een getailleerde snit.",
+      "colourfulRelaxed": "Je laat kleur de leiding nemen en kiest voor een losse snit.",
+      "colourfulBalanced": "Je laat kleur de leiding nemen en mengt strakke lijnen met losse."
+    },
+    "mix": {
+      "title": "Stijlmix",
+      "caption": "Op basis van {marked} van je {total} stukken met een duidelijk stijlsignaal"
+    },
+    "quiz": {
+      "title": "Je antwoorden en je kledingkast",
+      "palette": "Je koos «{palette}»: {pct}% van je kledingkast past daarbij",
+      "fit": "Je koos «{fit}»: {pct}% van je gelabelde kleding past daarbij"
+    },
+    "tendencies": {
+      "title": "Jouw voorkeuren",
+      "cut": "Getailleerd of los",
+      "tonal": "Tint in tint",
+      "pattern": "Zin in patronen",
+      "heritage": "Klassieke verwijzingen",
+      "level": {
+        "tailored": "Eerder getailleerd",
+        "balanced": "Evenwichtig",
+        "relaxed": "Eerder los",
+        "strong": "Sterk",
+        "moderate": "Matig",
+        "colourful": "Kleurrijk",
+        "minimal": "Minimaal",
+        "some": "Wat",
+        "bold": "Gedurfd",
+        "low": "Laag",
+        "high": "Hoog"
+      }
+    },
+    "formula": {
+      "title": "Jouw formule",
+      "worn": "{count, plural, one {# keer gedragen} other {# keer gedragen}}",
+      "none": "Nog geen terugkerende formule. Draag een favoriete look nog eens."
+    },
+    "pairing": {
+      "title": "Favoriete kleuren",
+      "classic": "Een klassieke combinatie",
+      "good": "Een goede combinatie",
+      "yours": "Jouw combinatie",
+      "none": "Nog geen terugkerende kleurencombinatie."
+    },
+    "fabric": {
+      "title": "Stofvingerafdruk",
+      "natural": "Vooral natuurlijke vezels",
+      "mixed": "Een mix van natuurlijke en synthetische vezels",
+      "synthetic": "Vooral synthetisch"
+    },
+    "dressy": {
+      "title": "Bezit en gedragen",
+      "ownDressier": "Je bezit chiquere kleding dan je draagt",
+      "wearDressier": "Je kleedt je chiquer dan je kledingkast doet vermoeden",
+      "aligned": "Wat je bezit, draag je ook",
+      "scale": "Bezit {owned} · Gedragen {worn} (van 5)"
+    },
+    "signature": {
+      "title": "Signatuurstukken",
+      "none": "Nog geen stuk twee keer gedragen."
+    },
+    "locked": "Draag {need} looks om te ontgrendelen ({have}/{need})",
+    "teaser": {
+      "title": "Maak je stijl compleet",
+      "body": "Zie het stuk dat bij het meeste in je kledingkast past",
+      "pro": "Pro"
+    },
+    "kind": {
+      "tee": "T-shirt",
+      "shirt": "Overhemd",
+      "polo": "Polo",
+      "knit": "Breigoed",
+      "hoodie": "Hoodie",
+      "blouse": "Blouse",
+      "top": "Top",
+      "jeans": "Jeans",
+      "chinos": "Chino",
+      "trousers": "Broek",
+      "shorts": "Short",
+      "skirt": "Rok",
+      "dress": "Jurk",
+      "jumpsuit": "Jumpsuit",
+      "sneakers": "Sportschoenen",
+      "loafers": "Loafers",
+      "boots": "Laarzen",
+      "heels": "Hakken",
+      "flats": "Ballerina’s",
+      "sandals": "Sandalen",
+      "shoes": "Schoenen",
+      "blazer": "Blazer",
+      "jacket": "Jack",
+      "coat": "Mantel"
+    },
+    "title": "Stijl-DNA",
+    "kicker": "Stijl-DNA",
+    "yourArchetype": "Jouw archetype"
   }
 }
