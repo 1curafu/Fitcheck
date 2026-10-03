@@ -896,16 +896,16 @@
     }
   },
   "stats": {
-    "whatToBuy": "Quoi acheter ensuite",
+    "whatToBuy": "Prochain achat",
     "whatToBuyPitch": "Des pièces qui vont avec le plus de choses de ton dressing",
     "closetRead": {
       "neutral": "Surtout des tons neutres : {colours}.",
       "mixed": "Des tons neutres avec un peu de couleur : {colours}.",
       "colourful": "Beaucoup de couleur : {colours}."
     },
-    "goesWith": "{n, plural, one {Va avec # de tes pièces} other {Va avec # de tes pièces}}",
-    "bestWith": "À porter surtout avec tes pièces {a} et {b}.",
-    "bestWithOne": "À porter surtout avec ta pièce {a}.",
+    "goesWith": "{n, plural, one {Va avec # pièce de ta garde-robe} other {Va avec # pièces de ta garde-robe}}",
+    "bestWith": "À associer de préférence avec : {a} et {b}.",
+    "bestWithOne": "À associer de préférence avec : {a}.",
     "advisorPieces": {
       "tshirt": "Un t-shirt",
       "knit": "Un haut en maille",

@@ -896,16 +896,16 @@
     }
   },
   "stats": {
-    "whatToBuy": "O que comprar a seguir",
-    "whatToBuyPitch": "Peças que combinam com mais roupa do teu armário",
+    "whatToBuy": "Próxima compra",
+    "whatToBuyPitch": "Peças que combinam com a maior parte do teu guarda-roupa",
     "closetRead": {
       "neutral": "Sobretudo tons neutros: {colours}.",
       "mixed": "Tons neutros com alguma cor: {colours}.",
       "colourful": "Muita cor: {colours}."
     },
-    "goesWith": "{n, plural, one {Combina com # das tuas peças} other {Combina com # das tuas peças}}",
-    "bestWith": "Fica melhor com as tuas peças {a} e {b}.",
-    "bestWithOne": "Fica melhor com a tua peça {a}.",
+    "goesWith": "{n, plural, one {Combina com # peça do teu guarda-roupa} other {Combina com # peças do teu guarda-roupa}}",
+    "bestWith": "Combina melhor com: {a} e {b}.",
+    "bestWithOne": "Combina melhor com: {a}.",
     "advisorPieces": {
       "tshirt": "Uma t-shirt",
       "knit": "Uma peça de malha",

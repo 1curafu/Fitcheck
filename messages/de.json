@@ -896,16 +896,16 @@
     }
   },
   "stats": {
-    "whatToBuy": "Was du als Nächstes kaufen könntest",
-    "whatToBuyPitch": "Teile, die zu möglichst viel aus deinem Kleiderschrank passen",
+    "whatToBuy": "Dein nächster Kauf",
+    "whatToBuyPitch": "Kleidungsstücke, die zu möglichst vielen Sachen in deinem Kleiderschrank passen",
     "closetRead": {
       "neutral": "Vor allem neutrale Farben: {colours}.",
       "mixed": "Neutrale Farben mit etwas Farbe: {colours}.",
       "colourful": "Viel Farbe: {colours}."
     },
-    "goesWith": "{n, plural, one {Passt zu # deiner Teile} other {Passt zu # deiner Teile}}",
-    "bestWith": "Am besten mit deinen Teilen {a} und {b}.",
-    "bestWithOne": "Am besten mit deinem Teil {a}.",
+    "goesWith": "{n, plural, one {Passt zu # Teil aus deinem Kleiderschrank} other {Passt zu # Teilen aus deinem Kleiderschrank}}",
+    "bestWith": "Passt am besten zu: {a} und {b}.",
+    "bestWithOne": "Passt am besten zu: {a}.",
     "advisorPieces": {
       "tshirt": "Ein T-Shirt",
       "knit": "Ein Strickoberteil",
