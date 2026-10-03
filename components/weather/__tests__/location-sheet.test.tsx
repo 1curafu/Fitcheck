@@ -133,3 +133,8 @@ test("the picker inside carries no surface of its own", () => {
   expect(list.className).not.toMatch(/bg-surface-3/);
   expect(list.className).not.toMatch(/\bborder\b/);
 });
+
+test("a city picker only picks a city: the OpenWeather credit lives with the weather, not here", () => {
+  setup();
+  expect(screen.queryByText(/openweather/i)).not.toBeInTheDocument();
+});

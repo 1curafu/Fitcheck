@@ -178,11 +178,6 @@ export function OutfitDetail({
           <Kicker>
             {occasionLabel} · {outfit.weatherLabel}
           </Kicker>
-          {/* ⚠️ REQUIRED by ODbL — but ONLY when a temperature is actually on
-              screen. `weatherLabel` is "" when the look was stored without a
-              forecast, and crediting a provider for weather we are not showing
-              would be noise, not compliance. */}
-          {outfit.weatherLabel && <WeatherAttribution className="mt-1" />}
           <h1 className="mt-2 font-serif text-[34px]/[1.04] text-foreground">{outfit.lookName}</h1>
           {savedOn && <p className="mt-2 text-sm text-muted-foreground">{t("savedOn", { date: savedOn })}</p>}
 
@@ -237,6 +232,9 @@ export function OutfitDetail({
               </Link>
             ))}
           </div>
+          {/* ⚠️ REQUIRED by ODbL, and ONLY when a temperature is on screen: `weatherLabel` is "" for a look stored
+              without a forecast. It closes the page rather than sitting under the kicker (owner, 2026-10-03). */}
+          {outfit.weatherLabel && <WeatherAttribution className="mt-5" />}
         </div>
       </div>
 

@@ -224,3 +224,17 @@ test("the save upgrade sheet closes on navigation", async () => {
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   pathname = "/outfits/o1";
 });
+
+test("the OpenWeather credit closes the page, after the pieces — not between the kicker and the title", () => {
+  render(<OutfitDetail outfit={outfit} pieces={pieces} worn={false} saved={false} />);
+  const credit = screen.getByText("Weather data © OpenWeather");
+  const title = screen.getByRole("heading", { level: 1 });
+  const lastPiece = screen.getAllByRole("link").filter((a) => a.getAttribute("href")?.startsWith("/closet/")).at(-1)!;
+  expect(title.compareDocumentPosition(credit) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(lastPiece.compareDocumentPosition(credit) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+});
+
+test("no temperature on screen, no credit", () => {
+  render(<OutfitDetail outfit={{ ...outfit, weatherLabel: "" }} pieces={pieces} worn={false} saved={false} />);
+  expect(screen.queryByText(/openweather/i)).not.toBeInTheDocument();
+});

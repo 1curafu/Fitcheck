@@ -190,6 +190,13 @@ test("the location row opens a picker", async () => {
   expect(screen.getByRole("listbox", { name: /choose a city/i })).toBeInTheDocument();
 });
 
+test("the Settings city picker carries no weather credit: it shows no weather", async () => {
+  renderSettings();
+  await userEvent.click(screen.getByRole("button", { name: /location/i }));
+  expect(screen.getByRole("listbox", { name: /choose a city/i })).toBeInTheDocument();
+  expect(screen.queryByText(/openweather/i)).not.toBeInTheDocument();
+});
+
 test("the interim 'change it on the Stylist' hint is gone", () => {
   // It was copy for a read-only row. Beside a working picker it would point
   // users away from the control they are already looking at.
