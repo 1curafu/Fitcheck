@@ -31,6 +31,10 @@ const SHORTS = /\b(shorts|bermudas?)\b/i;
 const TEE_LIKE = /\b(t-?shirts?|tees?|sweatshirts?|hoodies?)\b/i;
 /** "Skinny fit" is a trouser cut; a fitted pencil skirt is not what the user ruled out. */
 const SKIRT = /\bskirts?\b/i;
+/** A print on a tee-like top. Shared with the Streetwear style mark so both mean the same piece. */
+export function isGraphicTee(i: NoGoItem): boolean {
+  return i.category === "Tops" && i.pattern === "print" && TEE_LIKE.test(i.subcategory ?? "");
+}
 /** Garments worn on the body; denim shoes or a denim bag do not make "double denim". */
 const GARMENTS = new Set(["Tops", "Bottoms", "One-piece", "Outerwear"]);
 
@@ -41,7 +45,7 @@ const ITEM_RULES: Record<Exclude<NoGo, "double_denim">, (i: NoGoItem) => boolean
   shorts: (i) => i.category === "Bottoms" && SHORTS.test(i.subcategory ?? ""),
   ripped: (i) => i.distressing === "Ripped",
   // A print with no known kind is not evidence of a graphic tee — silence never blocks a piece.
-  graphic: (i) => i.category === "Tops" && i.pattern === "print" && TEE_LIKE.test(i.subcategory ?? ""),
+  graphic: isGraphicTee,
 };
 
 export function itemBlocked(item: NoGoItem, nogos: readonly NoGo[]): boolean {
