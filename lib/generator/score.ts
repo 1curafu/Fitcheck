@@ -1,6 +1,7 @@
 import { leanScore } from "./color";
 import { fitScore } from "./fit-pref";
 import { paletteScore } from "./palette";
+import { archetypeScore } from "./archetype";
 import { seasonFit } from "./season";
 import { accentMetalTone, isHardware, metalCoordination } from "./styling/metal";
 import { warmthFit } from "./texture";
@@ -62,6 +63,7 @@ export type ScoreItem = {
   fit?: string | null;
 };
 export type Ctx = {
+  /** `[profile.archetype]` — the rerank prompt's aesthetic, and the quiz part 3 score term (first entry only). */
   aesthetic: string[];
   band: [number, number];
   /** Refine "Lean into" colour families. Empty = no preference. */
@@ -191,6 +193,8 @@ const WEIGHTS = {
    */
   palette: 0.04,
   fit: 0.04,
+  /** The quiz's style answer (quiz part 3), as soft as palette and fit; only sourced marks claim it (./archetype.ts). */
+  archetype: 0.04,
 } as const;
 
 /**
@@ -350,18 +354,7 @@ type Term = { weight: number; value: number | null };
 export function scoreCombo(items: ScoreItem[], ctx: Ctx): number {
   const colors = items.flatMap((i) => i.colors);
 
-  // ⚠️ `dna` was here and was ALWAYS ZERO. `style_tags` had no DB column and no
-  // producer anywhere in the repo, so `dnaHits` never exceeded 0 — a constant
-  // 15% removed from every outfit, discriminating nothing. Deleted rather than
-  // revived: the aesthetic already reaches the model through the rerank prompt,
-  // and a deterministic aesthetic signal needs a real producer behind it, which
-  // is its own piece of work.
-  //
-  // ⚠️ The weight is NOT redistributed here. With Task 1's additive budget the
-  // term simply stops claiming its share and normalisation absorbs it, which is
-  // a uniform rescale and provably cannot reorder anything. Moving the 0.15 to
-  // `colour` was measured to reorder the tail — a deliberate reweighting that
-  // belongs in its own change where it can be judged on its own evidence.
+  // The old `dna` term (always zero, no producer) is gone; the style answer returns as `archetype`, backed by sourced marks.
 
   // One line per signal. A `null` value means "no evidence" — the term is
   // DROPPED, never folded in as a neutral 0.5, and the rest renormalise over
@@ -462,6 +455,7 @@ export function scoreCombo(items: ScoreItem[], ctx: Ctx): number {
     { weight: WEIGHTS.climate, value: climateFit(items, ctx) },
     { weight: WEIGHTS.palette, value: paletteScore(items, ctx.palette) },
     { weight: WEIGHTS.fit, value: fitScore(items, ctx.fitPref) },
+    { weight: WEIGHTS.archetype, value: archetypeScore(items, ctx.aesthetic[0]) },
   ];
 
   const claimed = terms.filter((t): t is Term & { value: number } => t.value != null);
