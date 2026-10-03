@@ -152,7 +152,7 @@ export function tripPlanner(
       ...ctx,
       recentlyShown: recent,
     }, combos.length);
-    const floorCtx = { ...ctx, palette: null, fitPref: null };
+    const floorCtx = { ...ctx, aesthetic: [], palette: null, fitPref: null };
     // Ranking preferences can lift a sub-floor look above a qualifying one.
     // Choose the first qualifying survivor of the registry in preference order;
     // retain the best candidate when none qualifies so the solve rejects it.
@@ -173,7 +173,7 @@ export function tripPlanner(
      */
     return {
       itemIds: top.items.map((i) => i.id),
-      // The floor score WITHOUT the quiz preferences: they steer which look wins, but QUALITY_FLOOR was calibrated
+      // The floor score WITHOUT the quiz preferences (palette, fit, style): they steer which look wins, but QUALITY_FLOOR was calibrated
       // without them, so a soft preference must never be able to push a good look under it (Opus review).
       score: scoreCombo(top.items, floorCtx),
     };

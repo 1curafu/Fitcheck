@@ -116,3 +116,16 @@ test("advisor participates in the no-go and preference producer guards", () => {
   expect(advisor).toMatch(/palette:\s*prefs\?\.palette/);
   expect(advisor).toMatch(/fitPref:\s*prefs\?\.fitPref/);
 });
+
+test("every producer hands looks the style answer, and only floor contexts drop it (quiz part 3)", () => {
+  const text = (p: string) => FILES.find(({ path }) => path === p)!.text;
+  for (const p of ["app/[locale]/generate/actions.ts", "app/[locale]/closet/[itemId]/style-actions.ts", "app/[locale]/packing/actions.ts"])
+    expect(text(p), p).toMatch(/profile\?\.archetype \? \[profile\.archetype/);
+  expect(text("app/[locale]/stats/page.tsx")).toMatch(/aesthetic: quiz\.archetype \? \[quiz\.archetype\]/);
+  // An empty aesthetic is allowed only where QUALITY_FLOOR is scored.
+  const scorers = FILES.filter(({ path, text }) => /\b(rankTopN|scoreCombo)\(/.test(text) && !path.includes("lib/generator/"));
+  const emptied = scorers.flatMap(({ path, text }) =>
+    text.split("\n").filter((line) => /aesthetic:\s*\[\]/.test(line) && !/floor/i.test(line)).map(() => path));
+  expect(emptied).toEqual([]);
+  expect(text("lib/packing/plan.ts")).toMatch(/const floorCtx = \{[^}]*aesthetic: \[\]/);
+});

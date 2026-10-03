@@ -1,4 +1,5 @@
 import { formalityCoherence, formalityCoherenceOf, wristwearBonus, scoreCombo } from "../score";
+import { archetypeScore } from "../archetype";
 
 const CTX = { aesthetic: [], band: [1, 5] as [number, number] };
 
@@ -1043,4 +1044,53 @@ test("navy tailoring prefers brown over black shoes", () => {
   const suit = [{ category: "Tops", colors: ["navy"], formality: 4, material: "Wool" }, { category: "Bottoms", colors: ["navy"], formality: 4, material: "Wool" }];
   const score = (color: string) => scoreCombo([...suit, { category: "Shoes", colors: [color], formality: 4, material: "Leather" }], CTX);
   expect(score("brown")).toBeGreaterThan(score("black"));
+});
+
+describe("quiz part 3: the style answer (very soft)", () => {
+  const base = { aesthetic: [] as string[], band: [1, 5] as [number, number] };
+  const plain = [
+    { category: "Tops", colors: ["navy"], formality: 3, subcategory: "Knit", fit: "Regular" },
+    { category: "Bottoms", colors: ["stone"], formality: 3, subcategory: "Trousers", fit: "Regular" },
+    { category: "Shoes", colors: ["brown"], formality: 3, subcategory: "Derbies" },
+  ];
+  const polished = [{ ...plain[0], fit: "Tailored" }, { ...plain[1], fit: "Tailored" }, { ...plain[2], subcategory: "Loafers" }];
+
+  test("no answer, an unknown answer or Smart Casual scores exactly as today", () => {
+    const today = scoreCombo(polished, base);
+    for (const aesthetic of [["Smart Casual"], ["smart_casual"], ["Boho"]]) expect(scoreCombo(polished, { ...base, aesthetic })).toBe(today);
+  });
+
+  test("a look with no marked piece scores exactly as today under every answer", () => {
+    for (const a of ["Old Money", "Preppy", "Streetwear"]) expect(scoreCombo(plain, { ...base, aesthetic: [a] })).toBe(scoreCombo(plain, base));
+  });
+
+  test("Old Money widens the lead of a tailored loafer look over a ripped, chunky-sneaker one", () => {
+    const rough = [plain[0], { ...plain[1], distressing: "Ripped" }, { ...plain[2], subcategory: "Sneakers", bulk: "Chunky" }];
+    const lead = (ctx: typeof base) => scoreCombo(polished, ctx) - scoreCombo(rough, ctx);
+    expect(lead({ ...base, aesthetic: ["Old Money"] })).toBeGreaterThan(lead(base));
+  });
+
+  test("Streetwear lifts a hoodie and sneaker look; Preppy has no opinion on it", () => {
+    const street = [{ ...plain[0], subcategory: "Hoodie" }, plain[1], { ...plain[2], subcategory: "Sneakers" }];
+    expect(scoreCombo(street, { ...base, aesthetic: ["Streetwear"] })).toBeGreaterThan(scoreCombo(street, base));
+    expect(scoreCombo(street, { ...base, aesthetic: ["Preppy"] })).toBe(scoreCombo(street, base));
+  });
+
+  test("soft at realistic gaps: palette, fit AND style all for a 2/4/3 look still lose to a coherent 3/3/3 one", () => {
+    // Measured 2026-10-03 at 0.04: ~0.79 vs ~0.85. Even at 0.08 the coherent look keeps the lead (0.796 vs 0.825).
+    const inPref = [
+      { category: "Tops", colors: ["black"], formality: 2, fit: "Tailored" },
+      { category: "Bottoms", colors: ["grey"], formality: 4, fit: "Tailored" },
+      { category: "Shoes", colors: ["white"], formality: 3, subcategory: "Loafers" },
+    ];
+    const coherent = [
+      { category: "Tops", colors: ["navy"], formality: 3, fit: "Relaxed", branding: "Large" },
+      { category: "Bottoms", colors: ["camel"], formality: 3, fit: "Relaxed", distressing: "Ripped" },
+      { category: "Shoes", colors: ["brown"], formality: 3 },
+    ];
+    expect(archetypeScore(inPref, "Old Money")).toBe(1);
+    expect(archetypeScore(coherent, "Old Money")).toBe(0);
+    const ctx = { ...base, aesthetic: ["Old Money"], palette: "Mono", fitPref: "Tailored" };
+    expect(scoreCombo(coherent, ctx)).toBeGreaterThan(scoreCombo(inPref, ctx));
+  });
 });
