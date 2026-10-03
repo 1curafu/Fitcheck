@@ -79,3 +79,14 @@ test("the style mix needs the same evidence as the headline: one marked piece is
   render(<StyleDnaView dna={thin} signaturePieces={[]} isPro />);
   expect(screen.queryByText(/style mix/i)).not.toBeInTheDocument();
 });
+
+test("historical vocabulary the catalogue no longer knows is shown as stored, not as a missing key", () => {
+  const legacy: StyleDna = {
+    ...base,
+    trio: { ...base.trio, occasion: { key: "travel", share: 0.5 } },
+    fabric: { top: ["Wool", "Bamboo"], natural: 0.9, level: "natural" },
+  };
+  render(<StyleDnaView dna={legacy} signaturePieces={pieces} isPro />);
+  expect(screen.getByText("travel")).toBeInTheDocument();
+  expect(screen.getByText("Wool · Bamboo")).toBeInTheDocument();
+});

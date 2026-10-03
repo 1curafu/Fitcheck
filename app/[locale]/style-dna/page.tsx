@@ -10,6 +10,11 @@ import { readStyleProfile } from "@/lib/onboarding/style-profile";
 import { entitlementsFor } from "@/lib/billing/tiers";
 import { displayPath, signItemImages } from "@/lib/storage/signed";
 import { buildStyleDna } from "@/lib/style-dna";
+import { readAll, readWearHistory } from "@/lib/style-dna/history";
+import { pieceKind } from "@/lib/style-dna/kinds";
+
+/** The shared mapper's input, plus the display name a signature piece shows. */
+type ItemRow = Parameters<typeof toCandidateItem>[0] & { name?: string | null };
 
 export default async function StyleDnaPage() {
   const t = await getTranslations("styleDna");
@@ -30,29 +35,35 @@ async function StyleDnaBody() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return redirect({ href: "/sign-in", locale: await getLocale() });
 
-  const [profileRes, itemsRes, logsRes, outfitsRes, piecesRes] = await Promise.all([
+  const [profileRes, rows, history] = await Promise.all([
     supabase.from("profiles").select("tier, archetype, palette, fit").eq("id", user.id).single(),
-    supabase.from("items").select("*").eq("user_id", user.id).eq("archived", false),
-    supabase.from("wear_logs").select("outfit_id").eq("user_id", user.id),
-    supabase.from("outfits").select("id, occasion").eq("user_id", user.id),
-    supabase.from("outfit_items").select("outfit_id, item_id"),
+    // Paged like the history: a closet can outgrow the 1000-row response cap.
+    readAll<ItemRow>((from, to) =>
+      supabase.from("items").select("*").eq("user_id", user.id).eq("archived", false).order("id").range(from, to)),
+    readWearHistory(supabase, user.id),
   ]);
-  for (const res of [itemsRes, logsRes, outfitsRes, piecesRes]) if (res.error) throw new Error(res.error.message);
+  // A failed read would otherwise pass for a free user with no quiz answers.
+  if (profileRes.error) throw new Error(profileRes.error.message);
 
-  const rows = itemsRes.data ?? [];
   const quiz = readStyleProfile(profileRes.data);
+  const closet = rows.map(toCandidateItem);
   const dna = buildStyleDna({
-    closet: rows.map(toCandidateItem),
+    closet,
     quiz: { archetype: quiz.archetype, palette: quiz.palette, fit: quiz.fit },
-    logs: logsRes.data ?? [], outfits: outfitsRes.data ?? [], pieces: piecesRes.data ?? [],
+    logs: history.logs, outfits: history.outfits, pieces: history.pieces,
   });
 
-  const byId = new Map(rows.map((row) => [row.id as string, row]));
-  const top = dna.signature.status === "found" ? dna.signature.pieces.flatMap((p) => (byId.has(p.id) ? [{ ...p, row: byId.get(p.id)! }] : [])) : [];
-  const images = await signItemImages(top.map((p) => displayPath(p.row, "thumb")));
-  const signaturePieces = top.map((p) => ({
-    id: p.id, wears: p.wears, name: (p.row.name as string | null) ?? t("kind.top"), imageUrl: images.get(displayPath(p.row, "thumb")) ?? null,
-  }));
+  const byId = new Map(rows.map((row, i) => [row.id, { row, item: closet[i] }]));
+  const top = dna.signature.status === "found" ? dna.signature.pieces.flatMap((p) => (byId.has(p.id) ? [{ ...p, ...byId.get(p.id)! }] : [])) : [];
+  const images = await signItemImages(top.map((p) => displayPath(p.row as never, "thumb")));
+  const signaturePieces = top.map((p) => {
+    // An unnamed piece is called by its own kind ("Loafers"), never a generic word.
+    const kind = pieceKind(p.item);
+    return {
+      id: p.id, wears: p.wears, imageUrl: images.get(displayPath(p.row as never, "thumb")) ?? null,
+      name: p.row.name ?? (kind ? t(`kind.${kind}`) : p.item.category),
+    };
+  });
 
   return (
     <>

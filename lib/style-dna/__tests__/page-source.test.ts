@@ -2,10 +2,19 @@ import { readFileSync } from "node:fs";
 
 const page = readFileSync("app/[locale]/style-dna/page.tsx", "utf8");
 
-test("wear logs and look pieces are read separately: the embed returns zero rows silently (stats/page.tsx, PR #22)", () => {
-  expect(page).toMatch(/from\("wear_logs"\)\s*\.select\("outfit_id"\)/);
-  expect(page).toMatch(/from\("outfit_items"\)\s*\.select\("outfit_id, item_id"\)/);
-  expect(page).not.toMatch(/outfit_items!inner/);
+test("history is read in full and per worn look, never as one capped request (PR #159 review)", () => {
+  const history = readFileSync("lib/style-dna/history.ts", "utf8");
+  expect(history).toMatch(/from\("wear_logs"\)\.select\("id, outfit_id"\)/);
+  expect(history).toMatch(/from\("outfit_items"\)\.select\("outfit_id, item_id"\)\.in\("outfit_id", chunk\)/);
+  expect(history).not.toMatch(/outfit_items!inner/);
+  expect(page).toMatch(/readWearHistory\(supabase, user\.id\)/);
+  expect(page).toMatch(/readAll<[^>]*>\(\(from, to\) =>\s*supabase\.from\("items"\)/);
+  // No unbounded history read left on the page itself.
+  expect(page).not.toMatch(/from\("(wear_logs|outfits|outfit_items)"\)/);
+});
+
+test("a failed profile read is an error, not a free user with no quiz answers (PR #159 review)", () => {
+  expect(page).toMatch(/if \(profileRes\.error\) throw new Error\(profileRes\.error\.message\)/);
 });
 
 test("the body authenticates and the shell holds no user data", () => {

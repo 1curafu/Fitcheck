@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Link } from "@/lib/i18n/navigation";
+import { useVocab } from "@/lib/i18n/vocab";
 import type { StyleDna } from "@/lib/style-dna";
 import type { DnaCardInput } from "@/lib/style-dna/card";
 import { ShareDna } from "./share-dna";
@@ -15,15 +16,14 @@ export function StyleDnaView({ dna, signaturePieces, isPro }: { dna: StyleDna; s
   const archetypes = useTranslations("onboarding.questions.archetype.options");
   const palettes = useTranslations("onboarding.questions.palette.options");
   const fits = useTranslations("onboarding.questions.fit.options");
-  const colours = useTranslations("vocab.color");
-  const materials = useTranslations("vocab.material");
-  const occasions = useTranslations("vocab.occasion");
+  // Stored vocabulary can predate the catalogue; useVocab shows such a value as stored instead of a missing key.
+  const label = useVocab();
   const named = (a: string | null) => (a && archetypes.has(`${a}.label` as never) ? archetypes(`${a}.label` as never) : a ?? t("noAnswer"));
 
   const archetype = named(dna.reading.archetype);
   const blurb = `${t(`opening.${dna.blurb.opening}` as never)} ${t(`trait.${dna.blurb.trait}` as never)}`;
   const third = dna.trio.occasion
-    ? { value: `${pct(dna.trio.occasion.share)}%`, label: occasions(dna.trio.occasion.key as never) }
+    ? { value: `${pct(dna.trio.occasion.share)}%`, label: label("occasion", dna.trio.occasion.key) }
     : { value: String(dna.trio.colours), label: t("stats.colours") };
   const stats = [
     { value: String(dna.trio.pieces), label: t("stats.pieces") },
@@ -32,7 +32,7 @@ export function StyleDnaView({ dna, signaturePieces, isPro }: { dna: StyleDna; s
   ];
   const card: DnaCardInput = {
     kicker: t("kicker"), label: t("yourArchetype"), archetype, blurb,
-    swatches: dna.swatches.map((s) => ({ hex: s.hex, label: colours(s.color as never) })),
+    swatches: dna.swatches.map((s) => ({ hex: s.hex, label: label("color", s.color) })),
     stats, footer: t("footer", { count: dna.trio.pieces }),
   };
   const agrees = dna.reading.source === "closet" && dna.reading.archetype === dna.quizArchetype;
@@ -52,7 +52,7 @@ export function StyleDnaView({ dna, signaturePieces, isPro }: { dna: StyleDna; s
           {dna.swatches.map((s) => (
             <div key={s.color} className="flex-1">
               <div className="h-[44px] rounded-[8px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.07)]" style={{ background: s.hex }} />
-              <div className="mt-[6px] text-center text-[9px] uppercase tracking-[0.16em] text-muted-foreground">{colours(s.color as never)}</div>
+              <div className="mt-[6px] text-center text-[9px] uppercase tracking-[0.16em] text-muted-foreground">{label("color", s.color)}</div>
             </div>
           ))}
         </div>
@@ -114,7 +114,7 @@ export function StyleDnaView({ dna, signaturePieces, isPro }: { dna: StyleDna; s
         {locked(dna.pairing) ?? (dna.pairing.status === "found" ? (
           <div className="flex items-center gap-[10px]">
             {dna.pairing.colors.map((c) => <span key={c} className="size-[28px] rounded-[7px]" style={{ background: dna.swatches.find((s) => s.color === c)?.hex ?? "#8a8a8f" }} aria-hidden />)}
-            <span className="text-[14px]">{dna.pairing.colors.map((c) => colours(c as never)).join(" + ")}</span>
+            <span className="text-[14px]">{dna.pairing.colors.map((c) => label("color", c)).join(" + ")}</span>
             <span className="text-[14px] text-muted-foreground">{t(`pairing.${dna.pairing.verdict}` as never)}</span>
           </div>
         ) : <p className="text-[14px] text-muted-foreground">{t("pairing.none")}</p>)}
@@ -123,7 +123,7 @@ export function StyleDnaView({ dna, signaturePieces, isPro }: { dna: StyleDna; s
       {dna.fabric ? (
         <Section title={t("fabric.title")}>
           <p className="text-[14px]">{t(`fabric.${dna.fabric.level}` as never)}</p>
-          <p className="mt-1 text-[12px] text-muted-foreground">{dna.fabric.top.map((m) => materials(m as never)).join(" · ")}</p>
+          <p className="mt-1 text-[12px] text-muted-foreground">{dna.fabric.top.map((m) => label("material", m)).join(" · ")}</p>
         </Section>
       ) : null}
 
