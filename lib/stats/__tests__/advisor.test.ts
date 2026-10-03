@@ -216,3 +216,80 @@ test.skipIf(process.env.STRYKER_MUTATOR_WORKER !== undefined)("ranking a real 15
   expect(result).toHaveLength(3);
   expect(elapsed).toBeLessThan(400);
 });
+
+describe("loungewear-only dress code (PR #154 review)", () => {
+  const lounge = { formality_min: 1, formality_max: 1 };
+  const closet = [
+    piece("t1", "Tops", "grey", { formality: 1 }), piece("t2", "Tops", "black", { formality: 1 }),
+    piece("b1", "Bottoms", "grey", { formality: 1 }), piece("s1", "Shoes", "white", { formality: 1 }),
+  ];
+
+  test("candidates use the generator's own formality tolerance, so a loungewear band still gets advice", () => {
+    const labels = new Set(purchaseCandidates(closet, lounge).map(p => p.label));
+    expect(labels.size).toBeGreaterThan(0);
+    expect(labels.has("tshirt") || labels.has("sneakers") || labels.has("jeans")).toBe(true);
+  });
+
+  test("a loungewear-only closet is told what to buy", () => {
+    expect(rankPurchases(closet, lounge).length).toBeGreaterThan(0);
+  });
+});
+
+describe("advisor behaviour pinned after the Stryker review (PR #154)", () => {
+  test("a dress alone (no skirt tag) is enough evidence for the skirt family", () => {
+    const got = labels([piece("dress", "One-piece", "black"), piece("top", "Tops", "white"), piece("bottom", "Bottoms", "grey"),
+      piece("shoe", "Shoes", "white")]);
+    expect(["blouse", "midiSkirt", "balletFlats"].some(l => got.has(l as never))).toBe(true);
+  });
+
+  test("every allowed category gets its own nearest archetype — a single-band dress code still offers a coat", () => {
+    const categories = new Set(purchaseCandidates(closet, { formality_min: 3, formality_max: 3 }).map(c => c.category));
+    for (const c of ["Tops", "Bottoms", "Shoes", "Outerwear"]) expect(categories.has(c)).toBe(true);
+  });
+
+  const rich = [
+    piece("t-white", "Tops", "white"), piece("t-navy", "Tops", "navy"), piece("t-grey", "Tops", "grey", { formality: 4 }),
+    piece("b-grey", "Bottoms", "grey"), piece("b-navy", "Bottoms", "navy", { formality: 4 }), piece("b-beige", "Bottoms", "beige"),
+    piece("s-brown", "Shoes", "brown", { material: "Leather" }), piece("s-black", "Shoes", "black", { material: "Leather", formality: 4 }),
+  ];
+
+  test("'best with' names the pieces of the highest-scoring good look", () => {
+    for (const top of rankPurchases(rich, undefined, 80)) {
+      const candidate: CandidateItem = { id: "__buy__", category: top.purchase.category, colors: [top.purchase.color],
+        formality: top.purchase.formality, subcategory: top.purchase.subcategory, material: top.purchase.material,
+        texture: top.purchase.texture, pattern: "solid", seasons: [] };
+      const pool = [...rich.slice().sort((a, b) => a.id.localeCompare(b.id)).filter(i => i.category !== candidate.category), candidate];
+      const looks: { score: number; ids: string[] }[] = [];
+      for (const o of relevantOccasions(["everyday", "work", "weekend", "evening"])) {
+        const band = personalBand(o, null);
+        for (const w of SIMULATED_CONDITIONS) for (const items of buildCandidates(pool, { band, weather: w, excludeItemIds: [], maxAccessories: 0, maxBags: 0 })) {
+          if (!items.some(i => i.id === "__buy__")) continue;
+          const score = scoreCombo(items, { aesthetic: [], band, tempC: w.tempC });
+          if (score >= 0.7) looks.push({ score, ids: items.filter(i => i.id !== "__buy__").map(i => i.id) });
+        }
+      }
+      const best = Math.max(...looks.map(l => l.score));
+      const bestPartners = looks.filter(l => l.score === best).map(l => l.ids.slice(0, 2).join("|"));
+      expect(bestPartners).toContain(top.partners.join("|"));
+    }
+  });
+
+  test("dress codes also restrict the looks used for ranking, not just the candidates", () => {
+    // f3 pieces pair well with each other and with an f4 purchase under the default bands, but a 5–5 dress code excludes them.
+    const smartCasual = ["t1:Tops:white", "t2:Tops:navy", "b1:Bottoms:grey", "b2:Bottoms:beige", "s1:Shoes:brown", "s2:Shoes:black"]
+      .map(spec => { const [id, category, color] = spec.split(":"); return piece(id, category, color, { formality: 3, material: category === "Shoes" ? "Leather" : "Cotton" }); });
+    const dressy = [piece("t4", "Tops", "white", { formality: 5 }), piece("b4", "Bottoms", "charcoal", { formality: 5, material: "Wool" }),
+      piece("s4", "Shoes", "black", { formality: 5, material: "Leather" })];
+    const rows = rankPurchases([...smartCasual, ...dressy], { formality_min: 5, formality_max: 5 }, 80);
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) expect(row.partners.filter(id => smartCasual.some(p => p.id === id))).toEqual([]);
+  });
+
+  test("the accent slot leaves a colourful closet alone", () => {
+    const colourful = ["red", "green", "orange", "pink", "purple"].flatMap((c, i) => [
+      piece(`t${i}`, "Tops", c), piece(`b${i}`, "Bottoms", c), piece(`s${i}`, "Shoes", c, { material: "Leather" })]);
+    const ranked = rankPurchases(colourful);
+    const all = rankPurchases(colourful, undefined, 80).slice(0, 3);
+    expect(ranked.map(r => r.purchase.key)).toEqual(all.map(r => r.purchase.key));
+  });
+});

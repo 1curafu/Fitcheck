@@ -1,5 +1,5 @@
 import { COLORS, COLOR_NAMES, type ColorName } from "@/lib/closet/vocab";
-import { buildCandidates, type CandidateItem } from "@/lib/generator/candidates";
+import { buildCandidates, formalityFits, type CandidateItem } from "@/lib/generator/candidates";
 import { scoreCombo } from "@/lib/generator/score";
 import { QUALITY_FLOOR } from "@/lib/packing/capsule";
 import { itemBlocked } from "@/lib/generator/nogos";
@@ -54,13 +54,16 @@ export function purchaseCandidates(closet: CandidateItem[], prefs?: AdvisorPrefs
   const allowedCategories = new Set(candidatesFor(closet, prefs).map(item => item.category));
   const rows = archetypes.filter(row => allowedCategories.has(row.category) && (!SKIRT_FAMILY.has(row.label) || inferred));
   const selected = new Set<Archetype>();
+  const codeCentre = prefs?.formality_min != null && prefs?.formality_max != null ? (prefs.formality_min + prefs.formality_max) / 2 : 3;
   for (const occasion of relevantOccasions(ALL_OCCASIONS, prefs)) {
     const band = personalBand(occasion, prefs ?? null);
     const midpoint = (band[0] + band[1]) / 2;
     for (const category of allowedCategories) {
-      const choices = rows.filter(row => row.category === category && row.formality >= band[0] && row.formality <= band[1]);
-      const nearest = Math.min(...choices.map(row => Math.abs(row.formality - midpoint)));
-      for (const row of choices) if (Math.abs(row.formality - midpoint) === nearest) selected.add(row);
+      const choices = rows.filter(row => row.category === category && formalityFits(row.formality, row.category, band));
+      // Nearest the band's centre; a tie goes to the user's own dress code, so tolerance never decides a purchase.
+      const distance = (row: Archetype) => [Math.abs(row.formality - midpoint), Math.abs(row.formality - codeCentre)];
+      const best = choices.map(distance).sort((a, b) => a[0] - b[0] || a[1] - b[1])[0];
+      for (const row of choices) if (best && distance(row).every((d, i) => d === best[i])) selected.add(row);
     }
   }
   const top = frequentColours(closet);

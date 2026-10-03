@@ -147,3 +147,14 @@ test("Free hides supplied advice and offers the new locked pitch", () => {
   expect(screen.queryByText(/private piece/)).not.toBeInTheDocument();
   expect(screen.getByText("Pieces that go with the most of your closet")).toBeInTheDocument();
 });
+
+test("an advisor with nothing to suggest falls back to the slot answer instead of an empty section (PR #154 review)", () => {
+  renderStats({ advisor: { read: "Mostly neutrals.", purchases: [] } });
+  expect(screen.getByText("A camel overcoat")).toBeInTheDocument();
+  expect(screen.queryByTestId("advisor-card")).toBeNull();
+});
+
+test("the stats page computes the slot answer when the advisor returns nothing", async () => {
+  const { readFileSync } = await import("node:fs");
+  expect(readFileSync("app/[locale]/stats/page.tsx", "utf8")).toMatch(/\(missing \|\| !advice\?\.purchases\.length\)/);
+});

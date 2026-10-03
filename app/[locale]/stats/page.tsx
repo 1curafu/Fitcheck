@@ -136,14 +136,15 @@ async function StatsBody() {
     band: personalBand(relevantOccasions(ALL_OCCASIONS, gapPrefs)[0] ?? "everyday", gapPrefs),
     weather: SIMULATED_CONDITIONS[0], excludeItemIds: [], maxAccessories: 0, nogos: gapPrefs.nogos,
   });
-  const gap = entitlements.gapAnalysis && missing
-    ? biggestGap(closet, ALL_OCCASIONS, gapPrefs)
-    : null;
   // Full tags and preferences join the user id in the cache key, so edits cannot reuse stale advice.
   const advice = entitlements.gapAnalysis && !missing
     ? await cachedAdvice(user.id, closet.slice().sort((a, b) => a.id.localeCompare(b.id)), {
       ...gapPrefs, palette: quiz.palette, fitPref: quiz.fit, aesthetic: quiz.archetype ? [quiz.archetype] : [],
     }) : null;
+  // The slot answer covers a missing slot AND an advisor with nothing to say, so the card never silently vanishes.
+  const gap = entitlements.gapAnalysis && (missing || !advice?.purchases.length)
+    ? biggestGap(closet, ALL_OCCASIONS, gapPrefs)
+    : null;
   const vocab = await getTranslations("vocab.color");
   const read = advice ? t(`closetRead.${advice.read.kind}`, {
     colours: new Intl.ListFormat(await getLocale(), { style: "long", type: "conjunction" }).format(advice.read.top.map(color => vocab(color))),
